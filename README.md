@@ -245,7 +245,7 @@ const txn = await didit.transactions.create({
 console.log(txn.status, txn.score); // "APPROVED" | "IN_REVIEW" | "DECLINED" | ...
 
 const screening = await didit.walletScreening.screen({ wallet_address: "0x...", blockchain: "ETH" });
-for await (const rule of didit.transactions.rules.list()) console.log(rule.name);
+for await (const rule of didit.transactions.rules.list()) console.log(rule.title, rule.mode);
 const settings = await didit.travelRule.retrieveSettings();
 const vasps = await didit.travelRule.listVasps({ limit: 20 });
 ```
