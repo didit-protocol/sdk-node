@@ -239,20 +239,37 @@ function errorDetail(body: unknown): string | null {
   return null;
 }
 
-/** Replace every occurrence of a secret in the strings of `value`. */
+/** A secret as it may be echoed back: as sent, percent-encoded, or form-encoded. */
+function spellings(secret: string): string[] {
+  const out = new Set([secret]);
+  try {
+    out.add(encodeURIComponent(secret));
+    out.add(new URLSearchParams({ s: secret }).toString().slice(2));
+  } catch {
+    // A lone surrogate has no encoded form.
+  }
+  return [...out];
+}
+
+/** Replace every occurrence of a secret in the strings and keys of `value`. */
 export function redact<T>(value: T, secrets: readonly string[]): T {
-  const active = secrets.filter((s) => s.length > 0);
+  // Longest first, so a secret is never left half replaced by a shorter spelling.
+  const active = secrets
+    .filter((s) => s.length > 0)
+    .flatMap(spellings)
+    .sort((a, b) => b.length - a.length);
   if (!active.length) return value;
+  const text = (input: string): string => {
+    let out = input;
+    for (const secret of active) out = out.split(secret).join("[redacted]");
+    return out;
+  };
   const scrub = (input: unknown): unknown => {
-    if (typeof input === "string") {
-      let out = input;
-      for (const secret of active) out = out.split(secret).join("[redacted]");
-      return out;
-    }
+    if (typeof input === "string") return text(input);
     if (Array.isArray(input)) return input.map(scrub);
     if (isRecord(input)) {
       const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(input)) out[k] = scrub(v);
+      for (const [k, v] of Object.entries(input)) out[text(k)] = scrub(v);
       return out;
     }
     return input;

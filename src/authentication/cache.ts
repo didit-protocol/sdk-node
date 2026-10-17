@@ -126,7 +126,8 @@ export class KeySet {
 /**
  * The key set, or `null` when `data` is not a JWKS (`{"keys": [...]}`). Keys
  * without a string `kid` are ignored: Didit always sets one, and a token is
- * matched to its key by `kid` only. The first key with a given `kid` wins.
+ * matched to its key by `kid` only. The first usable (ES256, P-256) key with a
+ * given `kid` wins, so an entry of another type cannot hide it.
  */
 export function parseKeySet(data: unknown): KeySet | null {
   if (!isRecord(data) || !Array.isArray(data.keys)) return null;
@@ -134,7 +135,9 @@ export function parseKeySet(data: unknown): KeySet | null {
   for (const item of data.keys as unknown[]) {
     if (!isRecord(item)) continue;
     const { kid } = item;
-    if (typeof kid === "string" && kid && !byKid.has(kid)) byKid.set(kid, item);
+    if (typeof kid !== "string" || !kid) continue;
+    const current = byKid.get(kid);
+    if (!current || (!p256Jwk(current) && p256Jwk(item))) byKid.set(kid, item);
   }
   return new KeySet(byKid);
 }

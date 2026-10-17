@@ -228,6 +228,12 @@ describe("discovery and JWKS", () => {
     expect(parseKeySet({ keys: [key.jwk()] })?.has(key.kid)).toBe(true);
   });
 
+  it("does not let an unusable entry hide a usable key with the same kid", async () => {
+    const rsa = { kty: "RSA", kid: key.kid, n: b64url(new Uint8Array(256).fill(1)), e: "AQAB" };
+    issuer.route("GET", JWKS, () => json(200, { keys: [rsa, key.jwk()] }));
+    expect((await auth.verifyAccessToken(await key.sign(accessClaims()))).sub).toBe(IDENTITY_ID);
+  });
+
   it("uses the documented paths when discovery omits the endpoints or they are not URLs", async () => {
     issuer.discovery!.jwks_uri = "https://[::1";
     issuer.discovery!.token_endpoint = 42;
@@ -251,10 +257,11 @@ describe("discovery and JWKS", () => {
     for (const other of [`${ISSUER}/`, ISSUER.toUpperCase(), ` ${ISSUER}`]) {
       issuer.discovery!.issuer = other;
       expect(
-        await rejection(auth.verifyAccessToken(await key.sign(accessClaims()))),
+        await rejection(issuer.client().verifyAccessToken(await key.sign(accessClaims()))),
       ).toBeInstanceOf(ConfigurationError);
     }
     // OpenID Connect Discovery 1.0 section 4.3: the issuer must be present too.
+    advance(60);
     delete issuer.discovery!.issuer;
     issuer.reply("POST", "/token/", 200, TOKEN_RESPONSE);
     const missing = await rejection(auth.refresh(REFRESH_TOKEN));

@@ -165,6 +165,14 @@ describe("error messages", () => {
     expect(redact("same", [])).toBe("same");
   });
 
+  it("redacts the percent-encoded and form-encoded spellings and keys too", () => {
+    const secret = "c/d e+f~g";
+    expect(
+      redact({ a: "code=c%2Fd%20e%2Bf~g", b: "code=c%2Fd+e%2Bf%7Eg", [secret]: secret }, [secret]),
+    ).toEqual({ a: "code=[redacted]", b: "code=[redacted]", "[redacted]": "[redacted]" });
+    expect(redact("x\ud800", ["\ud800"])).toBe("x[redacted]");
+  });
+
   it("names the connection errors", () => {
     expect(new APIConnectionError().message).toBe("Connection error.");
     expect(new APITimeoutError().message).toBe("Request timed out.");

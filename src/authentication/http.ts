@@ -157,13 +157,14 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   if (status === 204 || !text) return { status, headers: responseHeaders, data: null };
   try {
     return { status, headers: responseHeaders, data: JSON.parse(text) as unknown };
-  } catch (error) {
+  } catch {
+    // Not chained: the parser's message quotes the start of the body, which may
+    // hold a token.
     const type = responseHeaders.get("content-type") ?? "no content type";
     throw new APIResponseValidationError(
       `Expected a JSON response from ${method} ${path}, got ${type}.`,
       status,
       responseHeaders,
-      { cause: error },
     );
   }
 }

@@ -222,9 +222,14 @@ export function checkClaims(claims: Record<string, unknown>, expected: ClaimExpe
       fail("invalid_audience", "The token was not issued for this audience.");
     }
   }
-  if (expected.kind === "id" && expected.nonce !== null) {
+  if (expected.kind === "id") {
     const { nonce } = claims;
-    if (typeof nonce !== "string" || !constantTimeEqual(nonce, expected.nonce)) {
+    if (expected.nonce === null) {
+      // No nonce was sent (a sign-in without one, or a refresh): the token must carry none.
+      if (hasMember(claims, "nonce")) {
+        fail("invalid_nonce", "The ID token carries a nonce, but none was expected.");
+      }
+    } else if (typeof nonce !== "string" || !constantTimeEqual(nonce, expected.nonce)) {
       fail("invalid_nonce", "The ID token's nonce does not match this sign-in.");
     }
   }

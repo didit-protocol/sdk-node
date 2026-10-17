@@ -16,7 +16,9 @@ export function base64UrlDecode(text: string): Uint8Array<ArrayBuffer> | null {
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+  // atob ignores the unused low bits of the last character, so several strings
+  // decode to the same bytes; only the canonical one is accepted.
+  return base64UrlEncode(bytes) === text ? bytes : null;
 }
 
 /** Bytes to unpadded base64url. */

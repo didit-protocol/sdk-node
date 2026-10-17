@@ -17,9 +17,10 @@ const auth = process.env.DIDIT_PUBLISHABLE_KEY
 try {
   const claims = await auth.verifyAccessToken(token);
   console.log("Signed in:", claims.sub, "organization role:", claims.org?.role ?? "none");
-  // For instant revocation checks, ask the issuer as well:
+  // For instant revocation checks, ask the issuer as well. (The session also holds
+  // the person's email and phone number: keep them out of your logs.)
   const session = await auth.getSession(token);
-  console.log("Session is active:", session);
+  console.log("Session", session.sid, "is active for", session.sub);
 } catch (error) {
   if (error instanceof TokenVerificationError) console.error("Rejected:", error.reason);
   else throw error;

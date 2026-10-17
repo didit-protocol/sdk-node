@@ -104,7 +104,11 @@ export interface ExchangeCodeParams {
 export interface CreateStepUpParams {
   /** `payout` (with `amount` and an optional `currency`), `bank` or `contact`. */
   action: StepUpAction;
-  /** The payout amount: a decimal string such as `"1500.00"` or a finite number. */
+  /**
+   * The payout amount: a decimal string such as `"1500.00"` or a finite number
+   * (sent in its shortest decimal form, so `0.1 + 0.2` is `0.30000000000000004`,
+   * which the issuer refuses: it takes at most two decimal places). Prefer a string.
+   */
   amount?: Amount;
   /** A three-letter ISO 4217 code such as `"EUR"`. */
   currency?: string;
@@ -294,10 +298,14 @@ export class Authentication {
    * expire within five minutes. Call `getSession` when the action needs an
    * instant revocation check.
    *
+   * A token an agent uses on a person's behalf verifies too: its `act` claim
+   * names the agent. Check `act` before actions an agent must not take.
+   *
    * Throws `TokenVerificationError` (answer 401) with a machine-readable
    * `reason`; `APIConnectionError`, `APIStatusError` or
    * `APIResponseValidationError` (answer 503) when the issuer's keys cannot be
-   * fetched.
+   * fetched; `ConfigurationError` when the issuer's discovery document names
+   * another issuer; `TypeError` for an invalid `audience` option.
    */
   async verifyAccessToken(
     token: string,
@@ -315,8 +323,10 @@ export class Authentication {
    * The same checks as `verifyAccessToken` (`typ` must be `JWT` or absent, never
    * `at+jwt`), plus `aud`, which is always checked: pass `audience` or configure
    * `clientId`. `nonce` must equal the nonce you sent with the authorization
-   * request; pass `null` only for an ID token returned by `refresh`, which
-   * carries no nonce.
+   * request. Pass `null` when no nonce was sent: for an ID token returned by
+   * `refresh`, or a sign-in made without one; the token must then carry no
+   * nonce. Throws like `verifyAccessToken`, and `ConfigurationError` when no
+   * audience is known.
    */
   async verifyIdToken(token: string, options: VerifyIdTokenOptions): Promise<IdTokenClaims> {
     const given = fieldsOf(options);

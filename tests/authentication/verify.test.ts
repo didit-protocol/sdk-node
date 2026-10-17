@@ -268,6 +268,17 @@ describe("verifyAccessToken", () => {
     expect(await reason(auth.verifyAccessToken(zeros))).toBe("invalid_signature");
   });
 
+  it("accepts only the canonical base64url spelling of a signature", async () => {
+    const token = await key.sign(accessClaims());
+    // 64 bytes take 86 characters; the last one carries 4 unused bits, so it has
+    // spellings that decode to the same bytes. Only the canonical one is valid.
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    const last = alphabet.indexOf(token.slice(-1));
+    const twin = `${token.slice(0, -1)}${alphabet[last ^ 1] ?? ""}`;
+    expect((await auth.verifyAccessToken(token)).sub).toBe(IDENTITY_ID);
+    expect(await reason(auth.verifyAccessToken(twin))).toBe("malformed");
+  });
+
   it("rejects the wrong issuer", async () => {
     const other = await key.sign(accessClaims({ iss: "https://other-0001.auth.didit.me" }));
     expect(await reason(auth.verifyAccessToken(other))).toBe("invalid_issuer");
@@ -511,6 +522,10 @@ describe("verifyIdToken", () => {
     // An ID token from refresh() carries no nonce; the caller opts out explicitly.
     const refreshed = await auth.verifyIdToken(noNonce, { nonce: null, audience: APPLICATION_ID });
     expect(refreshed.nonce).toBeUndefined();
+    // Opting out does not switch the check off: a token with a nonce then fails.
+    expect(await reason(auth.verifyIdToken(token, { nonce: null, audience: APPLICATION_ID }))).toBe(
+      "invalid_nonce",
+    );
   });
 
   it("requires the nonce argument", async () => {
