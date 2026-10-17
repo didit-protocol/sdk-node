@@ -230,16 +230,34 @@ export class TypeBuilder {
   }
 
   private componentTypeName(key: ComponentKey): string {
-    const own = this.componentNames.get(key.spec);
-    if (own) return own.get(key.name)!;
     let names = this.componentNames.get(key.spec);
+    const known = names?.get(key.name);
+    if (known !== undefined) return known;
     if (!names) {
       names = new Map();
       this.componentNames.set(key.spec, names);
     }
-    const ts = `${/^[A-Z][A-Za-z0-9]*$/.test(key.name) ? key.name : pascal(key.name)}Deprecated`;
+    // A deprecated operation's copy of a component the live documents no longer
+    // have in this form. It keeps its type name, so code that imports the type
+    // still compiles, unless a live component now has that name.
+    let ts = /^[A-Z][A-Za-z0-9]*$/.test(key.name) ? key.name : pascal(key.name);
+    ts = COMPONENT_RENAMES[ts] ?? ts;
+    if (this.liveTypeNames().has(ts)) ts = `${ts}Deprecated`;
     names.set(key.name, ts);
     return ts;
+  }
+
+  private liveNames: Set<string> | undefined;
+
+  /** The type names of the live documents' components. */
+  private liveTypeNames(): Set<string> {
+    if (!this.liveNames) {
+      this.liveNames = new Set();
+      for (const spec of this.live) {
+        for (const ts of this.componentNames.get(spec)?.values() ?? []) this.liveNames.add(ts);
+      }
+    }
+    return this.liveNames;
   }
 
   private isSensitive(key: ComponentKey): boolean {

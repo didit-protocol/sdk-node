@@ -564,6 +564,32 @@ describe("verifyWebhookParsed", () => {
     expect(Object.getOwnPropertyDescriptor(parsed, "verifiedBy")).toBeUndefined();
   });
 
+  it("leaves the caller's payload as it was, decision date-times included", async () => {
+    const data = payload({
+      decision: { status: "Approved", resubmissions: [{ created_at: "2026-10-17T10:00:00Z" }] },
+    });
+    const { headers } = delivery(data);
+    const parsed = structuredClone(data);
+    const event = await verifyWebhookParsed(parsed, headers, SECRET);
+    expect(parsed).toEqual(data);
+    if (event.webhook_type !== "status.updated") throw new Error("not a status event");
+    expect(event.decision?.resubmissions?.[0]?.created_at).toBeInstanceOf(Date);
+    // The same object verifies again.
+    expect((await verifyWebhookParsed(parsed, headers, SECRET)).verifiedBy).toBe("signature_v2");
+  });
+
+  it("bounds the canonical JSON of a parsed payload by the payload's size", async () => {
+    const data = payload({ x: Array.from({ length: 20_000 }, () => 1e308) });
+    const headers = { "X-Signature-V2": HEX_A };
+    const started = Date.now();
+    expect(await reasonOf(verifyWebhookParsed(data, headers, SECRET))).toBe("invalid_signature");
+    expect(Date.now() - started).toBeLessThan(2_000);
+    const big = payload({ big: 9007199254740993n });
+    expect(await reasonOf(verifyWebhookParsed(big, delivery(payload()).headers, SECRET))).toBe(
+      "invalid_signature",
+    );
+  });
+
   it("needs X-Signature-V2", async () => {
     const data = payload();
     const { headers } = delivery(data);
@@ -697,5 +723,36 @@ describe("entry points", () => {
     ).toBe("signature_simple");
     expect((await resource.verifyParsed(data, headers, SECRET)).verifiedBy).toBe("signature_v2");
     expect(publicApi.canonicalJson({ b: 1, a: 2 })).toBe('{"a":2,"b":1}');
+  });
+});
+
+describe("cost of unauthenticated deliveries", () => {
+  it("stops building the canonical JSON of a body that would expand far beyond its size", async () => {
+    // 1e308 is 5 bytes in the body and a 309-digit integer once canonical.
+    const body = `{"timestamp":${NOW},"x":[${Array.from({ length: 40_000 }, () => "1e308").join(",")}]}`;
+    const started = Date.now();
+    const reason = await reasonOf(verifyWebhook(body, { "X-Signature-V2": HEX_A }, SECRET));
+    expect(reason).toBe("invalid_signature");
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+
+  it("builds no canonical JSON for a malformed X-Signature-V2", async () => {
+    const body = `{"timestamp":${NOW},"x":[${Array.from({ length: 40_000 }, () => "1e308").join(",")}]}`;
+    for (const value of ["zz", "A".repeat(64), "a".repeat(63)]) {
+      expect(await reasonOf(verifyWebhook(body, { "X-Signature-V2": value }, SECRET))).toBe(
+        "invalid_signature",
+      );
+    }
+  });
+
+  it("still verifies a re-encoded genuine delivery whose canonical JSON is longer than the body", async () => {
+    // The backend writes 1e-07; JSON.stringify re-encodes it as 1e-7, one byte
+    // shorter, so the canonical form is longer than the body that arrives.
+    const data = payload({ rates: Array.from({ length: 5_000 }, () => 1e-7) });
+    const { headers } = delivery(data);
+    const reencoded = JSON.stringify(data);
+    expect(reencoded).toContain("1e-7");
+    const event = await verifyWebhook(reencoded, only(headers, "X-Signature-V2"), SECRET);
+    expect(event.verifiedBy).toBe("signature_v2");
   });
 });

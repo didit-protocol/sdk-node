@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { WebhookVerificationError } from "../../src/core/errors.js";
 import {
   canonicalJson,
+  canonicalJsonWithin,
   compareCodePoints,
   encodeUtf8SurrogatePass,
   hasLoneSurrogate,
@@ -357,5 +358,20 @@ describe("canonicalJson of JavaScript values", () => {
       deep = child;
     }
     expect(reason(() => canonicalJson(root))).toBe("invalid_payload");
+  });
+});
+
+describe("canonicalJsonWithin", () => {
+  it("returns the canonical JSON within the limit and undefined past it", () => {
+    expect(canonicalJsonWithin({ b: [1e16], a: "x" }, 1_000)).toBe(
+      '{"a":"x","b":[10000000000000000]}',
+    );
+    expect(canonicalJsonWithin([1e308], 100)).toBeUndefined();
+    expect(canonicalJsonWithin("x".repeat(50), 40)).toBeUndefined();
+    expect(canonicalJsonWithin({ ["k".repeat(50)]: 1 }, 40)).toBeUndefined();
+  });
+
+  it("still refuses what is not JSON data", () => {
+    expect(reason(() => canonicalJsonWithin([Number.NaN], 1_000))).toBe("invalid_payload");
   });
 });
