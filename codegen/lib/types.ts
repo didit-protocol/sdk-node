@@ -209,7 +209,7 @@ export class TypeBuilder {
 
   /** The live spec and name that a component of `spec` stands for. */
   private canonical(key: ComponentKey): ComponentKey {
-    if (this.componentNames.has(key.spec)) return key;
+    if (this.live.includes(key.spec)) return key;
     // A deprecated operation's own copy: reuse the live component when unchanged.
     const schema = key.spec.components[key.name];
     for (const spec of this.live) {
