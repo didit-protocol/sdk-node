@@ -60,7 +60,9 @@ async function main(): Promise<void> {
   }
   if (check) {
     if (changed.length || stale.length) {
-      console.error("codegen: the generated code is out of date. Run `pnpm generate` and commit the result.");
+      console.error(
+        "codegen: the generated code is out of date. Run `pnpm generate` and commit the result.",
+      );
       for (const path of changed) console.error(`  changed: ${path}`);
       for (const path of stale) console.error(`  not generated: ${path}`);
       process.exit(1);

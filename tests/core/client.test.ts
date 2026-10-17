@@ -16,7 +16,10 @@ import { fakeFetch } from "../helpers/mock-api.js";
 
 const KEY = "test-api-key";
 
-function client(options: ConstructorParameters<typeof Didit>[0] = {}, reply: Parameters<typeof fakeFetch>[0] = () => ({ json: {} })) {
+function client(
+  options: ConstructorParameters<typeof Didit>[0] = {},
+  reply: Parameters<typeof fakeFetch>[0] = () => ({ json: {} }),
+) {
   const { fetch, calls } = fakeFetch(reply);
   return { didit: new Didit({ apiKey: KEY, maxRetries: 0, fetch, ...options }), calls };
 }
@@ -44,7 +47,9 @@ describe("configuration", () => {
     vi.stubEnv("DIDIT_API_KEY", " env-key ");
     vi.stubEnv("DIDIT_ORGANIZATION_ID", "env-org");
     vi.stubEnv("DIDIT_APPLICATION_ID", "env-app");
-    const { fetch, calls } = fakeFetch(() => ({ json: { count: 0, next: null, previous: null, results: [] } }));
+    const { fetch, calls } = fakeFetch(() => ({
+      json: { count: 0, next: null, previous: null, results: [] },
+    }));
     const didit = new Didit({ fetch });
     expect(didit.organizationId).toBe("env-org");
     expect(didit.applicationId).toBe("env-app");
@@ -56,7 +61,11 @@ describe("configuration", () => {
   it("prefers explicit options to the environment", async () => {
     vi.stubEnv("DIDIT_API_KEY", "env-key");
     vi.stubEnv("DIDIT_ORGANIZATION_ID", "env-org");
-    const { didit, calls } = client({ apiKey: "explicit", organizationId: "org", applicationId: "app" });
+    const { didit, calls } = client({
+      apiKey: "explicit",
+      organizationId: "org",
+      applicationId: "app",
+    });
     await didit.workflows.list();
     expect(calls[0]!.headers.get("x-api-key")).toBe("explicit");
     expect(didit.organizationId).toBe("org");
@@ -87,11 +96,19 @@ describe("configuration", () => {
 
   it("validates the base URLs", () => {
     expect(() => new Didit({ apiKey: KEY, baseURL: "not a url" })).toThrow(ConfigurationError);
-    expect(() => new Didit({ apiKey: KEY, baseURL: "ftp://example.com" })).toThrow(ConfigurationError);
-    expect(() => new Didit({ apiKey: KEY, baseURL: "https://user:pw@example.com" })).toThrow(/credentials/);
+    expect(() => new Didit({ apiKey: KEY, baseURL: "ftp://example.com" })).toThrow(
+      ConfigurationError,
+    );
+    expect(() => new Didit({ apiKey: KEY, baseURL: "https://user:pw@example.com" })).toThrow(
+      /credentials/,
+    );
     expect(() => new Didit({ apiKey: KEY, baseURL: "https://example.com/?a=1" })).toThrow(/query/);
-    expect(() => new Didit({ apiKey: KEY, accountBaseURL: "mailto:x" })).toThrow(ConfigurationError);
-    expect(new Didit({ apiKey: KEY, baseURL: "http://localhost:8080/api/" }).baseURL).toBe("http://localhost:8080/api");
+    expect(() => new Didit({ apiKey: KEY, accountBaseURL: "mailto:x" })).toThrow(
+      ConfigurationError,
+    );
+    expect(new Didit({ apiKey: KEY, baseURL: "http://localhost:8080/api/" }).baseURL).toBe(
+      "http://localhost:8080/api",
+    );
   });
 
   it("validates timeout and maxRetries", () => {
@@ -147,12 +164,19 @@ describe("headers", () => {
     expect(headers.get("x-api-key")).toBe(KEY);
     expect(headers.get("accept")).toBe("application/json");
     expect(headers.get("x-didit-client")).toBe(`node/${VERSION}`);
-    expect(headers.get("user-agent")).toMatch(new RegExp(`^didit-node/${VERSION.replace(/\./g, "\\.")} \\(node \\d+\\.\\d+\\.\\d+; [a-z0-9]+\\)$`));
+    expect(headers.get("user-agent")).toMatch(
+      new RegExp(
+        `^didit-node/${VERSION.replace(/\./g, "\\.")} \\(node \\d+\\.\\d+\\.\\d+; [a-z0-9]+\\)$`,
+      ),
+    );
   });
 
   it("adds default headers, then per-request headers, and removes a header set to null", async () => {
     const { didit, calls } = client({ defaultHeaders: { "X-Team": "kyc", "X-Trace": "a" } });
-    await didit.workflows.list({}, { headers: { "X-Trace": "b", "X-Team": null, "X-Skip": undefined } });
+    await didit.workflows.list(
+      {},
+      { headers: { "X-Trace": "b", "X-Team": null, "X-Skip": undefined } },
+    );
     const headers = calls[0]!.headers;
     expect(headers.get("x-trace")).toBe("b");
     expect(headers.get("x-team")).toBeNull();
@@ -202,12 +226,18 @@ describe("request encoding", () => {
   });
 
   it("encodes query parameters and leaves out undefined and null", async () => {
-    const { didit, calls } = client({}, () => ({ json: { count: 0, next: null, previous: null, results: [] } }));
+    const { didit, calls } = client({}, () => ({
+      json: { count: 0, next: null, previous: null, results: [] },
+    }));
     await didit.sessions.list(
       { limit: 10, offset: undefined, vendor_data: null as unknown as string },
       { query: { extra: true, since: new Date("2026-01-02T03:04:05Z"), skip: undefined } },
     );
-    expect(calls[0]!.query).toEqual({ limit: "10", extra: "true", since: "2026-01-02T03:04:05.000Z" });
+    expect(calls[0]!.query).toEqual({
+      limit: "10",
+      extra: "true",
+      since: "2026-01-02T03:04:05.000Z",
+    });
   });
 
   it("sends the body as JSON with dates as ISO 8601 and the extra body fields", async () => {
@@ -217,19 +247,33 @@ describe("request encoding", () => {
       { body: { experimental: 1 } },
     );
     expect(calls[0]!.contentType).toBe("application/json");
-    expect(calls[0]!.json).toEqual({ workflow_id: "wf", metadata: { at: "2026-01-02T00:00:00.000Z" }, experimental: 1 });
+    expect(calls[0]!.json).toEqual({
+      workflow_id: "wf",
+      metadata: { at: "2026-01-02T00:00:00.000Z" },
+      experimental: 1,
+    });
   });
 
   it("refuses values JSON cannot carry before sending", async () => {
     const { didit, calls } = client();
-    await expect(didit.sessions.create({ workflow_id: "wf", metadata: { n: Number.NaN } })).rejects.toThrow(DiditError);
-    await expect(didit.sessions.create({ workflow_id: "wf", metadata: { n: 1n } })).rejects.toThrow(/BigInt/);
+    await expect(
+      didit.sessions.create({ workflow_id: "wf", metadata: { n: Number.NaN } }),
+    ).rejects.toThrow(DiditError);
+    await expect(didit.sessions.create({ workflow_id: "wf", metadata: { n: 1n } })).rejects.toThrow(
+      /BigInt/,
+    );
     expect(calls).toHaveLength(0);
   });
 
   it("sends a whole-body operation's params as the JSON body", async () => {
-    const { didit, calls } = client({}, () => ({ body: new Uint8Array([1]), contentType: "application/pdf" }));
-    const blob = await didit.walletScreening.screenPdf({ address: "0xabc", blockchain: "ethereum" } as never);
+    const { didit, calls } = client({}, () => ({
+      body: new Uint8Array([1]),
+      contentType: "application/pdf",
+    }));
+    const blob = await didit.walletScreening.screenPdf({
+      address: "0xabc",
+      blockchain: "ethereum",
+    } as never);
     expect(blob).toBeInstanceOf(Blob);
     expect(calls[0]!.json).toEqual({ address: "0xabc", blockchain: "ethereum" });
     expect(calls[0]!.headers.get("accept")).toBe("application/pdf");
@@ -238,7 +282,10 @@ describe("request encoding", () => {
 
 describe("responses", () => {
   it("exposes the raw response with withResponse and asResponse", async () => {
-    const { didit } = client({}, () => ({ json: { a: 1 }, headers: { "x-request-id": "req_123" } }));
+    const { didit } = client({}, () => ({
+      json: { a: 1 },
+      headers: { "x-request-id": "req_123" },
+    }));
     const { data, response, requestId } = await didit.users.retrieve("u").withResponse();
     expect(data).toEqual({ a: 1 });
     expect(response.status).toBe(200);
@@ -280,7 +327,10 @@ describe("responses", () => {
   });
 
   it("returns binary responses as a Blob with the response content type", async () => {
-    const { didit } = client({}, () => ({ body: new Uint8Array([37, 80]), contentType: "application/pdf" }));
+    const { didit } = client({}, () => ({
+      body: new Uint8Array([37, 80]),
+      contentType: "application/pdf",
+    }));
     const pdf = await didit.sessions.generatePdf("s");
     expect(pdf.type).toBe("application/pdf");
     expect(pdf.size).toBe(2);
@@ -333,7 +383,10 @@ describe("redirects", () => {
   });
 
   it("does not follow redirects of a POST", async () => {
-    const { didit, calls } = client({}, () => new Response(null, { status: 307, headers: { location: "/v3/session/2/" } }));
+    const { didit, calls } = client(
+      {},
+      () => new Response(null, { status: 307, headers: { location: "/v3/session/2/" } }),
+    );
     await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeInstanceOf(DiditError);
     expect(calls).toHaveLength(1);
   });
@@ -369,7 +422,9 @@ describe("cancellation", () => {
 
   it("does not start a request whose signal is already aborted", async () => {
     const { didit, calls } = client();
-    await expect(didit.users.retrieve("u", { signal: AbortSignal.abort() })).rejects.toThrow(/aborted/);
+    await expect(didit.users.retrieve("u", { signal: AbortSignal.abort() })).rejects.toThrow(
+      /aborted/,
+    );
     expect(calls).toHaveLength(0);
   });
 });

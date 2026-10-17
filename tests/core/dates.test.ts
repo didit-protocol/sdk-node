@@ -20,8 +20,15 @@ describe("decodeDates", () => {
       map: { a: ISO, b: null },
       tree: { at: ISO, children: [{ at: ISO, children: [] }] },
     };
-    decodeDates(value, { p: { list: { i: { p: { at: 1 } } }, map: { a: 1 }, tree: "Node" } }, named);
-    expect(value.list.map((x) => (x.at as unknown as Date).getTime())).toEqual([at(ISO), at("2026-10-17T22:00:00Z")]);
+    decodeDates(
+      value,
+      { p: { list: { i: { p: { at: 1 } } }, map: { a: 1 }, tree: "Node" } },
+      named,
+    );
+    expect(value.list.map((x) => (x.at as unknown as Date).getTime())).toEqual([
+      at(ISO),
+      at("2026-10-17T22:00:00Z"),
+    ]);
     expect(value.map.a).toBeInstanceOf(Date);
     expect(value.map.b).toBeNull();
     expect((value.tree.children[0]!.at as unknown as Date).getTime()).toBe(at(ISO));
@@ -34,13 +41,21 @@ describe("decodeDates", () => {
   });
 
   it("keeps values that are not valid date-times", () => {
-    for (const text of ["", "yesterday", "2026-10-17", "2026-13-45T99:00:00Z", "2026-10-17T10:00:00"]) {
+    for (const text of [
+      "",
+      "yesterday",
+      "2026-10-17",
+      "2026-13-45T99:00:00Z",
+      "2026-10-17T10:00:00",
+    ]) {
       expect(decodeDates(text, 1, {})).toBe(text);
     }
   });
 
   it("accepts fractional seconds, offsets and a space separator", () => {
-    expect((decodeDates("2026-10-17T10:00:00.123456Z", 1, {}) as Date).toISOString()).toBe("2026-10-17T10:00:00.123Z");
+    expect((decodeDates("2026-10-17T10:00:00.123456Z", 1, {}) as Date).toISOString()).toBe(
+      "2026-10-17T10:00:00.123Z",
+    );
     expect((decodeDates("2026-10-17 10:00:00+0000", 1, {}) as Date).getTime()).toBe(at(ISO));
     expect((decodeDates("2026-10-17T10:00Z", 1, {}) as Date).getTime()).toBe(at(ISO));
   });

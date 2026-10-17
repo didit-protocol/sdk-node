@@ -23,7 +23,14 @@ export const UPSTREAM: Record<string, string> = {
 const PREFIXES: Record<string, string> = { "verification.json": "", "account.json": "account " };
 const METHODS = ["get", "put", "post", "delete", "patch", "head", "options"];
 // Keys that document a schema without changing what is sent or received.
-const DOC_KEYS = new Set(["description", "summary", "title", "example", "examples", "externalDocs"]);
+const DOC_KEYS = new Set([
+  "description",
+  "summary",
+  "title",
+  "example",
+  "examples",
+  "externalDocs",
+]);
 const MAX_NOTES = 25;
 const COMPONENT_PREFIX = "#/components/schemas/";
 
@@ -75,7 +82,9 @@ export function dereference(doc: Json, node: Json, depth = 0): Json {
     const extra = Object.fromEntries(Object.entries(node).filter(([k]) => k !== "$ref"));
     return isObject(target) ? { ...target, ...extra } : target;
   }
-  return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, dereference(doc, v, depth + 1)]));
+  return Object.fromEntries(
+    Object.entries(node).map(([k, v]) => [k, dereference(doc, v, depth + 1)]),
+  );
 }
 
 /**
@@ -90,7 +99,10 @@ export function detach(doc: Json, node: Json): { node: Json; components: Record<
     if (!isObject(value)) return value;
     if (typeof value.$ref === "string") {
       if (value.$ref.startsWith(COMPONENT_PREFIX)) {
-        const name = value.$ref.slice(COMPONENT_PREFIX.length).replace(/~1/g, "/").replace(/~0/g, "~");
+        const name = value.$ref
+          .slice(COMPONENT_PREFIX.length)
+          .replace(/~1/g, "/")
+          .replace(/~0/g, "~");
         if (!(name in components)) {
           components[name] = {};
           components[name] = inline(pointer(doc, value.$ref) ?? {}, depth + 1);
@@ -118,7 +130,10 @@ export function operations(doc: JsonObject, prefix: string): Map<string, JsonObj
       if (!isObject(op)) continue;
       const merged: JsonObject = { ...op };
       if (Array.isArray(item.parameters) && item.parameters.length) {
-        merged.parameters = [...(item.parameters as Json[]), ...(Array.isArray(op.parameters) ? (op.parameters as Json[]) : [])];
+        merged.parameters = [
+          ...(item.parameters as Json[]),
+          ...(Array.isArray(op.parameters) ? (op.parameters as Json[]) : []),
+        ];
       }
       out.set(`${prefix}${method.toUpperCase()} ${path}`, merged);
     }
@@ -194,7 +209,14 @@ function setEq(a: Set<string>, b: Set<string>): boolean {
  * `request` tells which side the schema is on: a removed enum value breaks
  * callers that send it, while response enums are open (DESIGN 5.1).
  */
-export function diffSchema(old: Json, next: Json, where: string, request: boolean, notes: Note[], depth = 0): void {
+export function diffSchema(
+  old: Json,
+  next: Json,
+  where: string,
+  request: boolean,
+  notes: Note[],
+  depth = 0,
+): void {
   if (depth > 16 || same(shape(old), shape(next))) return;
   if (!isObject(old) || !isObject(next)) {
     notes.push([`${where}: schema replaced`, true]);
@@ -208,11 +230,16 @@ export function diffSchema(old: Json, next: Json, where: string, request: boolea
     const widened = setEq(oldPlain, new Set(["integer"])) && setEq(newPlain, new Set(["number"]));
     const narrowed = setEq(oldPlain, new Set(["number"])) && setEq(newPlain, new Set(["integer"]));
     const harmless = (request && widened) || (!request && narrowed);
-    notes.push([`${where}: type ${[...oldPlain].sort().join("/")} -> ${[...newPlain].sort().join("/")}`, !harmless]);
+    notes.push([
+      `${where}: type ${[...oldPlain].sort().join("/")} -> ${[...newPlain].sort().join("/")}`,
+      !harmless,
+    ]);
     return;
   }
-  if (newTypes.has("null") && !oldTypes.has("null") && !request) notes.push([`${where}: can now be null`, true]);
-  if (oldTypes.has("null") && !newTypes.has("null") && request) notes.push([`${where}: no longer accepts null`, true]);
+  if (newTypes.has("null") && !oldTypes.has("null") && !request)
+    notes.push([`${where}: can now be null`, true]);
+  if (oldTypes.has("null") && !newTypes.has("null") && request)
+    notes.push([`${where}: no longer accepts null`, true]);
 
   const oldEnum = old.enum;
   const newEnum = next.enum;
@@ -229,31 +256,53 @@ export function diffSchema(old: Json, next: Json, where: string, request: boolea
 
   const a = objectProps(old);
   const b = objectProps(next);
-  for (const name of Object.keys(a.props).filter((n) => !(n in b.props)).sort()) {
+  for (const name of Object.keys(a.props)
+    .filter((n) => !(n in b.props))
+    .sort()) {
     notes.push([`${where}.${name}: removed`, true]);
   }
-  for (const name of Object.keys(b.props).filter((n) => !(n in a.props)).sort()) {
+  for (const name of Object.keys(b.props)
+    .filter((n) => !(n in a.props))
+    .sort()) {
     const required = request && b.required.has(name);
     notes.push([`${where}.${name}: added${required ? " (required)" : ""}`, required]);
   }
-  for (const name of Object.keys(a.props).filter((n) => n in b.props).sort()) {
-    if (request && b.required.has(name) && !a.required.has(name)) notes.push([`${where}.${name}: now required`, true]);
+  for (const name of Object.keys(a.props)
+    .filter((n) => n in b.props)
+    .sort()) {
+    if (request && b.required.has(name) && !a.required.has(name))
+      notes.push([`${where}.${name}: now required`, true]);
     if (!request && a.required.has(name) && !b.required.has(name)) {
       notes.push([`${where}.${name}: no longer always present`, true]);
     }
     diffSchema(a.props[name], b.props[name], `${where}.${name}`, request, notes, depth + 1);
   }
-  for (const [key, suffix] of [["items", "[]"], ["additionalProperties", "{}"]] as const) {
+  for (const [key, suffix] of [
+    ["items", "[]"],
+    ["additionalProperties", "{}"],
+  ] as const) {
     if (isObject(old[key]) || isObject(next[key])) {
-      diffSchema(isObject(old[key]) ? old[key] : {}, isObject(next[key]) ? next[key] : {}, `${where}${suffix}`, request, notes, depth + 1);
+      diffSchema(
+        isObject(old[key]) ? old[key] : {},
+        isObject(next[key]) ? next[key] : {},
+        `${where}${suffix}`,
+        request,
+        notes,
+        depth + 1,
+      );
     }
   }
   for (const keyword of ["oneOf", "anyOf"]) {
     const ov = variants(old, keyword);
     const nv = variants(next, keyword);
-    if (nv.length < ov.length) notes.push([`${where}: ${ov.length - nv.length} ${keyword} variant(s) removed`, true]);
-    else if (nv.length > ov.length) notes.push([`${where}: ${nv.length - ov.length} ${keyword} variant(s) added`, false]);
-    else ov.forEach((v, i) => diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1));
+    if (nv.length < ov.length)
+      notes.push([`${where}: ${ov.length - nv.length} ${keyword} variant(s) removed`, true]);
+    else if (nv.length > ov.length)
+      notes.push([`${where}: ${nv.length - ov.length} ${keyword} variant(s) added`, false]);
+    else
+      ov.forEach((v, i) =>
+        diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1),
+      );
   }
 }
 
@@ -261,7 +310,10 @@ function body(op: JsonObject): { types: Set<string>; schema: Json } {
   const rb = isObject(op.requestBody) ? op.requestBody : {};
   const content = isObject(rb.content) ? rb.content : {};
   const media = content["application/json"] ?? content["multipart/form-data"];
-  return { types: new Set(Object.keys(content)), schema: isObject(media) ? (media.schema ?? {}) : {} };
+  return {
+    types: new Set(Object.keys(content)),
+    schema: isObject(media) ? (media.schema ?? {}) : {},
+  };
 }
 
 function success(op: JsonObject): { types: Set<string>; schema: Json } {
@@ -271,13 +323,21 @@ function success(op: JsonObject): { types: Set<string>; schema: Json } {
     const response = responses[code];
     const content = isObject(response) && isObject(response.content) ? response.content : {};
     const media = content["application/json"];
-    return { types: new Set(Object.keys(content)), schema: isObject(media) ? (media.schema ?? {}) : {} };
+    return {
+      types: new Set(Object.keys(content)),
+      schema: isObject(media) ? (media.schema ?? {}) : {},
+    };
   }
   return { types: new Set(), schema: {} };
 }
 
 /** Human-readable differences of one operation, and whether any is breaking. */
-export function describeChange(oldDoc: JsonObject, old: JsonObject, newDoc: JsonObject, next: JsonObject): { notes: string[]; breaking: boolean } {
+export function describeChange(
+  oldDoc: JsonObject,
+  old: JsonObject,
+  newDoc: JsonObject,
+  next: JsonObject,
+): { notes: string[]; breaking: boolean } {
   const found: Note[] = [];
   const params = (doc: JsonObject, op: JsonObject): Map<string, JsonObject> => {
     const out = new Map<string, JsonObject>();
@@ -288,7 +348,8 @@ export function describeChange(oldDoc: JsonObject, old: JsonObject, newDoc: Json
   };
   const oldParams = params(oldDoc, old);
   const newParams = params(newDoc, next);
-  for (const key of [...oldParams.keys()].filter((k) => !newParams.has(k)).sort()) found.push([`parameter removed: ${key}`, true]);
+  for (const key of [...oldParams.keys()].filter((k) => !newParams.has(k)).sort())
+    found.push([`parameter removed: ${key}`, true]);
   for (const key of [...newParams.keys()].filter((k) => !oldParams.has(k)).sort()) {
     const required = newParams.get(key)!.required === true;
     found.push([`parameter added: ${key}${required ? ", required" : ""}`, required]);
@@ -296,14 +357,18 @@ export function describeChange(oldDoc: JsonObject, old: JsonObject, newDoc: Json
   for (const key of [...oldParams.keys()].filter((k) => newParams.has(k)).sort()) {
     const a = oldParams.get(key)!;
     const b = newParams.get(key)!;
-    if (a.required !== true && b.required === true) found.push([`parameter now required: ${key}`, true]);
+    if (a.required !== true && b.required === true)
+      found.push([`parameter now required: ${key}`, true]);
     diffSchema(a.schema ?? {}, b.schema ?? {}, `parameter ${key}`, true, found);
   }
   const ob = body(old);
   const nb = body(next);
   if (!setEq(ob.types, nb.types) && ob.types.size && nb.types.size) {
     const subset = [...ob.types].every((t) => nb.types.has(t));
-    found.push([`request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`, !subset]);
+    found.push([
+      `request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`,
+      !subset,
+    ]);
   }
   const oldRequired = isObject(old.requestBody) && old.requestBody.required === true;
   const newRequired = isObject(next.requestBody) && next.requestBody.required === true;
@@ -312,17 +377,29 @@ export function describeChange(oldDoc: JsonObject, old: JsonObject, newDoc: Json
   const or = success(old);
   const nr = success(next);
   if (!setEq(or.types, nr.types)) {
-    found.push([`response content type ${JSON.stringify([...or.types].sort())} -> ${JSON.stringify([...nr.types].sort())}`, true]);
+    found.push([
+      `response content type ${JSON.stringify([...or.types].sort())} -> ${JSON.stringify([...nr.types].sort())}`,
+      true,
+    ]);
   }
-  diffSchema(dereference(oldDoc, or.schema), dereference(newDoc, nr.schema), "response", false, found);
-  if (old.deprecated !== true && next.deprecated === true) found.push(["marked deprecated upstream", false]);
+  diffSchema(
+    dereference(oldDoc, or.schema),
+    dereference(newDoc, nr.schema),
+    "response",
+    false,
+    found,
+  );
+  if (old.deprecated !== true && next.deprecated === true)
+    found.push(["marked deprecated upstream", false]);
   if (!same(old["x-didit-sdk"], next["x-didit-sdk"]) && next["x-didit-sdk"] !== undefined) {
     found.push([`x-didit-sdk now ${JSON.stringify(sortKeys(next["x-didit-sdk"]))}`, false]);
   }
-  if (!found.length) return { notes: ["descriptions, examples or other details changed"], breaking: false };
+  if (!found.length)
+    return { notes: ["descriptions, examples or other details changed"], breaking: false };
   const ordered = [...found.filter(([, b]) => b), ...found.filter(([, b]) => !b)];
   let notes = ordered.map(([n, b]) => (b ? `${n} (breaking)` : n));
-  if (notes.length > MAX_NOTES) notes = [...notes.slice(0, MAX_NOTES), `and ${notes.length - MAX_NOTES} more differences`];
+  if (notes.length > MAX_NOTES)
+    notes = [...notes.slice(0, MAX_NOTES), `and ${notes.length - MAX_NOTES} more differences`];
   return { notes, breaking: found.some(([, b]) => b) };
 }
 
@@ -400,20 +477,30 @@ export function sync(input: SyncInput): SyncResult {
 
   const removeIn = nextMinor(input.version);
   const overlay = json(input.files.get("overlay.json"), { operations: {} });
-  const overlayOps = (isObject(overlay.operations) ? overlay.operations : {}) as Record<string, Json>;
+  const overlayOps = (isObject(overlay.operations) ? overlay.operations : {}) as Record<
+    string,
+    Json
+  >;
   const oldOverlay = { ...overlayOps };
-  const deprecated = json(input.files.get("deprecated-operations.json"), { description: "", methods: {} });
+  const deprecated = json(input.files.get("deprecated-operations.json"), {
+    description: "",
+    methods: {},
+  });
   if (!isObject(deprecated.methods)) deprecated.methods = {};
   const deprecatedMethods = deprecated.methods as Record<string, JsonObject>;
 
   const oldOps = new Map<string, [string, JsonObject]>();
   const newOps = new Map<string, [string, JsonObject]>();
   for (const name of input.downloads.keys()) {
-    for (const [key, op] of operations(oldDocs.get(name)!, PREFIXES[name] ?? "")) oldOps.set(key, [name, op]);
-    for (const [key, op] of operations(newDocs.get(name)!, PREFIXES[name] ?? "")) newOps.set(key, [name, op]);
+    for (const [key, op] of operations(oldDocs.get(name)!, PREFIXES[name] ?? ""))
+      oldOps.set(key, [name, op]);
+    for (const [key, op] of operations(newDocs.get(name)!, PREFIXES[name] ?? ""))
+      newOps.set(key, [name, op]);
   }
-  const oldNaming = (key: string): Naming | undefined => naming(oldOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
-  const newNaming = (key: string): Naming | undefined => naming(newOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
+  const oldNaming = (key: string): Naming | undefined =>
+    naming(oldOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
+  const newNaming = (key: string): Naming | undefined =>
+    naming(newOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
 
   const added = [...newOps.keys()].filter((k) => !oldOps.has(k)).sort();
   const removed = [...oldOps.keys()].filter((k) => !newOps.has(k)).sort();
@@ -429,11 +516,19 @@ export function sync(input: SyncInput): SyncResult {
     if (n?.server) oldServerNames.set(nameOf(n), key);
   }
 
-  const lines: string[] = [`Spec sync ${today}. Upstream files changed: ${changedFiles.join(", ")}.`, ""];
+  const lines: string[] = [
+    `Spec sync ${today}. Upstream files changed: ${changedFiles.join(", ")}.`,
+    "",
+  ];
   const breaking: string[] = [];
   const kept: string[] = [];
 
-  const keep = (n: Naming, key: string, reason: "removed" | "renamed", replacement?: string): void => {
+  const keep = (
+    n: Naming,
+    key: string,
+    reason: "removed" | "renamed",
+    replacement?: string,
+  ): void => {
     const [docName, op] = oldOps.get(key)!;
     const method = nameOf(n);
     const note = replacement
@@ -459,7 +554,10 @@ export function sync(input: SyncInput): SyncResult {
   lines.push(`## Added operations (${added.length})`);
   for (const key of added) {
     const n = newNaming(key);
-    if (!n) lines.push(`- \`${key}\`: **no SDK naming**; add an entry to \`openapi/overlay.json\` (DESIGN section 4)`);
+    if (!n)
+      lines.push(
+        `- \`${key}\`: **no SDK naming**; add an entry to \`openapi/overlay.json\` (DESIGN section 4)`,
+      );
     else if (n.server) lines.push(`- \`${key}\` -> \`${nameOf(n)}\``);
     else lines.push(`- \`${key}\` (not exposed by server SDKs: ${n.auth ?? "-"})`);
   }
@@ -471,10 +569,16 @@ export function sync(input: SyncInput): SyncResult {
     if (!n) lines.push(`- \`${key}\``);
     else if (!n.server) lines.push(`- \`${key}\` (not exposed by server SDKs)`);
     else if (newServerNames.has(nameOf(n))) {
-      lines.push(`- \`${key}\` moved to \`${newServerNames.get(nameOf(n))!}\`; \`${nameOf(n)}\` keeps its name`);
+      lines.push(
+        `- \`${key}\` moved to \`${newServerNames.get(nameOf(n))!}\`; \`${nameOf(n)}\` keeps its name`,
+      );
     } else {
-      breaking.push(`\`${nameOf(n)}\` was removed upstream (${key}); kept as a deprecated method until version ${removeIn}`);
-      lines.push(`- \`${key}\` (\`${nameOf(n)}\`): kept as a deprecated method until version ${removeIn}, recorded in \`openapi/deprecated-operations.json\``);
+      breaking.push(
+        `\`${nameOf(n)}\` was removed upstream (${key}); kept as a deprecated method until version ${removeIn}`,
+      );
+      lines.push(
+        `- \`${key}\` (\`${nameOf(n)}\`): kept as a deprecated method until version ${removeIn}, recorded in \`openapi/deprecated-operations.json\``,
+      );
       keep(n, key, "removed");
     }
     delete overlayOps[key];
@@ -490,15 +594,25 @@ export function sync(input: SyncInput): SyncResult {
     if (newServerNames.has(nameOf(before))) continue; // another operation provides the name now
     if (!after) {
       // The generator fails until the operation is named again, so this cannot ship silently.
-      renames.push(`- \`${key}\` lost its SDK naming: add \`${nameOf(before)}\` back to \`openapi/overlay.json\` (the generator fails until it is named)`);
+      renames.push(
+        `- \`${key}\` lost its SDK naming: add \`${nameOf(before)}\` back to \`openapi/overlay.json\` (the generator fails until it is named)`,
+      );
       breaking.push(`\`${nameOf(before)}\` (${key}) has no SDK naming any more`);
     } else if (!after.server) {
-      renames.push(`- \`${key}\` (\`${nameOf(before)}\`) is no longer a server operation (auth ${after.auth ?? "-"}); kept as a deprecated method until version ${removeIn}`);
-      breaking.push(`\`${nameOf(before)}\` (${key}) now needs ${after.auth ?? "-"}, which server SDKs do not expose; kept as a deprecated method until version ${removeIn}`);
+      renames.push(
+        `- \`${key}\` (\`${nameOf(before)}\`) is no longer a server operation (auth ${after.auth ?? "-"}); kept as a deprecated method until version ${removeIn}`,
+      );
+      breaking.push(
+        `\`${nameOf(before)}\` (${key}) now needs ${after.auth ?? "-"}, which server SDKs do not expose; kept as a deprecated method until version ${removeIn}`,
+      );
       keep(before, key, "removed");
     } else {
-      renames.push(`- \`${key}\`: \`${nameOf(before)}\` renamed to \`${nameOf(after)}\`; the old name stays as a deprecated alias until version ${removeIn}`);
-      breaking.push(`\`${nameOf(before)}\` was renamed upstream to \`${nameOf(after)}\` (${key}); the old name is a deprecated alias until version ${removeIn}`);
+      renames.push(
+        `- \`${key}\`: \`${nameOf(before)}\` renamed to \`${nameOf(after)}\`; the old name stays as a deprecated alias until version ${removeIn}`,
+      );
+      breaking.push(
+        `\`${nameOf(before)}\` was renamed upstream to \`${nameOf(after)}\` (${key}); the old name is a deprecated alias until version ${removeIn}`,
+      );
       keep(before, key, "renamed", nameOf(after));
     }
   }
@@ -511,18 +625,31 @@ export function sync(input: SyncInput): SyncResult {
     if (oldKey === newKey) continue;
     const [oldName, old] = oldOps.get(oldKey)!;
     const [newName, next] = newOps.get(newKey)!;
-    let { notes, breaking: isBreaking } = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
+    let { notes, breaking: isBreaking } = describeChange(
+      oldDocs.get(oldName)!,
+      old,
+      newDocs.get(newName)!,
+      next,
+    );
     if (notes.length === 1 && notes[0] === "descriptions, examples or other details changed") {
       notes = ["same parameters, body and response"];
     }
     const detail = notes.join("; ");
     if (newOps.has(oldKey)) {
-      moves.push(`- \`${method}\` **(breaking)** now calls \`${newKey}\` instead of \`${oldKey}\` (which is still in the API): ${detail}`);
-      breaking.push(`\`${method}\` now calls \`${newKey}\` instead of \`${oldKey}\`, a different operation`);
+      moves.push(
+        `- \`${method}\` **(breaking)** now calls \`${newKey}\` instead of \`${oldKey}\` (which is still in the API): ${detail}`,
+      );
+      breaking.push(
+        `\`${method}\` now calls \`${newKey}\` instead of \`${oldKey}\`, a different operation`,
+      );
     } else {
-      moves.push(`- \`${method}\`${isBreaking ? " **(breaking)**" : ""} moved from \`${oldKey}\` to \`${newKey}\`: ${detail}`);
+      moves.push(
+        `- \`${method}\`${isBreaking ? " **(breaking)**" : ""} moved from \`${oldKey}\` to \`${newKey}\`: ${detail}`,
+      );
       if (isBreaking) {
-        breaking.push(`\`${method}\` moved from \`${oldKey}\` to \`${newKey}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`);
+        breaking.push(
+          `\`${method}\` moved from \`${oldKey}\` to \`${newKey}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`,
+        );
       }
     }
   }
@@ -531,7 +658,9 @@ export function sync(input: SyncInput): SyncResult {
   for (const method of Object.keys(deprecatedMethods).sort()) {
     if (newServerNames.has(method) && !kept.includes(method)) {
       delete deprecatedMethods[method];
-      lines.push(`- \`${method}\` is provided again by \`${newServerNames.get(method)!}\`; its deprecation entry was dropped.`);
+      lines.push(
+        `- \`${method}\` is provided again by \`${newServerNames.get(method)!}\`; its deprecation entry was dropped.`,
+      );
     }
   }
 
@@ -540,11 +669,23 @@ export function sync(input: SyncInput): SyncResult {
     const [oldName, old] = oldOps.get(key)!;
     const [newName, next] = newOps.get(key)!;
     const sameOp = same(old, next);
-    if (sameOp && same(oldDocs.get(oldName)!.components, newDocs.get(newName)!.components)) continue;
-    const { notes, breaking: isBreaking } = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
-    if (sameOp && notes.length === 1 && notes[0] === "descriptions, examples or other details changed") continue;
+    if (sameOp && same(oldDocs.get(oldName)!.components, newDocs.get(newName)!.components))
+      continue;
+    const { notes, breaking: isBreaking } = describeChange(
+      oldDocs.get(oldName)!,
+      old,
+      newDocs.get(newName)!,
+      next,
+    );
+    if (
+      sameOp &&
+      notes.length === 1 &&
+      notes[0] === "descriptions, examples or other details changed"
+    )
+      continue;
     changes.push(`- \`${key}\`${isBreaking ? " **(breaking)**" : ""}: ${notes.join("; ")}`);
-    if (isBreaking) breaking.push(`\`${key}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`);
+    if (isBreaking)
+      breaking.push(`\`${key}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`);
   }
   lines.push(`## Changed operations (${changes.length})`, ...changes, "");
 
@@ -556,15 +697,29 @@ export function sync(input: SyncInput): SyncResult {
     };
     const oldSchemas = schemasOf(oldDocs.get(name)!);
     const newSchemas = schemasOf(newDocs.get(name)!);
-    const gone = Object.keys(oldSchemas).filter((k) => !(k in newSchemas)).sort();
-    for (const schema of gone) breaking.push(`${name}: schema \`${schema}\` removed (its type leaves the SDK)`);
+    const gone = Object.keys(oldSchemas)
+      .filter((k) => !(k in newSchemas))
+      .sort();
+    for (const schema of gone)
+      breaking.push(`${name}: schema \`${schema}\` removed (its type leaves the SDK)`);
     const groups: [string, string[]][] = [
-      ["added", Object.keys(newSchemas).filter((k) => !(k in oldSchemas)).sort()],
+      [
+        "added",
+        Object.keys(newSchemas)
+          .filter((k) => !(k in oldSchemas))
+          .sort(),
+      ],
       ["removed", gone],
-      ["changed", Object.keys(oldSchemas).filter((k) => k in newSchemas && !same(oldSchemas[k], newSchemas[k])).sort()],
+      [
+        "changed",
+        Object.keys(oldSchemas)
+          .filter((k) => k in newSchemas && !same(oldSchemas[k], newSchemas[k]))
+          .sort(),
+      ],
     ];
     for (const [label, names] of groups) {
-      if (names.length) lines.push(`- ${name} ${label}: ${names.map((n) => `\`${n}\``).join(", ")}`);
+      if (names.length)
+        lines.push(`- ${name} ${label}: ${names.map((n) => `\`${n}\``).join(", ")}`);
     }
   }
   lines.push("");
@@ -574,13 +729,21 @@ export function sync(input: SyncInput): SyncResult {
     const entry = newOps.get(key);
     const upstream = entry?.[1]["x-didit-sdk"];
     if (upstream === undefined) continue;
-    if (!same(upstream, overlayOps[key])) lines.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
+    if (!same(upstream, overlayOps[key]))
+      lines.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
     dropped.push(key);
     delete overlayOps[key];
   }
-  if (dropped.length) lines.push(`Dropped ${dropped.length} overlay entries that upstream now carries.`, "");
+  if (dropped.length)
+    lines.push(`Dropped ${dropped.length} overlay entries that upstream now carries.`, "");
 
-  lines.splice(2, 0, "## Breaking changes", breaking.length ? breaking.map((b) => `- ${b}`).join("\n") : "None detected.", "");
+  lines.splice(
+    2,
+    0,
+    "## Breaking changes",
+    breaking.length ? breaking.map((b) => `- ${b}`).join("\n") : "None detected.",
+    "",
+  );
 
   const writes = new Map<string, Uint8Array>();
   for (const [name, data] of input.downloads) writes.set(name, data);
@@ -597,6 +760,14 @@ export function sync(input: SyncInput): SyncResult {
   writes.set("SOURCE.json", encoder.encode(JSON.stringify(source, null, 1)));
   overlay.operations = overlayOps;
   writes.set("overlay.json", encoder.encode(JSON.stringify(overlay, null, 1)));
-  writes.set("deprecated-operations.json", encoder.encode(`${JSON.stringify(deprecated, null, 1)}\n`));
-  return { changed: true, breaking: breaking.length > 0, summary: `${lines.join("\n").trimEnd()}\n`, writes };
+  writes.set(
+    "deprecated-operations.json",
+    encoder.encode(`${JSON.stringify(deprecated, null, 1)}\n`),
+  );
+  return {
+    changed: true,
+    breaking: breaking.length > 0,
+    summary: `${lines.join("\n").trimEnd()}\n`,
+    writes,
+  };
 }

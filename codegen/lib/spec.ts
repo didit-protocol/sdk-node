@@ -10,7 +10,8 @@ export const HTTP_METHODS = ["get", "put", "post", "delete", "patch", "head"] as
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 const AUTH_VALUES = new Set(["api_key", "account_token", "none", "device_token", "public"]);
 const SDK_KEYS = new Set(["resource", "method", "auth", "server", "scope"]);
-export const APPLICATION_PREFIX = "/v3/organization/{organization_id}/application/{application_id}/";
+export const APPLICATION_PREFIX =
+  "/v3/organization/{organization_id}/application/{application_id}/";
 const SNAKE = /^[a-z][a-z0-9_]*$/;
 
 /** The OpenAPI documents or the overlay cannot be turned into the SDK. */
@@ -55,7 +56,8 @@ export function parseNaming(where: string, raw: unknown): SdkNaming {
       `${where}: auth ${JSON.stringify(auth)} must be one of ${[...AUTH_VALUES].sort().join(", ")}.`,
     );
   }
-  if (typeof server !== "boolean") throw new CodegenError(`${where}: server must be true or false.`);
+  if (typeof server !== "boolean")
+    throw new CodegenError(`${where}: server must be true or false.`);
   if (scope !== undefined && scope !== "application") {
     throw new CodegenError(`${where}: scope must be "application" when present.`);
   }
@@ -159,7 +161,10 @@ function readJson(path: string): JsonObject {
 
 function mergeParameters(spec: Spec, shared: unknown, own: unknown): JsonObject[] {
   const out = new Map<string, JsonObject>();
-  for (const raw of [...(Array.isArray(shared) ? shared : []), ...(Array.isArray(own) ? own : [])]) {
+  for (const raw of [
+    ...(Array.isArray(shared) ? shared : []),
+    ...(Array.isArray(own) ? own : []),
+  ]) {
     const param = spec.resolveObject(raw);
     out.set(`${String(param.in)}:${String(param.name)}`, param);
   }
@@ -195,7 +200,9 @@ export function load(openapiDir: string): Model {
         seenKeys.add(key);
         const raw = op["x-didit-sdk"] ?? overlay[key];
         if (raw === undefined) {
-          missing.push(`${key} (operationId ${typeof op.operationId === "string" ? op.operationId : "-"})`);
+          missing.push(
+            `${key} (operationId ${typeof op.operationId === "string" ? op.operationId : "-"})`,
+          );
           continue;
         }
         operations.push({
@@ -252,7 +259,8 @@ function deprecatedOperations(
   live: Operation[],
 ): Operation[] {
   const liveNames = new Map<string, string>();
-  for (const op of live) if (op.sdk.server) liveNames.set(`${op.sdk.resource}.${op.sdk.method}`, op.key);
+  for (const op of live)
+    if (op.sdk.server) liveNames.set(`${op.sdk.resource}.${op.sdk.method}`, op.key);
   const out: Operation[] = [];
   for (const name of Object.keys(deprecated).sort()) {
     const entry = deprecated[name]!;
@@ -273,7 +281,9 @@ function deprecatedOperations(
     const [method = "", path = ""] = key.replace(/^account /, "").split(" ");
     const httpMethod = method.toLowerCase() as HttpMethod;
     if (!HTTP_METHODS.includes(httpMethod) || !path.startsWith("/")) {
-      throw new CodegenError(`${where}: operation_key ${JSON.stringify(key)} is not "METHOD /path".`);
+      throw new CodegenError(
+        `${where}: operation_key ${JSON.stringify(key)} is not "METHOD /path".`,
+      );
     }
     const note =
       entry.note ??

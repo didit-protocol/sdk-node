@@ -162,10 +162,14 @@ function validateBaseURL(name: string, value: string): { url: string; origin: st
   try {
     parsed = new URL(value);
   } catch {
-    throw new ConfigurationError(`${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`);
+    throw new ConfigurationError(
+      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
+    );
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new ConfigurationError(`${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`);
+    throw new ConfigurationError(
+      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
+    );
   }
   if (parsed.username || parsed.password) {
     throw new ConfigurationError(`${name} must not contain credentials.`);
@@ -285,7 +289,10 @@ export class APIClient {
     this.organizationId = options.organizationId ?? readEnv("DIDIT_ORGANIZATION_ID");
     this.applicationId = options.applicationId ?? readEnv("DIDIT_APPLICATION_ID");
     const base = validateBaseURL("baseURL", options.baseURL ?? DEFAULT_BASE_URL);
-    const account = validateBaseURL("accountBaseURL", options.accountBaseURL ?? DEFAULT_ACCOUNT_BASE_URL);
+    const account = validateBaseURL(
+      "accountBaseURL",
+      options.accountBaseURL ?? DEFAULT_ACCOUNT_BASE_URL,
+    );
     this.baseURL = base.url;
     this.#origin = base.origin;
     this.accountBaseURL = account.url;
@@ -317,8 +324,15 @@ export class APIClient {
   // Requests -------------------------------------------------------------------
 
   /** Send one operation and parse its response. Used by the generated resources. */
-  request<T>(op: OperationSpec, pathArgs: readonly string[], params: unknown, options?: RequestOptions): APIPromise<T> {
-    const raw = this.#prepare(op, pathArgs, params, options).then((prepared) => this.#send(prepared));
+  request<T>(
+    op: OperationSpec,
+    pathArgs: readonly string[],
+    params: unknown,
+    options?: RequestOptions,
+  ): APIPromise<T> {
+    const raw = this.#prepare(op, pathArgs, params, options).then((prepared) =>
+      this.#send(prepared),
+    );
     return new APIPromise<T>(raw, (r) => this.#parse<T>(op, r));
   }
 
@@ -334,39 +348,53 @@ export class APIClient {
     return new PagePromise<R, Item>(raw, async (r) => this.#page<R, Item>(op, await prepared, r));
   }
 
-  async #page<R, Item>(op: OperationSpec, prepared: PreparedRequest, raw: RawResponse): Promise<Page<R, Item>> {
-    const body = await this.#parse<R>(op, raw);
-    if (!isRecord(body)) {
-      throw new APIResponseValidationError("The API returned a list response that is not an object.", raw.response.status, raw.response.headers);
-    }
-    const seen = new Set<string>([raw.response.url || prepared.url]);
-    const fetchNext = async (next: string, current: Page<R, Item>): Promise<Page<R, Item>> => {
-      void current;
-      let target: URL;
-      try {
-        target = new URL(next, prepared.url);
-      } catch {
-        throw new APIResponseValidationError("The API returned an invalid pagination link.", raw.response.status, raw.response.headers);
+  async #page<R, Item>(
+    op: OperationSpec,
+    prepared: PreparedRequest,
+    raw: RawResponse,
+  ): Promise<Page<R, Item>> {
+    const invalid = (message: string, response: Response): APIResponseValidationError =>
+      new APIResponseValidationError(message, response.status, response.headers);
+    const build = async (current: string, response: RawResponse): Promise<Page<R, Item>> => {
+      const body = await this.#parse<R>(op, response);
+      if (!isRecord(body)) {
+        throw invalid("The API returned a list response that is not an object.", response.response);
       }
-      if ((target.protocol !== "https:" && target.protocol !== "http:") || target.origin !== prepared.origin) {
-        throw new APIResponseValidationError(
-          `Refusing to follow a pagination link to another origin (${target.origin}); the credentials are only sent to ${prepared.origin}.`,
-          raw.response.status,
-          raw.response.headers,
-        );
-      }
-      if (seen.has(target.href)) {
-        throw new APIResponseValidationError("The API returned a pagination link that repeats an earlier page.", raw.response.status, raw.response.headers);
-      }
-      seen.add(target.href);
-      const nextRaw = await this.#send({ ...prepared, method: "GET", url: target.href, body: undefined });
-      const nextBody = await this.#parse<R>(op, nextRaw);
-      if (!isRecord(nextBody)) {
-        throw new APIResponseValidationError("The API returned a list response that is not an object.", nextRaw.response.status, nextRaw.response.headers);
-      }
-      return makePage<R, Item>(nextBody as R, fetchNext);
+      const fetchNext = async (next: string, seen: Set<string>): Promise<Page<R, Item>> => {
+        let target: URL;
+        try {
+          target = new URL(next, current);
+        } catch {
+          throw invalid("The API returned an invalid pagination link.", response.response);
+        }
+        if (
+          (target.protocol !== "https:" && target.protocol !== "http:") ||
+          target.origin !== prepared.origin
+        ) {
+          throw invalid(
+            `Refusing to follow a pagination link to another origin (${target.origin}); ` +
+              `the credentials are only sent to ${prepared.origin}.`,
+            response.response,
+          );
+        }
+        if (seen.has(target.href)) {
+          throw invalid(
+            "The API returned a pagination link that repeats an earlier page.",
+            response.response,
+          );
+        }
+        seen.add(target.href);
+        const nextRaw = await this.#send({
+          ...prepared,
+          method: "GET",
+          url: target.href,
+          body: undefined,
+        });
+        return build(target.href, nextRaw);
+      };
+      return makePage<R, Item>(body as R, current, fetchNext);
     };
-    return makePage<R, Item>(body as R, fetchNext);
+    return build(prepared.url, raw);
   }
 
   async #prepare(
@@ -414,7 +442,8 @@ export class APIClient {
     }
 
     // Query string and body fields.
-    const fields: Record<string, unknown> = isRecord(params) && op.body !== "whole" ? { ...params } : {};
+    const fields: Record<string, unknown> =
+      isRecord(params) && op.body !== "whole" ? { ...params } : {};
     for (const [key, wire] of queryKeys(op)) {
       const value = fields[key];
       delete fields[key];
@@ -431,10 +460,12 @@ export class APIClient {
     headers.set("Accept", op.accept ?? "application/json");
     headers.set("User-Agent", userAgent());
     headers.set("X-Didit-Client", clientHeader());
-    for (const [name, value] of Object.entries(this.#options.defaultHeaders ?? {})) headers.set(name, value);
+    for (const [name, value] of Object.entries(this.#options.defaultHeaders ?? {}))
+      headers.set(name, value);
     // Credentials only ever go to the origin of the API they belong to.
     if (auth === "api_key") headers.set("x-api-key", this.#apiKey!);
-    else if (auth === "account_token") headers.set("Authorization", `Bearer ${this.#accountToken!}`);
+    else if (auth === "account_token")
+      headers.set("Authorization", `Bearer ${this.#accountToken!}`);
 
     let body: string | FormData | undefined;
     if (op.body === "whole") {
@@ -455,7 +486,8 @@ export class APIClient {
         headers.set("Content-Type", "application/json");
       }
     }
-    if (options.idempotencyKey !== undefined) headers.set("Idempotency-Key", options.idempotencyKey);
+    if (options.idempotencyKey !== undefined)
+      headers.set("Idempotency-Key", options.idempotencyKey);
     for (const [name, value] of Object.entries(options.headers ?? {})) {
       if (value === null) headers.delete(name);
       else if (value !== undefined) headers.set(name, value);
@@ -487,10 +519,19 @@ export class APIClient {
   }
 
   #secrets(): string[] {
-    return [this.#apiKey, this.#accountToken].filter((s): s is string => typeof s === "string" && s !== "");
+    return [this.#apiKey, this.#accountToken].filter(
+      (s): s is string => typeof s === "string" && s !== "",
+    );
   }
 
-  #log(method: string, url: string, started: number, attempt: number, response?: Response, error?: string): void {
+  #log(
+    method: string,
+    url: string,
+    started: number,
+    attempt: number,
+    response?: Response,
+    error?: string,
+  ): void {
     if (this.#logLevel !== "debug") return;
     const line: Parameters<typeof formatLogLine>[0] = {
       method,
@@ -530,7 +571,9 @@ export class APIClient {
         if (signal?.aborted) throw abortError(signal);
         const label = timedOut.value ? "timeout" : "connection error";
         this.#log(method, prepared.url, started, attempt, undefined, label);
-        const retry = timedOut.value ? IDEMPOTENT.has(method) : IDEMPOTENT.has(method) || failedBeforeSending(error);
+        const retry = timedOut.value
+          ? IDEMPOTENT.has(method)
+          : IDEMPOTENT.has(method) || failedBeforeSending(error);
         if (retry && attempt < prepared.maxRetries) {
           await sleep(retryDelay(attempt), signal);
           continue;
@@ -572,7 +615,10 @@ export class APIClient {
    * fetch with `redirect: "manual"`: the API key must never follow a redirect to
    * another origin, so only same-origin redirects of GET and HEAD are followed.
    */
-  async #fetchFollowingRedirects(prepared: PreparedRequest, signal: AbortSignal): Promise<Response> {
+  async #fetchFollowingRedirects(
+    prepared: PreparedRequest,
+    signal: AbortSignal,
+  ): Promise<Response> {
     let url = prepared.url;
     for (let hop = 0; ; hop++) {
       const init: RequestInit = {
@@ -586,7 +632,11 @@ export class APIClient {
       const response = await this.#fetch(url, init);
       const location = response.headers.get("location");
       const redirect = [301, 302, 303, 307, 308].includes(response.status) && location !== null;
-      if (!redirect || hop >= MAX_REDIRECTS || (prepared.method !== "GET" && prepared.method !== "HEAD")) {
+      if (
+        !redirect ||
+        hop >= MAX_REDIRECTS ||
+        (prepared.method !== "GET" && prepared.method !== "HEAD")
+      ) {
         return response;
       }
       const target = new URL(location, url);
@@ -626,7 +676,9 @@ export class APIClient {
       if (error instanceof DiditError) throw error;
       if (raw.timedOut()) throw new APITimeoutError(undefined, { cause: error });
       // Reading the body failed: the connection broke.
-      throw new APIConnectionError("The connection failed while reading the response.", { cause: error });
+      throw new APIConnectionError("The connection failed while reading the response.", {
+        cause: error,
+      });
     } finally {
       raw.done();
     }

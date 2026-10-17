@@ -13,8 +13,11 @@ export interface PageResponse<Item> {
   results?: Item[] | null;
 }
 
-/** Fetches the page a `next` link points to. */
-export type PageFetcher<R, Item> = (next: string, current: Page<R, Item>) => Promise<Page<R, Item>>;
+/**
+ * Fetches the page a `next` link points to. `seen` holds the absolute URLs
+ * already visited in this walk; a link back to one of them is refused.
+ */
+export type PageFetcher<R, Item> = (next: string, seen: Set<string>) => Promise<Page<R, Item>>;
 
 /** The helpers on every page. */
 export interface PageMethods<R, Item> extends AsyncIterable<Item> {
@@ -33,9 +36,11 @@ export type Page<R, Item> = R & PageMethods<R, Item>;
 
 class PageImpl<R, Item> implements PageMethods<R, Item> {
   readonly #fetchNext: PageFetcher<R, Item>;
+  readonly #url: string;
 
-  constructor(body: R, fetchNext: PageFetcher<R, Item>) {
+  constructor(body: R, url: string, fetchNext: PageFetcher<R, Item>) {
     Object.assign(this, body);
+    this.#url = url;
     this.#fetchNext = fetchNext;
   }
 
@@ -49,19 +54,25 @@ class PageImpl<R, Item> implements PageMethods<R, Item> {
   }
 
   getNextPage(): Promise<Page<R, Item>> {
+    return this.#nextPage(new Set([this.#url]));
+  }
+
+  #nextPage(seen: Set<string>): Promise<Page<R, Item>> {
     const next = this.#next();
     if (next === null) {
       return Promise.reject(new DiditError("This is the last page: there is no next link."));
     }
-    return this.#fetchNext(next, this as unknown as Page<R, Item>);
+    return this.#fetchNext(next, seen);
   }
 
   async *iterPages(): AsyncGenerator<Page<R, Item>, void, undefined> {
-    let page = this as unknown as Page<R, Item>;
+    // One set per walk, so a cycle of next links ends it instead of looping forever.
+    const seen = new Set([this.#url]);
+    let page: PageImpl<R, Item> = this;
     for (;;) {
-      yield page;
+      yield page as unknown as Page<R, Item>;
       if (!page.hasNextPage()) return;
-      page = await page.getNextPage();
+      page = (await page.#nextPage(seen)) as unknown as PageImpl<R, Item>;
     }
   }
 
@@ -73,9 +84,13 @@ class PageImpl<R, Item> implements PageMethods<R, Item> {
   }
 }
 
-/** Build a page from a list response body. */
-export function makePage<R, Item>(body: R, fetchNext: PageFetcher<R, Item>): Page<R, Item> {
-  return new PageImpl<R, Item>(body, fetchNext) as unknown as Page<R, Item>;
+/** Build a page from a list response body fetched from `url`. */
+export function makePage<R, Item>(
+  body: R,
+  url: string,
+  fetchNext: PageFetcher<R, Item>,
+): Page<R, Item> {
+  return new PageImpl<R, Item>(body, url, fetchNext) as unknown as Page<R, Item>;
 }
 
 /**

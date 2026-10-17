@@ -42,7 +42,10 @@ export interface Reply {
   headers?: Record<string, string>;
 }
 
-async function record(input: string | URL | Request, init: RequestInit = {}): Promise<RecordedRequest> {
+async function record(
+  input: string | URL | Request,
+  init: RequestInit = {},
+): Promise<RecordedRequest> {
   const request = new Request(input, init);
   const url = new URL(request.url);
   const query: Record<string, string | string[]> = {};
@@ -81,7 +84,8 @@ async function record(input: string | URL | Request, init: RequestInit = {}): Pr
     }
   } else {
     out.bodyText = await request.text();
-    if (out.bodyText && contentType?.startsWith("application/json")) out.json = JSON.parse(out.bodyText);
+    if (out.bodyText && contentType?.startsWith("application/json"))
+      out.json = JSON.parse(out.bodyText);
   }
   return out;
 }
@@ -149,7 +153,8 @@ let specs: { verification: JsonObject; account: JsonObject; deprecated: JsonObje
 
 function loadSpecs(): NonNullable<typeof specs> {
   if (!specs) {
-    const read = (name: string): JsonObject => JSON.parse(readFileSync(join(ROOT, "openapi", name), "utf8"));
+    const read = (name: string): JsonObject =>
+      JSON.parse(readFileSync(join(ROOT, "openapi", name), "utf8"));
     let deprecated: JsonObject = {};
     try {
       deprecated = read("deprecated-operations.json");
@@ -182,7 +187,9 @@ export function responseExample(key: string, kind?: "page"): unknown {
   const isAccount = key.startsWith("account ");
   const [method, path] = key.replace(/^account /, "").split(" ") as [string, string];
   const doc = isAccount ? account : verification;
-  let op = (resolve(doc, (doc.paths as JsonObject)[path]) as JsonObject | undefined)?.[method.toLowerCase()];
+  let op = (resolve(doc, (doc.paths as JsonObject)[path]) as JsonObject | undefined)?.[
+    method.toLowerCase()
+  ];
   if (!isObject(op)) {
     const methods = isObject(deprecated.methods) ? deprecated.methods : {};
     const entry = Object.values(methods).find((e) => isObject(e) && e.operation_key === key);
@@ -232,14 +239,20 @@ export function expectMatchesExample(actual: unknown, example: unknown, path = "
     expect(isObject(actual), `${path} should be an object`).toBe(true);
     const record = actual as JsonObject;
     expect(Object.keys(record).sort(), path).toEqual(Object.keys(example).sort());
-    for (const [key, value] of Object.entries(example)) expectMatchesExample(record[key], value, `${path}.${key}`);
+    for (const [key, value] of Object.entries(example))
+      expectMatchesExample(record[key], value, `${path}.${key}`);
     return;
   }
   expect(actual, path).toEqual(example);
 }
 
 /** A fetch that records requests and answers each one from `handler`. */
-export function fakeFetch(handler: (request: RecordedRequest, index: number) => Reply | Response | Promise<Reply | Response>): {
+export function fakeFetch(
+  handler: (
+    request: RecordedRequest,
+    index: number,
+  ) => Reply | Response | Promise<Reply | Response>,
+): {
   fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
   calls: RecordedRequest[];
 } {

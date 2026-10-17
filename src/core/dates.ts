@@ -8,9 +8,7 @@
  * the values of a map.
  */
 export type DatePlan =
-  | 1
-  | string
-  | { s?: 1; p?: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan };
+  1 | string | { s?: 1; p?: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan };
 
 // RFC 3339 / ISO 8601 date-time with a time zone, as the API writes them.
 const DATE_TIME =
@@ -46,7 +44,8 @@ export function decodeDates(
   if (node === 1) return value;
   if (Array.isArray(value)) {
     if (node.i !== undefined) {
-      for (let i = 0; i < value.length; i++) value[i] = decodeDates(value[i], node.i, named, depth + 1);
+      for (let i = 0; i < value.length; i++)
+        value[i] = decodeDates(value[i], node.i, named, depth + 1);
     }
     return value;
   }

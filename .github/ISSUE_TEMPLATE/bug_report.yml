@@ -14,7 +14,7 @@ body:
     id: sdk-version
     attributes:
       label: SDK version
-      description: "Output of `node -p \"require('@didit-protocol/sdk-node').VERSION\"`."
+      description: 'Output of `node -p "require(''@didit-protocol/sdk-node'').VERSION"`.'
       placeholder: "0.1.0"
     validations:
       required: true

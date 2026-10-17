@@ -1,10 +1,30 @@
 // Turn each server operation into the description of one SDK method.
 
 import { argName, camel, resourceClass, pascal } from "./naming.ts";
-import { CodegenError, isObject, type Json, type JsonObject, type Operation, type Spec } from "./spec.ts";
-import { description, nullable, union, type DatePlan, type TypeBuilder, type TypeRef } from "./types.ts";
+import {
+  CodegenError,
+  isObject,
+  type Json,
+  type JsonObject,
+  type Operation,
+  type Spec,
+} from "./spec.ts";
+import {
+  description,
+  nullable,
+  union,
+  type DatePlan,
+  type TypeBuilder,
+  type TypeRef,
+} from "./types.ts";
 
-const BINARY_TYPES = ["application/pdf", "text/csv", "image/", "application/octet-stream", "application/zip"];
+const BINARY_TYPES = [
+  "application/pdf",
+  "text/csv",
+  "image/",
+  "application/octet-stream",
+  "application/zip",
+];
 
 export interface PathArg {
   wire: string;
@@ -88,7 +108,8 @@ function binaryFields(spec: Spec, schema: Json): Set<string> {
   for (const [name, raw] of Object.entries(props)) {
     const prop = spec.resolveObject(raw);
     const items = spec.resolveObject(prop.items);
-    if (prop.format === "binary" || (prop.type === "array" && items.format === "binary")) out.add(name);
+    if (prop.format === "binary" || (prop.type === "array" && items.format === "binary"))
+      out.add(name);
   }
   return out;
 }
@@ -103,30 +124,42 @@ function mergeBody(
   if (json === undefined && multipart === undefined) {
     const form = content["application/x-www-form-urlencoded"];
     if (form === undefined) {
-      throw new CodegenError(`${op.key}: unsupported request content types ${Object.keys(content).join(", ")}.`);
+      throw new CodegenError(
+        `${op.key}: unsupported request content types ${Object.keys(content).join(", ")}.`,
+      );
     }
     json = form;
   }
   const jsonMedia = isObject(json) ? json : undefined;
   const multipartMedia = isObject(multipart) ? multipart : undefined;
-  if (jsonMedia && !multipartMedia) return { schema: jsonMedia.schema ?? {}, mode: "json", files: [], media: jsonMedia };
+  if (jsonMedia && !multipartMedia)
+    return { schema: jsonMedia.schema ?? {}, mode: "json", files: [], media: jsonMedia };
   if (!jsonMedia) {
     const schema = multipartMedia!.schema ?? {};
-    return { schema, mode: "multipart", files: [...binaryFields(op.spec, schema)].sort(), media: multipartMedia };
+    return {
+      schema,
+      mode: "multipart",
+      files: [...binaryFields(op.spec, schema)].sort(),
+      media: multipartMedia,
+    };
   }
   const jsonSchema = op.spec.resolveObject(jsonMedia.schema);
   const multipartSchema = op.spec.resolveObject(multipartMedia!.schema);
   const jsonProps = isObject(jsonSchema.properties) ? jsonSchema.properties : {};
   const files = [...binaryFields(op.spec, multipartSchema)].filter((f) => !(f in jsonProps));
-  if (!files.length) return { schema: jsonMedia.schema ?? {}, mode: "json", files: [], media: jsonMedia };
+  if (!files.length)
+    return { schema: jsonMedia.schema ?? {}, mode: "json", files: [], media: jsonMedia };
   // Either encoding works: JSON without files, multipart once a file is set.
   const props: Record<string, Json> = { ...jsonProps };
   const multipartProps = isObject(multipartSchema.properties) ? multipartSchema.properties : {};
-  for (const [name, prop] of Object.entries(multipartProps)) if (!(name in props)) props[name] = prop;
-  const multipartRequired = new Set(Array.isArray(multipartSchema.required) ? multipartSchema.required.map(String) : []);
-  const required = (Array.isArray(jsonSchema.required) ? jsonSchema.required.map(String) : []).filter((r) =>
-    multipartRequired.has(r),
+  for (const [name, prop] of Object.entries(multipartProps))
+    if (!(name in props)) props[name] = prop;
+  const multipartRequired = new Set(
+    Array.isArray(multipartSchema.required) ? multipartSchema.required.map(String) : [],
   );
+  const required = (
+    Array.isArray(jsonSchema.required) ? jsonSchema.required.map(String) : []
+  ).filter((r) => multipartRequired.has(r));
   const merged: JsonObject = { ...jsonSchema, properties: props, required };
   delete merged.$ref;
   return { schema: merged, mode: "auto", files: files.sort(), media: jsonMedia };
@@ -146,7 +179,8 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
   for (const p of op.parameters) if (p.in === "path") pathParams.set(String(p.name), p);
   const pathArgs: PathArg[] = [];
   for (const wire of pathNames(op.path)) {
-    if (sdk.scope === "application" && (wire === "organization_id" || wire === "application_id")) continue;
+    if (sdk.scope === "application" && (wire === "organization_id" || wire === "application_id"))
+      continue;
     const param = pathParams.get(wire) ?? { name: wire, schema: { type: "string" } };
     const name = argName(wire, used);
     used.add(name);
@@ -191,7 +225,9 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
     } else {
       wholeBody = true;
       if (queryParams.length) {
-        throw new CodegenError(`${op.key}: a non-object request body together with query parameters is not supported.`);
+        throw new CodegenError(
+          `${op.key}: a non-object request body together with query parameters is not supported.`,
+        );
       }
       params = builder.type(spec, merged.schema, paramsName, module, "param");
       paramsRequired = requestBody.required === true;
@@ -206,7 +242,15 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
       const resolved = spec.resolveObject(schema);
       if (resolved.readOnly === true) continue;
       const ex = exampleOf(undefined, resolved);
-      fields.push({ key: wire, wire, location: "body", required: bodyRequired.has(wire), schema, example: ex.value, hasExample: ex.has });
+      fields.push({
+        key: wire,
+        wire,
+        location: "body",
+        required: bodyRequired.has(wire),
+        schema,
+        example: ex.value,
+        hasExample: ex.has,
+      });
     }
     for (const param of queryParams) {
       const wire = String(param.name);
@@ -219,8 +263,17 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
       if (param.deprecated === true) schema.deprecated = true;
       props[key] = schema;
       if (param.required === true) required.add(key);
-      const ex = "example" in param ? { has: true, value: param.example } : exampleOf(undefined, schema);
-      fields.push({ key, wire, location: "query", required: param.required === true, schema, example: ex.value, hasExample: ex.has });
+      const ex =
+        "example" in param ? { has: true, value: param.example } : exampleOf(undefined, schema);
+      fields.push({
+        key,
+        wire,
+        location: "query",
+        required: param.required === true,
+        schema,
+        example: ex.value,
+        hasExample: ex.has,
+      });
     }
     const combined: JsonObject = {
       type: "object",
@@ -228,7 +281,8 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
       required: [...required],
     };
     if (bodySchema?.description) combined.description = bodySchema.description;
-    if (bodySchema && "additionalProperties" in bodySchema) combined.additionalProperties = bodySchema.additionalProperties;
+    if (bodySchema && "additionalProperties" in bodySchema)
+      combined.additionalProperties = bodySchema.additionalProperties;
     params = builder.type(spec, combined, paramsName, module, "param");
     paramsRequired = fields.some((f) => f.required);
   }
@@ -260,7 +314,12 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
   };
 }
 
-function buildResponse(op: Operation, builder: TypeBuilder, rc: string, module: string): ResponseInfo {
+function buildResponse(
+  op: Operation,
+  builder: TypeBuilder,
+  rc: string,
+  module: string,
+): ResponseInfo {
   const { spec } = op;
   const responses = isObject(op.op.responses) ? op.op.responses : {};
   const successes = Object.entries(responses)
@@ -279,7 +338,12 @@ function buildResponse(op: Operation, builder: TypeBuilder, rc: string, module: 
     }
     const other = Object.keys(content).filter((ct) => BINARY_TYPES.some((b) => ct.startsWith(b)));
     if (other.length) binary = [code, other[0]!];
-    else if (!Object.keys(content).length && code !== 204 && op.httpMethod !== "delete" && op.httpMethod !== "head") {
+    else if (
+      !Object.keys(content).length &&
+      code !== 204 &&
+      op.httpMethod !== "delete" &&
+      op.httpMethod !== "head"
+    ) {
       // A body is promised but not described: return the JSON as it comes.
       jsonResponses.push([code, { schema: {} }]);
     } else empty = true;
@@ -382,7 +446,8 @@ export function responseComponents(operations: Operation[]): Set<string> {
         stack.push(op.spec.pointer(cur.$ref));
         continue;
       }
-      for (const [k, v] of Object.entries(cur)) if (k !== "example" && k !== "examples") stack.push(v);
+      for (const [k, v] of Object.entries(cur))
+        if (k !== "example" && k !== "examples") stack.push(v);
     }
   }
   return out;

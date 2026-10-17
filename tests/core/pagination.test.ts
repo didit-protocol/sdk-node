@@ -11,9 +11,13 @@ function pages(handler: (req: RecordedRequest) => unknown) {
 }
 
 function page(offset: number, total: number, size = 2, origin = API) {
-  const results = Array.from({ length: Math.min(size, total - offset) }, (_, i) => ({ id: offset + i }));
-  const next = offset + size < total ? `${origin}/v3/workflows/?limit=${size}&offset=${offset + size}` : null;
-  const previous = offset > 0 ? `${origin}/v3/workflows/?limit=${size}&offset=${offset - size}` : null;
+  const results = Array.from({ length: Math.min(size, total - offset) }, (_, i) => ({
+    id: offset + i,
+  }));
+  const next =
+    offset + size < total ? `${origin}/v3/workflows/?limit=${size}&offset=${offset + size}` : null;
+  const previous =
+    offset > 0 ? `${origin}/v3/workflows/?limit=${size}&offset=${offset - size}` : null;
   return { count: total, next, previous, results };
 }
 
@@ -38,9 +42,14 @@ describe("pages", () => {
   it("walks every item of every page with for await, sending the key to the API only", async () => {
     const { didit, calls } = pages((req) => page(Number(req.query.offset ?? 0), 5));
     const ids: unknown[] = [];
-    for await (const item of didit.workflows.list({ limit: 2 } as never)) ids.push((item as { id: number }).id);
+    for await (const item of didit.workflows.list({ limit: 2 } as never))
+      ids.push((item as { id: number }).id);
     expect(ids).toEqual([0, 1, 2, 3, 4]);
-    expect(calls.map((c) => c.url.search)).toEqual(["?limit=2", "?limit=2&offset=2", "?limit=2&offset=4"]);
+    expect(calls.map((c) => c.url.search)).toEqual([
+      "?limit=2",
+      "?limit=2&offset=2",
+      "?limit=2&offset=4",
+    ]);
     expect(calls.every((c) => c.headers.get("x-api-key") === "k" && c.origin === API)).toBe(true);
   });
 
@@ -67,7 +76,9 @@ describe("pages", () => {
 
   it("resolves a relative next link against the current page", async () => {
     const { didit, calls } = pages((req) =>
-      req.query.offset ? { count: 2, next: null, previous: null, results: [{ id: 1 }] } : { count: 2, next: "?offset=1", previous: null, results: [{ id: 0 }] },
+      req.query.offset
+        ? { count: 2, next: null, previous: null, results: [{ id: 1 }] }
+        : { count: 2, next: "?offset=1", previous: null, results: [{ id: 0 }] },
     );
     const ids: unknown[] = [];
     for await (const item of didit.workflows.list()) ids.push(item);
@@ -85,14 +96,28 @@ describe("pages", () => {
   });
 
   it("refuses a next link with another scheme or an invalid URL", async () => {
-    const { didit } = pages(() => ({ count: 2, next: "javascript:alert(1)", previous: null, results: [] }));
-    await expect((await didit.workflows.list()).getNextPage()).rejects.toBeInstanceOf(APIResponseValidationError);
+    const { didit } = pages(() => ({
+      count: 2,
+      next: "javascript:alert(1)",
+      previous: null,
+      results: [],
+    }));
+    await expect((await didit.workflows.list()).getNextPage()).rejects.toBeInstanceOf(
+      APIResponseValidationError,
+    );
     const broken = pages(() => ({ count: 2, next: "http://[::1", previous: null, results: [] }));
-    await expect((await broken.didit.workflows.list()).getNextPage()).rejects.toThrow(/invalid pagination link/);
+    await expect((await broken.didit.workflows.list()).getNextPage()).rejects.toThrow(
+      /invalid pagination link/,
+    );
   });
 
   it("stops a next link that repeats an earlier page", async () => {
-    const { didit } = pages(() => ({ count: 9, next: `${API}/v3/workflows/?offset=2`, previous: null, results: [{ id: 0 }] }));
+    const { didit } = pages(() => ({
+      count: 9,
+      next: `${API}/v3/workflows/?offset=2`,
+      previous: null,
+      results: [{ id: 0 }],
+    }));
     const items: unknown[] = [];
     const error = await (async () => {
       for await (const item of didit.workflows.list()) items.push(item);
@@ -105,7 +130,9 @@ describe("pages", () => {
     const { didit } = pages(() => [1, 2]);
     await expect(didit.workflows.list()).rejects.toBeInstanceOf(APIResponseValidationError);
     const later = pages((req) => (req.query.offset ? "nope" : page(0, 4)));
-    await expect((await later.didit.workflows.list()).getNextPage()).rejects.toBeInstanceOf(APIResponseValidationError);
+    await expect((await later.didit.workflows.list()).getNextPage()).rejects.toBeInstanceOf(
+      APIResponseValidationError,
+    );
   });
 
   it("treats an empty results list or a missing one as no items", async () => {
@@ -116,12 +143,30 @@ describe("pages", () => {
   });
 
   it("decodes the date-times of every page", async () => {
-    const { didit } = pages(() => ({
-      count: 1,
-      next: null,
+    const { didit } = pages((req) => ({
+      count: 2,
+      next: req.query.offset ? null : `${API}/v3/transactions/?offset=1`,
       previous: null,
-      results: [{ uuid: "w", created_at: "2026-01-01T00:00:00Z" }],
+      results: [
+        { uuid: "t", created_at: "2026-01-01T00:00:00Z", txn_date: "2026-01-01T00:00:00Z" },
+      ],
     }));
-    for await (const item of didit.workflows.list()) expect((item as { created_at: unknown }).created_at).toBeInstanceOf(Date);
+    let n = 0;
+    for await (const item of didit.transactions.list()) {
+      expect(item.created_at).toBeInstanceOf(Date);
+      n++;
+    }
+    expect(n).toBe(2);
+  });
+
+  it("allows walking the same pages twice", async () => {
+    const { didit, calls } = pages((req) => page(Number(req.query.offset ?? 0), 4));
+    const first = await didit.workflows.list({ limit: 2 } as never);
+    for (let i = 0; i < 2; i++) {
+      const items: unknown[] = [];
+      for await (const item of first) items.push(item);
+      expect(items).toHaveLength(4);
+    }
+    expect(calls).toHaveLength(3);
   });
 });

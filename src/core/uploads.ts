@@ -4,11 +4,7 @@ import { ConfigurationError } from "./errors.js";
 
 /** The bytes of a file: a Blob or File, a byte array, a web stream or a Node.js stream. */
 export type FileData =
-  | Blob
-  | ArrayBuffer
-  | ArrayBufferView
-  | ReadableStream<Uint8Array>
-  | AsyncIterable<Uint8Array>;
+  Blob | ArrayBuffer | ArrayBufferView | ReadableStream<Uint8Array> | AsyncIterable<Uint8Array>;
 
 /** File bytes with the file name and content type to send. */
 export interface FileUpload {
@@ -119,7 +115,9 @@ function part(bytes: Uint8Array): BlobPart {
   return bytes as Uint8Array<ArrayBuffer>;
 }
 
-async function collect(stream: AsyncIterable<Uint8Array> | ReadableStream<Uint8Array>): Promise<Blob> {
+async function collect(
+  stream: AsyncIterable<Uint8Array> | ReadableStream<Uint8Array>,
+): Promise<Blob> {
   const chunks: BlobPart[] = [];
   if (typeof (stream as ReadableStream<Uint8Array>).getReader === "function") {
     const reader = (stream as ReadableStream<Uint8Array>).getReader();
@@ -172,7 +170,8 @@ export async function prepareFile(value: Uploadable): Promise<PreparedFile> {
 /** Whether a params value is (or holds) a file. */
 export function isUploadable(value: unknown): boolean {
   if (value === null || value === undefined) return false;
-  if (value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return true;
+  if (value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value))
+    return true;
   if (typeof value !== "object") return false;
   if (isFileUpload(value)) return true;
   return Symbol.asyncIterator in value || typeof (value as ReadableStream).getReader === "function";

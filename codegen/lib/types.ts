@@ -357,7 +357,8 @@ export class TypeBuilder {
     switch (schema.type) {
       case "string":
         if (schema.format === "date-time") return ref(mode === "param" ? "string | Date" : "Date");
-        if (schema.format === "binary") return mode === "param" ? ref("Uploadable", ["@Uploadable"]) : ref("string");
+        if (schema.format === "binary")
+          return mode === "param" ? ref("Uploadable", ["@Uploadable"]) : ref("string");
         return ref("string");
       case "integer":
       case "number":
@@ -366,7 +367,9 @@ export class TypeBuilder {
         return ref("boolean");
       case "array":
         // A named array's inline items get their own name; a property's items share its name.
-        return arrayOf(this.type(spec, schema.items, defining ? `${hint}Item` : hint, module, mode));
+        return arrayOf(
+          this.type(spec, schema.items, defining ? `${hint}Item` : hint, module, mode),
+        );
       case "object":
       default: {
         if (schema.type === undefined && !("additionalProperties" in schema)) return ANY;
@@ -574,7 +577,11 @@ export function docLines(text: string | undefined, indent = "", extra: string[] 
   }
   if (!lines.length) return [];
   if (lines.length === 1) return [`${indent}/** ${lines[0]} */`];
-  return [`${indent}/**`, ...lines.map((l) => (l ? `${indent} * ${l}` : `${indent} *`)), `${indent} */`];
+  return [
+    `${indent}/**`,
+    ...lines.map((l) => (l ? `${indent} * ${l}` : `${indent} *`)),
+    `${indent} */`,
+  ];
 }
 
 /** Render a declaration as TypeScript source. */

@@ -82,7 +82,8 @@ function synth(spec: Spec, raw: Json, depth = 0): Value {
   const props: Record<string, Json> = {};
   const required = new Set<string>();
   const collect = (node: JsonObject): void => {
-    for (const part of Array.isArray(node.allOf) ? (node.allOf as Json[]) : []) collect(spec.resolveObject(part));
+    for (const part of Array.isArray(node.allOf) ? (node.allOf as Json[]) : [])
+      collect(spec.resolveObject(part));
     if (isObject(node.properties)) Object.assign(props, node.properties);
     if (Array.isArray(node.required)) for (const r of node.required) required.add(String(r));
   };
@@ -104,7 +105,9 @@ function literal(value: Value): string {
   if (value === FILE) return FILE_LITERAL;
   if (Array.isArray(value)) return `[${value.map((v) => literal(v as Value)).join(", ")}]`;
   if (isObject(value)) {
-    const entries = Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${literal(v as Value)}`);
+    const entries = Object.entries(value).map(
+      ([k, v]) => `${JSON.stringify(k)}: ${literal(v as Value)}`,
+    );
     return `{ ${entries.join(", ")} }`;
   }
   return JSON.stringify(value);
@@ -161,7 +164,11 @@ function renderCase(method: Method): Case {
     for (const field of method.fields) {
       if (!include(field)) continue;
       let value: Value;
-      if (field.location === "query" && field.hasExample && typeMatches(spec.resolveObject(field.schema), field.example)) {
+      if (
+        field.location === "query" &&
+        field.hasExample &&
+        typeMatches(spec.resolveObject(field.schema), field.example)
+      ) {
         value = field.example;
       } else {
         value = synth(spec, field.schema);
@@ -199,19 +206,28 @@ function renderCase(method: Method): Case {
   const lines: string[] = [];
   const response = method.response;
   const reply: string[] = [`status: ${response.status}`];
-  if (response.kind === "binary") reply.push(`body: BINARY, contentType: ${JSON.stringify(response.contentType)}`);
+  if (response.kind === "binary")
+    reply.push(`body: BINARY, contentType: ${JSON.stringify(response.contentType)}`);
   else if (response.kind === "json") reply.push(`json: responseExample(${JSON.stringify(op.key)})`);
-  else if (response.kind === "page") reply.push(`json: responseExample(${JSON.stringify(op.key)}, "page")`);
+  else if (response.kind === "page")
+    reply.push(`json: responseExample(${JSON.stringify(op.key)}, "page")`);
   lines.push(`    const { client, calls } = mockClient({ ${reply.join(", ")} });`);
-  const call = `client.${op.sdk.resource.split(".").map((s) => s.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())).join(".")}.${method.name}(${callArgs.join(", ")})`;
+  const call = `client.${op.sdk.resource
+    .split(".")
+    .map((s) => s.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase()))
+    .join(".")}.${method.name}(${callArgs.join(", ")})`;
   if (response.kind === "page") lines.push(`    const page = await ${call};`);
   else if (response.kind === "none") lines.push(`    await ${call};`);
   else lines.push(`    const result = await ${call};`);
   lines.push(`    expect(calls).toHaveLength(1);`);
   lines.push(`    const request = calls[0]!;`);
   lines.push(`    expect(request.method).toBe(${JSON.stringify(op.httpMethod.toUpperCase())});`);
-  lines.push(`    expect(request.origin).toBe(${op.api === "account" ? "ACCOUNT_ORIGIN" : "API_ORIGIN"});`);
-  lines.push(`    expect(request.path).toBe(${JSON.stringify(op.api === "account" ? `/auth/v2${fullPath}` : fullPath)});`);
+  lines.push(
+    `    expect(request.origin).toBe(${op.api === "account" ? "ACCOUNT_ORIGIN" : "API_ORIGIN"});`,
+  );
+  lines.push(
+    `    expect(request.path).toBe(${JSON.stringify(op.api === "account" ? `/auth/v2${fullPath}` : fullPath)});`,
+  );
   lines.push(`    expect(request.query).toEqual(${JSON.stringify(query)});`);
   lines.push(`    expectAuth(request, ${JSON.stringify(op.sdk.auth)});`);
   lines.push(`    expect(request.headers.get("accept")).toBe(${JSON.stringify(response.accept)});`);
@@ -220,9 +236,13 @@ function renderCase(method: Method): Case {
   } else if (useMultipart) {
     lines.push(`    expect(request.contentType).toMatch(/^multipart\\/form-data; boundary=/);`);
     lines.push(`    expect(request.form).toEqual(${JSON.stringify(form)});`);
-    lines.push(`    expect(Object.keys(request.files).sort()).toEqual(${JSON.stringify(files.sort())});`);
+    lines.push(
+      `    expect(Object.keys(request.files).sort()).toEqual(${JSON.stringify(files.sort())});`,
+    );
     for (const name of files) {
-      lines.push(`    expect(request.files[${JSON.stringify(name)}]).toEqual([{ filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] }]);`);
+      lines.push(
+        `    expect(request.files[${JSON.stringify(name)}]).toEqual([{ filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] }]);`,
+      );
     }
   } else if (method.bodyMode !== "none") {
     lines.push(`    expect(request.contentType).toBe("application/json");`);
@@ -239,7 +259,9 @@ function renderCase(method: Method): Case {
   } else if (response.kind === "page") {
     const example = response.example;
     const hasNext = isObject(example) && typeof example.next === "string" && example.next !== "";
-    lines.push(`    expectMatchesExample({ ...page }, responseExample(${JSON.stringify(op.key)}, "page"));`);
+    lines.push(
+      `    expectMatchesExample({ ...page }, responseExample(${JSON.stringify(op.key)}, "page"));`,
+    );
     lines.push(`    expect(page.hasNextPage()).toBe(${hasNext});`);
   } else {
     lines.push(`    expectMatchesExample(result, responseExample(${JSON.stringify(op.key)}));`);
@@ -250,7 +272,10 @@ function renderCase(method: Method): Case {
   };
 }
 
-export function renderTests(children: Map<string, ResourceNodeLike>, methods: Method[]): Map<string, string> {
+export function renderTests(
+  children: Map<string, ResourceNodeLike>,
+  methods: Method[],
+): Map<string, string> {
   void methods;
   const out = new Map<string, string>();
   for (const [segment, node] of [...children.entries()].sort(([a], [b]) => a.localeCompare(b))) {
@@ -263,7 +288,14 @@ export function renderTests(children: Map<string, ResourceNodeLike>, methods: Me
     all.sort((a, b) => `${a.resource}.${a.name}`.localeCompare(`${b.resource}.${b.name}`));
     const cases = all.map(renderCase);
     const usesBinary = all.some((m) => m.response.kind === "binary");
-    const imports = ["ACCOUNT_ORIGIN", "API_ORIGIN", "expectAuth", "expectMatchesExample", "mockClient", "responseExample"];
+    const imports = [
+      "ACCOUNT_ORIGIN",
+      "API_ORIGIN",
+      "expectAuth",
+      "expectMatchesExample",
+      "mockClient",
+      "responseExample",
+    ];
     if (usesBinary) imports.unshift("BINARY");
     const lines = [
       HEADER,
@@ -273,7 +305,9 @@ export function renderTests(children: Map<string, ResourceNodeLike>, methods: Me
       `import { ${imports.sort().join(", ")} } from "../helpers/mock-api.js";`,
       "",
       `describe(${JSON.stringify(node.path)}, () => {`,
-      cases.map((c) => `  it(${JSON.stringify(c.title)}, async () => {\n${c.code}\n  });`).join("\n\n"),
+      cases
+        .map((c) => `  it(${JSON.stringify(c.title)}, async () => {\n${c.code}\n  });`)
+        .join("\n\n"),
       "});",
       "",
     ];

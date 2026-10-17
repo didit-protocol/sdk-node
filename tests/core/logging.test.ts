@@ -12,8 +12,17 @@ afterEach(() => {
 describe("debug logging", () => {
   it("logs method, path, status, duration and request id, never the query, body or headers", async () => {
     const lines: string[] = [];
-    const { fetch } = fakeFetch(() => ({ status: 200, json: { secret: "body" }, headers: { "x-request-id": "req_1" } }));
-    const didit = new Didit({ apiKey: "sk_key_abc", fetch, logLevel: "debug", logger: { debug: (m) => lines.push(m) } });
+    const { fetch } = fakeFetch(() => ({
+      status: 200,
+      json: { secret: "body" },
+      headers: { "x-request-id": "req_1" },
+    }));
+    const didit = new Didit({
+      apiKey: "sk_key_abc",
+      fetch,
+      logLevel: "debug",
+      logger: { debug: (m) => lines.push(m) },
+    });
     await didit.sessions.list({ vendor_data: "user@example.com" });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatch(/^didit: GET \/v3\/sessions\/ 200 \d+ms request_id=req_1$/);
@@ -29,7 +38,12 @@ describe("debug logging", () => {
       if (n === 1) throw new TypeError("fetch failed");
       return n === 2 ? { status: 503 } : { json: {} };
     });
-    const didit = new Didit({ apiKey: "k", fetch, logLevel: "debug", logger: { debug: (m) => lines.push(m) } });
+    const didit = new Didit({
+      apiKey: "k",
+      fetch,
+      logLevel: "debug",
+      logger: { debug: (m) => lines.push(m) },
+    });
     await didit.users.retrieve("u");
     expect(lines.map((l) => l.replace(/\d+ms/, "Nms"))).toEqual([
       "didit: GET /v3/users/u/ connection error Nms",
@@ -54,8 +68,15 @@ describe("debug logging", () => {
   });
 
   it("formats a line without a parsable URL", () => {
-    expect(formatLogLine({ method: "GET", url: "/raw", status: null, durationMs: 1.4, requestId: null, attempt: 0 })).toBe(
-      "didit: GET /raw error 1ms",
-    );
+    expect(
+      formatLogLine({
+        method: "GET",
+        url: "/raw",
+        status: null,
+        durationMs: 1.4,
+        requestId: null,
+        attempt: 0,
+      }),
+    ).toBe("didit: GET /raw error 1ms");
   });
 });

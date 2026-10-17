@@ -18,7 +18,11 @@ import { makeStatusError, redact, requestIdOf } from "../../src/core/errors.js";
 import { fakeFetch } from "../helpers/mock-api.js";
 
 function failing(status: number, json?: unknown, headers?: Record<string, string>, body?: string) {
-  const { fetch } = fakeFetch(() => (body !== undefined ? { status, body, contentType: "text/plain", headers } : { status, json, headers }));
+  const { fetch } = fakeFetch(() =>
+    body !== undefined
+      ? { status, body, contentType: "text/plain", headers }
+      : { status, json, headers },
+  );
   return new Didit({ apiKey: "sk_test_key_123", maxRetries: 0, fetch });
 }
 
@@ -35,7 +39,9 @@ describe("status errors", () => {
     [502, InternalServerError],
     [503, InternalServerError],
   ])("maps %i to its class", async (status, ErrorClass) => {
-    const error = await failing(status, { detail: "nope" }).users.retrieve("u").catch((e: unknown) => e);
+    const error = await failing(status, { detail: "nope" })
+      .users.retrieve("u")
+      .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ErrorClass);
     expect(error).toBeInstanceOf(APIStatusError);
     expect(error).toBeInstanceOf(DiditError);
@@ -47,14 +53,20 @@ describe("status errors", () => {
   });
 
   it("uses APIStatusError for other statuses", async () => {
-    const error = await failing(418, { detail: "teapot" }).users.retrieve("u").catch((e: unknown) => e);
+    const error = await failing(418, { detail: "teapot" })
+      .users.retrieve("u")
+      .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(APIStatusError);
     expect(error).not.toBeInstanceOf(BadRequestError);
     expect((error as APIStatusError).status).toBe(418);
   });
 
   it("keeps the parsed body, the headers and the request id", async () => {
-    const error = (await failing(400, { workflow_id: ["This field is required."] }, { "x-request-id": "req_9" })
+    const error = (await failing(
+      400,
+      { workflow_id: ["This field is required."] },
+      { "x-request-id": "req_9" },
+    )
       .users.retrieve("u")
       .catch((e: unknown) => e)) as APIStatusError;
     expect(error.body).toEqual({ workflow_id: ["This field is required."] });
@@ -64,19 +76,26 @@ describe("status errors", () => {
   });
 
   it("keeps a text body that is not JSON", async () => {
-    const error = (await failing(502, undefined, undefined, "Bad gateway").users.retrieve("u").catch((e: unknown) => e)) as APIStatusError;
+    const error = (await failing(502, undefined, undefined, "Bad gateway")
+      .users.retrieve("u")
+      .catch((e: unknown) => e)) as APIStatusError;
     expect(error.body).toBe("Bad gateway");
     expect(error.message).toBe("HTTP 502: Bad gateway");
   });
 
   it("has a null body when the response has none", async () => {
-    const error = (await failing(404).users.retrieve("u").catch((e: unknown) => e)) as APIStatusError;
+    const error = (await failing(404)
+      .users.retrieve("u")
+      .catch((e: unknown) => e)) as APIStatusError;
     expect(error.body).toBeNull();
     expect(error.message).toBe("HTTP 404");
   });
 
   it("never puts the API key in a message or a body", async () => {
-    const error = (await failing(401, { detail: "Invalid key sk_test_key_123", echo: ["sk_test_key_123"] })
+    const error = (await failing(401, {
+      detail: "Invalid key sk_test_key_123",
+      echo: ["sk_test_key_123"],
+    })
       .users.retrieve("u")
       .catch((e: unknown) => e)) as APIStatusError;
     expect(error.message).toBe("HTTP 401: Invalid key [redacted]");
@@ -91,7 +110,10 @@ describe("error messages", () => {
     [{ detail: "d" }, "HTTP 400: d"],
     [{ message: "m" }, "HTTP 400: m"],
     [{ error: "e" }, "HTTP 400: e"],
-    [{ error: "invalid_grant", error_description: "Code expired" }, "HTTP 400: invalid_grant: Code expired"],
+    [
+      { error: "invalid_grant", error_description: "Code expired" },
+      "HTTP 400: invalid_grant: Code expired",
+    ],
     [{ a: ["x"], b: "y", c: 1 }, "HTTP 400: a: x; b: y"],
     [["one", "two"], "HTTP 400: one; two"],
     ["  text  ", "HTTP 400: text"],

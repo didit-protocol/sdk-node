@@ -9,6 +9,7 @@ import {
   encodeUtf8SurrogatePass,
   hasLoneSurrogate,
   integerLiteralString,
+  isPlainObject,
   pyFloatRepr,
 } from "./canonical.js";
 import { parseEvent, type WebhookEvent, type WebhookVerifiedBy } from "./events.js";
@@ -404,7 +405,7 @@ export async function verifyWebhookParsed(
 ): Promise<WebhookEvent> {
   const keys = new Keys(normaliseSecrets(secret));
   const tolerance = checkTolerance(options.tolerance);
-  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) {
+  if (!isPlainObject(payload)) {
     throw new WebhookVerificationError(
       "invalid_payload",
       typeof payload === "string" || payload instanceof ArrayBuffer || ArrayBuffer.isView(payload)
@@ -412,7 +413,7 @@ export async function verifyWebhookParsed(
         : "The webhook payload is not a JSON object.",
     );
   }
-  const body = { ...(payload as Record<string, unknown>) };
+  const body = { ...payload };
   const normalised = normaliseHeaders(headers);
   const timestamp = body.timestamp;
   checkTimestamp(

@@ -42,7 +42,15 @@ describe("runtime", () => {
   });
 
   it.each([
-    ["Bun", () => vi.stubGlobal("process", { versions: { bun: "1.2.3", node: "22.0.0" }, platform: "darwin" }), "bun 1.2.3; darwin"],
+    [
+      "Bun",
+      () =>
+        vi.stubGlobal("process", {
+          versions: { bun: "1.2.3", node: "22.0.0" },
+          platform: "darwin",
+        }),
+      "bun 1.2.3; darwin",
+    ],
     [
       "Deno",
       () => {

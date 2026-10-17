@@ -15,7 +15,12 @@ import { SpecSyncError, sync, UPSTREAM } from "./lib/sync.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPENAPI = join(ROOT, "openapi");
-const LOCAL = ["SOURCE.json", "overlay.json", "deprecated-operations.json", ...Object.keys(UPSTREAM)];
+const LOCAL = [
+  "SOURCE.json",
+  "overlay.json",
+  "deprecated-operations.json",
+  ...Object.keys(UPSTREAM),
+];
 
 function argument(name: string): string | undefined {
   const index = process.argv.indexOf(name);
@@ -42,10 +47,15 @@ async function main(): Promise<void> {
   const downloads = new Map<string, Uint8Array>();
   try {
     for (const [name, url] of Object.entries(UPSTREAM)) {
-      downloads.set(name, fromDir ? new Uint8Array(readFileSync(join(fromDir, name))) : await download(url));
+      downloads.set(
+        name,
+        fromDir ? new Uint8Array(readFileSync(join(fromDir, name))) : await download(url),
+      );
     }
   } catch (error) {
-    console.error(`spec sync could not download the documents, nothing was written: ${(error as Error).message}`);
+    console.error(
+      `spec sync could not download the documents, nothing was written: ${(error as Error).message}`,
+    );
     process.exit(1);
   }
   const files = new Map<string, Uint8Array | undefined>();

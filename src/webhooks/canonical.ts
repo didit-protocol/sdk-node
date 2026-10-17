@@ -125,9 +125,16 @@ function writeFloat(value: number): string {
   return Number.isInteger(value) ? integralFloatString(value) : pyFloatRepr(value);
 }
 
-function isPlainObject(value: object): value is Record<string, unknown> {
+/**
+ * True for objects a JSON parser makes: `{}` literals and null-prototype
+ * objects. The check looks for a prototype whose own prototype is null rather
+ * than for this realm's Object.prototype, so objects from another realm (a vm
+ * context, an iframe) count too.
+ */
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) return false;
   const proto: unknown = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+  return proto === null || Object.getPrototypeOf(proto) === null;
 }
 
 function write(value: unknown, depth: number): string {

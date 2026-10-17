@@ -70,7 +70,9 @@ export class APIPromise<T> extends Promise<T> {
     onfulfilled?: ((value: T) => R1 | PromiseLike<R1>) | null,
     onrejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null,
   ): Promise<R1 | R2> {
-    return this.withResponse().then((r) => r.data).then(onfulfilled, onrejected);
+    return this.withResponse()
+      .then((r) => r.data)
+      .then(onfulfilled, onrejected);
   }
 
   override catch<R = never>(

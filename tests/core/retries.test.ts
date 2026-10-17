@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import Didit, { APIConnectionError, APITimeoutError, InternalServerError, RateLimitError } from "../../src/index.js";
+import Didit, {
+  APIConnectionError,
+  APITimeoutError,
+  InternalServerError,
+  RateLimitError,
+} from "../../src/index.js";
 import {
   failedBeforeSending,
   parseRetryAfter,
@@ -13,7 +18,10 @@ function refused(code: string): TypeError {
   return new TypeError("fetch failed", { cause: Object.assign(new Error(code), { code }) });
 }
 
-function client(handler: Parameters<typeof fakeFetch>[0], options: ConstructorParameters<typeof Didit>[0] = {}) {
+function client(
+  handler: Parameters<typeof fakeFetch>[0],
+  options: ConstructorParameters<typeof Didit>[0] = {},
+) {
   const { fetch, calls } = fakeFetch(handler);
   return { didit: new Didit({ apiKey: "k", fetch, ...options }), calls };
 }
@@ -64,11 +72,14 @@ describe("retry policy", () => {
     expect(calls).toHaveLength(2);
   });
 
-  it.each([500, 503, 408])("never retries a POST after a %i: it may have reached the server", async (status) => {
-    const { didit, calls } = client(() => ({ status, json: {} }));
-    await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeDefined();
-    expect(calls).toHaveLength(1);
-  });
+  it.each([500, 503, 408])(
+    "never retries a POST after a %i: it may have reached the server",
+    async (status) => {
+      const { didit, calls } = client(() => ({ status, json: {} }));
+      await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeDefined();
+      expect(calls).toHaveLength(1);
+    },
+  );
 
   it("never retries a PATCH after a 5xx", async () => {
     const { didit, calls } = client(() => ({ status: 500, json: {} }));
@@ -77,8 +88,12 @@ describe("retry policy", () => {
   });
 
   it("retries a POST on 429, which guarantees it was not processed", async () => {
-    const { didit, calls } = client(sequence({ status: 429 }, { status: 201, json: { session_id: "s" } }));
-    await expect(didit.sessions.create({ workflow_id: "wf" })).resolves.toEqual({ session_id: "s" });
+    const { didit, calls } = client(
+      sequence({ status: 429 }, { status: 201, json: { session_id: "s" } }),
+    );
+    await expect(didit.sessions.create({ workflow_id: "wf" })).resolves.toEqual({
+      session_id: "s",
+    });
     expect(calls).toHaveLength(2);
   });
 
@@ -126,7 +141,9 @@ describe("connection errors", () => {
     const { didit, calls } = client(() => {
       throw refused("ECONNRESET");
     });
-    await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeInstanceOf(APIConnectionError);
+    await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeInstanceOf(
+      APIConnectionError,
+    );
     expect(calls).toHaveLength(1);
   });
 
@@ -134,10 +151,16 @@ describe("connection errors", () => {
     expect(failedBeforeSending(refused("ECONNREFUSED"))).toBe(true);
     expect(failedBeforeSending(refused("ENOTFOUND"))).toBe(true);
     expect(failedBeforeSending(refused("UND_ERR_CONNECT_TIMEOUT"))).toBe(true);
-    expect(failedBeforeSending(new AggregateError([refused("ECONNREFUSED"), refused("EHOSTUNREACH")]))).toBe(true);
-    expect(failedBeforeSending(Object.assign(new Error("x"), { code: "ConnectionRefused" }))).toBe(true);
+    expect(
+      failedBeforeSending(new AggregateError([refused("ECONNREFUSED"), refused("EHOSTUNREACH")])),
+    ).toBe(true);
+    expect(failedBeforeSending(Object.assign(new Error("x"), { code: "ConnectionRefused" }))).toBe(
+      true,
+    );
     expect(failedBeforeSending(refused("ECONNRESET"))).toBe(false);
-    expect(failedBeforeSending(new AggregateError([refused("ECONNREFUSED"), refused("ECONNRESET")]))).toBe(false);
+    expect(
+      failedBeforeSending(new AggregateError([refused("ECONNREFUSED"), refused("ECONNRESET")])),
+    ).toBe(false);
     expect(failedBeforeSending(new TypeError("fetch failed"))).toBe(false);
     expect(failedBeforeSending("text")).toBe(false);
   });
@@ -168,7 +191,9 @@ describe("timeouts", () => {
   it("never retries a POST that timed out", async () => {
     const { fetch, calls } = hanging();
     const didit = new Didit({ apiKey: "k", fetch: withAbort(fetch), timeout: 20 });
-    await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeInstanceOf(APITimeoutError);
+    await expect(didit.sessions.create({ workflow_id: "wf" })).rejects.toBeInstanceOf(
+      APITimeoutError,
+    );
     expect(calls).toHaveLength(1);
   });
 
@@ -186,7 +211,9 @@ describe("timeouts", () => {
             });
           },
         });
-        return Promise.resolve(new Response(body, { status: 200, headers: { "content-type": "application/json" } }));
+        return Promise.resolve(
+          new Response(body, { status: 200, headers: { "content-type": "application/json" } }),
+        );
       },
     });
     await expect(didit.users.retrieve("u")).rejects.toBeInstanceOf(APITimeoutError);
@@ -196,7 +223,9 @@ describe("timeouts", () => {
     const { fetch } = hanging();
     const didit = new Didit({ apiKey: "k", fetch: withAbort(fetch), maxRetries: 0 });
     const started = Date.now();
-    await expect(didit.users.retrieve("u", { timeout: 15 })).rejects.toBeInstanceOf(APITimeoutError);
+    await expect(didit.users.retrieve("u", { timeout: 15 })).rejects.toBeInstanceOf(
+      APITimeoutError,
+    );
     expect(Date.now() - started).toBeLessThan(5_000);
   });
 });
@@ -204,7 +233,9 @@ describe("timeouts", () => {
 describe("Retry-After and backoff", () => {
   it("waits for Retry-After seconds before retrying", async () => {
     vi.useFakeTimers();
-    const { didit, calls } = client(sequence({ status: 503, headers: { "retry-after": "2" } }, { status: 200, json: {} }));
+    const { didit, calls } = client(
+      sequence({ status: 503, headers: { "retry-after": "2" } }, { status: 200, json: {} }),
+    );
     const result = didit.users.retrieve("u");
     await vi.advanceTimersByTimeAsync(1_900);
     expect(calls).toHaveLength(1);
@@ -247,7 +278,9 @@ describe("Retry-After and backoff", () => {
     const controller = new AbortController();
     vi.mocked(Math.random).mockReturnValue(1);
     const { didit, calls } = client(() => ({ status: 503 }));
-    const result = didit.users.retrieve("u", { signal: controller.signal }).catch((e: unknown) => e);
+    const result = didit.users
+      .retrieve("u", { signal: controller.signal })
+      .catch((e: unknown) => e);
     await new Promise((r) => setTimeout(r, 20));
     controller.abort();
     const error = await result;
