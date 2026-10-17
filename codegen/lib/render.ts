@@ -334,6 +334,6 @@ export function render(model: Model): Rendered {
     [HEADER, "", ...modules.map((m) => `export type * from "./${kebab(m)}.js";`), ""].join("\n"),
   );
 
-  for (const [path, content] of renderTests(root.children, methods)) files.set(path, content);
+  for (const [path, content] of renderTests(root.children)) files.set(path, content);
   return { files, methods, builder };
 }

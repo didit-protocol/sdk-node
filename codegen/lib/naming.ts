@@ -8,7 +8,7 @@ export function words(text: string): string[] {
 
 function cap(word: string): string {
   if (word.length > 1 && word === word.toUpperCase() && /[A-Z]/.test(word)) {
-    return word[0] + word.slice(1).toLowerCase();
+    return word.charAt(0) + word.slice(1).toLowerCase();
   }
   return word.charAt(0).toUpperCase() + word.slice(1);
 }

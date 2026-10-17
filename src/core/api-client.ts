@@ -313,7 +313,7 @@ export class APIClient {
     }
     this.#fetch = fetchImpl;
     this.#logLevel = options.logLevel ?? envLogLevel();
-    this.#logger = options.logger ?? { debug: (message: string) => console.debug(message) };
+    this.#logger = options.logger ?? { debug: (message: string) => { console.debug(message); } };
   }
 
   /** The options this client was created with, merged with `overrides` (for `withOptions`). */
@@ -392,7 +392,7 @@ export class APIClient {
         });
         return build(target.href, nextRaw);
       };
-      return makePage<R, Item>(body as R, current, fetchNext);
+      return makePage<R, Item>(body, current, fetchNext);
     };
     return build(prepared.url, raw);
   }
@@ -556,7 +556,7 @@ export class APIClient {
         timedOut.value = true;
         controller.abort();
       }, prepared.timeout);
-      const onAbort = (): void => controller.abort();
+      const onAbort = (): void => { controller.abort(); };
       signal?.addEventListener("abort", onAbort, { once: true });
       const done = (): void => {
         clearTimeout(timer);

@@ -300,8 +300,7 @@ export function diffSchema(
     else if (nv.length > ov.length)
       notes.push([`${where}: ${nv.length - ov.length} ${keyword} variant(s) added`, false]);
     else
-      ov.forEach((v, i) =>
-        diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1),
+      ov.forEach((v, i) => { diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1); },
       );
   }
 }
@@ -454,7 +453,7 @@ function json(text: Uint8Array | undefined, fallback: JsonObject): JsonObject {
 }
 
 function equalBytes(a: Uint8Array | undefined, b: Uint8Array): boolean {
-  if (a === undefined || a.length !== b.length) return false;
+  if (a?.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }
@@ -625,7 +624,7 @@ export function sync(input: SyncInput): SyncResult {
     if (oldKey === newKey) continue;
     const [oldName, old] = oldOps.get(oldKey)!;
     const [newName, next] = newOps.get(newKey)!;
-    let { notes, breaking: isBreaking } = describeChange(
+    const change = describeChange(
       oldDocs.get(oldName)!,
       old,
       newDocs.get(newName)!,

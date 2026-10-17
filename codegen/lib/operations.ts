@@ -414,7 +414,7 @@ function buildResponse(
 function pageItem(op: Operation, builder: TypeBuilder, type: TypeRef): TypeRef | undefined {
   if (op.httpMethod !== "get") return undefined;
   const decl = builder.decls.get(type.expr);
-  if (!decl || decl.kind !== "interface") return undefined;
+  if (decl?.kind !== "interface") return undefined;
   const names = new Set(decl.fields.map((f) => f.wire));
   if (!["count", "next", "previous", "results"].every((n) => names.has(n))) return undefined;
   const results = decl.fields.find((f) => f.wire === "results")!;

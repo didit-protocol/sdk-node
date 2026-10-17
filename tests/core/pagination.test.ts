@@ -24,7 +24,7 @@ function page(offset: number, total: number, size = 2, origin = API) {
 describe("pages", () => {
   it("resolves to the first page with its fields and helpers", async () => {
     const { didit, calls } = pages(() => page(0, 5));
-    const first = await didit.workflows.list({ limit: 2 } as never);
+    const first = await didit.workflows.list({ limit: 2 });
     expect(first.count).toBe(5);
     expect(first.results).toEqual([{ id: 0 }, { id: 1 }]);
     expect(first.next).toBe(`${API}/v3/workflows/?limit=2&offset=2`);
@@ -42,7 +42,7 @@ describe("pages", () => {
   it("walks every item of every page with for await, sending the key to the API only", async () => {
     const { didit, calls } = pages((req) => page(Number(req.query.offset ?? 0), 5));
     const ids: unknown[] = [];
-    for await (const item of didit.workflows.list({ limit: 2 } as never))
+    for await (const item of didit.workflows.list({ limit: 2 }))
       ids.push((item as { id: number }).id);
     expect(ids).toEqual([0, 1, 2, 3, 4]);
     expect(calls.map((c) => c.url.search)).toEqual([
@@ -55,7 +55,7 @@ describe("pages", () => {
 
   it("iterates pages and fetches the next page explicitly", async () => {
     const { didit } = pages((req) => page(Number(req.query.offset ?? 0), 3));
-    const first = await didit.workflows.list({ limit: 2 } as never);
+    const first = await didit.workflows.list({ limit: 2 });
     const second = await first.getNextPage();
     expect(second.results).toEqual([{ id: 2 }]);
     expect(second.hasNextPage()).toBe(false);
@@ -161,7 +161,7 @@ describe("pages", () => {
 
   it("allows walking the same pages twice", async () => {
     const { didit, calls } = pages((req) => page(Number(req.query.offset ?? 0), 4));
-    const first = await didit.workflows.list({ limit: 2 } as never);
+    const first = await didit.workflows.list({ limit: 2 });
     for (let i = 0; i < 2; i++) {
       const items: unknown[] = [];
       for await (const item of first) items.push(item);

@@ -276,7 +276,7 @@ function deprecatedOperations(
           "delete this entry from openapi/deprecated-operations.json.",
       );
     }
-    const key = String(entry.operation_key);
+    const key = entry.operation_key;
     const api = key.startsWith("account ") ? "account" : "verification";
     const [method = "", path = ""] = key.replace(/^account /, "").split(" ");
     const httpMethod = method.toLowerCase() as HttpMethod;

@@ -58,7 +58,7 @@ describe("retry policy", () => {
   });
 
   it.each([
-    ["PUT", (d: Didit) => d.travelRule.updateSettings({} as never)],
+    ["PUT", (d: Didit) => d.travelRule.updateSettings({})],
     ["DELETE", (d: Didit) => d.workflows.delete("wf")],
   ])("retries a %s on 500", async (_method, call) => {
     const { didit, calls } = client(sequence({ status: 500 }, { status: 200, json: {} }));
