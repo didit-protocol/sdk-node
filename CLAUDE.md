@@ -11,6 +11,17 @@ Status: in development, not released.
 ## Toolchain
 
 pnpm, TypeScript strict, tsup for ESM + CJS builds with type declarations, vitest, eslint, prettier, publint and are-the-types-wrong.
+Development needs Node.js 22.18 or later (the generator runs TypeScript directly); the package supports Node.js 18 or later, Bun, Deno and edge runtimes.
+
+## Commands
+
+- Install: `pnpm install`
+- Generate: `pnpm generate` (writes `src/resources`, `src/types`, `tests/generated` from `openapi/`); `pnpm generate:check` fails on drift
+- Test: `pnpm test` (all unit tests, no network); `pnpm test:coverage` (90 % core gate); `pnpm test:live` (needs `DIDIT_SANDBOX_API_KEY`)
+- Lint: `pnpm lint` (eslint and prettier); format with `pnpm format`
+- Type-check: `pnpm typecheck`
+- Build: `pnpm build`, then `pnpm check:package` (publint and are-the-types-wrong)
+- Spec sync: `pnpm spec-sync` (what `.github/workflows/spec-sync.yml` runs daily)
 
 ## Rules
 

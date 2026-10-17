@@ -105,6 +105,8 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          # Trusted publishing needs npm 11.5.1 or later (Node.js 24 ships it).
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) { console.error("npm " + process.argv[1] + " is too old for trusted publishing"); process.exit(1); }' "$(npm --version)"
           if [ -n "$NPM_TOKEN" ]; then
             printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$RUNNER_TEMP/.npmrc"
             export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc"
