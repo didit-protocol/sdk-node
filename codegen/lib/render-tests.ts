@@ -148,7 +148,7 @@ function renderCase(method: Method): Case {
   const form: Record<string, string> = {};
   const files: string[] = [];
   let useMultipart = method.bodyMode === "multipart";
-  let wholeBody: Value | undefined;
+  let wholeBody: Value;
 
   if (method.wholeBody) {
     const schema = (() => {

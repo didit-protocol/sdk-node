@@ -580,7 +580,7 @@ export function sync(input: SyncInput): SyncResult {
       );
       keep(n, key, "removed");
     }
-    delete overlayOps[key];
+    Reflect.deleteProperty(overlayOps, key);
   }
   lines.push("");
 
@@ -630,9 +630,11 @@ export function sync(input: SyncInput): SyncResult {
       newDocs.get(newName)!,
       next,
     );
-    if (notes.length === 1 && notes[0] === "descriptions, examples or other details changed") {
-      notes = ["same parameters, body and response"];
-    }
+    const isBreaking = change.breaking;
+    const notes =
+      change.notes.length === 1 && change.notes[0] === "descriptions, examples or other details changed"
+        ? ["same parameters, body and response"]
+        : change.notes;
     const detail = notes.join("; ");
     if (newOps.has(oldKey)) {
       moves.push(
@@ -656,7 +658,7 @@ export function sync(input: SyncInput): SyncResult {
 
   for (const method of Object.keys(deprecatedMethods).sort()) {
     if (newServerNames.has(method) && !kept.includes(method)) {
-      delete deprecatedMethods[method];
+      Reflect.deleteProperty(deprecatedMethods, method);
       lines.push(
         `- \`${method}\` is provided again by \`${newServerNames.get(method)!}\`; its deprecation entry was dropped.`,
       );
@@ -731,7 +733,7 @@ export function sync(input: SyncInput): SyncResult {
     if (!same(upstream, overlayOps[key]))
       lines.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
     dropped.push(key);
-    delete overlayOps[key];
+    Reflect.deleteProperty(overlayOps, key);
   }
   if (dropped.length)
     lines.push(`Dropped ${dropped.length} overlay entries that upstream now carries.`, "");

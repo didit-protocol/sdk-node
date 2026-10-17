@@ -68,11 +68,15 @@ class PageImpl<R, Item> implements PageMethods<R, Item> {
   async *iterPages(): AsyncGenerator<Page<R, Item>, void, undefined> {
     // One set per walk, so a cycle of next links ends it instead of looping forever.
     const seen = new Set([this.#url]);
-    let page: PageImpl<R, Item> = this;
-    for (;;) {
+    yield this as unknown as Page<R, Item>;
+    let page: PageImpl<R, Item> | undefined = this.hasNextPage()
+      ? ((await this.#nextPage(seen)) as unknown as PageImpl<R, Item>)
+      : undefined;
+    while (page) {
       yield page as unknown as Page<R, Item>;
-      if (!page.hasNextPage()) return;
-      page = (await page.#nextPage(seen)) as unknown as PageImpl<R, Item>;
+      page = page.hasNextPage()
+        ? ((await page.#nextPage(seen)) as unknown as PageImpl<R, Item>)
+        : undefined;
     }
   }
 

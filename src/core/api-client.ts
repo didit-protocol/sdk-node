@@ -285,6 +285,7 @@ export class APIClient {
   constructor(options: ClientOptions = {}) {
     this.#options = { ...options };
     this.#apiKey = options.apiKey ?? readEnv("DIDIT_API_KEY");
+    // An empty token counts as none.
     this.#accountToken = options.accountToken || undefined;
     this.organizationId = options.organizationId ?? readEnv("DIDIT_ORGANIZATION_ID");
     this.applicationId = options.applicationId ?? readEnv("DIDIT_APPLICATION_ID");
@@ -409,7 +410,7 @@ export class APIClient {
 
     // Path: application scope first, then the positional ids in template order.
     const values: Record<string, unknown> = {};
-    const names = [...op.path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]!);
+    const names = [...op.path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1] ?? "");
     let positional = names;
     if (op.scope === "application") {
       if (!this.organizationId || !this.applicationId) {
@@ -429,12 +430,14 @@ export class APIClient {
 
     // Credentials, checked before anything is sent.
     const auth = op.auth ?? "api_key";
-    if (auth === "api_key" && !this.#apiKey) {
+    const apiKey = this.#apiKey;
+    const accountToken = this.#accountToken;
+    if (auth === "api_key" && !apiKey) {
       throw new ConfigurationError(
         "No API key: pass apiKey to the client or set the DIDIT_API_KEY environment variable.",
       );
     }
-    if (auth === "account_token" && !this.#accountToken) {
+    if (auth === "account_token" && !accountToken) {
       throw new ConfigurationError(
         "This account method needs an account token: call didit.account.login(...) and pass its " +
           "access_token as accountToken (didit.withOptions({ accountToken })).",
@@ -446,7 +449,7 @@ export class APIClient {
       isRecord(params) && op.body !== "whole" ? { ...params } : {};
     for (const [key, wire] of queryKeys(op)) {
       const value = fields[key];
-      delete fields[key];
+      Reflect.deleteProperty(fields, key);
       if (value === undefined || value === null) continue;
       for (const item of Array.isArray(value) ? (value as unknown[]) : [value]) {
         url.searchParams.append(wire, scalarText(item));
@@ -463,9 +466,8 @@ export class APIClient {
     for (const [name, value] of Object.entries(this.#options.defaultHeaders ?? {}))
       headers.set(name, value);
     // Credentials only ever go to the origin of the API they belong to.
-    if (auth === "api_key") headers.set("x-api-key", this.#apiKey!);
-    else if (auth === "account_token")
-      headers.set("Authorization", `Bearer ${this.#accountToken!}`);
+    if (auth === "api_key") headers.set("x-api-key", apiKey ?? "");
+    else if (auth === "account_token") headers.set("Authorization", `Bearer ${accountToken ?? ""}`);
 
     let body: string | FormData | undefined;
     if (op.body === "whole") {

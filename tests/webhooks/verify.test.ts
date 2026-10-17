@@ -74,7 +74,10 @@ describe("a valid delivery", () => {
   it("verifies a re-encoded body with X-Signature-V2", async () => {
     const { body, headers } = delivery(payload({ metadata: { name: "Jos\u00e9", score: 87 } }));
     // Middleware that re-encodes the JSON: indentation, unescaped Unicode, 87.0.
-    const reencoded = JSON.stringify(JSON.parse(body), null, 2).replace('"score": 87', '"score": 87.0');
+    const reencoded = JSON.stringify(JSON.parse(body), null, 2).replace(
+      '"score": 87',
+      '"score": 87.0',
+    );
     expect(reencoded).toContain("Jos\u00e9");
     const event = await verifyWebhook(reencoded, headers, SECRET);
     expect(event.verifiedBy).toBe("signature_v2");
@@ -217,7 +220,9 @@ describe("signatures", () => {
     expect(verify.mock.calls[0]![0]).toBe("HMAC");
     verify.mockClear();
     const wrong = { "X-Signature": HEX_0, "X-Signature-Previous": HEX_A };
-    expect(await reasonOf(verifyWebhook(body, wrong, [SECRET, PREVIOUS]))).toBe("invalid_signature");
+    expect(await reasonOf(verifyWebhook(body, wrong, [SECRET, PREVIOUS]))).toBe(
+      "invalid_signature",
+    );
     expect(verify).toHaveBeenCalledTimes(4);
   });
 
@@ -229,7 +234,10 @@ describe("signatures", () => {
 
   it("checks each -Previous header on its own", async () => {
     const { body, headers } = delivery(payload(), PREVIOUS);
-    const previous = { "X-Signature-Previous": headers["X-Signature"]!, "X-Timestamp": String(NOW) };
+    const previous = {
+      "X-Signature-Previous": headers["X-Signature"]!,
+      "X-Timestamp": String(NOW),
+    };
     expect((await verifyWebhook(body, previous, PREVIOUS)).verifiedBy).toBe("signature");
     const v2Previous = { "X-Signature-V2-Previous": headers["X-Signature-V2"]! };
     expect((await verifyWebhook(body, v2Previous, PREVIOUS)).verifiedBy).toBe("signature_v2");
@@ -316,9 +324,12 @@ describe("X-Signature-Simple", () => {
     expect(await reasonOf(verifyWebhook(object, headers, SECRET, { allowSimple: true }))).toBe(
       "invalid_signature",
     );
-    const lone = '{"timestamp":1760702400,"session_id":"\\ud800","status":"Approved","webhook_type":"x"}';
+    const lone =
+      '{"timestamp":1760702400,"session_id":"\\ud800","status":"Approved","webhook_type":"x"}';
     expect(
-      await reasonOf(verifyWebhook(lone, simple("1760702400:?:Approved:x"), SECRET, { allowSimple: true })),
+      await reasonOf(
+        verifyWebhook(lone, simple("1760702400:?:Approved:x"), SECRET, { allowSimple: true }),
+      ),
     ).toBe("invalid_signature");
   });
 
@@ -330,7 +341,8 @@ describe("X-Signature-Simple", () => {
   });
 
   it("refuses a tampered envelope", async () => {
-    const body = '{"timestamp":1760702400,"session_id":"abc","status":"Declined","webhook_type":"status.updated"}';
+    const body =
+      '{"timestamp":1760702400,"session_id":"abc","status":"Declined","webhook_type":"status.updated"}';
     const headers = simple("1760702400:abc:Approved:status.updated");
     expect(await reasonOf(verifyWebhook(body, headers, SECRET, { allowSimple: true }))).toBe(
       "invalid_signature",
@@ -350,7 +362,9 @@ describe("X-Signature-Simple", () => {
     const { body, headers } = delivery(payload());
     const simpleOnly = only(headers, "X-Signature-Simple");
     const options = { allowSimple: "yes" } as unknown as { allowSimple: boolean };
-    expect(await reasonOf(verifyWebhook(body, simpleOnly, SECRET, options))).toBe("invalid_signature");
+    expect(await reasonOf(verifyWebhook(body, simpleOnly, SECRET, options))).toBe(
+      "invalid_signature",
+    );
   });
 });
 
@@ -363,11 +377,15 @@ describe("timestamp", () => {
     expect(await reasonOf(verifyWebhook(body, headers, SECRET))).toBe("timestamp_out_of_tolerance");
     vi.setSystemTime((NOW + 301) * 1000);
     expect(await reasonOf(verifyWebhook(body, headers, SECRET))).toBe("timestamp_out_of_tolerance");
-    expect((await verifyWebhook(body, headers, SECRET, { tolerance: 600 })).bodyAuthenticated).toBe(true);
+    expect((await verifyWebhook(body, headers, SECRET, { tolerance: 600 })).bodyAuthenticated).toBe(
+      true,
+    );
     vi.setSystemTime((NOW - 301) * 1000);
     expect(await reasonOf(verifyWebhook(body, headers, SECRET))).toBe("timestamp_out_of_tolerance");
     vi.setSystemTime(NOW * 1000);
-    expect((await verifyWebhook(body, headers, SECRET, { tolerance: 0 })).bodyAuthenticated).toBe(true);
+    expect((await verifyWebhook(body, headers, SECRET, { tolerance: 0 })).bodyAuthenticated).toBe(
+      true,
+    );
   });
 
   it("checks the timestamp before the signature", async () => {
@@ -379,18 +397,28 @@ describe("timestamp", () => {
     expect(await reasonOf(verifyWebhook(body, {}, SECRET))).toBe("timestamp_out_of_tolerance");
   });
 
-  it.each(["soon", "", "1_760_702_400", "+1760702400", "1760702400.0", "\u0661760702400", "1760702401", "-1760702400"])(
-    "is timestamp_mismatch for X-Timestamp %j",
-    async (value) => {
-      const { body, headers } = delivery(payload());
-      const reason = await reasonOf(verifyWebhook(body, { ...headers, "X-Timestamp": value }, SECRET));
-      expect(reason).toBe("timestamp_mismatch");
-    },
-  );
+  it.each([
+    "soon",
+    "",
+    "1_760_702_400",
+    "+1760702400",
+    "1760702400.0",
+    "\u0661760702400",
+    "1760702401",
+    "-1760702400",
+  ])("is timestamp_mismatch for X-Timestamp %j", async (value) => {
+    const { body, headers } = delivery(payload());
+    const reason = await reasonOf(
+      verifyWebhook(body, { ...headers, "X-Timestamp": value }, SECRET),
+    );
+    expect(reason).toBe("timestamp_mismatch");
+  });
 
   it("accepts a missing X-Timestamp and one with leading zeros", async () => {
     const { body, headers } = delivery(payload());
-    expect((await verifyWebhook(body, only(headers, "X-Signature"), SECRET)).verifiedBy).toBe("signature");
+    expect((await verifyWebhook(body, only(headers, "X-Signature"), SECRET)).verifiedBy).toBe(
+      "signature",
+    );
     const padded = { ...headers, "X-Timestamp": `0${NOW}` };
     expect((await verifyWebhook(body, padded, SECRET)).verifiedBy).toBe("signature");
   });
@@ -440,8 +468,14 @@ describe("payload", () => {
   it.each([
     ["a huge timestamp", `{"timestamp": 1${"0".repeat(400)}, "webhook_type": "status.updated"}`],
     ["a huge negative timestamp", `{"timestamp": -1${"0".repeat(400)}}`],
-    ["1500 levels of nesting", `{"timestamp": ${NOW}, "x": ${"[".repeat(1500)}${"]".repeat(1500)}}`],
-    ["30000 levels of nesting", `{"timestamp": ${NOW}, "x": ${"[".repeat(30000)}${"]".repeat(30000)}}`],
+    [
+      "1500 levels of nesting",
+      `{"timestamp": ${NOW}, "x": ${"[".repeat(1500)}${"]".repeat(1500)}}`,
+    ],
+    [
+      "30000 levels of nesting",
+      `{"timestamp": ${NOW}, "x": ${"[".repeat(30000)}${"]".repeat(30000)}}`,
+    ],
     ["a 5000-digit integer", `{"timestamp": ${NOW}, "x": ${"9".repeat(5000)}}`],
   ])("only ever throws a WebhookVerificationError for %s", async (_name, body) => {
     // Anyone can send these before any signature is checked.
@@ -465,7 +499,9 @@ describe("payload", () => {
   });
 
   it("needs the raw body, and says so for an object", async () => {
-    await expect(verifyWebhook(payload() as never, {}, SECRET)).rejects.toThrow(/verifyWebhookParsed/);
+    await expect(verifyWebhook(payload() as never, {}, SECRET)).rejects.toThrow(
+      /verifyWebhookParsed/,
+    );
   });
 });
 
@@ -495,15 +531,17 @@ describe("configuration", () => {
     await expect(verifyWebhook(body, headers, SECRET, options)).rejects.toThrow(ConfigurationError);
     // Checked before the body, so a bad body cannot hide the configuration error.
     await expect(verifyWebhook("x", headers, SECRET, options)).rejects.toThrow(ConfigurationError);
-    await expect(verifyWebhookParsed({}, headers, SECRET, options)).rejects.toThrow(ConfigurationError);
+    await expect(verifyWebhookParsed({}, headers, SECRET, options)).rejects.toThrow(
+      ConfigurationError,
+    );
   });
 
   it("accepts an infinite tolerance, as the reference does", async () => {
     const { body, headers } = delivery(payload());
     vi.setSystemTime(0);
-    expect((await verifyWebhook(body, headers, SECRET, { tolerance: Infinity })).bodyAuthenticated).toBe(
-      true,
-    );
+    expect(
+      (await verifyWebhook(body, headers, SECRET, { tolerance: Infinity })).bodyAuthenticated,
+    ).toBe(true);
   });
 
   it("never logs the secret in a configuration error", async () => {
@@ -528,9 +566,11 @@ describe("verifyWebhookParsed", () => {
   it("needs X-Signature-V2", async () => {
     const data = payload();
     const { headers } = delivery(data);
-    const error = await verifyWebhookParsed(data, only(headers, "X-Signature", "X-Signature-Simple"), SECRET).catch(
-      (e: unknown) => e,
-    );
+    const error = await verifyWebhookParsed(
+      data,
+      only(headers, "X-Signature", "X-Signature-Simple"),
+      SECRET,
+    ).catch((e: unknown) => e);
     expect((error as WebhookVerificationError).reason).toBe("missing_signature");
     expect((error as Error).message).toContain("verifyWebhook");
   });
@@ -538,7 +578,9 @@ describe("verifyWebhookParsed", () => {
   it("refuses a changed payload", async () => {
     const data = payload();
     const { headers } = delivery(data);
-    const reason = await reasonOf(verifyWebhookParsed({ ...data, status: "Declined" }, headers, SECRET));
+    const reason = await reasonOf(
+      verifyWebhookParsed({ ...data, status: "Declined" }, headers, SECRET),
+    );
     expect(reason).toBe("invalid_signature");
   });
 
@@ -555,16 +597,18 @@ describe("verifyWebhookParsed", () => {
   it("applies the timestamp rules", async () => {
     const data = payload();
     const { headers } = delivery(data);
-    expect(await reasonOf(verifyWebhookParsed({ ...data, timestamp: NOW + 0.5 }, headers, SECRET))).toBe(
-      "missing_timestamp",
-    );
-    expect(await reasonOf(verifyWebhookParsed(data, { ...headers, "X-Timestamp": "1" }, SECRET))).toBe(
-      "timestamp_mismatch",
-    );
+    expect(
+      await reasonOf(verifyWebhookParsed({ ...data, timestamp: NOW + 0.5 }, headers, SECRET)),
+    ).toBe("missing_timestamp");
+    expect(
+      await reasonOf(verifyWebhookParsed(data, { ...headers, "X-Timestamp": "1" }, SECRET)),
+    ).toBe("timestamp_mismatch");
     const big = { ...data, timestamp: BigInt(NOW) };
     expect((await verifyWebhookParsed(big, headers, SECRET)).verifiedBy).toBe("signature_v2");
     vi.setSystemTime((NOW + 301) * 1000);
-    expect(await reasonOf(verifyWebhookParsed(data, headers, SECRET))).toBe("timestamp_out_of_tolerance");
+    expect(await reasonOf(verifyWebhookParsed(data, headers, SECRET))).toBe(
+      "timestamp_out_of_tolerance",
+    );
   });
 
   it("is invalid_payload for values that are not JSON data", async () => {
@@ -587,7 +631,10 @@ describe("verifyWebhookParsed", () => {
 
 describe("events", () => {
   it("keeps an unknown event type with its whole payload", async () => {
-    const data = payload({ webhook_type: "transaction_rule_suggestions.created", suggestions: [1, 2] });
+    const data = payload({
+      webhook_type: "transaction_rule_suggestions.created",
+      suggestions: [1, 2],
+    });
     const { body, headers } = delivery(data);
     const event = await verifyWebhook(body, headers, SECRET);
     expect(event.webhook_type).toBe("transaction_rule_suggestions.created");
@@ -597,7 +644,11 @@ describe("events", () => {
   });
 
   it("reads the registry search callback's event_type as its webhook_type", async () => {
-    const data = { event_type: "kyb.registry_search.resolved", timestamp: NOW, search_status: "resolved" };
+    const data = {
+      event_type: "kyb.registry_search.resolved",
+      timestamp: NOW,
+      search_status: "resolved",
+    };
     const { body, headers } = delivery(data);
     const event = await verifyWebhook(body, headers, SECRET);
     expect(event.webhook_type).toBe("kyb.registry_search.resolved");
@@ -608,11 +659,17 @@ describe("events", () => {
     }
     // A body that has webhook_type keeps it.
     const both = delivery({ ...data, webhook_type: "status.updated" });
-    expect((await verifyWebhook(both.body, both.headers, SECRET)).webhook_type).toBe("status.updated");
+    expect((await verifyWebhook(both.body, both.headers, SECRET)).webhook_type).toBe(
+      "status.updated",
+    );
   });
 
   it("keeps fields of unexpected types as sent", async () => {
-    const data = payload({ webhook_type: "user.status.updated", status: ["not", "a", "string"], new_field: { a: 1 } });
+    const data = payload({
+      webhook_type: "user.status.updated",
+      status: ["not", "a", "string"],
+      new_field: { a: 1 },
+    });
     const { body, headers } = delivery(data);
     const event = await verifyWebhook(body, headers, SECRET);
     expect(event.status).toEqual(["not", "a", "string"]);
@@ -630,9 +687,13 @@ describe("entry points", () => {
     expect((await publicApi.webhooks.verify(body, headers, SECRET)).verifiedBy).toBe("signature");
     const resource = new WebhookHelpers({} as APIClient);
     expect((await resource.verify(body, headers, SECRET)).verifiedBy).toBe("signature");
-    expect((await resource.verify(body, only(headers, "X-Signature-Simple"), SECRET, { allowSimple: true })).verifiedBy).toBe(
-      "signature_simple",
-    );
+    expect(
+      (
+        await resource.verify(body, only(headers, "X-Signature-Simple"), SECRET, {
+          allowSimple: true,
+        })
+      ).verifiedBy,
+    ).toBe("signature_simple");
     expect((await resource.verifyParsed(data, headers, SECRET)).verifiedBy).toBe("signature_v2");
     expect(publicApi.canonicalJson({ b: 1, a: 2 })).toBe('{"a":2,"b":1}');
   });

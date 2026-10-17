@@ -4,10 +4,6 @@
 /** Base class of every error this SDK throws. */
 export class DiditError extends Error {
   override name = "DiditError";
-
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
-  }
 }
 
 /**

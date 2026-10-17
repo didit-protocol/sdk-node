@@ -48,7 +48,7 @@ function pyStr(value: unknown): string {
   if (value === null) return "None";
   if (value === true) return "True";
   if (value === false) return "False";
-  return String(value as string | number);
+  return String(value);
 }
 
 export function payload(extra: Record<string, unknown> = {}): Record<string, unknown> {

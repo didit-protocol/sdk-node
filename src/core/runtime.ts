@@ -36,14 +36,13 @@ function denoLike(): DenoLike | undefined {
 export function readEnv(name: string): string | undefined {
   let value: string | undefined;
   try {
-    value = processLike()?.env?.[name];
-    if (value === undefined) value = denoLike()?.env?.get?.(name);
+    value = processLike()?.env?.[name] ?? denoLike()?.env?.get?.(name);
   } catch {
     // Deno without --allow-env throws; treat it as unset.
     return undefined;
   }
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  // An empty value counts as unset.
+  return value?.trim() || undefined;
 }
 
 export interface RuntimeInfo {

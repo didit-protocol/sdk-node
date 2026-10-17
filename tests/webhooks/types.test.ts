@@ -146,17 +146,16 @@ describe("WebhookEvent", () => {
       | "workflow.compliance_changed"
       | "kyb.registry_search.resolved"
     >();
-    expectTypeOf<Extract<WebhookEvent, { webhook_type: "data.updated" }>>().toEqualTypeOf<SessionDataUpdatedEvent>();
+    expectTypeOf<
+      Extract<WebhookEvent, { webhook_type: "data.updated" }>
+    >().toEqualTypeOf<SessionDataUpdatedEvent>();
   });
 
   it("keeps open enums open", () => {
-    const check = (event: SessionStatusUpdatedEvent, txn: TransactionStatusUpdatedEvent) => {
-      const known: typeof event.status = "Approved";
-      const unknown: typeof event.status = "Some Future Status";
-      const severity: typeof txn.severity = "LOW";
-      return [known, unknown, severity];
-    };
-    expect(check).toBeTypeOf("function");
+    const known: SessionStatusUpdatedEvent["status"] = "Approved";
+    const unknown: SessionStatusUpdatedEvent["status"] = "Some Future Status";
+    const severity: TransactionStatusUpdatedEvent["severity"] = "LOW";
+    expect([known, unknown, severity]).toHaveLength(3);
   });
 
   it("would not narrow with a declared or branded string on UnknownEvent (why the design is as it is)", () => {

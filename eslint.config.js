@@ -26,6 +26,11 @@ export default tseslint.config(
         "error",
         { allowNumber: true, allowBoolean: true, allowNullish: true },
       ],
+      // An empty string counts as unset for options and environment variables.
+      "@typescript-eslint/prefer-nullish-coalescing": [
+        "error",
+        { ignorePrimitives: { string: true } },
+      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },

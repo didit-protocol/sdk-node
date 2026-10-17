@@ -214,7 +214,9 @@ describe("objects", () => {
   });
 
   it("sorts lone surrogate keys as their own code points", () => {
-    const result = canonical('{"\\ue000":2,"\\ud800":1,"\\ud83d\\ude00":3,"\\udbff":4,"\\uffff":5}');
+    const result = canonical(
+      '{"\\ue000":2,"\\ud800":1,"\\ud83d\\ude00":3,"\\udbff":4,"\\uffff":5}',
+    );
     expect(hex(encodeUtf8SurrogatePass(result))).toBe(
       "7b22eda080223a312c22edafbf223a342c22ee8080223a322c22efbfbf223a352c22f09f9880223a337d",
     );
@@ -298,15 +300,20 @@ describe("strict parsing", () => {
     const nested = (depth: number) => "[".repeat(depth) + "]".repeat(depth);
     expect(canonical(nested(MAX_DEPTH))).toBe(nested(MAX_DEPTH));
     expect(reason(() => parseJson(nested(MAX_DEPTH + 1)))).toBe("invalid_payload");
-    expect(reason(() => parseJson('{"a":'.repeat(MAX_DEPTH + 1) + "1" + "}".repeat(MAX_DEPTH + 1)))).toBe(
-      "invalid_payload",
-    );
+    expect(
+      reason(() => parseJson('{"a":'.repeat(MAX_DEPTH + 1) + "1" + "}".repeat(MAX_DEPTH + 1))),
+    ).toBe("invalid_payload");
     expect(reason(() => parseJson(nested(30_000)))).toBe("invalid_payload");
   });
 
   it("decodes strict UTF-8 and keeps a byte order mark for the parser to refuse", () => {
     expect(decodeUtf8(new Uint8Array([0x7b, 0x7d]))).toBe("{}");
-    for (const bytes of [[0xff, 0xfe], [0xc0, 0xaf], [0xed, 0xa0, 0x80], [0xe2, 0x82]]) {
+    for (const bytes of [
+      [0xff, 0xfe],
+      [0xc0, 0xaf],
+      [0xed, 0xa0, 0x80],
+      [0xe2, 0x82],
+    ]) {
       expect(reason(() => decodeUtf8(new Uint8Array(bytes)))).toBe("invalid_payload");
     }
     const withBom = decodeUtf8(new Uint8Array([0xef, 0xbb, 0xbf, 0x7b, 0x7d]));
@@ -322,12 +329,17 @@ describe("canonicalJson of JavaScript values", () => {
     ["-Infinity in an object", { x: -Infinity }],
     ["undefined", undefined],
     ["undefined in an object", { x: undefined }],
-    ["a hole in an array", [1, , 3]],
+    ["a hole in an array", new Array<number>(2)],
     ["a function", () => 1],
     ["a symbol", Symbol("x")],
     ["a Date", new Date(0)],
     ["a Map", new Map()],
-    ["a class instance", new (class Point {})()],
+    [
+      "a class instance",
+      new (class Point {
+        x = 1;
+      })(),
+    ],
   ])("refuses %s", (_name, value) => {
     expect(reason(() => canonicalJson(value))).toBe("invalid_payload");
   });

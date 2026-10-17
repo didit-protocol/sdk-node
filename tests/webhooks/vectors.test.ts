@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { canonicalJson } from "../../src/webhooks/canonical.js";
 import { LosslessNumber, parseJson, type JsonValue } from "../../src/webhooks/json.js";
-import { verifyWebhook, verifyWebhookParsed, type WebhookHeaders } from "../../src/webhooks/verify.js";
+import {
+  verifyWebhook,
+  verifyWebhookParsed,
+  type WebhookHeaders,
+} from "../../src/webhooks/verify.js";
 import { reasonOf, VECTORS, type Vector } from "./helpers.js";
 
 beforeEach(() => {
@@ -83,10 +87,14 @@ describe.each(VECTORS.map((v) => [v.name, v] as [string, Vector]))("vector %s", 
           const event = await verifyWebhook(body, headers, vector.secret);
           expect(event.verifiedBy).toBe("signature");
           expect(event.bodyAuthenticated).toBe(true);
-          expect(event.webhook_type).toBe((JSON.parse(vector.body) as Record<string, unknown>).webhook_type);
+          expect(event.webhook_type).toBe(
+            (JSON.parse(vector.body) as Record<string, unknown>).webhook_type,
+          );
           expect(JSON.stringify(event)).toBe(JSON.stringify(JSON.parse(vector.body)));
         } else if (vector.expect === "valid_only_with_allow_simple") {
-          expect(await reasonOf(verifyWebhook(body, headers, vector.secret))).toBe("invalid_signature");
+          expect(await reasonOf(verifyWebhook(body, headers, vector.secret))).toBe(
+            "invalid_signature",
+          );
           const event = await verifyWebhook(body, headers, vector.secret, { allowSimple: true });
           expect(event.verifiedBy).toBe("signature_simple");
           expect(event.bodyAuthenticated).toBe(false);
@@ -102,7 +110,10 @@ describe.each(VECTORS.map((v) => [v.name, v] as [string, Vector]))("vector %s", 
       if (vector.previous_secret === null) return;
       const alone = await verifyWebhook(vector.body, vector.headers, vector.previous_secret);
       expect(alone.bodyAuthenticated).toBe(true);
-      const both = await verifyWebhook(vector.body, vector.headers, [vector.previous_secret, vector.secret]);
+      const both = await verifyWebhook(vector.body, vector.headers, [
+        vector.previous_secret,
+        vector.secret,
+      ]);
       expect(both.bodyAuthenticated).toBe(true);
     });
 
@@ -121,7 +132,11 @@ describe.each(VECTORS.map((v) => [v.name, v] as [string, Vector]))("vector %s", 
         expect(await reasonOf(verifyWebhookParsed(parsed, headers, vector.secret))).toBe(
           "invalid_signature",
         );
-        const exact = await verifyWebhookParsed(parseWithBigInts(vector.body), headers, vector.secret);
+        const exact = await verifyWebhookParsed(
+          parseWithBigInts(vector.body),
+          headers,
+          vector.secret,
+        );
         expect(exact.verifiedBy).toBe("signature_v2");
         return;
       }
