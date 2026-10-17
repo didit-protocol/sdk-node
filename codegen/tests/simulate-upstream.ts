@@ -28,7 +28,7 @@ if (!out) {
 }
 mkdirSync(out, { recursive: true });
 
-const overlay = read("overlay.json").operations as Record<string, JsonObject | undefined>;
+const overlay = (read("overlay.json").operations ?? {}) as Record<string, JsonObject | undefined>;
 let renamed = 0;
 let removed: string | undefined;
 for (const api of ["verification", "account"] as const) {
