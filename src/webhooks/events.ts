@@ -71,21 +71,10 @@ type SessionStatus =
 type EntityStatus = "ACTIVE" | "FLAGGED" | "BLOCKED" | (string & {});
 
 /** Monitoring verdict of a transaction. */
-type TransactionStatus =
-  | "APPROVED"
-  | "IN_REVIEW"
-  | "DECLINED"
-  | "AWAITING_USER"
-  | (string & {});
+type TransactionStatus = "APPROVED" | "IN_REVIEW" | "DECLINED" | "AWAITING_USER" | (string & {});
 
 /** Risk severity of a transaction. */
-type TransactionSeverity =
-  | "UNKNOWN"
-  | "LOW"
-  | "MEDIUM"
-  | "HIGH"
-  | "CRITICAL"
-  | (string & {});
+type TransactionSeverity = "UNKNOWN" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | (string & {});
 
 /** Direction of a transaction relative to its subject. */
 type TransactionDirection = "INBOUND" | "OUTBOUND" | (string & {});
@@ -257,6 +246,7 @@ export interface KybRegistrySearchResolvedEvent extends WebhookEventBase {
  */
 export interface UnknownEvent extends WebhookEventBase {
   /** `webhook_type`: read through an index signature on purpose (see the top of this file). */
+  // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style -- a Record would not keep UnknownEvent an interface the narrowing relies on.
   [key: `webhook_type${string}`]: string;
 }
 

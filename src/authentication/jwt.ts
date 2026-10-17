@@ -61,14 +61,12 @@ function jsonText(value: unknown): string | undefined {
   return JSON.stringify(value);
 }
 
-/** A short, safe rendering of a header or claim value for an error message. */
+/**
+ * A short, safe rendering of a header or claim value for an error message. The
+ * values come from JSON.parse, so JSON.stringify cannot throw on them.
+ */
 export function shown(value: unknown): string {
-  let text: string;
-  try {
-    text = jsonText(value) ?? String(value);
-  } catch {
-    text = typeof value;
-  }
+  const text = jsonText(value) ?? String(value);
   return text.length <= 64 ? text : `${text.slice(0, 61)}...`;
 }
 

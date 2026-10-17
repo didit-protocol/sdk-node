@@ -221,9 +221,13 @@ class Keys {
       const { subtle } = await webCrypto();
       return Promise.all(
         this.secrets.map((secret) =>
-          subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
-            "verify",
-          ]),
+          subtle.importKey(
+            "raw",
+            encoder.encode(secret),
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["verify"],
+          ),
         ),
       );
     })();
@@ -355,7 +359,10 @@ export async function verifyWebhook(
   const v2 = present(normalised, V2_HEADERS);
   const simple = present(normalised, SIMPLE_HEADERS);
   if (!raw.length && !v2.length && !simple.length) {
-    throw new WebhookVerificationError("missing_signature", "The delivery has no X-Signature header.");
+    throw new WebhookVerificationError(
+      "missing_signature",
+      "The delivery has no X-Signature header.",
+    );
   }
   let verifiedBy: WebhookVerifiedBy | undefined;
   if (raw.length && (await matches(bytes, keys, raw))) {
@@ -423,7 +430,10 @@ export async function verifyWebhookParsed(
     );
   }
   if (!(await matches(encodeUtf8SurrogatePass(canonicalJson(body)), keys, v2))) {
-    throw new WebhookVerificationError("invalid_signature", "No webhook signature matches the secret.");
+    throw new WebhookVerificationError(
+      "invalid_signature",
+      "No webhook signature matches the secret.",
+    );
   }
   return parseEvent(body, "signature_v2");
 }

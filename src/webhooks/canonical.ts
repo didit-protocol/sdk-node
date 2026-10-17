@@ -28,8 +28,6 @@ export function compareCodePoints(a: string, b: string): number {
   return a.length - b.length;
 }
 
-const NEEDS_ESCAPE = /["\\\u0000-\u001f]/;
-
 function escapeChar(c: number): string {
   switch (c) {
     case 0x22:
@@ -58,8 +56,7 @@ function escapeChar(c: number): string {
  * and U+2029, stays literal.
  */
 export function quoteString(s: string): string {
-  if (!NEEDS_ESCAPE.test(s)) return `"${s}"`;
-  let out = '"';
+  let out = "";
   let runStart = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
@@ -67,7 +64,7 @@ export function quoteString(s: string): string {
     out += s.slice(runStart, i) + escapeChar(c);
     runStart = i + 1;
   }
-  return `${out}${s.slice(runStart)}"`;
+  return runStart === 0 ? `"${s}"` : `"${out}${s.slice(runStart)}"`;
 }
 
 /**
@@ -152,7 +149,8 @@ function write(value: unknown, depth: number): string {
       if (depth >= MAX_DEPTH) throw notJson(`nesting deeper than ${MAX_DEPTH} levels`);
       if (Array.isArray(value)) {
         const parts: string[] = [];
-        for (let i = 0; i < value.length; i++) parts.push(write(value[i], depth + 1));
+        // A hole in a sparse array reads as undefined, which is refused.
+        for (const item of value as unknown[]) parts.push(write(item, depth + 1));
         return `[${parts.join(",")}]`;
       }
       if (!isPlainObject(value)) throw notJson("an object that is not a plain object");

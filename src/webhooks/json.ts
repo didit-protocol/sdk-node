@@ -55,7 +55,10 @@ export interface JsonObject {
 }
 
 function invalid(detail: string): WebhookVerificationError {
-  return new WebhookVerificationError("invalid_payload", `The webhook body is not valid JSON: ${detail}.`);
+  return new WebhookVerificationError(
+    "invalid_payload",
+    `The webhook body is not valid JSON: ${detail}.`,
+  );
 }
 
 /**
@@ -334,7 +337,10 @@ class Parser {
     const raw = text.slice(start, pos);
     if (isFloat) {
       if (!Number.isFinite(Number(raw))) throw invalid(`number ${raw} overflows a double`);
-    } else if (integerEnd - start - (text.charCodeAt(start) === Char.Minus ? 1 : 0) > MAX_INT_DIGITS) {
+    } else if (
+      integerEnd - start - (text.charCodeAt(start) === Char.Minus ? 1 : 0) >
+      MAX_INT_DIGITS
+    ) {
       throw invalid(`integer with more than ${MAX_INT_DIGITS} digits`);
     }
     return new LosslessNumber(raw);
@@ -352,5 +358,10 @@ export function parseJson(text: string): JsonValue {
 
 /** True when `value` is a parsed JSON object (not an array, not null). */
 export function isJsonObject(value: JsonValue): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value) && !(value instanceof LosslessNumber);
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !(value instanceof LosslessNumber)
+  );
 }

@@ -149,12 +149,13 @@ function plainDecimal(value: number): string {
   const text = String(value);
   const match = /^(-?)(\d+)(?:\.(\d+))?e([+-]\d+)$/.exec(text);
   if (!match) return text;
+  // JavaScript writes an exponent only from 1e21 up (at most 17 significant
+  // digits, so the point falls after them) or below 1e-6 (before them).
   const [, sign = "", whole = "", fraction = "", exponentText = "0"] = match;
   const digits = whole + fraction;
   const point = whole.length + Number(exponentText);
   if (point <= 0) return `${sign}0.${"0".repeat(-point)}${digits}`;
-  if (point >= digits.length) return sign + digits + "0".repeat(point - digits.length);
-  return `${sign}${digits.slice(0, point)}.${digits.slice(point)}`;
+  return sign + digits + "0".repeat(point - digits.length);
 }
 
 function amountText(amount: unknown): string {
