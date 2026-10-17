@@ -92,12 +92,15 @@ describe("multipart bodies", () => {
     expect(calls[0]!.files.front_image!.map((f) => f.filename)).toEqual(["a.jpg", "b.jpg"]);
   });
 
-  it("sends JSON when an operation that takes either encoding has no file", async () => {
+  it("sends JSON without a file and multipart with one, for an operation that takes either", async () => {
     const { didit, calls } = client();
-    const auto = (await import("../../src/resources/index.js")).DATE_PLANS;
-    void auto;
-    await didit.sessions.updateData("s", { first_name: "Ada" } as never);
-    expect(calls[0]!.contentType === "application/json" || calls[0]!.contentType?.startsWith("multipart/")).toBe(true);
+    await didit.customization.update({ color_primary: "#000000" });
+    await didit.customization.update({ color_primary: "#000000", image_square: toFile(BYTES, "logo.png") });
+    expect(calls[0]!.contentType).toBe("application/json");
+    expect(calls[0]!.json).toEqual({ color_primary: "#000000" });
+    expect(calls[1]!.contentType).toMatch(/^multipart\/form-data/);
+    expect(calls[1]!.form).toEqual({ color_primary: "#000000" });
+    expect(calls[1]!.files.image_square![0]).toEqual({ filename: "logo.png", type: "image/png", bytes: [1, 2, 3] });
   });
 
   it("sends the same bytes again when a request is retried", async () => {
