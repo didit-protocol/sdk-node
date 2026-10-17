@@ -124,6 +124,33 @@ describe("sessions", () => {
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
   });
 
+  it("sessions.import_shared: POST /v3/session/import-shared/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/session/import-shared/"),
+    });
+    const result = await client.sessions.importShared({
+      share_token: "sample-token",
+      trust_review: false,
+      workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/import-shared/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({
+      share_token: "sample-token",
+      trust_review: false,
+      workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
+    });
+    expectMatchesExample(result, responseExample("POST /v3/session/import-shared/"));
+  });
+
   it("sessions.imports.create: POST /v3/session/imports/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -198,33 +225,6 @@ describe("sessions", () => {
     expect(result).toBeInstanceOf(Blob);
     expect(result.type).toBe("text/csv");
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
-  });
-
-  it("sessions.import_shared: POST /v3/session/import-shared/", async () => {
-    const { client, calls } = mockClient({
-      status: 201,
-      json: responseExample("POST /v3/session/import-shared/"),
-    });
-    const result = await client.sessions.importShared({
-      share_token: "sample-token",
-      trust_review: false,
-      workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
-    });
-    expect(calls).toHaveLength(1);
-    const request = calls[0]!;
-    expect(request.method).toBe("POST");
-    expect(request.origin).toBe(API_ORIGIN);
-    expect(request.path).toBe("/v3/session/import-shared/");
-    expect(request.query).toEqual({});
-    expectAuth(request, "api_key");
-    expect(request.headers.get("accept")).toBe("application/json");
-    expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({
-      share_token: "sample-token",
-      trust_review: false,
-      workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
-    });
-    expectMatchesExample(result, responseExample("POST /v3/session/import-shared/"));
   });
 
   it("sessions.list: GET /v3/sessions/", async () => {

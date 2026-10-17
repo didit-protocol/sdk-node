@@ -8,7 +8,7 @@ import type {
 } from "./components.js";
 
 export interface KybListShareholdersParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral — use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -72,7 +72,7 @@ export interface KybListShareholdersResponse202KybRegistry {
     | "struck off"
     | (string & {})
     | null;
-  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling — the stored record completes automatically once the registry resolves. */
+  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling - the stored record completes automatically once the registry resolves. */
   data_resolved?: boolean;
   company_name?: string;
   registration_number?: string | null;
@@ -88,7 +88,7 @@ export interface KybListShareholdersResponse202KybRegistry {
   risk_level?: string | null;
   /** Registry verification status, when available. */
   verification_status?: string | null;
-  /** Always `true` for this endpoint — the profile was retrieved from an official registry. */
+  /** Always `true` for this endpoint - the profile was retrieved from an official registry. */
   is_from_registry?: boolean;
   /** Registry fetch lifecycle. Mirrored by `data_resolved`. */
   fetch_status?: "pending" | "resolved" | (string & {});
@@ -108,7 +108,7 @@ export interface KybListShareholdersResponse202KybRegistry {
   legal_entity_identifier?: string | null;
   /** Registry/jurisdiction the company is registered with, when reported. */
   location_of_registration?: string | null;
-  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set — VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
+  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set - VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
   vat_number?: string | null;
   /** Result of validating the VAT number or, when there is none, the `tax_number`, at registry submit. `valid` / `invalid`: decided by the official registry of the country (EU VIES, Norway, Switzerland, Brazil, Colombia, Costa Rica, Ecuador, Paraguay; Poland also by its domestic VAT register). `format_valid` / `invalid_format`: decided by the country's format and check-digit rules where no registry can be queried. `could_not_validate`: the registry was unavailable. `not_applicable`: no number, a country without registry or rules, or a sandbox session. */
   vat_validation_status?:
@@ -280,7 +280,7 @@ export interface KybListShareholdersResponseKybRegistry {
     | "struck off"
     | (string & {})
     | null;
-  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling — the stored record completes automatically once the registry resolves. */
+  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling - the stored record completes automatically once the registry resolves. */
   data_resolved?: boolean;
   company_name?: string;
   registration_number?: string | null;
@@ -296,7 +296,7 @@ export interface KybListShareholdersResponseKybRegistry {
   risk_level?: string | null;
   /** Registry verification status, when available. */
   verification_status?: string | null;
-  /** Always `true` for this endpoint — the profile was retrieved from an official registry. */
+  /** Always `true` for this endpoint - the profile was retrieved from an official registry. */
   is_from_registry?: boolean;
   /** Registry fetch lifecycle. Mirrored by `data_resolved`. */
   fetch_status?: "pending" | "resolved" | (string & {});
@@ -316,7 +316,7 @@ export interface KybListShareholdersResponseKybRegistry {
   legal_entity_identifier?: string | null;
   /** Registry/jurisdiction the company is registered with, when reported. */
   location_of_registration?: string | null;
-  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set — VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
+  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set - VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
   vat_number?: string | null;
   /** Result of validating the VAT number or, when there is none, the `tax_number`, at registry submit. `valid` / `invalid`: decided by the official registry of the country (EU VIES, Norway, Switzerland, Brazil, Colombia, Costa Rica, Ecuador, Paraguay; Poland also by its domestic VAT register). `format_valid` / `invalid_format`: decided by the country's format and check-digit rules where no registry can be queried. `could_not_validate`: the registry was unavailable. `not_applicable`: no number, a country without registry or rules, or a sandbox session. */
   vat_validation_status?:
@@ -467,7 +467,7 @@ export interface KybListShareholdersResponseKybRegistryOfficers {
 }
 
 export interface KybListUbosParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral — use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -531,7 +531,7 @@ export interface KybListUbosResponse202KybRegistry {
     | "struck off"
     | (string & {})
     | null;
-  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling — the stored record completes automatically once the registry resolves. */
+  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling - the stored record completes automatically once the registry resolves. */
   data_resolved?: boolean;
   company_name?: string;
   registration_number?: string | null;
@@ -547,7 +547,7 @@ export interface KybListUbosResponse202KybRegistry {
   risk_level?: string | null;
   /** Registry verification status, when available. */
   verification_status?: string | null;
-  /** Always `true` for this endpoint — the profile was retrieved from an official registry. */
+  /** Always `true` for this endpoint - the profile was retrieved from an official registry. */
   is_from_registry?: boolean;
   /** Registry fetch lifecycle. Mirrored by `data_resolved`. */
   fetch_status?: "pending" | "resolved" | (string & {});
@@ -567,7 +567,7 @@ export interface KybListUbosResponse202KybRegistry {
   legal_entity_identifier?: string | null;
   /** Registry/jurisdiction the company is registered with, when reported. */
   location_of_registration?: string | null;
-  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set — VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
+  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set - VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
   vat_number?: string | null;
   /** Result of validating the VAT number or, when there is none, the `tax_number`, at registry submit. `valid` / `invalid`: decided by the official registry of the country (EU VIES, Norway, Switzerland, Brazil, Colombia, Costa Rica, Ecuador, Paraguay; Poland also by its domestic VAT register). `format_valid` / `invalid_format`: decided by the country's format and check-digit rules where no registry can be queried. `could_not_validate`: the registry was unavailable. `not_applicable`: no number, a country without registry or rules, or a sandbox session. */
   vat_validation_status?:
@@ -739,7 +739,7 @@ export interface KybListUbosResponseKybRegistry {
     | "struck off"
     | (string & {})
     | null;
-  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling — the stored record completes automatically once the registry resolves. */
+  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling - the stored record completes automatically once the registry resolves. */
   data_resolved?: boolean;
   company_name?: string;
   registration_number?: string | null;
@@ -755,7 +755,7 @@ export interface KybListUbosResponseKybRegistry {
   risk_level?: string | null;
   /** Registry verification status, when available. */
   verification_status?: string | null;
-  /** Always `true` for this endpoint — the profile was retrieved from an official registry. */
+  /** Always `true` for this endpoint - the profile was retrieved from an official registry. */
   is_from_registry?: boolean;
   /** Registry fetch lifecycle. Mirrored by `data_resolved`. */
   fetch_status?: "pending" | "resolved" | (string & {});
@@ -775,7 +775,7 @@ export interface KybListUbosResponseKybRegistry {
   legal_entity_identifier?: string | null;
   /** Registry/jurisdiction the company is registered with, when reported. */
   location_of_registration?: string | null;
-  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set — VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
+  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set - VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
   vat_number?: string | null;
   /** Result of validating the VAT number or, when there is none, the `tax_number`, at registry submit. `valid` / `invalid`: decided by the official registry of the country (EU VIES, Norway, Switzerland, Brazil, Colombia, Costa Rica, Ecuador, Paraguay; Poland also by its domestic VAT register). `format_valid` / `invalid_format`: decided by the country's format and check-digit rules where no registry can be queried. `could_not_validate`: the registry was unavailable. `not_applicable`: no number, a country without registry or rules, or a sandbox session. */
   vat_validation_status?:
@@ -926,7 +926,7 @@ export interface KybListUbosResponseKybRegistryOfficers {
 }
 
 export interface KybSearchParams {
-  /** ISO 3166-1 alpha-2 code of the country whose company registry to search. For example, `GB`. Where company registries operate at state or province level, append the ISO 3166-2 subdivision code as `XX-YY`: `US-CA` searches the California registry. United States searches always require the subdivision — a bare `US` is rejected. Case-insensitive; normalized to upper case. */
+  /** ISO 3166-1 alpha-2 code of the country whose company registry to search. For example, `GB`. Where company registries operate at state or province level, append the ISO 3166-2 subdivision code as `XX-YY`: `US-CA` searches the California registry. United States searches always require the subdivision - a bare `US` is rejected. Case-insensitive; normalized to upper case. */
   country_code: string;
   /** Company name to search for. Either `name` or `registration_number` is required. */
   name?: string;
@@ -964,7 +964,7 @@ export interface KybSearchResponseKybRegistry {
 }
 
 export interface KybSearchResponseKybRegistryCompanies {
-  /** Handle for this candidate — pass it to `POST /v3/kyb/select/` to retrieve the full profile. Ephemeral and scoped to this search: do not store it long-term; re-search to get a fresh one. */
+  /** Handle for this candidate - pass it to `POST /v3/kyb/select/` to retrieve the full profile. Ephemeral and scoped to this search: do not store it long-term; re-search to get a fresh one. */
   kyb_response_id?: string | null;
   /** Registered company name. */
   name?: string | null;
@@ -976,7 +976,7 @@ export interface KybSearchResponseKybRegistryCompanies {
   type?: string | null;
   /** Registry-reported risk level, when available. Usually `null` at search time. */
   risk_level?: string | null;
-  /** Always `pending` for search candidates — the full company profile is only fetched (and billed) when you select the candidate. */
+  /** Always `pending` for search candidates - the full company profile is only fetched (and billed) when you select the candidate. */
   fetch_status?: string | null;
 }
 
@@ -988,7 +988,7 @@ export interface KybSearchResponseKybRegistryPagination {
 }
 
 export interface KybSelectParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral — use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -1036,7 +1036,7 @@ export interface KybSelectResponseKybRegistry {
     | "struck off"
     | (string & {})
     | null;
-  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling — the stored record completes automatically once the registry resolves. */
+  /** `true` once the registry returned the full profile. `false` when the registry was still processing after polling - the stored record completes automatically once the registry resolves. */
   data_resolved?: boolean;
   company_name?: string;
   registration_number?: string | null;
@@ -1052,7 +1052,7 @@ export interface KybSelectResponseKybRegistry {
   risk_level?: string | null;
   /** Registry verification status, when available. */
   verification_status?: string | null;
-  /** Always `true` for this endpoint — the profile was retrieved from an official registry. */
+  /** Always `true` for this endpoint - the profile was retrieved from an official registry. */
   is_from_registry?: boolean;
   /** Registry fetch lifecycle. Mirrored by `data_resolved`. */
   fetch_status?: "pending" | "resolved" | (string & {});
@@ -1072,7 +1072,7 @@ export interface KybSelectResponseKybRegistry {
   legal_entity_identifier?: string | null;
   /** Registry/jurisdiction the company is registered with, when reported. */
   location_of_registration?: string | null;
-  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set — VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
+  /** EU VAT number, when collected during the hosted registry step or edited afterwards. At select time this is typically not yet set - VAT and tax ID validation runs when the end user submits the registry step in the hosted flow. */
   vat_number?: string | null;
   /** Result of validating the VAT number or, when there is none, the `tax_number`, at registry submit. `valid` / `invalid`: decided by the official registry of the country (EU VIES, Norway, Switzerland, Brazil, Colombia, Costa Rica, Ecuador, Paraguay; Poland also by its domestic VAT register). `format_valid` / `invalid_format`: decided by the country's format and check-digit rules where no registry can be queried. `could_not_validate`: the registry was unavailable. `not_applicable`: no number, a country without registry or rules, or a sandbox session. */
   vat_validation_status?:

@@ -9,13 +9,13 @@ export interface AgeEstimationEstimateParams {
   face_liveness_score_decline_threshold?: number;
   /** Minimum acceptable estimated age in years. An estimated age **below** this value adds an `AGE_BELOW_MINIMUM` warning and declines. Set `0` to disable the age check (the call then only runs liveness + age estimation without an age-based decision). */
   age_estimation_decline_threshold?: number;
-  /** When `true`, the service tries the input image in 90-degree increments (0, 90, 180, 270) and uses the orientation that yields the best face detection — useful for mobile captures with missing EXIF orientation. Adds latency, so only enable it if you cannot guarantee upright images. */
+  /** When `true`, the service tries the input image in 90-degree increments (0, 90, 180, 270) and uses the orientation that yields the best face detection - useful for mobile captures with missing EXIF orientation. Adds latency, so only enable it if you cannot guarantee upright images. */
   rotate_image?: boolean;
-  /** When `true` (default), persists the call as an API-type session — visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with the detected face added to your application's face index. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
+  /** When `true` (default), persists the call as an API-type session - visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with the detected face added to your application's face index. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
   save_api_request?: boolean;
   /** Optional opaque string (your internal user id, email, UUID…) stored on the persisted session and echoed back in the response. Use it to correlate API calls with your own records and to filter sessions later. */
   vendor_data?: string;
-  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"age-gate"}`) — it is parsed into an object. */
+  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"age-gate"}`) - it is parsed into an object. */
   metadata?: Record<string, unknown>;
 }
 
@@ -36,7 +36,7 @@ export interface AgeEstimationEstimateResponseAgeEstimation {
   status?: "Approved" | "Declined" | (string & {});
   /** Liveness method. Always `PASSIVE` on this endpoint (single-image, no user challenge). */
   method?: "PASSIVE" | (string & {});
-  /** Passive-liveness score from 0 to 100 — the model's confidence that the photo shows a live person. Compared against `face_liveness_score_decline_threshold`; at or below it the call declines with `LOW_LIVENESS_SCORE`. `null` when the liveness model returns no confidence — the call still declines with `LOW_LIVENESS_SCORE` because null is treated as 0 for the threshold comparison. */
+  /** Passive-liveness score from 0 to 100 - the model's confidence that the photo shows a live person. Compared against `face_liveness_score_decline_threshold`; at or below it the call declines with `LOW_LIVENESS_SCORE`. `null` when the liveness model returns no confidence - the call still declines with `LOW_LIVENESS_SCORE` because null is treated as 0 for the threshold comparison. */
   score?: number | null;
   /** Face-detection results for the analyzed image. */
   user_image?: AgeEstimationEstimateResponseAgeEstimationUserImage;
@@ -66,7 +66,7 @@ export interface AgeEstimationEstimateResponseAgeEstimationUserImageEntities {
 }
 
 export interface AgeEstimationEstimateResponseAgeEstimationWarnings {
-  /** Machine-readable risk code. `NO_FACE_DETECTED` — the liveness model found no face; `LOW_LIVENESS_SCORE` — liveness `score` at or below `face_liveness_score_decline_threshold`; `LIVENESS_FACE_ATTACK` — a presentation attack (photo/screen/mask) was detected; `AGE_NOT_DETECTED` — no face age could be estimated; `AGE_BELOW_MINIMUM` — estimated age below `age_estimation_decline_threshold`. `NO_FACE_DETECTED` and `LOW_LIVENESS_SCORE` are mutually exclusive — when no face is found only `NO_FACE_DETECTED` is emitted. */
+  /** Machine-readable risk code. `NO_FACE_DETECTED` - the liveness model found no face; `LOW_LIVENESS_SCORE` - liveness `score` at or below `face_liveness_score_decline_threshold`; `LIVENESS_FACE_ATTACK` - a presentation attack (photo/screen/mask) was detected; `AGE_NOT_DETECTED` - no face age could be estimated; `AGE_BELOW_MINIMUM` - estimated age below `age_estimation_decline_threshold`. `NO_FACE_DETECTED` and `LOW_LIVENESS_SCORE` are mutually exclusive - when no face is found only `NO_FACE_DETECTED` is emitted. */
   risk?:
     | "NO_FACE_DETECTED"
     | "LOW_LIVENESS_SCORE"

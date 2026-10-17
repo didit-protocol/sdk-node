@@ -79,7 +79,7 @@ export class WebhooksDestinations extends APIResource {
   /**
    * List webhook destinations
    *
-   * List all webhook destinations (unpaginated array, oldest first). Each row includes URL, subscribed events, and delivery health metrics. The signing secret is NOT included in the list — fetch a single destination (`GET /v3/webhook/destinations/{destination_uuid}/`) to read `secret_shared_key`.
+   * List all webhook destinations (unpaginated array, oldest first). Each row includes URL, subscribed events, and delivery health metrics. The signing secret is NOT included in the list - fetch a single destination (`GET /v3/webhook/destinations/{destination_uuid}/`) to read `secret_shared_key`.
    *
    * `GET /v3/webhook/destinations/`
    */
@@ -111,7 +111,7 @@ export class WebhooksDestinations extends APIResource {
   /**
    * Update webhook destination
    *
-   * Update a webhook destination. **`subscribed_events` is REPLACED wholesale, not merged** — fetch first, append, resend. Secret is not rotated.
+   * Update a webhook destination. **`subscribed_events` is REPLACED wholesale, not merged** - fetch first, append, resend. Secret is not rotated.
    *
    * `PATCH /v3/webhook/destinations/{destination_uuid}/`
    *

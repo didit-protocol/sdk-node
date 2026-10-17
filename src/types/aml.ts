@@ -9,7 +9,7 @@ export interface AmlScreenParams {
   date_of_birth?: string;
   /** ISO 3166-1 **alpha-2** country code (e.g. `ES`). Invalid codes return `400`. Improves match precision via the country weight. */
   nationality?: string;
-  /** Identity document number. Not weighted — acts as a golden key: an exact match overrides the hit's `match_score` to 100, a hard mismatch penalizes it. Sent to the screening provider as a search filter only when it is **2-50 characters**; a value outside that range is accepted and stored, and the screening still runs and is billed, just not narrowed by document number. */
+  /** Identity document number. Not weighted - acts as a golden key: an exact match overrides the hit's `match_score` to 100, a hard mismatch penalizes it. Sent to the screening provider as a search filter only when it is **2-50 characters**; a value outside that range is accepted and stored, and the screening still runs and is billed, just not narrowed by document number. */
   document_number?: string;
   /** Risk-score threshold at or below which the result is `Approved`. Must be ≤ `aml_score_review_threshold` (else `400`). */
   aml_score_approve_threshold?: number;
@@ -23,7 +23,7 @@ export interface AmlScreenParams {
   aml_country_weight?: number;
   /** Per-hit cutoff: hits with `match_score` below this are `False Positive` (excluded from risk assessment); at or above are `Unreviewed` possible matches. */
   aml_match_score_threshold?: number;
-  /** Also search news media for negative coverage. Adds up to ~30 s of latency while results are gathered — use a ≥60 s client timeout. */
+  /** Also search news media for negative coverage. Adds up to ~30 s of latency while results are gathered - use a ≥60 s client timeout. */
   include_adverse_media?: boolean;
   /** Keep re-screening this profile and push changes via webhook. Requires `save_api_request=true` (else `400`). */
   include_ongoing_monitoring?: boolean;
@@ -64,7 +64,7 @@ export interface AmlScreenResponseAml {
   warnings?: AmlScreenResponseAmlWarnings[];
 }
 
-/** One screening hit. `match_score` (0–100) measures identity confidence — hits below `aml_match_score_threshold` are tagged `review_status: "False Positive"` and excluded from the risk assessment; hits at or above it are `"Unreviewed"` possible matches. `risk_score` (0–100) measures how risky the matched entity is and drives the top-level `aml.score`. */
+/** One screening hit. `match_score` (0–100) measures identity confidence - hits below `aml_match_score_threshold` are tagged `review_status: "False Positive"` and excluded from the risk assessment; hits at or above it are `"Unreviewed"` possible matches. `risk_score` (0–100) measures how risky the matched entity is and drives the top-level `aml.score`. */
 export interface AmlScreenResponseAmlHits {
   /** Stable identifier of the matched entity in the screening datasets. */
   id?: string | null;
@@ -108,10 +108,10 @@ export interface AmlScreenResponseAmlHits {
   risk_view?: Record<string, unknown> | null;
   /** Free-form extra context, e.g. a `flag_summary` array explaining why the entity is flagged. */
   additional_information?: Record<string, unknown> | null;
-  /** `False Positive` — `match_score` below `aml_match_score_threshold`, excluded from risk assessment. `Unreviewed` — possible match awaiting review. `Confirmed Match` / `Inconclusive` — set manually by a reviewer (via the Business Console) on saved sessions; that review capability is not part of this spec. */
+  /** `False Positive` - `match_score` below `aml_match_score_threshold`, excluded from risk assessment. `Unreviewed` - possible match awaiting review. `Confirmed Match` / `Inconclusive` - set manually by a reviewer (via the Business Console) on saved sessions; that review capability is not part of this spec. */
   review_status?:
     "False Positive" | "Unreviewed" | "Confirmed Match" | "Inconclusive" | (string & {}) | null;
-  /** How `match_score` was computed. Name, date of birth, and country each contribute `<component>_score` × `<component>_weight_normalized` points; weights are re-normalized when a component is missing from the screened data. The document number is not weighted — it acts as a 'golden key': `MATCH` overrides the score to 100, `NEUTRAL` leaves it unchanged, `HARD_MISMATCH` applies a penalty. */
+  /** How `match_score` was computed. Name, date of birth, and country each contribute `<component>_score` × `<component>_weight_normalized` points; weights are re-normalized when a component is missing from the screened data. The document number is not weighted - it acts as a 'golden key': `MATCH` overrides the score to 100, `NEUTRAL` leaves it unchanged, `HARD_MISMATCH` applies a penalty. */
   score_breakdown?: AmlScreenResponseAmlHitsScoreBreakdown | null;
 }
 
@@ -151,7 +151,7 @@ export interface AmlScreenResponseAmlHitsPepMatches {
   other_sources?: string[];
 }
 
-/** How `match_score` was computed. Name, date of birth, and country each contribute `<component>_score` × `<component>_weight_normalized` points; weights are re-normalized when a component is missing from the screened data. The document number is not weighted — it acts as a 'golden key': `MATCH` overrides the score to 100, `NEUTRAL` leaves it unchanged, `HARD_MISMATCH` applies a penalty. */
+/** How `match_score` was computed. Name, date of birth, and country each contribute `<component>_score` × `<component>_weight_normalized` points; weights are re-normalized when a component is missing from the screened data. The document number is not weighted - it acts as a 'golden key': `MATCH` overrides the score to 100, `NEUTRAL` leaves it unchanged, `HARD_MISMATCH` applies a penalty. */
 export interface AmlScreenResponseAmlHitsScoreBreakdown {
   /** Raw name similarity (0–100). */
   name_score?: number | null;
@@ -181,7 +181,7 @@ export interface AmlScreenResponseAmlHitsScoreBreakdown {
   document_number_match_type?: "MATCH" | "NEUTRAL" | "HARD_MISMATCH" | (string & {}) | null;
   /** Human-readable description of the document-number effect. */
   document_number_effect?: string | null;
-  /** Final weighted match score (0–100) — mirrors `match_score`. */
+  /** Final weighted match score (0–100) - mirrors `match_score`. */
   total_score?: number | null;
 }
 
@@ -200,7 +200,7 @@ export interface AmlScreenResponseAmlWarnings {
   risk?: string;
   /** Extra context for the warning, when available. */
   additional_data?: Record<string, unknown> | null;
-  /** `warning`, `information`, or `error` — how the risk affected the outcome. */
+  /** `warning`, `information`, or `error` - how the risk affected the outcome. */
   log_type?: string;
   /** One-line human-readable summary. */
   short_description?: string;

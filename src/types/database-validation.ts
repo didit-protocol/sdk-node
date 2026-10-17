@@ -5,17 +5,17 @@ import type { Uploadable } from "../core/uploads.js";
 export interface DatabaseValidationValidateParams {
   /** ISO 3166-1 **alpha-3** country code of the registry to validate against (e.g. `BRA`, `ESP`, `COL`). Determines which services are available. Unsupported codes return `400` with the full list of valid options. */
   issuing_state: string;
-  /** Catalog `service_id`s to run for this country (e.g. `["bra_cpf"]`). Also accepts a single string or a comma-separated/JSON-encoded string. **If omitted or empty, exactly one default service runs** — the longest-established live service for the country; newer, biometric, and pay-as-you-go services must be named explicitly. Sending `services` switches the response to the extended shape (adds `services_used` and `match_score`). Every id must exist and be live for the `issuing_state`; services that require onboarding return `400` until activated for your organization. Discover available services per country via `GET /v1/organization/database-validation-countries/` (a catalog endpoint not documented in this spec) or the Business Console workflow editor. */
+  /** Catalog `service_id`s to run for this country (e.g. `["bra_cpf"]`). Also accepts a single string or a comma-separated/JSON-encoded string. **If omitted or empty, exactly one default service runs** - the longest-established live service for the country; newer, biometric, and pay-as-you-go services must be named explicitly. Sending `services` switches the response to the extended shape (adds `services_used` and `match_score`). Every id must exist and be live for the `issuing_state`; services that require onboarding return `400` until activated for your organization. Discover available services per country via `GET /v1/organization/database-validation-countries/` (a catalog endpoint not documented in this spec) or the Business Console workflow editor. */
   services?: string[];
   /**
-   * DEPRECATED. Accepted for backward compatibility but ignored — the response `validation_type` is now derived from how many services full-matched. Use `services` to pin specific services.
+   * DEPRECATED. Accepted for backward compatibility but ignored - the response `validation_type` is now derived from how many services full-matched. Use `services` to pin specific services.
    *
    * @deprecated
    */
   validation_type?: string;
-  /** Set to `true` when the end user has explicitly consented to the selected validation services. Required for services flagged `requires_consent=true` in the catalog — without it those services return `400` with `services_requiring_consent`. */
+  /** Set to `true` when the end user has explicitly consented to the selected validation services. Required for services flagged `requires_consent=true` in the catalog - without it those services return `400` with `services_requiring_consent`. */
   consent?: boolean;
-  /** Universal identification number — automatically mapped to the correct country-specific field, so you can use it instead of `personal_number`/`tax_number`/`document_number`: ARG→document_number (DNI), BOL→document_number (CI), BRA→tax_number (CPF, 11 digits), CHL→personal_number (RUT), COL→personal_number (Cédula), CRI→personal_number (Cédula), DOM→personal_number (Cédula, 11 digits), ECU→personal_number (Cédula, 10 digits), ESP→personal_number (DNI/NIE), GTM→document_number (DPI), HND→document_number (DNI), MEX→personal_number (CURP, 18 chars), PAN→personal_number (Cédula), PER→personal_number (DNI, 8 digits), PRY→document_number (CI), SLV→document_number (DUI), URY→personal_number (CI), VEN→document_number (Cédula). It never overrides an explicitly provided country-specific field. */
+  /** Universal identification number - automatically mapped to the correct country-specific field, so you can use it instead of `personal_number`/`tax_number`/`document_number`: ARG→document_number (DNI), BOL→document_number (CI), BRA→tax_number (CPF, 11 digits), CHL→personal_number (RUT), COL→personal_number (Cédula), CRI→personal_number (Cédula), DOM→personal_number (Cédula, 11 digits), ECU→personal_number (Cédula, 10 digits), ESP→personal_number (DNI/NIE), GTM→document_number (DPI), HND→document_number (DNI), MEX→personal_number (CURP, 18 chars), PAN→personal_number (Cédula), PER→personal_number (DNI, 8 digits), PRY→document_number (CI), SLV→document_number (DUI), URY→personal_number (CI), VEN→document_number (Cédula). It never overrides an explicitly provided country-specific field. */
   identification_number?: string;
   /** The individual's first name. Required by some services/countries. */
   first_name?: string;
@@ -23,7 +23,7 @@ export interface DatabaseValidationValidateParams {
   last_name?: string;
   /** Middle name, used by some country services (AUS, NZL, …). */
   middle_name?: string;
-  /** Full name — some services accept this in lieu of first/last name (e.g. CHN services, which match the native-script name). */
+  /** Full name - some services accept this in lieu of first/last name (e.g. CHN services, which match the native-script name). */
   full_name?: string;
   /** Date of birth, `YYYY-MM-DD`. Required by many services. */
   date_of_birth?: string;
@@ -150,7 +150,7 @@ export interface DatabaseValidationValidateParams {
   vendor_data?: string;
   /** Free-form JSON stored with the request and echoed back. */
   metadata?: Record<string, unknown> | null;
-  /** Selfie image (`jpg`, `jpeg`, `png`, `webp`; max 2 MB — images are compressed to ~1.5 MB before upload to the registry) for biometric validation services, e.g. Argentina RENAPER (`arg_renaper`) and Panama SIB (`pan_cedula_sib`, `pan_cedula_sib_plus`). Required whenever a selected service lists it as a required field. Only available via `multipart/form-data`. */
+  /** Selfie image (`jpg`, `jpeg`, `png`, `webp`; max 2 MB - images are compressed to ~1.5 MB before upload to the registry) for biometric validation services, e.g. Argentina RENAPER (`arg_renaper`) and Panama SIB (`pan_cedula_sib`, `pan_cedula_sib_plus`). Required whenever a selected service lists it as a required field. Only available via `multipart/form-data`. */
   selfie?: Uploadable;
 }
 
@@ -215,7 +215,7 @@ export interface DatabaseValidationValidateResponseDatabaseValidationValidations
   service_name?: string;
   /** Field-by-field comparison between your input and the registry record. Keys are canonical field names (`full_name`, `date_of_birth`, `identification_number`, `address`, …); values are `full_match`, `partial_match`, or `no_match`. */
   validation?: Record<string, "full_match" | "partial_match" | "no_match" | (string & {})>;
-  /** Vendor-neutral outcome of the registry lookup. `MATCH`/`PARTIAL_MATCH`/`NO_MATCH` describe the comparison; `DOCUMENT_NOT_FOUND` means the identifier is not in the registry; `INCONCLUSIVE` means the registry could not confirm either way (routed to review — NOT a no-match); `BIOMETRIC_NO_MATCH` is a definitive face mismatch while `BIOMETRIC_IMAGE_UNUSABLE` is a technical image problem (retake the selfie); `DECEASED`/`MINOR_BLOCKED` are registry-policy outcomes; `DOCUMENT_SUPERSEDED` means the identity matched but the edition of the document presented is not the one on file (a newer edition has been issued); `INVALID_DOCUMENT_FORMAT`/`INVALID_INPUT` mean the registry itself rejected the data it was sent; `REGISTRY_UNAVAILABLE`/`REGISTRY_ERROR` indicate upstream failures. */
+  /** Vendor-neutral outcome of the registry lookup. `MATCH`/`PARTIAL_MATCH`/`NO_MATCH` describe the comparison; `DOCUMENT_NOT_FOUND` means the identifier is not in the registry; `INCONCLUSIVE` means the registry could not confirm either way (routed to review - NOT a no-match); `BIOMETRIC_NO_MATCH` is a definitive face mismatch while `BIOMETRIC_IMAGE_UNUSABLE` is a technical image problem (retake the selfie); `DECEASED`/`MINOR_BLOCKED` are registry-policy outcomes; `DOCUMENT_SUPERSEDED` means the identity matched but the edition of the document presented is not the one on file (a newer edition has been issued); `INVALID_DOCUMENT_FORMAT`/`INVALID_INPUT` mean the registry itself rejected the data it was sent; `REGISTRY_UNAVAILABLE`/`REGISTRY_ERROR` indicate upstream failures. */
   outcome_code?:
     | "MATCH"
     | "PARTIAL_MATCH"
@@ -245,7 +245,7 @@ export interface DatabaseValidationValidateResponseDatabaseValidationWarnings {
   risk?: string;
   /** Extra context for the warning, when available. */
   additional_data?: Record<string, unknown> | null;
-  /** `warning`, `information`, or `error` — how the risk affected the outcome. */
+  /** `warning`, `information`, or `error` - how the risk affected the outcome. */
   log_type?: string;
   /** One-line human-readable summary. */
   short_description?: string;

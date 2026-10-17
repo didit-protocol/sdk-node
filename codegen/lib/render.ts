@@ -1,6 +1,6 @@
 // Render the generated layer: src/types, src/resources and tests/generated.
 
-import { kebab, propKey, resourceClass } from "./naming.ts";
+import { byCodePoint, kebab, propKey, resourceClass } from "./naming.ts";
 import { buildMethod, responseComponents, type Method } from "./operations.ts";
 import type { Model } from "./spec.ts";
 import { declDeps, docLines, renderDecl, TypeBuilder, type Decl, type DatePlan } from "./types.ts";
@@ -309,7 +309,7 @@ function renderResourceModule(top: ResourceNode, decls: Map<string, Decl>): stri
     }
     if (node.children.size && node.methods.length) out.push("");
     node.methods
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => byCodePoint(a.name, b.name))
       .forEach((method, index) => {
         if (index) out.push("");
         const sig = methodSignature(method);
@@ -340,7 +340,7 @@ function renderRoot(root: ResourceNode): string {
   out.push(`import { APIClient } from "../core/api-client.js";`);
   out.push(`import type { DatePlan } from "../core/dates.js";`);
   out.push(`import { DATE_PLANS } from "./date-plans.js";`);
-  const children = [...root.children.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const children = [...root.children.entries()].sort(([a], [b]) => byCodePoint(a, b));
   for (const [segment, child] of children) {
     out.push(`import { ${child.className} } from "./${kebab(segment)}.js";`);
   }
@@ -399,7 +399,7 @@ export function render(model: Model): Rendered {
   const methods = server
     .slice()
     .sort((a, b) =>
-      `${a.sdk.resource}.${a.sdk.method}`.localeCompare(`${b.sdk.resource}.${b.sdk.method}`),
+      byCodePoint(`${a.sdk.resource}.${a.sdk.method}`, `${b.sdk.resource}.${b.sdk.method}`),
     )
     .map((op) => buildMethod(op, builder));
   const files = new Map<string, string>();
@@ -419,7 +419,7 @@ export function render(model: Model): Rendered {
   }
   const modules = [...byModule.keys()].sort();
   for (const module of modules) {
-    const decls = byModule.get(module)!.sort((a, b) => a.name.localeCompare(b.name));
+    const decls = byModule.get(module)!.sort((a, b) => byCodePoint(a.name, b.name));
     files.set(`src/types/${kebab(module)}.ts`, renderTypes(module, decls, builder.decls));
   }
   files.set(

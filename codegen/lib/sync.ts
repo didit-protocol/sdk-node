@@ -723,18 +723,17 @@ export function sync(input: SyncInput): SyncResult {
         }
       }
     }
-    if (
-      sameOp &&
+    const docsOnly =
       !isBreaking &&
       notes.length === 1 &&
-      notes[0] === "descriptions, examples or other details changed"
-    )
-      continue;
+      notes[0] === "descriptions, examples or other details changed";
+    // An unchanged operation whose components changed: the Schemas section lists them.
+    if (sameOp && docsOnly) continue;
+    if (!docsOnly) feature = true;
     changes.push(`- \`${key}\`${isBreaking ? " **(breaking)**" : ""}: ${notes.join("; ")}`);
     if (isBreaking)
       breaking.push(`\`${key}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`);
   }
-  if (changes.length) feature = true;
   lines.push(`## Changed operations (${changes.length})`, ...changes, "");
 
   // Components a deprecated method still uses keep their types.

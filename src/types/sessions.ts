@@ -110,7 +110,7 @@ export interface SessionsBulkUpdateAmlHitStatusParamsHitUpdates {
 export interface SessionsCreateParams {
   /** Stable identifier of the workflow that defines which verification steps the session will run. Workflows are created and managed in the [Workflows](/console/workflows) page of the Console. The `workflow_id` also implicitly selects whether the session is KYC or KYB. */
   workflow_id: string;
-  /** A unique identifier for the user being verified, such as a UUID, email, or internal user ID. This field is used for: (1) **User grouping** — sessions with the same vendor_data are linked to the same user profile in the Users tab. (2) **Cross-session duplicate detection** — when checking for duplicated faces, documents, phone numbers, emails, IP addresses, or device fingerprints, sessions with the same vendor_data are treated as the same user and excluded from matches. Without vendor_data, every session is treated as a unique user and all potential duplicates are surfaced. We strongly recommend always providing a vendor_data to reduce noise in duplicate detection. */
+  /** A unique identifier for the user being verified, such as a UUID, email, or internal user ID. This field is used for: (1) **User grouping** - sessions with the same vendor_data are linked to the same user profile in the Users tab. (2) **Cross-session duplicate detection** - when checking for duplicated faces, documents, phone numbers, emails, IP addresses, or device fingerprints, sessions with the same vendor_data are treated as the same user and excluded from matches. Without vendor_data, every session is treated as a unique user and all potential duplicates are surfaced. We strongly recommend always providing a vendor_data to reduce noise in duplicate detection. */
   vendor_data?: string;
   /** URL to redirect the user to after verification completes. Didit automatically appends `verificationSessionId` and `status` (Approved, Declined, In Review) as query parameters. Custom URL schemes (e.g. `myapp://`) are supported for mobile callbacks. If omitted, the workflow's default `callback_url` is used. */
   callback?: string;
@@ -177,7 +177,7 @@ export interface SessionsCreateParams {
     | (string & {});
   /** User contact information that can be used for notifications, prefilling verification forms, and phone verification. This includes email address, preferred language for communications, and phone number. */
   contact_details?: SessionsCreateParamsContactDetails;
-  /** Expected user details used to cross-validate against the data extracted from the user's ID document, Proof of Address, and other verification steps. Mismatches are surfaced as warnings on the decision; some fields (e.g. `id_country`, `expected_document_types`) also alter the user-facing flow. For Business Verification (KYB) workflows only the business fields (`company_name`, `registry_country`, `registration_number`) are used — they pre-fill the company registry search for the user — and all person-level fields are ignored. */
+  /** Expected user details used to cross-validate against the data extracted from the user's ID document, Proof of Address, and other verification steps. Mismatches are surfaced as warnings on the decision; some fields (e.g. `id_country`, `expected_document_types`) also alter the user-facing flow. For Business Verification (KYB) workflows only the business fields (`company_name`, `registry_country`, `registration_number`) are used - they pre-fill the company registry search for the user - and all person-level fields are ignored. */
   expected_details?: SessionsCreateParamsExpectedDetails;
   /** Base64-encoded portrait image of the end user's face (max 2MB; JPEG, PNG, WebP, or TIFF). Used as the reference image to match against the liveness capture when the workflow is a `Biometric Authentication` workflow with Face Match enabled, or any graph workflow where Face Match runs before ID Verification (OCR). Optional when the `vendor_data` user already has a stored face image: Didit reuses it automatically, resolved in priority order: approved liveness face, ePassport chip photo, ID document portrait, manually enrolled profile face (only faces from approved sessions or faces you enrolled yourself are reused). When provided, `portrait_image` always takes precedence over the stored face. If omitted and no stored face exists (or `vendor_data` is not sent), session creation fails with `400`. Ignored for other workflow types. */
   portrait_image?: string;
@@ -191,7 +191,7 @@ export interface SessionsCreateParamsContactDetails {
   email?: string;
   /** If true and an email is provided, Didit sends the initial "Verify your identity" email asynchronously when the User Verification (KYC) or Business Verification (KYB) session is created. Didit also sends verification status notifications for sessions requiring manual review to the provided email address (e.g., from 'In Review' to 'Approved' or 'Declined'). This helps users return to your application once their verification is complete. If you have white-label activated for the session, the email sent will be white-labeled. */
   send_notification_emails?: boolean;
-  /** Language code (ISO 639-1) for email notifications. Controls the language of all email communications (e.g., "en", "es", "fr"). There is no stored default — when omitted, the verification invite email simply falls back to English (`en`) at send time. The enum below is a snapshot; the live source of truth for accepted values is the [supported languages](/integration/supported-languages) doc — always consult it before relying on a specific code. */
+  /** Language code (ISO 639-1) for email notifications. Controls the language of all email communications (e.g., "en", "es", "fr"). There is no stored default - when omitted, the verification invite email simply falls back to English (`en`) at send time. The enum below is a snapshot; the live source of truth for accepted values is the [supported languages](/integration/supported-languages) doc - always consult it before relying on a specific code. */
   email_lang?:
     | "en"
     | "ar"
@@ -252,7 +252,7 @@ export interface SessionsCreateParamsContactDetails {
   phone?: string;
 }
 
-/** Expected user details used to cross-validate against the data extracted from the user's ID document, Proof of Address, and other verification steps. Mismatches are surfaced as warnings on the decision; some fields (e.g. `id_country`, `expected_document_types`) also alter the user-facing flow. For Business Verification (KYB) workflows only the business fields (`company_name`, `registry_country`, `registration_number`) are used — they pre-fill the company registry search for the user — and all person-level fields are ignored. */
+/** Expected user details used to cross-validate against the data extracted from the user's ID document, Proof of Address, and other verification steps. Mismatches are surfaced as warnings on the decision; some fields (e.g. `id_country`, `expected_document_types`) also alter the user-facing flow. For Business Verification (KYB) workflows only the business fields (`company_name`, `registry_country`, `registration_number`) are used - they pre-fill the company registry search for the user - and all person-level fields are ignored. */
 export interface SessionsCreateParamsExpectedDetails {
   /** User's first name. For example, `John`. The matching uses fuzzy comparison, and you can tune the strictness by configuring the name match score threshold in the Console for both ID Document and Proof of Address workflows. */
   first_name?: string;
@@ -291,13 +291,13 @@ export interface SessionsCreateResponse {
   session_id: string;
   /** Sequential, human-friendly number assigned to the session inside your application. Useful for support and dashboards. */
   session_number: number;
-  /** 12-character URL-safe token that authorizes the end user to access the hosted verification flow at `url`. Valid until the session expires. Treat it as a secret — anyone holding it can open the verification flow for this session. */
+  /** 12-character URL-safe token that authorizes the end user to access the hosted verification flow at `url`. Valid until the session expires. Treat it as a secret - anyone holding it can open the verification flow for this session. */
   session_token: string;
-  /** Hosted verification URL to redirect the end user to. The URL embeds the `session_token` and, if configured, uses your white-label domain. When the request includes `language`, the URL contains a language path segment — `https://verify.didit.me/{language}/session/{session_token}` (e.g. `/es/session/...`); without `language`, the segment is omitted. */
+  /** Hosted verification URL to redirect the end user to. The URL embeds the `session_token` and, if configured, uses your white-label domain. When the request includes `language`, the URL contains a language path segment - `https://verify.didit.me/{language}/session/{session_token}` (e.g. `/es/session/...`); without `language`, the segment is omitted. */
   url: string;
   /** Identifier you passed in the request to link the session to a user or business in your own system. Echoed back verbatim. Null when not provided. */
   vendor_data: string | null;
-  /** Arbitrary JSON payload you stored with the session at creation time. Echoed back verbatim — whatever JSON value you sent (object, string, number, array) is returned as-is, though a JSON object is recommended. Not shown to the end user. Always present in responses; `null` when not provided at creation time. */
+  /** Arbitrary JSON payload you stored with the session at creation time. Echoed back verbatim - whatever JSON value you sent (object, string, number, array) is returned as-is, though a JSON object is recommended. Not shown to the end user. Always present in responses; `null` when not provided at creation time. */
   metadata: unknown;
   /** Current status of the session. Newly created sessions return `Not Started`. If a non-finished session already existed for the same `vendor_data` on the workflow's latest published version, the returned status reflects that existing session. */
   status:
@@ -314,7 +314,7 @@ export interface SessionsCreateResponse {
     | (string & {});
   /** Final redirect URL the user is sent to after completing the flow. Didit appends `?verificationSessionId={session_id}&status={status}` to this URL. Falls back to the workflow's configured callback URL when not provided in the request; `null` when neither is set. */
   callback: string | null;
-  /** Stable identifier of the workflow this session runs on. Always the workflow's stable group identifier — even if you referenced a specific workflow version UUID in the request (backward-compatible lookup), the response carries the stable `workflow_id`. Use it to correlate the session with the workflow you configured in the Console. */
+  /** Stable identifier of the workflow this session runs on. Always the workflow's stable group identifier - even if you referenced a specific workflow version UUID in the request (backward-compatible lookup), the response carries the stable `workflow_id`. Use it to correlate the session with the workflow you configured in the Console. */
   workflow_id: string;
   /** Version number of the published workflow version the session was pinned to at creation. Didit resolves `workflow_id` to the workflow's latest published version when the session is created, and the session keeps running that version even if the workflow is republished later. */
   workflow_version: number;
@@ -349,6 +349,17 @@ export interface SessionsDeleteResponse {
   deleted_child_verifications?: number;
 }
 
+export interface SessionsImportSharedParams {
+  /** JWT share token issued by [`POST /v3/session/{sessionId}/share/`](/sessions-api/share-session). */
+  share_token: string;
+  /** If `true`, the cloned session keeps the source's final `status`. If `false`, it is forced into `In Review`. */
+  trust_review: boolean;
+  /** UUID of a workflow in the calling application. Cross-application IDs are rejected with `404`. */
+  workflow_id: string;
+  /** Optional override for the cloned session's `vendor_data`. */
+  vendor_data?: string | null;
+}
+
 export interface SessionsImportsCreateParams {
   /** What to import: historical User Verification sessions, historical Business Verification sessions, workflow custom status rules, or historical transaction monitoring records. */
   import_type?:
@@ -363,17 +374,6 @@ export interface SessionsImportsCreateParams {
   file?: Uploadable;
 }
 
-export interface SessionsImportSharedParams {
-  /** JWT share token issued by [`POST /v3/session/{sessionId}/share/`](/sessions-api/share-session). */
-  share_token: string;
-  /** If `true`, the cloned session keeps the source's final `status`. If `false`, it is forced into `In Review`. */
-  trust_review: boolean;
-  /** UUID of a workflow in the calling application. Cross-application IDs are rejected with `404`. */
-  workflow_id: string;
-  /** Optional override for the cloned session's `vendor_data`. */
-  vendor_data?: string | null;
-}
-
 export interface SessionsImportsListErrorsParams {
   /** Page size. Defaults to 50 when omitted. */
   limit?: number;
@@ -382,7 +382,7 @@ export interface SessionsImportsListErrorsParams {
 }
 
 export interface SessionsImportsListErrorsResponse {
-  /** Number of error rows — exact up to 100, capped at 100 beyond that. Rely on `next` being `null` to detect the last page. */
+  /** Number of error rows - exact up to 100, capped at 100 beyond that. Rely on `next` being `null` to detect the last page. */
   count?: number;
   /** Absolute URL of the next page, or `null` on the last page. */
   next?: string | null;
@@ -776,20 +776,20 @@ export interface SessionsPreviewResubmissionResponseNodesToResubmit {
 }
 
 export interface SessionsRetrieveDecisionParams {
-  /** Comma-separated list of extra payload sections. Supported values: `events` and `resubmissions`, alone or together (`events,resubmissions`). When `include=events` is passed, the response additionally contains the session event timeline (`events`, including the `WORKFLOW_BRANCH_EVALUATED` / `WORKFLOW_STATUS_NODE_REACHED` routing events described on the Retrieve Session page), the full activity log (`activity_reviews`), blocklist flags (`blocklisted`), a per-session `cost_breakdown`, workflow metadata (`workflow_type`, `workflow_version`, `workflow_version_id`, and `workflow_terminal_node_id` - the last recorded workflow status node that set a session status, or `null` if none has been recorded; historical provenance that is not cleared by manual approvals, declines or resubmissions, and is replaced by a later workflow status node), and session metadata (`api_service` — string or `null`, set only for standalone-API sessions; `session_type` — `API`, `HOSTED`, or `MIGRATED`; `has_device_nfc_support` — boolean). Two fields change relative to the plain shape: the top-level `session_kind` discriminator is **omitted** (the events shape only exists for user sessions), and the `features` array switches from plain strings to `{feature, node_id}` objects — where the email feature is reported as `EMAIL` instead of `EMAIL_VERIFICATION`. This expanded shape is primarily used by the Didit Console; most API integrations should omit the parameter. **KYB limitation:** `include=events` only applies to user (KYC) sessions. Business sessions (`session_kind = "business"`) always return the standard business decision shape — `events`, `activity_reviews`, `blocklisted`, `cost_breakdown` and the extra `workflow_*`/session metadata are never returned for business sessions, and their `features` array stays a plain string array. With `include=resubmissions` (user and business sessions alike) the response also contains `resubmissions`: one entry per resubmission request, oldest first, each with `number`, `created_at`, `previous_status`, `nodes`, `reasons`, `requested_by` and `results` (what the resubmitted steps returned before the request, under the same keys and in the same shape as the current results). Each `cost_breakdown` item carries `usage_type`, `price`, `details` and `created_at`: a resubmitted step that runs again is billed as a new item. */
+  /** Comma-separated list of extra payload sections. Supported values: `events` and `resubmissions`, alone or together (`events,resubmissions`). When `include=events` is passed, the response additionally contains the session event timeline (`events`, including the `WORKFLOW_BRANCH_EVALUATED` / `WORKFLOW_STATUS_NODE_REACHED` routing events described on the Retrieve Session page), the full activity log (`activity_reviews`), blocklist flags (`blocklisted`), a per-session `cost_breakdown`, workflow metadata (`workflow_type`, `workflow_version`, `workflow_version_id`, and `workflow_terminal_node_id` - the last recorded workflow status node that set a session status, or `null` if none has been recorded; historical provenance that is not cleared by manual approvals, declines or resubmissions, and is replaced by a later workflow status node), and session metadata (`api_service` - string or `null`, set only for standalone-API sessions; `session_type` - `API`, `HOSTED`, or `MIGRATED`; `has_device_nfc_support` - boolean). Two fields change relative to the plain shape: the top-level `session_kind` discriminator is **omitted** (the events shape only exists for user sessions), and the `features` array switches from plain strings to `{feature, node_id}` objects - where the email feature is reported as `EMAIL` instead of `EMAIL_VERIFICATION`. This expanded shape is primarily used by the Didit Console; most API integrations should omit the parameter. **KYB limitation:** `include=events` only applies to user (KYC) sessions. Business sessions (`session_kind = "business"`) always return the standard business decision shape - `events`, `activity_reviews`, `blocklisted`, `cost_breakdown` and the extra `workflow_*`/session metadata are never returned for business sessions, and their `features` array stays a plain string array. With `include=resubmissions` (user and business sessions alike) the response also contains `resubmissions`: one entry per resubmission request, oldest first, each with `number`, `created_at`, `previous_status`, `nodes`, `reasons`, `requested_by` and `results` (what the resubmitted steps returned before the request, under the same keys and in the same shape as the current results). Each `cost_breakdown` item carries `usage_type`, `price`, `details` and `created_at`: a resubmitted step that runs again is billed as a new item. */
   include?: "events" | "resubmissions" | "events,resubmissions" | (string & {});
 }
 
 export interface SessionsRetrieveDecisionResponse {
   /** The unique identifier of the session for which to retrieve verification results. */
   session_id?: string;
-  /** Discriminator indicating whether this is a User Verification (KYC) or Business Verification (KYB) session. When `user`, the KYC feature arrays (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `database_validations`, ...) apply and the business arrays are absent. When `business`, the payload instead carries `registry_checks`, `document_verifications`, `key_people_checks` plus the shared arrays (`aml_screenings`, `phone_verifications`, `email_verifications`, `ip_analyses`, `questionnaire_responses`). **Omitted when `include=events` is passed** — the events shape only exists for user sessions, so the discriminator is dropped from that variant. */
+  /** Discriminator indicating whether this is a User Verification (KYC) or Business Verification (KYB) session. When `user`, the KYC feature arrays (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `database_validations`, ...) apply and the business arrays are absent. When `business`, the payload instead carries `registry_checks`, `document_verifications`, `key_people_checks` plus the shared arrays (`aml_screenings`, `phone_verifications`, `email_verifications`, `ip_analyses`, `questionnaire_responses`). **Omitted when `include=events` is passed** - the events shape only exists for user sessions, so the discriminator is dropped from that variant. */
   session_kind?: "user" | "business" | (string & {});
   /** The number of the session. */
   session_number?: number | null;
   /** The URL of the session. */
   session_url?: string | null;
-  /** Overall lifecycle status of the session — the rolled-up workflow result. Terminal values are `Approved`, `Declined`, `In Review`, `Expired`, `Kyc Expired`, and `Abandoned`; `Not Started`, `In Progress`, `Awaiting User`, and `Resubmitted` indicate the session is still moving through the workflow. */
+  /** Overall lifecycle status of the session - the rolled-up workflow result. Terminal values are `Approved`, `Declined`, `In Review`, `Expired`, `Kyc Expired`, and `Abandoned`; `Not Started`, `In Progress`, `Awaiting User`, and `Resubmitted` indicate the session is still moving through the workflow. */
   status?:
     | "Not Started"
     | "In Progress"
@@ -802,7 +802,7 @@ export interface SessionsRetrieveDecisionResponse {
     | "Kyc Expired"
     | "Abandoned"
     | (string & {});
-  /** Stable identifier of the workflow group that produced this session. Workflows are versioned — this value identifies the workflow itself, not the specific version. */
+  /** Stable identifier of the workflow group that produced this session. Workflows are versioned - this value identifies the workflow itself, not the specific version. */
   workflow_id?: string | null;
   /** List of verification features configured for this session, as display names: `ID_VERIFICATION`, `NFC`, `LIVENESS`, `FACE_MATCH`, `POA`, `PHONE`, `EMAIL_VERIFICATION`, `AML`, `IP_ANALYSIS`, `DATABASE_VALIDATION`, `QUESTIONNAIRE`, `AGE_ESTIMATION`, `FACE_SEARCH` (Business Verification sessions use the KYB feature set: `KYB_REGISTRY`, `KYB_DOCUMENTS`, `KYB_KEY_PEOPLE`, `AML`, `PHONE`, `EMAIL_VERIFICATION`, `IP_ANALYSIS`, `QUESTIONNAIRE`). With `include=events` each entry becomes an object `{feature, node_id}` instead of a plain string, and the email feature is renamed: it appears as `EMAIL` in events mode instead of the `EMAIL_VERIFICATION` used here. */
   features?: string[];
@@ -810,13 +810,13 @@ export interface SessionsRetrieveDecisionResponse {
   vendor_data?: string | null;
   /** The metadata of the session. */
   metadata?: Record<string, unknown> | null;
-  /** Expected details supplied at session creation — used for cross-validation against extracted data (KYC) or to pre-fill the company registry search (KYB). Echoes back exactly the keys that were provided; `null` when none were supplied. KYC sessions carry the person fields; Business (KYB) sessions carry `company_name`, `registry_country` and `registration_number`. */
+  /** Expected details supplied at session creation - used for cross-validation against extracted data (KYC) or to pre-fill the company registry search (KYB). Echoes back exactly the keys that were provided; `null` when none were supplied. KYC sessions carry the person fields; Business (KYB) sessions carry `company_name`, `registry_country` and `registration_number`. */
   expected_details?: SessionsRetrieveDecisionResponseExpectedDetails | null;
   /** Contact details supplied when the session was created (used for notification emails, prefilled phone/email verification, and communication language). `null` when neither an email nor a phone number was provided. */
   contact_details?: SessionsRetrieveDecisionResponseContactDetails | null;
   /** The callback URL of the session. */
   callback?: string | null;
-  /** **Array of ID verification (OCR) reports** produced by ID-document steps in the workflow graph. Always a JSON array — read `id_verifications[0]` and iterate if your workflow can run more than one ID check (for example a primary check plus a step-up). `null` until at least one ID step has produced data. Each item is the full report, including `node_id`, feature-level `status`, extracted document fields, image URLs, quality scores, MRZ, address parsing, cross-session matches, and `warnings[]`. */
+  /** **Array of ID verification (OCR) reports** produced by ID-document steps in the workflow graph. Always a JSON array - read `id_verifications[0]` and iterate if your workflow can run more than one ID check (for example a primary check plus a step-up). `null` until at least one ID step has produced data. Each item is the full report, including `node_id`, feature-level `status`, extracted document fields, image URLs, quality scores, MRZ, address parsing, cross-session matches, and `warnings[]`. */
   id_verifications?: SessionsRetrieveDecisionResponseIdVerifications[] | null;
   /** Why NFC chip verification did not run, populated whenever the workflow includes an NFC step. `null` while NFC is pending or when the chip was actually read. Values: `USER_SKIPPED` - the user chose to skip on an NFC-capable device (allowed by `allow_nfc_skip`); `DOCUMENT_WITHOUT_CHIP` - the document has no readable NFC chip (not an ICAO 9303 electronic document); `CHIP_CERTIFICATE_UNAVAILABLE` - the issuing country's signing certificate (CSCA) covering the document's issue period is unavailable, so the chip signature cannot be verified; `DEVICE_WITHOUT_NFC` - the device reported no NFC reader; `INTEGRATION_WITHOUT_NFC_ACCESS` - the verification ran without a native SDK (e.g. in a web browser), which has no access to the phone's NFC reader; `MRZ_KEY_UNAVAILABLE` - the chip access key could not be derived from the document's MRZ. */
   nfc_skip_reason?:
@@ -828,28 +828,28 @@ export interface SessionsRetrieveDecisionResponse {
     | "MRZ_KEY_UNAVAILABLE"
     | (string & {})
     | null;
-  /** **Array of NFC / ePassport reports** produced by NFC steps in the workflow graph. **This is always a JSON array, never a singular `nfc` object** — read `nfc_verifications[0]` and iterate if your workflow can run NFC more than once. `null` until at least one NFC step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `chip_data`, `authenticity` (SOD + DG integrity), `certificate_summary`, and `warnings[]`. When the NFC step was bypassed before it could ever be offered (chipless document, missing certificate, no NFC capability reported, unreadable MRZ key), this stays `null` and `nfc_skip_reason` explains why; a skip at the step itself (user tapped skip, or the reader turned out unavailable at scan time) still produces a report with `is_nfc_skipped: true`. */
+  /** **Array of NFC / ePassport reports** produced by NFC steps in the workflow graph. **This is always a JSON array, never a singular `nfc` object** - read `nfc_verifications[0]` and iterate if your workflow can run NFC more than once. `null` until at least one NFC step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `chip_data`, `authenticity` (SOD + DG integrity), `certificate_summary`, and `warnings[]`. When the NFC step was bypassed before it could ever be offered (chipless document, missing certificate, no NFC capability reported, unreadable MRZ key), this stays `null` and `nfc_skip_reason` explains why; a skip at the step itself (user tapped skip, or the reader turned out unavailable at scan time) still produces a report with `is_nfc_skipped: true`. */
   nfc_verifications?: SessionsRetrieveDecisionResponseNfcVerifications[] | null;
-  /** **Array of liveness reports** produced by liveness steps in the workflow graph. Always a JSON array — never a singular `liveness` object. `null` until at least one liveness step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `method`, `score`, `reference_image`, `video_url`, optional `age_estimation`, cross-session `matches[]`, and `warnings[]`. */
+  /** **Array of liveness reports** produced by liveness steps in the workflow graph. Always a JSON array - never a singular `liveness` object. `null` until at least one liveness step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `method`, `score`, `reference_image`, `video_url`, optional `age_estimation`, cross-session `matches[]`, and `warnings[]`. */
   liveness_checks?: SessionsRetrieveDecisionResponseLivenessChecks[] | null;
-  /** **Array of face-match reports** produced by face-match steps in the workflow graph. Always a JSON array — never a singular `face_match` object. `null` until at least one face-match step has produced data. Each item is the full report, including `node_id`, feature-level `status`, similarity `score`, `source_image`, `target_image`, and `warnings[]`. */
+  /** **Array of face-match reports** produced by face-match steps in the workflow graph. Always a JSON array - never a singular `face_match` object. `null` until at least one face-match step has produced data. Each item is the full report, including `node_id`, feature-level `status`, similarity `score`, `source_image`, `target_image`, and `warnings[]`. */
   face_matches?: SessionsRetrieveDecisionResponseFaceMatches[] | null;
-  /** **Array of phone verification reports** — always a JSON array, never a singular `phone` object. `null` until at least one phone step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the phone number and country metadata, `lifecycle[]`, `matches[]`, and `warnings[]`. */
+  /** **Array of phone verification reports** - always a JSON array, never a singular `phone` object. `null` until at least one phone step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the phone number and country metadata, `lifecycle[]`, `matches[]`, and `warnings[]`. */
   phone_verifications?: SessionsRetrieveDecisionResponsePhoneVerifications[] | null;
-  /** **Array of email verification reports** — always a JSON array, never a singular `email` object. `null` until at least one email step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the email address, breach data, `lifecycle[]`, `matches[]`, and `warnings[]`. */
+  /** **Array of email verification reports** - always a JSON array, never a singular `email` object. `null` until at least one email step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the email address, breach data, `lifecycle[]`, `matches[]`, and `warnings[]`. */
   email_verifications?: SessionsRetrieveDecisionResponseEmailVerifications[] | null;
-  /** **Array of Proof of Address (POA) reports** — always a JSON array, never a singular `poa` object. `null` until at least one POA step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the document file URL, issuer, dates, parsed address, and `warnings[]`. */
+  /** **Array of Proof of Address (POA) reports** - always a JSON array, never a singular `poa` object. `null` until at least one POA step has produced data. Each item is the full report, including `node_id`, feature-level `status`, the document file URL, issuer, dates, parsed address, and `warnings[]`. */
   poa_verifications?: SessionsRetrieveDecisionResponsePoaVerifications[] | null;
-  /** **Document AI reports grouped by workflow node** — always a JSON array, never a singular object. `null` until at least one Document AI step has produced data. Present only when `session_kind = user`. Each item is a node group with an aggregate `status`, the `node_id`, an `items[]` array of the per-document results (extracted data keyed by the configured field key), and `warnings`. */
+  /** **Document AI reports grouped by workflow node** - always a JSON array, never a singular object. `null` until at least one Document AI step has produced data. Present only when `session_kind = user`. Each item is a node group with an aggregate `status`, the `node_id`, an `items[]` array of the per-document results (extracted data keyed by the configured field key), and `warnings`. */
   document_ai_documents?: SessionsRetrieveDecisionResponseDocumentAiDocuments[] | null;
-  /** **Array of questionnaire response reports** — always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
+  /** **Array of questionnaire response reports** - always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
   questionnaire_responses?: SessionsRetrieveDecisionResponseQuestionnaireResponses[] | null;
-  /** **Array of AML screening reports** — always a JSON array, never a singular `aml` object. `null` until at least one AML step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `total_hits`, `entity_type`, `hits[]`, `score`, `screened_data`, `is_ongoing_monitoring_enabled`, and `warnings[]`. */
+  /** **Array of AML screening reports** - always a JSON array, never a singular `aml` object. `null` until at least one AML step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `total_hits`, `entity_type`, `hits[]`, `score`, `screened_data`, `is_ongoing_monitoring_enabled`, and `warnings[]`. */
   aml_screenings?: SessionsRetrieveDecisionResponseAmlScreenings[] | null;
-  /** **Array of Device & IP Analysis reports** — always a JSON array, never a singular `ip_analysis` object. `null` until at least one IP-analysis step has produced data. Each item is the full report, including `node_id`, feature-level `status`, IP and geolocation data, device fingerprint, and `warnings[]`. Entries with duplicate `(node_id, ip_address, device_fingerprint)` are deduplicated server-side. */
+  /** **Array of Device & IP Analysis reports** - always a JSON array, never a singular `ip_analysis` object. `null` until at least one IP-analysis step has produced data. Each item is the full report, including `node_id`, feature-level `status`, IP and geolocation data, device fingerprint, and `warnings[]`. Entries with duplicate `(node_id, ip_address, device_fingerprint)` are deduplicated server-side. */
   ip_analyses?: SessionsRetrieveDecisionResponseIpAnalyses[] | null;
   /**
-   * **Array of Database Validation reports** — always a JSON array, never a singular `database_validation` object. `null` until at least one DB validation step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `screened_data`, the per-service `validations[]` (each with its registry `source_data`), and `warnings[]`. The `screened_data` and `source_data` fields vary by country:
+   * **Array of Database Validation reports** - always a JSON array, never a singular `database_validation` object. `null` until at least one DB validation step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `screened_data`, the per-service `validations[]` (each with its registry `source_data`), and `warnings[]`. The `screened_data` and `source_data` fields vary by country:
    *
    * **ARG (Argentina)**: screened_data: {document_number, selfie, gender, first_name, last_name}. source_data: {identification_number, first_name, last_name, full_name, date_of_birth, date_of_death, tax_id, tax_id_type, face_match_score, sit_1_since, banks, last_position, highest_position, rejected_checks}. Uses RENAPER biometric face-match validation. Gender is auto-inferred from face analysis or given name when not present in the document (e.g., driver licenses)
    *
@@ -908,7 +908,7 @@ export interface SessionsRetrieveDecisionResponse {
 export interface SessionsRetrieveDecisionResponseAmlScreenings {
   /** Unique identifier for this AML step in the workflow graph. */
   node_id?: string;
-  /** Feature-level status of this AML screening. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this AML screening. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** Total number of matches found */
@@ -916,7 +916,7 @@ export interface SessionsRetrieveDecisionResponseAmlScreenings {
   /** Type of entity screened: person or company */
   entity_type?: string;
   hits?: SessionsRetrieveDecisionResponseAmlScreeningsHits[];
-  /** Overall AML screening score — the highest risk score across all hits (float, 0-100). `null` until computed. */
+  /** Overall AML screening score - the highest risk score across all hits (float, 0-100). `null` until computed. */
   score?: number | null;
   screened_data?: SessionsRetrieveDecisionResponseAmlScreeningsScreenedData;
   /** Whether AML ongoing monitoring is enabled for this screening. When `true`, the entity is re-screened periodically and any new hits update the report. */
@@ -1260,11 +1260,11 @@ export interface SessionsRetrieveDecisionResponseContactDetails {
 export interface SessionsRetrieveDecisionResponseDatabaseValidations {
   /** Unique identifier for this database validation step in the workflow graph. */
   node_id?: string;
-  /** ISO 3166-1 alpha-3 code of the country whose government/registry sources were queried (e.g. `BRA`, `MEX`, `ESP`, `NGA`, `IDN`). Database Validation covers 60+ countries across the Americas, Europe, Africa, the Middle East and Asia-Pacific, plus global multi-country sources — coverage expands regularly, so treat the value as an open set rather than a fixed enum. */
+  /** ISO 3166-1 alpha-3 code of the country whose government/registry sources were queried (e.g. `BRA`, `MEX`, `ESP`, `NGA`, `IDN`). Database Validation covers 60+ countries across the Americas, Europe, Africa, the Middle East and Asia-Pacific, plus global multi-country sources - coverage expands regularly, so treat the value as an open set rather than a fixed enum. */
   issuing_state?: string;
   /** How the result was corroborated: `one_by_one` (single-service outcome), `two_by_two` (two or more distinct services independently full-matched the identification number), or `not_enabled` (persisted when no service produced a usable match). The value is never `null`. Dedicated biometric 2x2 validation modes are currently available for `ECU` and `PER`. */
   validation_type?: "one_by_one" | "two_by_two" | "not_enabled" | (string & {});
-  /** The input data used for validation. Fields vary by country — see the Database Validation docs (`/core-technology/database-validation/overview`) for country-specific formats. */
+  /** The input data used for validation. Fields vary by country - see the Database Validation docs (`/core-technology/database-validation/overview`) for country-specific formats. */
   screened_data?: SessionsRetrieveDecisionResponseDatabaseValidationsScreenedData;
   /** One entry per registry service that returned a validation payload. Each entry identifies the service (`service_id`, `service_name`) and carries the per-field `validation` comparison, the service `outcome_code` / `outcome_detail` when reported, and the normalised registry record in `source_data`. */
   validations?: SessionsRetrieveDecisionResponseDatabaseValidationsValidations[];
@@ -1272,21 +1272,21 @@ export interface SessionsRetrieveDecisionResponseDatabaseValidations {
   errors?: SessionsRetrieveDecisionResponseDatabaseValidationsErrors[];
   /** The aggregate match outcome across the queried services. `null` until the validation has been evaluated. */
   match_type?: "no_match" | "partial_match" | "full_match" | (string & {}) | null;
-  /** Feature-level status of this database validation. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this database validation. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** Warnings related to the database validation. */
   warnings?: SessionsRetrieveDecisionResponseDatabaseValidationsWarnings[];
 }
 
-/** The upstream service's error object spread as-is — its keys vary by service (commonly a message/code and any provider-specific details) — plus `service_id` identifying the service that errored. */
+/** The upstream service's error object spread as-is - its keys vary by service (commonly a message/code and any provider-specific details) - plus `service_id` identifying the service that errored. */
 export interface SessionsRetrieveDecisionResponseDatabaseValidationsErrors {
   /** Identifier of the registry service that errored. */
   service_id?: string | null;
   [key: string]: unknown;
 }
 
-/** The input data used for validation. Fields vary by country — see the Database Validation docs (`/core-technology/database-validation/overview`) for country-specific formats. */
+/** The input data used for validation. Fields vary by country - see the Database Validation docs (`/core-technology/database-validation/overview`) for country-specific formats. */
 export interface SessionsRetrieveDecisionResponseDatabaseValidationsScreenedData {
   last_name?: string;
   first_name?: string;
@@ -1442,7 +1442,7 @@ export interface SessionsRetrieveDecisionResponseDocumentVerificationsItems {
     | null;
   /** Specific OCR-detected subtype (e.g. `CERTIFICATE_OF_INCORPORATION`, `SHAREHOLDER_REGISTRY`); `UNKNOWN` when the OCR could not confidently classify the document. */
   document_subtype?: string | null;
-  /** Alias of `document_type` — the group name used by `groups` and `required_groups`. */
+  /** Alias of `document_type` - the group name used by `groups` and `required_groups`. */
   document_group?:
     | "LEGAL_PRESENCE"
     | "COMPANY_DETAILS"
@@ -1506,7 +1506,7 @@ export interface SessionsRetrieveDecisionResponseDocumentVerificationsItemsDocum
   exif_digitized_date?: string | null;
   /** Whether metadata indicates the file passed through a known image/PDF editor. */
   processed_by_known_editor?: boolean | null;
-  /** Whether creation and modification dates differ — a possible (but not conclusive) editing signal. */
+  /** Whether creation and modification dates differ - a possible (but not conclusive) editing signal. */
   has_different_creation_mod_date?: boolean | null;
   /** PDF forensic analysis for suspected overlay-text manipulation. Null when no overlay manipulation evidence was found or the document was not a PDF. */
   overlay_manipulation?: SessionsRetrieveDecisionResponseDocumentVerificationsItemsDocumentMetadataOverlayManipulation | null;
@@ -1537,7 +1537,7 @@ export interface SessionsRetrieveDecisionResponseDocumentVerificationsItemsDocum
 export interface SessionsRetrieveDecisionResponseEmailVerifications {
   /** Unique identifier for this email step in the workflow graph. */
   node_id?: string;
-  /** Feature-level status of this email verification step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this email verification step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
   /** The email address being verified */
   email?: string;
@@ -1557,7 +1557,7 @@ export interface SessionsRetrieveDecisionResponseEmailVerifications {
   warnings?: SessionsRetrieveDecisionResponseEmailVerificationsWarnings[];
   /** Chronological list of events in the email verification lifecycle. */
   lifecycle?: SessionsRetrieveDecisionResponseEmailVerificationsLifecycle[];
-  /** Matches found for this email address. Each match has a `source`: `session` (another verification session in your application matched on the same email, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the email is on an org-managed allow/block list — see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
+  /** Matches found for this email address. Each match has a `source`: `session` (another verification session in your application matched on the same email, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the email is on an org-managed allow/block list - see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
   matches?: SessionsRetrieveDecisionResponseEmailVerificationsMatches[];
 }
 
@@ -1583,12 +1583,12 @@ export interface SessionsRetrieveDecisionResponseEmailVerificationsBreaches {
 export interface SessionsRetrieveDecisionResponseEmailVerificationsLifecycle {
   type?: string;
   timestamp?: Date;
-  /** Event-specific payload. Send events carry `status`, `reason`; code-check events carry `code_tried`, `status`; final status events carry `reason` — or `null` when there is no reason to report (e.g. `EMAIL_VERIFICATION_APPROVED`). */
+  /** Event-specific payload. Send events carry `status`, `reason`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `EMAIL_VERIFICATION_APPROVED`). */
   details?: SessionsRetrieveDecisionResponseEmailVerificationsLifecycleDetails | null;
   fee?: number;
 }
 
-/** Event-specific payload. Send events carry `status`, `reason`; code-check events carry `code_tried`, `status`; final status events carry `reason` — or `null` when there is no reason to report (e.g. `EMAIL_VERIFICATION_APPROVED`). */
+/** Event-specific payload. Send events carry `status`, `reason`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `EMAIL_VERIFICATION_APPROVED`). */
 export interface SessionsRetrieveDecisionResponseEmailVerificationsLifecycleDetails {
   status?: string;
   reason?: string | null;
@@ -1604,7 +1604,7 @@ export interface SessionsRetrieveDecisionResponseEmailVerificationsMatches {
   status?: string | null;
   is_blocklisted?: boolean;
   api_service?: string | null;
-  /** Where this match came from. `session` means another verification session in your application matched on this value. `list_entry` means the value was hit against an org-managed list (allowlist/blocklist) — see the management API lists overview at `/management-api/lists/overview` for how to manage those lists. */
+  /** Where this match came from. `session` means another verification session in your application matched on this value. `list_entry` means the value was hit against an org-managed list (allowlist/blocklist) - see the management API lists overview at `/management-api/lists/overview` for how to manage those lists. */
   source?: "session" | "list_entry" | (string & {});
 }
 
@@ -1636,7 +1636,7 @@ export interface SessionsRetrieveDecisionResponseEmailVerificationsWarnings {
   node_id?: string;
 }
 
-/** Expected details supplied at session creation — used for cross-validation against extracted data (KYC) or to pre-fill the company registry search (KYB). Echoes back exactly the keys that were provided; `null` when none were supplied. KYC sessions carry the person fields; Business (KYB) sessions carry `company_name`, `registry_country` and `registration_number`. */
+/** Expected details supplied at session creation - used for cross-validation against extracted data (KYC) or to pre-fill the company registry search (KYB). Echoes back exactly the keys that were provided; `null` when none were supplied. KYC sessions carry the person fields; Business (KYB) sessions carry `company_name`, `registry_country` and `registration_number`. */
 export interface SessionsRetrieveDecisionResponseExpectedDetails {
   /** User's first name. For example, `John`. */
   first_name?: string;
@@ -1670,11 +1670,11 @@ export interface SessionsRetrieveDecisionResponseExpectedDetails {
   registration_number?: string;
 }
 
-/** One face-match report — the full report. */
+/** One face-match report - the full report. */
 export interface SessionsRetrieveDecisionResponseFaceMatches {
   /** Workflow graph node id of the face-match step that produced this report. */
   node_id?: string;
-  /** Feature-level status of this face-match step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this face-match step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** Confidence score of the face match */
@@ -1733,7 +1733,7 @@ export interface SessionsRetrieveDecisionResponseIdVerifications {
   id_lookup?: SessionsRetrieveDecisionResponseIdVerificationsIdLookup | null;
   /** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. */
   wallet_verification?: SessionsRetrieveDecisionResponseIdVerificationsWalletVerification | null;
-  /** Feature-level status of this ID verification step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this ID verification step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
   /** Type of identity document */
   document_type?: string;
@@ -1791,7 +1791,7 @@ export interface SessionsRetrieveDecisionResponseIdVerifications {
   marital_status?: string;
   /** ISO nationality code */
   nationality?: string;
-  /** Additional document fields. Includes document-specific attributes (e.g. `dl_categories`, `blood_group`, `sponsor`, `employer`, `dl_class_code_b_from`, `dl_class_code_b_to`). Driver license class validity dates are returned as `dl_class_code_<class>_from` and `dl_class_code_<class>_to`, and per-class restriction/information codes (e.g. column 12 of UK licences) as `dl_class_code_<class>_notes`. When the document carries names, address, or place of birth in multiple scripts, this object also includes alternate-script versions of those fields. The workflow setting `preferred_characters` (`latin` or `non_latin`) controls which script populates the top-level fields (`first_name`, `last_name`, `full_name`, `address`, `place_of_birth`); the opposite script lands here as `first_name_non_latin` / `last_name_non_latin` / `full_name_non_latin` / `middle_name_non_latin` / `address_non_latin` / `place_of_birth_non_latin` (when `preferred_characters` is `latin`) or with a `_latin` suffix (when `preferred_characters` is `non_latin`). Keys appear only when the OCR actually extracts a real alternate-script value — a field whose alternate value is in the same script as the preferred set (for example, a Cyrillic-labelled field whose OCR value came back in Latin homoglyphs) is skipped. When `preferred_characters` is `latin` but the document only carries non-Latin text, Didit transliterates the extracted values and exposes `first_name_latin` / `last_name_latin` / etc. as a fallback. */
+  /** Additional document fields. Includes document-specific attributes (e.g. `dl_categories`, `blood_group`, `sponsor`, `employer`, `dl_class_code_b_from`, `dl_class_code_b_to`). Driver license class validity dates are returned as `dl_class_code_<class>_from` and `dl_class_code_<class>_to`, and per-class restriction/information codes (e.g. column 12 of UK licences) as `dl_class_code_<class>_notes`. When the document carries names, address, or place of birth in multiple scripts, this object also includes alternate-script versions of those fields. The workflow setting `preferred_characters` (`latin` or `non_latin`) controls which script populates the top-level fields (`first_name`, `last_name`, `full_name`, `address`, `place_of_birth`); the opposite script lands here as `first_name_non_latin` / `last_name_non_latin` / `full_name_non_latin` / `middle_name_non_latin` / `address_non_latin` / `place_of_birth_non_latin` (when `preferred_characters` is `latin`) or with a `_latin` suffix (when `preferred_characters` is `non_latin`). Keys appear only when the OCR actually extracts a real alternate-script value - a field whose alternate value is in the same script as the preferred set (for example, a Cyrillic-labelled field whose OCR value came back in Latin homoglyphs) is skipped. When `preferred_characters` is `latin` but the document only carries non-Latin text, Didit transliterates the extracted values and exposes `first_name_latin` / `last_name_latin` / etc. as a fallback. */
   extra_fields?: SessionsRetrieveDecisionResponseIdVerificationsExtraFields;
   /** Parsed Machine-Readable Zone (MRZ) fields extracted from the document. `null` if no MRZ was detected. */
   mrz?: SessionsRetrieveDecisionResponseIdVerificationsMrz | null;
@@ -1923,7 +1923,7 @@ export interface SessionsRetrieveDecisionResponseIdVerificationsDocumentSelfieFa
   document_number?: string | null;
 }
 
-/** Additional document fields. Includes document-specific attributes (e.g. `dl_categories`, `blood_group`, `sponsor`, `employer`, `dl_class_code_b_from`, `dl_class_code_b_to`). Driver license class validity dates are returned as `dl_class_code_<class>_from` and `dl_class_code_<class>_to`, and per-class restriction/information codes (e.g. column 12 of UK licences) as `dl_class_code_<class>_notes`. When the document carries names, address, or place of birth in multiple scripts, this object also includes alternate-script versions of those fields. The workflow setting `preferred_characters` (`latin` or `non_latin`) controls which script populates the top-level fields (`first_name`, `last_name`, `full_name`, `address`, `place_of_birth`); the opposite script lands here as `first_name_non_latin` / `last_name_non_latin` / `full_name_non_latin` / `middle_name_non_latin` / `address_non_latin` / `place_of_birth_non_latin` (when `preferred_characters` is `latin`) or with a `_latin` suffix (when `preferred_characters` is `non_latin`). Keys appear only when the OCR actually extracts a real alternate-script value — a field whose alternate value is in the same script as the preferred set (for example, a Cyrillic-labelled field whose OCR value came back in Latin homoglyphs) is skipped. When `preferred_characters` is `latin` but the document only carries non-Latin text, Didit transliterates the extracted values and exposes `first_name_latin` / `last_name_latin` / etc. as a fallback. */
+/** Additional document fields. Includes document-specific attributes (e.g. `dl_categories`, `blood_group`, `sponsor`, `employer`, `dl_class_code_b_from`, `dl_class_code_b_to`). Driver license class validity dates are returned as `dl_class_code_<class>_from` and `dl_class_code_<class>_to`, and per-class restriction/information codes (e.g. column 12 of UK licences) as `dl_class_code_<class>_notes`. When the document carries names, address, or place of birth in multiple scripts, this object also includes alternate-script versions of those fields. The workflow setting `preferred_characters` (`latin` or `non_latin`) controls which script populates the top-level fields (`first_name`, `last_name`, `full_name`, `address`, `place_of_birth`); the opposite script lands here as `first_name_non_latin` / `last_name_non_latin` / `full_name_non_latin` / `middle_name_non_latin` / `address_non_latin` / `place_of_birth_non_latin` (when `preferred_characters` is `latin`) or with a `_latin` suffix (when `preferred_characters` is `non_latin`). Keys appear only when the OCR actually extracts a real alternate-script value - a field whose alternate value is in the same script as the preferred set (for example, a Cyrillic-labelled field whose OCR value came back in Latin homoglyphs) is skipped. When `preferred_characters` is `latin` but the document only carries non-Latin text, Didit transliterates the extracted values and exposes `first_name_latin` / `last_name_latin` / etc. as a fallback. */
 export interface SessionsRetrieveDecisionResponseIdVerificationsExtraFields {
   dl_categories?: string[];
   blood_group?: string | null;
@@ -1939,7 +1939,7 @@ export interface SessionsRetrieveDecisionResponseIdVerificationsExtraFields {
   address_non_latin?: string;
   /** Place of birth in the non-Latin script when `preferred_characters=latin` and a non-Latin version is present on the document. */
   place_of_birth_non_latin?: string;
-  /** First name in Latin script. Populated when `preferred_characters=non_latin` and a Latin version is present on the document, or — as a transliteration fallback — when `preferred_characters=latin` but the document only carries non-Latin text. */
+  /** First name in Latin script. Populated when `preferred_characters=non_latin` and a Latin version is present on the document, or - as a transliteration fallback - when `preferred_characters=latin` but the document only carries non-Latin text. */
   first_name_latin?: string;
   /** Surname in Latin script. Same rules as `first_name_latin`. */
   last_name_latin?: string;
@@ -2214,7 +2214,7 @@ export interface SessionsRetrieveDecisionResponseIdVerificationsWarnings {
 export interface SessionsRetrieveDecisionResponseIpAnalyses {
   /** Unique identifier for this Device & IP Analysis step in the workflow graph. */
   node_id?: string;
-  /** Feature-level status of this Device & IP Analysis entry. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this Device & IP Analysis entry. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** Brand of the device used */
@@ -2299,15 +2299,15 @@ export interface SessionsRetrieveDecisionResponseIpAnalysesMatches {
   session_id?: string;
   /** Sequential number of the matching session. */
   session_number?: number;
-  /** `vendor_data` of the matching session — always different from the current session's vendor user. */
+  /** `vendor_data` of the matching session - always different from the current session's vendor user. */
   vendor_data?: string | null;
   /** Creation date of the matching session (`YYYY-MM-DDTHH:MM:SSZ`). */
   verification_date?: Date | null;
   /** Whether the match was on IP address or device fingerprint */
   match_type?: "ip_address" | "device_fingerprint" | (string & {});
-  /** How this match was reached: `ip_address` (shared IP address — network co-location, not a device-identity claim), `persistent_id` (exact stored persistent device identifier), `legacy_fp` (legacy `didit-fp-*` device-fingerprint hash), or `recovered_high` (high-confidence fuzzy fingerprint-recovery hit). Lower-confidence recovery candidates surface as risk warnings only, never in this array. */
+  /** How this match was reached: `ip_address` (shared IP address - network co-location, not a device-identity claim), `persistent_id` (exact stored persistent device identifier), `legacy_fp` (legacy `didit-fp-*` device-fingerprint hash), or `recovered_high` (high-confidence fuzzy fingerprint-recovery hit). Lower-confidence recovery candidates surface as risk warnings only, never in this array. */
   match_source?: "ip_address" | "persistent_id" | "legacy_fp" | "recovered_high" | (string & {});
-  /** The value that matched: the shared IP address, the persistent device identifier or legacy fingerprint hash, or — for `recovered_high` — the UUID of the recovered device. */
+  /** The value that matched: the shared IP address, the persistent device identifier or legacy fingerprint hash, or - for `recovered_high` - the UUID of the recovered device. */
   matched_value?: string | null;
   /** Lifecycle status of the matching session. */
   status?: string;
@@ -2315,7 +2315,7 @@ export interface SessionsRetrieveDecisionResponseIpAnalysesMatches {
   is_blocklisted?: boolean;
   /** Standalone API service of the matching session; `null` for workflow sessions. */
   api_service?: string | null;
-  /** Always `session` for device/IP matches — every match is another verification session in your application. */
+  /** Always `session` for device/IP matches - every match is another verification session in your application. */
   source?: "session" | (string & {});
   /** Device details observed on the matching session. */
   device_info?: SessionsRetrieveDecisionResponseIpAnalysesMatchesDeviceInfo;
@@ -2327,7 +2327,7 @@ export interface SessionsRetrieveDecisionResponseIpAnalysesMatches {
   match_mode?: "deterministic" | "probabilistic" | "co_occurrence" | (string & {});
   /** Cosine similarity of the fingerprint-recovery match, rounded to 4 decimals. Present only when `match_source` is `recovered_high`. */
   recovery_similarity?: number;
-  /** Whether the TLS JA4 fingerprints of the two observations agree — a server-observed signal the browser cannot spoof. Present only when `match_source` is `recovered_high`. */
+  /** Whether the TLS JA4 fingerprints of the two observations agree - a server-observed signal the browser cannot spoof. Present only when `match_source` is `recovered_high`. */
   tls_ja4_corroborated?: boolean;
   /** Why the recovery match passed the false-positive hard gate: `hardware_root_match` (a hardware-rooted device identifier matched exactly) or, on configurations that admit probe-only evidence, `exact_composite_plus_<n>_families` / `very_high_similarity_plus_<n>_families`. Present only when `match_source` is `recovered_high`. */
   recovery_gate_reason?: string;
@@ -2476,7 +2476,7 @@ export interface SessionsRetrieveDecisionResponseKeyPeopleChecksRegistryBenefici
   verification_workflow_features?:
     | SessionsRetrieveDecisionResponseKeyPeopleChecksRegistryBeneficialOwnersVerificationWorkflowFeatures[]
     | null;
-  /** Stable internal identifier of the verified individual behind the child session — useful for cross-session linking. `null` when no child session exists or the user has not been resolved yet. */
+  /** Stable internal identifier of the verified individual behind the child session - useful for cross-session linking. `null` when no child session exists or the user has not been resolved yet. */
   didit_internal_id?: string | null;
   /** Document type presented in the child KYC session (e.g. `P`, `ID`, `DL`). `null` until the child session has an ID verification result. */
   kyc_document_type?: string | null;
@@ -2492,7 +2492,7 @@ export interface SessionsRetrieveDecisionResponseKeyPeopleChecksRegistryBenefici
   kyc_notification_sent_at?: string | null;
   /** For corporate UBOs: the owning entity's own beneficial owners, as raw objects extracted from the registry. Empty array when not applicable. */
   child_beneficial_owners?: Record<string, unknown>[];
-  /** Parsed numeric ownership percentage — the max bound when available, otherwise the min bound. `null` when neither bound could be parsed. */
+  /** Parsed numeric ownership percentage - the max bound when available, otherwise the min bound. `null` when neither bound could be parsed. */
   effective_ownership_percent?: number | null;
   voting_min_shares?: string | null;
   voting_max_shares?: string | null;
@@ -2587,7 +2587,7 @@ export interface SessionsRetrieveDecisionResponseKeyPeopleChecksRegistryOfficers
   verification_workflow_features?:
     | SessionsRetrieveDecisionResponseKeyPeopleChecksRegistryOfficersVerificationWorkflowFeatures[]
     | null;
-  /** Stable internal identifier of the verified individual behind the child session — useful for cross-session linking. `null` when no child session exists or the user has not been resolved yet. */
+  /** Stable internal identifier of the verified individual behind the child session - useful for cross-session linking. `null` when no child session exists or the user has not been resolved yet. */
   didit_internal_id?: string | null;
   /** Document type presented in the child KYC session (e.g. `P`, `ID`, `DL`). `null` until the child session has an ID verification result. */
   kyc_document_type?: string | null;
@@ -2638,7 +2638,7 @@ export interface SessionsRetrieveDecisionResponseKeyPeopleChecksSubmitted {
 export interface SessionsRetrieveDecisionResponseKeyPeopleChecksSubmittedParties {
   uuid?: string;
   entity_type?: "person" | "company" | (string & {});
-  /** Always `USER` here — this bucket only contains parties entered or confirmed by the end user in the Key People flow (registry-discovered people appear under `registry`). */
+  /** Always `USER` here - this bucket only contains parties entered or confirmed by the end user in the Key People flow (registry-discovered people appear under `registry`). */
   source?: "USER" | (string & {});
   name?: string;
   first_name?: string | null;
@@ -2751,11 +2751,11 @@ export interface SessionsRetrieveDecisionResponseKeyPeopleChecksUboKycSummary {
   pending?: number;
 }
 
-/** One liveness report — the full report for a single liveness pass. */
+/** One liveness report - the full report for a single liveness pass. */
 export interface SessionsRetrieveDecisionResponseLivenessChecks {
   /** Workflow graph node id of the liveness step that produced this report. */
   node_id?: string;
-  /** Feature-level status of this liveness step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this liveness step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** Method used for liveness detection */
@@ -2768,7 +2768,7 @@ export interface SessionsRetrieveDecisionResponseLivenessChecks {
   video_url?: string;
   /** Estimated age of the person */
   age_estimation?: number;
-  /** Similar faces found by the duplicate-face search (top matches, blocklisted/allowlisted entries first). Each entry's `source` tells you where the matching face came from: `session` (another verification session), `imported` (a face uploaded against a vendor user), `list_entry` (an org-managed allow/block list face), or `retained_template` (an image-free biometric template stored on a User, listed under `/v3/biometric-templates/`). `session_id`, `session_number`, `status` and `api_service` are `null` for non-session sources. `imported` matches still populate `vendor_data`, `verification_date` and — when the vendor user has a name on file — `user_details` (with `full_name` only) from the vendor-user record; `retained_template` matches populate `vendor_user_id`, `vendor_data`, `biometric_template_id` and `verification_date`, while their image and identity fields are `null`; `list_entry` matches return all of these as `null`. */
+  /** Similar faces found by the duplicate-face search (top matches, blocklisted/allowlisted entries first). Each entry's `source` tells you where the matching face came from: `session` (another verification session), `imported` (a face uploaded against a vendor user), `list_entry` (an org-managed allow/block list face), or `retained_template` (an image-free biometric template stored on a User, listed under `/v3/biometric-templates/`). `session_id`, `session_number`, `status` and `api_service` are `null` for non-session sources. `imported` matches still populate `vendor_data`, `verification_date` and - when the vendor user has a name on file - `user_details` (with `full_name` only) from the vendor-user record; `retained_template` matches populate `vendor_user_id`, `vendor_data`, `biometric_template_id` and `verification_date`, while their image and identity fields are `null`; `list_entry` matches return all of these as `null`. */
   matches?: SessionsRetrieveDecisionResponseLivenessChecksMatches[];
   warnings?: SessionsRetrieveDecisionResponseLivenessChecksWarnings[];
   /** Face image quality score (0-100%). Only available for passive liveness. */
@@ -2842,11 +2842,11 @@ export interface SessionsRetrieveDecisionResponseLivenessChecksWarnings {
   node_id?: string;
 }
 
-/** One NFC report — the full report for a single ePassport chip read. */
+/** One NFC report - the full report for a single ePassport chip read. */
 export interface SessionsRetrieveDecisionResponseNfcVerifications {
   /** Workflow graph node id of the NFC step that produced this report. Use it to correlate the report with the workflow definition. */
   node_id?: string;
-  /** Feature-level status of this NFC step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this NFC step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** `true` when this NFC step was explicitly skipped instead of read; `skip_reason` says why. */
@@ -2927,7 +2927,7 @@ export interface SessionsRetrieveDecisionResponseNfcVerificationsWarnings {
 export interface SessionsRetrieveDecisionResponsePhoneVerifications {
   /** Unique identifier for this phone step in the workflow graph. */
   node_id?: string;
-  /** Feature-level status of this phone verification step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this phone verification step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
   /** Country calling code prefix */
   phone_number_prefix?: string;
@@ -2954,7 +2954,7 @@ export interface SessionsRetrieveDecisionResponsePhoneVerifications {
   lifecycle?: SessionsRetrieveDecisionResponsePhoneVerificationsLifecycle[];
   /** List of warnings related to phone verification */
   warnings?: SessionsRetrieveDecisionResponsePhoneVerificationsWarnings[];
-  /** Matches found for this phone number. Each match has a `source`: `session` (another verification session in your application matched on the same number, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the number is on an org-managed allow/block list — see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
+  /** Matches found for this phone number. Each match has a `source`: `session` (another verification session in your application matched on the same number, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the number is on an org-managed allow/block list - see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
   matches?: SessionsRetrieveDecisionResponsePhoneVerificationsMatches[];
 }
 
@@ -2968,12 +2968,12 @@ export interface SessionsRetrieveDecisionResponsePhoneVerificationsCarrier {
 export interface SessionsRetrieveDecisionResponsePhoneVerificationsLifecycle {
   type?: string;
   timestamp?: Date;
-  /** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` — or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
+  /** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
   details?: SessionsRetrieveDecisionResponsePhoneVerificationsLifecycleDetails | null;
   fee?: number;
 }
 
-/** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` — or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
+/** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
 export interface SessionsRetrieveDecisionResponsePhoneVerificationsLifecycleDetails {
   status?: string;
   reason?: string | null;
@@ -2991,7 +2991,7 @@ export interface SessionsRetrieveDecisionResponsePhoneVerificationsMatches {
   status?: string | null;
   is_blocklisted?: boolean;
   api_service?: string | null;
-  /** Where this match came from. `session` means another verification session in your application matched on this value. `list_entry` means the value was hit against an org-managed list (allowlist/blocklist) — see the management API lists overview at `/management-api/lists/overview` for how to manage those lists. */
+  /** Where this match came from. `session` means another verification session in your application matched on this value. `list_entry` means the value was hit against an org-managed list (allowlist/blocklist) - see the management API lists overview at `/management-api/lists/overview` for how to manage those lists. */
   source?: "session" | "list_entry" | (string & {});
 }
 
@@ -3026,7 +3026,7 @@ export interface SessionsRetrieveDecisionResponsePhoneVerificationsWarnings {
 export interface SessionsRetrieveDecisionResponsePoaVerifications {
   /** Unique identifier for this POA step in the workflow graph. */
   node_id?: string;
-  /** Feature-level status of this Proof of Address step. Independent of the top-level session `status` — a session can reach its overall decision while an individual feature stays `In Review`. */
+  /** Feature-level status of this Proof of Address step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?:
     "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
   /** URL of the proof of address document */
@@ -3105,7 +3105,7 @@ export interface SessionsRetrieveDecisionResponsePoaVerificationsDocumentMetadat
   exif_digitized_date?: string | null;
   /** Whether the file metadata indicates processing by a known document editor. */
   processed_by_known_editor?: boolean | null;
-  /** Whether the creation and modification dates differ — a common manipulation signal. */
+  /** Whether the creation and modification dates differ - a common manipulation signal. */
   has_different_creation_mod_date?: boolean | null;
 }
 
@@ -3274,7 +3274,7 @@ export interface SessionsRetrieveDecisionResponseQuestionnaireResponsesSectionsI
   requires_text_input?: boolean | null;
 }
 
-/** One company registry check — the full company-registry payload enriched with ownership structure and warnings. Present only when `session_kind = business`. */
+/** One company registry check - the full company-registry payload enriched with ownership structure and warnings. Present only when `session_kind = business`. */
 export interface SessionsRetrieveDecisionResponseRegistryChecks {
   /** Feature lifecycle status. */
   status?: string;
@@ -3468,7 +3468,7 @@ export interface SessionsRetrieveDecisionResponseResubmissionsRequestedBy {
 }
 
 export interface SessionsRetrieveDecisionResponseReviews {
-  /** Who performed the review. Usually the console reviewer's identifier (their email), but the value is `"API Client"` for status updates made with an API key and `"Unknown"` when no actor could be resolved — so do not parse this field as an email address. */
+  /** Who performed the review. Usually the console reviewer's identifier (their email), but the value is `"API Client"` for status updates made with an API key and `"Unknown"` when no actor could be resolved - so do not parse this field as an email address. */
   user?: string;
   new_status?: string;
   comment?: string;
@@ -3514,7 +3514,7 @@ export interface SessionsRetrieveDeletionJobResponseOutcomes {
 }
 
 export interface SessionsReviewsCreateParams {
-  /** Optional status label to record on the entry. Accepts any session status value, case-sensitive (`"approved"` is rejected with `400`). Recording a status here does **not** change the session's actual status — use the update-status endpoint for that. */
+  /** Optional status label to record on the entry. Accepts any session status value, case-sensitive (`"approved"` is rejected with `400`). Recording a status here does **not** change the session's actual status - use the update-status endpoint for that. */
   new_status?:
     | "Not Started"
     | "In Progress"
@@ -3603,7 +3603,7 @@ export interface SessionsUpdateAmlHitStatusParams {
   node_id_query?: string;
 }
 
-/** All fields optional — send only what you want to change. */
+/** All fields optional - send only what you want to change. */
 export interface SessionsUpdateDataParams {
   /** Document type code. Accepts the short codes listed in the enum, plus six long-form aliases normalized server-side before validation: `Passport` → `P`, `Identity Card` → `ID`, `Driver's License` → `DL`, `Residence Permit` → `RP`, `Health Insurance Card` → `HIC`, `Tax Card` → `TC`. Any other value (including `PASSPORT` in caps) returns `400`. */
   document_type?:
@@ -3639,25 +3639,25 @@ export interface SessionsUpdateDataParams {
   first_name?: string | null;
   /** Family name(s). Also feeds the recomputed `full_name`. */
   last_name?: string | null;
-  /** Sex as printed on the document: `M` (male), `F` (female), or `U` (unknown). Any other value — including `X` — returns `400`. */
+  /** Sex as printed on the document: `M` (male), `F` (female), or `U` (unknown). Any other value - including `X` - returns `400`. */
   gender?: "M" | "F" | "U" | (string & {}) | null;
-  /** Free-text address as printed on the document. When this value changes (non-sandbox sessions only) and the structured address is still missing or incomplete, the server re-geocodes it synchronously before responding — the 200 body already reflects the refreshed `parsed_address`. The re-geocode also requires `issuing_state` to be present on the KYC record. */
+  /** Free-text address as printed on the document. When this value changes (non-sandbox sessions only) and the structured address is still missing or incomplete, the server re-geocodes it synchronously before responding - the 200 body already reflects the refreshed `parsed_address`. The re-geocode also requires `issuing_state` to be present on the KYC record. */
   address?: string | null;
   /** Place of birth as printed on the document. */
   place_of_birth?: string | null;
-  /** Nationality as printed on the document. Free text up to 32 characters — typically an ISO 3166-1 alpha-3 code (e.g. `ESP`), but not validated as one. */
+  /** Nationality as printed on the document. Free text up to 32 characters - typically an ISO 3166-1 alpha-3 code (e.g. `ESP`), but not validated as one. */
   nationality?: string | null;
   /** Marital status where the document carries it. Any other value returns `400`. */
   marital_status?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED" | "UNKNOWN" | (string & {});
   /** Per-key overrides for document-specific extra fields (e.g. `blood_group`, `dl_categories`, `mrz_string`). Keys are merged into the existing override map: send a key with a value to set it, or with `null` / `""` to remove that key from the merged view. Send the whole field as `null` to clear all previously applied overrides. Must be a JSON object, otherwise `400`. The response always returns the merged view (OCR-extracted values with your overrides applied). */
   extra_fields?: Record<string, unknown> | null;
-  /** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` — any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` and is returned in the response — you cannot set it directly. */
+  /** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` - any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` and is returned in the response - you cannot set it directly. */
   parsed_address?: SessionsUpdateDataParamsParsedAddress | null;
   /** Workflow graph node whose KYC record to patch, for graph workflows with multiple ID-verification steps (also accepted as a `node_id` body field). When omitted, the most recent KYC record on the session is patched. If no KYC exists for the given node, the call returns `404` (`"The session does not have a KYC for node '<node_id>'."`). */
   node_id?: string;
 }
 
-/** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` — any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` and is returned in the response — you cannot set it directly. */
+/** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` - any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` and is returned in the response - you cannot set it directly. */
 export interface SessionsUpdateDataParamsParsedAddress {
   /** Free-form address classification (e.g. `home`). */
   address_type?: string | null;
@@ -3706,13 +3706,13 @@ export interface SessionsUpdateDataResponse {
   first_name?: string | null;
   /** Family name(s). Also feeds the recomputed `full_name`. */
   last_name?: string | null;
-  /** Sex as printed on the document: `M` (male), `F` (female), or `U` (unknown). Any other value — including `X` — returns `400`. */
+  /** Sex as printed on the document: `M` (male), `F` (female), or `U` (unknown). Any other value - including `X` - returns `400`. */
   gender?: "M" | "F" | "U" | (string & {}) | null;
   /** Free-text address as printed on the document. When this value changes (non-sandbox sessions only) and the structured address is still missing or incomplete, the server re-geocodes it in the background of the same request and may overwrite `parsed_address` with the geocoder result. */
   address?: string | null;
   /** Place of birth as printed on the document. */
   place_of_birth?: string | null;
-  /** Nationality as printed on the document. Free text up to 32 characters — typically an ISO 3166-1 alpha-3 code (e.g. `ESP`), but not validated as one. */
+  /** Nationality as printed on the document. Free text up to 32 characters - typically an ISO 3166-1 alpha-3 code (e.g. `ESP`), but not validated as one. */
   nationality?: string | null;
   /** Marital status where the document carries it. Any other value returns `400`. */
   marital_status?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED" | "UNKNOWN" | (string & {});
@@ -3753,7 +3753,7 @@ export interface SessionsUpdateFeatureStatusResponse {
   new_status?: string;
 }
 
-/** All fields optional — send only what you want to change. Provided fields update the canonical company columns (where one exists) and are merged into the `registry_data` snapshot. */
+/** All fields optional - send only what you want to change. Provided fields update the canonical company columns (where one exists) and are merged into the `registry_data` snapshot. */
 export interface SessionsUpdateKybCompanyDataParams {
   /** Legal name of the company. Written to the canonical column and the registry snapshot. */
   company_name?: string;
@@ -3761,9 +3761,9 @@ export interface SessionsUpdateKybCompanyDataParams {
   registration_number?: string;
   /** Country of incorporation, ISO 3166-1 alpha-2. Case-insensitive (`us` is stored as `US`). Alpha-3 codes fail the 2-character limit with `400`. */
   country_code?: string;
-  /** Subdivision / region tag where the registry has one (e.g. US state). Stored in the registry snapshot only — it has no canonical column. */
+  /** Subdivision / region tag where the registry has one (e.g. US state). Stored in the registry snapshot only - it has no canonical column. */
   region?: string | null;
-  /** Incorporation date in `YYYY-MM-DD`. Optional like every other field — the `PATCH` is partial. Any other date format returns `400`. */
+  /** Incorporation date in `YYYY-MM-DD`. Optional like every other field - the `PATCH` is partial. Any other date format returns `400`. */
   incorporation_date?: string;
   /** Registration date where the registry distinguishes it from incorporation. Stored in the registry snapshot only. */
   registration_date?: string | null;
@@ -3771,7 +3771,7 @@ export interface SessionsUpdateKybCompanyDataParams {
   dissolution_date?: string | null;
   /** Tax identification number. */
   tax_number?: string;
-  /** Legal / registered address. Aliased server-side to the canonical `registered_address` column — the response returns it under `registered_address`, while the registry snapshot keeps the `legal_address` key you sent. */
+  /** Legal / registered address. Aliased server-side to the canonical `registered_address` column - the response returns it under `registered_address`, while the registry snapshot keeps the `legal_address` key you sent. */
   legal_address?: string;
   /** Legal entity type (e.g. `Limited Liability Company`, `PLC`, `GmbH`). */
   company_type?: string;
@@ -3806,19 +3806,19 @@ export interface SessionsUpdateKybCompanyDataParams {
   website?: string;
   /** Contact email on file with the registry. */
   email?: string;
-  /** Contact phone. Must match `+`, digits, spaces, dashes, dots, or parentheses, with 7-15 digits total — otherwise `400`. */
+  /** Contact phone. Must match `+`, digits, spaces, dashes, dots, or parentheses, with 7-15 digits total - otherwise `400`. */
   phone?: string;
   /** LEI, where the company has one. */
   legal_entity_identifier?: string;
   /** City / subdivision of the registry of record. */
   location_of_registration?: string;
-  /** EU VAT number. Merged into the `registry_data` snapshot only — editing it here does not re-run VAT and tax ID validation, so `vat_validation_status` and the other `vat_*` result fields are unchanged. */
+  /** EU VAT number. Merged into the `registry_data` snapshot only - editing it here does not re-run VAT and tax ID validation, so `vat_validation_status` and the other `vat_*` result fields are unchanged. */
   vat_number?: string;
   /** Control / governance scheme when the registry exposes it. Stored in the registry snapshot only. */
   control_scheme?: string;
 }
 
-/** Full KYB company record — the same shape as the `company` object inside `registry_checks[]` on the business session decision. */
+/** Full KYB company record - the same shape as the `company` object inside `registry_checks[]` on the business session decision. */
 export interface SessionsUpdateKybCompanyDataResponse {
   /** Company record identifier (the `companyUuid` path parameter). */
   uuid?: string;
@@ -3828,7 +3828,7 @@ export interface SessionsUpdateKybCompanyDataResponse {
   status?: string;
   /** Registry-reported company status (e.g. `active`, `dissolved`, `struck off`). */
   registry_status?: string | null;
-  /** `true` when the company data is complete — always `true` for manual-entry companies; for registry-sourced companies, `true` once the registry fetch resolved. */
+  /** `true` when the company data is complete - always `true` for manual-entry companies; for registry-sourced companies, `true` once the registry fetch resolved. */
   data_resolved?: boolean;
   company_name?: string | null;
   registration_number?: string | null;
@@ -3837,7 +3837,7 @@ export interface SessionsUpdateKybCompanyDataResponse {
   region?: string | null;
   company_type?: string | null;
   incorporation_date?: string | null;
-  /** Canonical registered address — updated when you send `legal_address`. */
+  /** Canonical registered address - updated when you send `legal_address`. */
   registered_address?: string | null;
   tax_number?: string | null;
   risk_level?: string | null;
@@ -3943,11 +3943,11 @@ export interface SessionsUpdateKybPartyResponse {
   kyb_sub_session_deleted?: boolean;
 }
 
-/** All fields optional — send only what you want to change. */
+/** All fields optional - send only what you want to change. */
 export interface SessionsUpdatePoaDataParams {
   /** Country that issued the POA document, ISO 3166-1 alpha-3. Case-insensitive (normalized to uppercase); invalid codes return `400`. */
   issuing_state?: string | null;
-  /** POA document category. Values are uppercase — lowercase variants like `utility_bill` return `400`. */
+  /** POA document category. Values are uppercase - lowercase variants like `utility_bill` return `400`. */
   document_type?:
     | "UTILITY_BILL"
     | "BANK_STATEMENT"
@@ -3955,7 +3955,7 @@ export interface SessionsUpdatePoaDataParams {
     | "OTHER_POA_DOCUMENT"
     | "UNKNOWN"
     | (string & {});
-  /** Language of the document, typically an ISO 639-1 code (e.g. `es`). Free text — not validated as a language code. */
+  /** Language of the document, typically an ISO 639-1 code (e.g. `es`). Free text - not validated as a language code. */
   document_language?: string | null;
   /** Organization that issued the document (utility company, bank, government agency). */
   issuer?: string | null;
@@ -3967,13 +3967,13 @@ export interface SessionsUpdatePoaDataParams {
   name_on_document?: string | null;
   /** Document-specific extras, merged key-by-key. Nine keys map to dedicated POA columns: `bank_account_number`, `bank_iban`, `bank_sort_code`, `bank_routing_number`, `bank_swift_bic`, `bank_branch_name`, `bank_branch_address`, `document_phone_number`, and `additional_names` (must be a list of strings or `null`, otherwise `400`). Any other key is stored as a custom extra field. Per-key semantics: a value sets the key; `null` or `""` deletes it. Must be a JSON object, otherwise `400`. */
   extra_fields?: Record<string, unknown> | null;
-  /** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` — any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` (and the top-level `poa_formatted_address`) is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` — you cannot set it directly. */
+  /** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` - any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` (and the top-level `poa_formatted_address`) is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` - you cannot set it directly. */
   poa_parsed_address?: SessionsUpdatePoaDataParamsPoaParsedAddress | null;
   /** Workflow graph node whose POA record to patch, for graph workflows with multiple Proof of Address steps (also accepted as a `node_id` body field). When omitted, the most recent POA record on the session is patched. If no POA exists for the given node, the call returns `404` (`"The session does not have a POA for node '<node_id>'."`). */
   node_id?: string;
 }
 
-/** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` — any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` (and the top-level `poa_formatted_address`) is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` — you cannot set it directly. */
+/** Structured address. Only these nested keys are accepted: `address_type`, `city`, `region`, `street_1`, `street_2`, `postal_code`, `country` - any other key returns `400`. Per-key semantics: a value sets the key, `null` removes it. `formatted_address` (and the top-level `poa_formatted_address`) is recomputed server-side by joining `street_1`, `street_2`, `city`, `region`, `postal_code`, and `country` - you cannot set it directly. */
 export interface SessionsUpdatePoaDataParamsPoaParsedAddress {
   /** Free-form address classification (e.g. `home`). */
   address_type?: string | null;
@@ -3990,7 +3990,7 @@ export interface SessionsUpdatePoaDataParamsPoaParsedAddress {
 export interface SessionsUpdatePoaDataResponse {
   /** Country that issued the POA document, ISO 3166-1 alpha-3. Case-insensitive (normalized to uppercase); invalid codes return `400`. */
   issuing_state?: string | null;
-  /** POA document category. Values are uppercase — lowercase variants like `utility_bill` return `400`. */
+  /** POA document category. Values are uppercase - lowercase variants like `utility_bill` return `400`. */
   document_type?:
     | "UTILITY_BILL"
     | "BANK_STATEMENT"
@@ -3998,7 +3998,7 @@ export interface SessionsUpdatePoaDataResponse {
     | "OTHER_POA_DOCUMENT"
     | "UNKNOWN"
     | (string & {});
-  /** Language of the document, typically an ISO 639-1 code (e.g. `es`). Free text — not validated as a language code. */
+  /** Language of the document, typically an ISO 639-1 code (e.g. `es`). Free text - not validated as a language code. */
   document_language?: string | null;
   /** Organization that issued the document (utility company, bank, government agency). */
   issuer?: string | null;
@@ -4010,13 +4010,13 @@ export interface SessionsUpdatePoaDataResponse {
   name_on_document?: string | null;
   /** Always present in the response: the nine known keys (with `null` for unset ones, `additional_names` defaulting to `[]`) plus any custom keys previously stored. */
   extra_fields?: Record<string, unknown> | null;
-  /** Current structured address, or `null` when none exists. Includes the recomputed `formatted_address` alongside the seven editable keys. Returned as stored — after a server-side geocode it can contain bookkeeping keys (e.g. `raw_results`) alongside the editable keys. */
+  /** Current structured address, or `null` when none exists. Includes the recomputed `formatted_address` alongside the seven editable keys. Returned as stored - after a server-side geocode it can contain bookkeeping keys (e.g. `raw_results`) alongside the editable keys. */
   poa_parsed_address?: SessionsUpdatePoaDataResponsePoaParsedAddress | null;
   /** Top-level copy of the recomputed `formatted_address`, kept in sync when the structured address changes. */
   poa_formatted_address?: string | null;
 }
 
-/** Current structured address, or `null` when none exists. Includes the recomputed `formatted_address` alongside the seven editable keys. Returned as stored — after a server-side geocode it can contain bookkeeping keys (e.g. `raw_results`) alongside the editable keys. */
+/** Current structured address, or `null` when none exists. Includes the recomputed `formatted_address` alongside the seven editable keys. Returned as stored - after a server-side geocode it can contain bookkeeping keys (e.g. `raw_results`) alongside the editable keys. */
 export interface SessionsUpdatePoaDataResponsePoaParsedAddress {
   /** Free-form address classification (e.g. `home`). */
   address_type?: string | null;
@@ -4037,11 +4037,11 @@ export interface SessionsUpdateStatusParams {
   new_status: "Approved" | "Declined" | "Resubmitted" | (string & {});
   /** Free-text reason for the change, stored on the session's review trail and returned in the `reviews` array of [Get Decision](#get-/v3/session/-sessionId-/decision/). For example `Duplicated user`. */
   comment?: string;
-  /** Workflow steps the user must redo. Only acted on when `new_status` is `Resubmitted`. For `Approved`/`Declined` the entries are still schema-validated (an invalid `feature` value returns `400`) but schema-valid entries are semantically ignored. If omitted, the server auto-selects existing OCR, Liveness, Face Match, POA, Phone, Email, AML, Database Validation, and Questionnaire attempts whose status is `Declined`, `In Review`, `Not Finished`, or `Expired` (NFC, IP analysis, age estimation, face search, and KYB document attempts are never auto-selected; non-face-match face attempts are selected as `LIVENESS`) — features the user never attempted (no recorded attempt) are NOT selected, so a session with zero attempts returns `400` ("No features found that need resubmission") even though nothing was approved; pass `nodes_to_resubmit` explicitly in that case. Steps are executed in workflow-graph order regardless of the order you send them. `KYB_REGISTRY`, `KYB_KEY_PEOPLE`, and the `KYB` alias are rejected with `400` — those parent checks recompute from their child KYC sessions. */
+  /** Workflow steps the user must redo. Only acted on when `new_status` is `Resubmitted`. For `Approved`/`Declined` the entries are still schema-validated (an invalid `feature` value returns `400`) but schema-valid entries are semantically ignored. If omitted, the server auto-selects existing OCR, Liveness, Face Match, POA, Phone, Email, AML, Database Validation, and Questionnaire attempts whose status is `Declined`, `In Review`, `Not Finished`, or `Expired` (NFC, IP analysis, age estimation, face search, and KYB document attempts are never auto-selected; non-face-match face attempts are selected as `LIVENESS`) - features the user never attempted (no recorded attempt) are NOT selected, so a session with zero attempts returns `400` ("No features found that need resubmission") even though nothing was approved; pass `nodes_to_resubmit` explicitly in that case. Steps are executed in workflow-graph order regardless of the order you send them. `KYB_REGISTRY`, `KYB_KEY_PEOPLE`, and the `KYB` alias are rejected with `400` - those parent checks recompute from their child KYC sessions. */
   nodes_to_resubmit?: SessionsUpdateStatusParamsNodesToResubmit[];
   /** Whether to email the user about the change. Requires `email_address`. For `Approved`/`Declined` the user receives a status notice; for `Resubmitted` the email includes the verification link and the per-step resubmission reasons. */
   send_email?: boolean;
-  /** Recipient for the notification email. **Required when `send_email` is `true`** — omitting it returns `400`. */
+  /** Recipient for the notification email. **Required when `send_email` is `true`** - omitting it returns `400`. */
   email_address?: string;
   /** Language for the notification email. Accepts any string at schema level; unsupported codes silently fall back to English (`en`). */
   email_language?: string;

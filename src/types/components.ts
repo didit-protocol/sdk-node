@@ -1351,9 +1351,9 @@ export interface EmailSocialFootprint {
 }
 
 export interface EmailVerificationCheckResponse {
-  /** On `Approved`/`Declined`: the session id of the matched verification — identical to the `request_id` returned by `POST /v3/email/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
+  /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/email/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
-  /** `Approved` — correct code, no declining risk. `Declined` — terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` — wrong code, attempts remaining. `Expired or Not Found` — no pending verification for this address in the last 5 minutes. */
+  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this address in the last 5 minutes. */
   status?: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
   /** Human-readable explanation of the outcome, including the number of attempts remaining after a wrong code. */
   message?: string;
@@ -1389,7 +1389,7 @@ export interface EmailVerificationCheckResponseEmail {
   warnings?: EmailVerificationCheckResponseEmailWarnings[];
   /** Chronological audit trail of the verification. Event `type` is one of `EMAIL_VERIFICATION_MESSAGE_SENT`, `EMAIL_VERIFICATION_RETRY_MESSAGE_SENT`, `VALID_CODE_ENTERED`, `INVALID_CODE_ENTERED`, `EMAIL_VERIFICATION_APPROVED`, `EMAIL_VERIFICATION_DECLINED`, `EMAIL_VERIFICATION_IN_REVIEW`, `EMAIL_VERIFICATION_EXPIRED`. */
   lifecycle?: EmailVerificationCheckResponseEmailLifecycle[];
-  /** Other sessions of your application (KYC, KYB, or API) where the same email address was used by a different user (different `vendor_data`). Up to 5 entries; a synthetic list-entry blocklist match is prepended when present (and only when no session-derived blocklisted email exists) — session-derived matches keep created_at order. Empty array when there are no matches. */
+  /** Other sessions of your application (KYC, KYB, or API) where the same email address was used by a different user (different `vendor_data`). Up to 5 entries; a synthetic list-entry blocklist match is prepended when present (and only when no session-derived blocklisted email exists) - session-derived matches keep created_at order. Empty array when there are no matches. */
   matches?: EmailVerificationCheckResponseEmailMatches[];
   /** Social footprint of the email address: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the email address was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
   email_social?: EmailSocialFootprint | null;
@@ -1464,7 +1464,7 @@ export interface EmailVerificationCheckResponseEmailWarnings {
 export interface EmailVerificationSendResponse {
   /** Session id of the verification. A `Retry` send returns the same `request_id` as the original send. This id appears in the Business Console, is returned again by a finalized `POST /v3/email/check/`, and can be passed to `GET /v3/session/{sessionId}/decision/`. */
   request_id?: string;
-  /** `Success` — OTP emailed to a new verification (billed). `Retry` — fresh OTP emailed for the pending verification created by a previous send (free). `Undeliverable` — the address failed deliverability validation or the message could not be sent; the verification is immediately finalized as `Declined` and nothing is billed. */
+  /** `Success` - OTP emailed to a new verification (billed). `Retry` - fresh OTP emailed for the pending verification created by a previous send (free). `Undeliverable` - the address failed deliverability validation or the message could not be sent; the verification is immediately finalized as `Declined` and nothing is billed. */
   status?: "Success" | "Retry" | "Undeliverable" | (string & {});
   /** `email_can_not_be_delivered` when `status` is `Undeliverable`; `null` otherwise. */
   reason?: "email_can_not_be_delivered" | (string & {}) | null;
@@ -2426,9 +2426,9 @@ export interface PhoneSocialFootprint {
 }
 
 export interface PhoneVerificationCheckResponse {
-  /** On `Approved`/`Declined`: the session id of the matched verification — identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
+  /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
-  /** `Approved` — correct code, no declining risk. `Declined` — terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` — wrong code, attempts remaining. `Expired or Not Found` — no pending verification for this number in the last 5 minutes. */
+  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. */
   status?: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
   /** Human-readable explanation of the outcome, including the number of attempts remaining after a wrong code. */
   message?: string;
@@ -2536,7 +2536,7 @@ export interface PhoneVerificationCheckResponsePhoneWarnings {
 export interface PhoneVerificationSendResponse {
   /** Session id of the verification. A `Retry` send returns the same `request_id` as the original send. This id appears in the Business Console, is returned again by a finalized `POST /v3/phone/check/`, and can be passed to `GET /v3/session/{sessionId}/decision/`. */
   request_id?: string;
-  /** `Success` — OTP sent to a new verification. `Retry` — OTP re-sent for the pending verification created by a previous send. `Blocked` — the anti-fraud layer refused to send; the verification is immediately finalized as `Declined` and nothing is billed. */
+  /** `Success` - OTP sent to a new verification. `Retry` - OTP re-sent for the pending verification created by a previous send. `Blocked` - the anti-fraud layer refused to send; the verification is immediately finalized as `Declined` and nothing is billed. */
   status?: "Success" | "Retry" | "Blocked" | (string & {});
   /** Why a send was `Blocked` (e.g., `repeated_attempts`, `suspicious`, `spam`). `null` on `Success` and `Retry`. */
   reason?: string | null;
@@ -2728,7 +2728,7 @@ export interface ReviewItem {
     | null;
   /** Free-text note attached to the entry, or `null`. */
   comment?: string | null;
-  /** Console users `@email`-mentioned in the comment. Always empty for entries created via this API — mention processing is a Console-only feature. */
+  /** Console users `@email`-mentioned in the comment. Always empty for entries created via this API - mention processing is a Console-only feature. */
   mentioned_emails?: string[];
   /** Snapshot of the changed data before the action, e.g. `{"status": "In Review"}` on a status change. `null` when nothing was changed. */
   previous_value?: Record<string, unknown> | null;
@@ -3072,7 +3072,7 @@ export interface TransactionDetail {
   activities?: TransactionDetailActivities[];
   /** Alerts raised by rules and providers. */
   alerts?: TransactionDetailAlerts[];
-  /** Per-rule execution results — which rule fired, with what score impact. */
+  /** Per-rule execution results - which rule fired, with what score impact. */
   rule_runs?: TransactionDetailRuleRuns[];
   /** Raw provider payloads (AML screening, blockchain analytics, etc.). */
   provider_results?: TransactionDetailProviderResults[];
@@ -3247,7 +3247,7 @@ export interface TransactionDetailPaymentMethods {
     | "other"
     | (string & {});
   label?: string | null;
-  /** SHA-256 over `type:account_id:issuing_country` — stable identifier to correlate reuse of the same instrument. */
+  /** SHA-256 over `type:account_id:issuing_country` - stable identifier to correlate reuse of the same instrument. */
   fingerprint?: string | null;
   /** Account identifier (IBAN, wallet address, card token, …). */
   account_id?: string | null;
@@ -3963,7 +3963,7 @@ export interface WalletScreeningResult {
   risk_factors?: WalletScreeningResultRiskFactors[];
   /** The provider's own payload. Its shape is provider-specific and can change without notice: read the normalised fields instead of parsing it. */
   raw_response?: Record<string, unknown>;
-  /** Opaque HMAC-SHA256 signature over this exact result, scoped to your application. Not meaningful on its own — repost the full response body, unmodified and including this field, to `POST /v3/wallet-screening/pdf/` to render it as a PDF. The PDF endpoint rejects the request with `400` if `report_signature` is missing or if any signed field (e.g. `risk_score`, `severity`, `sanctions_hit`) was edited before repost. */
+  /** Opaque HMAC-SHA256 signature over this exact result, scoped to your application. Not meaningful on its own - repost the full response body, unmodified and including this field, to `POST /v3/wallet-screening/pdf/` to render it as a PDF. The PDF endpoint rejects the request with `400` if `report_signature` is missing or if any signed field (e.g. `risk_score`, `severity`, `sanctions_hit`) was edited before repost. */
   report_signature: string;
 }
 
@@ -4107,7 +4107,7 @@ export type WebhookEventType =
   | "travel_rule.status.updated"
   | (string & {});
 
-/** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+/** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
 export type WebhookSubscribedEvents = WebhookEventType[];
 
 /** One workflow version in the list view. */

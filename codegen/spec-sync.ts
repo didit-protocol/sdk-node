@@ -4,8 +4,8 @@
 //
 // Downloads https://docs.didit.me/openapi-25.json and openapi-auth.json and,
 // when either changed, updates openapi/ (see codegen/lib/sync.ts). Writes
-// changed=true|false and breaking=true|false to $GITHUB_OUTPUT when set. The
-// generator, not this script, regenerates the code.
+// changed=true|false, breaking=true|false and release=breaking|feature|none to
+// $GITHUB_OUTPUT when set. The generator, not this script, regenerates the code.
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
   if (output) {
     appendFileSync(
       output,
-      `changed=${String(result.changed)}\nbreaking=${String(result.breaking)}\ndate=${now.toISOString().slice(0, 10)}\n`,
+      `changed=${String(result.changed)}\nbreaking=${String(result.breaking)}\nrelease=${result.release}\ndate=${now.toISOString().slice(0, 10)}\n`,
     );
   }
 }

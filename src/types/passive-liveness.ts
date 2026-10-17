@@ -3,17 +3,17 @@
 import type { Uploadable } from "../core/uploads.js";
 
 export interface PassiveLivenessCheckParams {
-  /** Front-facing face image (e.g. a selfie). Allowed extensions: `tiff`, `jpg`, `jpeg`, `png`, `webp`. Maximum upload size: **5 MB** (larger files are rejected with `400`). Images are automatically compressed to ~0.5 MB before processing, so very high resolutions do not improve accuracy. The image should contain a single subject — when several faces are present, the largest one is evaluated and a `MULTIPLE_FACES_DETECTED` warning is added. */
+  /** Front-facing face image (e.g. a selfie). Allowed extensions: `tiff`, `jpg`, `jpeg`, `png`, `webp`. Maximum upload size: **5 MB** (larger files are rejected with `400`). Images are automatically compressed to ~0.5 MB before processing, so very high resolutions do not improve accuracy. The image should contain a single subject - when several faces are present, the largest one is evaluated and a `MULTIPLE_FACES_DETECTED` warning is added. */
   user_image: Uploadable;
   /** Liveness score threshold (0–100). A computed score **at or below** this value emits a `LOW_LIVENESS_SCORE` warning and sets `status` to `Declined`. Default `30`; raise it for a stricter anti-spoofing posture. Values outside 0–100 return `400`. */
   face_liveness_score_decline_threshold?: number;
   /** When `true`, the service tries 90-degree rotations of the input and uses the orientation that yields the best face detection. Useful when EXIF orientation is missing. Adds latency. */
   rotate_image?: boolean;
-  /** When `true` (default), persists the call as an API-type session, stores the face images, emits a `status.updated` webhook, and enrolls the detected face into your face search index. When `false`, the call is one-shot — nothing is stored and the face is not enrolled. Blocklist and duplicate screening run either way. */
+  /** When `true` (default), persists the call as an API-type session, stores the face images, emits a `status.updated` webhook, and enrolls the detected face into your face search index. When `false`, the call is one-shot - nothing is stored and the face is not enrolled. Blocklist and duplicate screening run either way. */
   save_api_request?: boolean;
   /** Optional opaque identifier (your user id, email, UUID…) stored on the persisted session and echoed back. Also used to exclude prior sessions with the same `vendor_data` from the duplicate-face check, so re-verifying the same user does not raise `DUPLICATED_FACE`. */
   vendor_data?: string;
-  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back. In multipart requests, send it as a JSON-encoded string field — it is parsed into an object. */
+  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back. In multipart requests, send it as a JSON-encoded string field - it is parsed into an object. */
   metadata?: Record<string, unknown>;
 }
 
@@ -38,7 +38,7 @@ export interface PassiveLivenessCheckResponseLiveness {
   score?: number | null;
   /** Face-detection results for the submitted image. */
   user_image?: PassiveLivenessCheckResponseLivenessUserImage;
-  /** Risk signals. `error` severity (declines): `NO_FACE_DETECTED`, `LOW_LIVENESS_SCORE` (score at or below the threshold), `LIVENESS_FACE_ATTACK`, `FACE_IN_BLOCKLIST`, `POSSIBLE_FACE_IN_BLOCKLIST`. `warning` severity (review, no decline): `MULTIPLE_FACES_DETECTED`. `information` severity (no decline): `DUPLICATED_FACE`, `POSSIBLE_DUPLICATED_FACE` — the same face already appeared in another approved session. */
+  /** Risk signals. `error` severity (declines): `NO_FACE_DETECTED`, `LOW_LIVENESS_SCORE` (score at or below the threshold), `LIVENESS_FACE_ATTACK`, `FACE_IN_BLOCKLIST`, `POSSIBLE_FACE_IN_BLOCKLIST`. `warning` severity (review, no decline): `MULTIPLE_FACES_DETECTED`. `information` severity (no decline): `DUPLICATED_FACE`, `POSSIBLE_DUPLICATED_FACE` - the same face already appeared in another approved session. */
   warnings?: PassiveLivenessCheckResponseLivenessWarnings[];
   /** Capture-quality score of the detected face, normalized to 0–100. `null` when the model could not produce a reliable value. */
   face_quality?: number | null;
@@ -59,11 +59,11 @@ export interface PassiveLivenessCheckResponseLivenessUserImageEntities {
   bbox?: number[];
   /** Face-detection confidence (0–1). */
   confidence?: number;
-  /** Model-estimated age of the detected face, in years. Informational only — it does not affect the liveness decision. */
+  /** Model-estimated age of the detected face, in years. Informational only - it does not affect the liveness decision. */
   age?: number;
   /** Model-predicted gender of the detected face (`male` or `female`). Informational only. */
   gender?: string;
-  /** Reserved field — always `null` in responses from this endpoint. */
+  /** Reserved field - always `null` in responses from this endpoint. */
   race?: string | null;
 }
 

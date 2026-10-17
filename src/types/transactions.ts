@@ -59,13 +59,13 @@ export interface TransactionsCreateParamsCounterparty {
   /** Address object with `country` (ISO 3166-1 alpha-3). */
   address?: Record<string, unknown>;
   institution_details?: Record<string, unknown>;
-  /** Device context for the counterparty. browser_family and platform must be sent as explicit top-level keys — they are not derived from user_agent. */
+  /** Device context for the counterparty. browser_family and platform must be sent as explicit top-level keys - they are not derived from user_agent. */
   device_context?: TransactionsCreateParamsCounterpartyDeviceContext;
   /** Payment method used by the counterparty. On travelRule transactions, `method_type: "unhosted_wallet"` declares the counterparty wallet as self-hosted: the transfer skips counterparty-VASP routing, is created directly in `UNCONFIRMED_OWNERSHIP`, and (when `auto_wallet_verification` is enabled) a wallet-ownership widget session is auto-minted and returned in the transaction's `action_required` block. */
   payment_method?: TransactionsCreateParamsCounterpartyPaymentMethod;
 }
 
-/** Device context for the counterparty. browser_family and platform must be sent as explicit top-level keys — they are not derived from user_agent. */
+/** Device context for the counterparty. browser_family and platform must be sent as explicit top-level keys - they are not derived from user_agent. */
 export interface TransactionsCreateParamsCounterpartyDeviceContext {
   /** Unique device fingerprint. */
   fingerprint?: string;
@@ -73,11 +73,11 @@ export interface TransactionsCreateParamsCounterpartyDeviceContext {
   persistent_device_id?: string;
   /** Browser or app user agent string. CamelCase alias: userAgent. */
   user_agent?: string;
-  /** Browser family (e.g. Chrome, Firefox, Safari). Must be sent explicitly — it is not derived from user_agent. CamelCase alias: browserFamily. */
+  /** Browser family (e.g. Chrome, Firefox, Safari). Must be sent explicitly - it is not derived from user_agent. CamelCase alias: browserFamily. */
   browser_family?: string;
   /** Browser version string. Must be sent explicitly. CamelCase alias: browserVersion. */
   browser_version?: string;
-  /** Platform identifier (web, ios, android, macos, windows, linux). Must be sent explicitly — it is not derived from user_agent. */
+  /** Platform identifier (web, ios, android, macos, windows, linux). Must be sent explicitly - it is not derived from user_agent. */
   platform?: string;
   /** Operating system family (e.g. iOS, Android, Windows). CamelCase alias: osFamily. */
   os_family?: string;
@@ -139,7 +139,7 @@ export interface TransactionsCreateParamsSubject {
   address?: TransactionsCreateParamsSubjectAddress;
   /** Institution details (for institutional subjects). */
   institution_details?: TransactionsCreateParamsSubjectInstitutionDetails;
-  /** Device context captured at transaction time. browser_family and platform must be sent as explicit top-level keys — they are not derived from user_agent. The camelCase alias device is also accepted on the request. */
+  /** Device context captured at transaction time. browser_family and platform must be sent as explicit top-level keys - they are not derived from user_agent. The camelCase alias device is also accepted on the request. */
   device_context?: TransactionsCreateParamsSubjectDeviceContext;
   /** Payment method used by the subject. */
   payment_method?: TransactionsCreateParamsSubjectPaymentMethod;
@@ -155,7 +155,7 @@ export interface TransactionsCreateParamsSubjectAddress {
   post_code?: string;
 }
 
-/** Device context captured at transaction time. browser_family and platform must be sent as explicit top-level keys — they are not derived from user_agent. The camelCase alias device is also accepted on the request. */
+/** Device context captured at transaction time. browser_family and platform must be sent as explicit top-level keys - they are not derived from user_agent. The camelCase alias device is also accepted on the request. */
 export interface TransactionsCreateParamsSubjectDeviceContext {
   /** Unique device fingerprint. */
   fingerprint?: string;
@@ -163,11 +163,11 @@ export interface TransactionsCreateParamsSubjectDeviceContext {
   persistent_device_id?: string;
   /** Browser or app user agent string. CamelCase alias: userAgent. */
   user_agent?: string;
-  /** Browser family (e.g. Chrome, Firefox, Safari). Must be sent explicitly — it is not derived from user_agent. CamelCase alias: browserFamily. */
+  /** Browser family (e.g. Chrome, Firefox, Safari). Must be sent explicitly - it is not derived from user_agent. CamelCase alias: browserFamily. */
   browser_family?: string;
   /** Browser version string. Must be sent explicitly. CamelCase alias: browserVersion. */
   browser_version?: string;
-  /** Platform identifier (web, ios, android, macos, windows, linux). Must be sent explicitly — it is not derived from user_agent. */
+  /** Platform identifier (web, ios, android, macos, windows, linux). Must be sent explicitly - it is not derived from user_agent. */
   platform?: string;
   /** Operating system family (e.g. iOS, Android, Windows). CamelCase alias: osFamily. */
   os_family?: string;

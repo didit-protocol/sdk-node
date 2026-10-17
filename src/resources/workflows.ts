@@ -37,7 +37,7 @@ export class Workflows extends APIResource {
   /**
    * Create workflow
    *
-   * Create a simple workflow. Send `features` in execution order (ordering rules apply); defaults to `published` v1. The body accepts ONLY the fields listed in `SimpleWorkflowRequest` — any other key (including `workflow_type`) is rejected with a 400. Not idempotent — each call creates a new workflow. Maximum 50 workflows per application.
+   * Create a simple workflow. Send `features` in execution order (ordering rules apply); defaults to `published` v1. The body accepts ONLY the fields listed in `SimpleWorkflowRequest` - any other key (including `workflow_type`) is rejected with a 400. Not idempotent - each call creates a new workflow. Maximum 50 workflows per application.
    *
    * `POST /v3/workflows/`
    */
@@ -91,7 +91,7 @@ export class Workflows extends APIResource {
   /**
    * Update workflow
    *
-   * Update a workflow. Versioning depends on the `status` field you send and the current state of the version: (1) no `status` on a **published** version → the published version is updated in place (same `uuid`, same `version`); (2) no `status` on a **draft** → the draft is updated and immediately published; (3) `status: "published"` on a **published** version → a NEW published version is created under the same `workflow_id` (new `uuid`, `version` + 1) and returned, and any existing draft in the group is deleted; (4) `status: "draft"` keeps a draft as a draft (autosave) but is rejected with 400 on a published version (`"Cannot revert a published version to draft."`). The body accepts the same strict field whitelist as create — unknown keys are rejected with 400.
+   * Update a workflow. Versioning depends on the `status` field you send and the current state of the version: (1) no `status` on a **published** version → the published version is updated in place (same `uuid`, same `version`); (2) no `status` on a **draft** → the draft is updated and immediately published; (3) `status: "published"` on a **published** version → a NEW published version is created under the same `workflow_id` (new `uuid`, `version` + 1) and returned, and any existing draft in the group is deleted; (4) `status: "draft"` keeps a draft as a draft (autosave) but is rejected with 400 on a published version (`"Cannot revert a published version to draft."`). The body accepts the same strict field whitelist as create - unknown keys are rejected with 400.
    *
    * `PATCH /v3/workflows/{settings_uuid}/`
    *

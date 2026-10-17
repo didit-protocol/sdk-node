@@ -22,17 +22,17 @@ export class PassiveLiveness extends APIResource {
   /**
    * Passive Liveness
    *
-   * Detect presentation attacks — printed photos, screen replays, masks, deepfakes — from a single face image. No video, motion, or user interaction required.
+   * Detect presentation attacks - printed photos, screen replays, masks, deepfakes - from a single face image. No video, motion, or user interaction required.
    *
    * **How it works.** The image is analyzed by a biometric model; the largest detected face is evaluated and a liveness `score` (0–100) is computed. `status` is `Declined` when any `error`-severity warning fires:
-   * - `NO_FACE_DETECTED` — the liveness model found no face,
-   * - `LOW_LIVENESS_SCORE` — score at or below `face_liveness_score_decline_threshold` (default `30`),
-   * - `LIVENESS_FACE_ATTACK` — the model detected a presentation attack,
-   * - `FACE_IN_BLOCKLIST` / `POSSIBLE_FACE_IN_BLOCKLIST` — the face matches an entry on your face blocklist.
+   * - `NO_FACE_DETECTED` - the liveness model found no face,
+   * - `LOW_LIVENESS_SCORE` - score at or below `face_liveness_score_decline_threshold` (default `30`),
+   * - `LIVENESS_FACE_ATTACK` - the model detected a presentation attack,
+   * - `FACE_IN_BLOCKLIST` / `POSSIBLE_FACE_IN_BLOCKLIST` - the face matches an entry on your face blocklist.
    *
    * `MULTIPLE_FACES_DETECTED` is a `warning`-severity signal (does not decline), and `DUPLICATED_FACE` / `POSSIBLE_DUPLICATED_FACE` are `information`-severity signals that the same face already appeared in another approved session (they never decline). `face_quality` and `face_luminance` (0–100, nullable) describe capture quality.
    *
-   * **Blocklist and duplicate screening.** Runs on **every** call — with or without `save_api_request` — by matching the detected face against your application's face search index. Prior faces with the same `vendor_data` are excluded from the entire index search — so re-running liveness for the same user does not trigger `DUPLICATED_FACE`, and a blocklisted face originating from a session with the caller's own `vendor_data` is also NOT flagged (`FACE_IN_BLOCKLIST` screening is bypassed for same-`vendor_data` faces).
+   * **Blocklist and duplicate screening.** Runs on **every** call - with or without `save_api_request` - by matching the detected face against your application's face search index. Prior faces with the same `vendor_data` are excluded from the entire index search - so re-running liveness for the same user does not trigger `DUPLICATED_FACE`, and a blocklisted face originating from a session with the caller's own `vendor_data` is also NOT flagged (`FACE_IN_BLOCKLIST` screening is bypassed for same-`vendor_data` faces).
    *
    * **Billing.** Each `200` response consumes one Passive Liveness API credit (standalone APIs have no free tier). Insufficient balance returns `403` before any image processing.
    *
@@ -40,7 +40,7 @@ export class PassiveLiveness extends APIResource {
    *
    * **Sandbox.** Sandbox API keys skip all processing and billing: after request validation (malformed input still returns `400`), the endpoint returns a static `Approved` mock payload, no session is persisted, and no credits are consumed.
    *
-   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) — this API never returns `401`.
+   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) - this API never returns `401`.
    *
    * **Rate limit.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints; exceeding it returns `429`.
    *

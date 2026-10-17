@@ -7,13 +7,13 @@ export interface IdVerificationVerifyParams {
   front_image: Uploadable;
   /** Password to decrypt `front_image` when it is an encrypted PDF. Sending an encrypted PDF without (or with a wrong) password returns `400`. */
   front_image_password?: string;
-  /** Back side of the document — send it whenever the document has one (many ID cards carry the MRZ or a barcode on the back; omitting it simply leaves the MRZ and back-side fields empty in the response — this endpoint does not raise a missing-MRZ warning). Same format and size limits as `front_image`. When omitted, `back_image` and back-side fields are `null` in the response. */
+  /** Back side of the document - send it whenever the document has one (many ID cards carry the MRZ or a barcode on the back; omitting it simply leaves the MRZ and back-side fields empty in the response - this endpoint does not raise a missing-MRZ warning). Same format and size limits as `front_image`. When omitted, `back_image` and back-side fields are `null` in the response. */
   back_image?: Uploadable;
   /** Password to decrypt `back_image` when it is an encrypted PDF. */
   back_image_password?: string;
   /** Screens both images for presentation fraud: screen replays (`SCREEN_CAPTURE_DETECTED`), printed copies (`PRINTED_COPY_DETECTED`), and portrait manipulation (`PORTRAIT_MANIPULATION_DETECTED`). Any of these auto-declines. Enabled by default; set to `false` to skip fraud screening and reduce latency. */
   perform_document_liveness?: boolean;
-  /** Accepted and validated (1–120) but **currently not applied** by this endpoint — it never produces a `MINIMUM_AGE_NOT_MET` warning from this field. Enforce age rules from the returned `date_of_birth`/`age`, or use a verification-session workflow with age restrictions. */
+  /** Accepted and validated (1–120) but **currently not applied** by this endpoint - it never produces a `MINIMUM_AGE_NOT_MET` warning from this field. Enforce age rules from the returned `date_of_birth`/`age`, or use a verification-session workflow with age restrictions. */
   minimum_age?: number | null;
   /** What to do when no expiration date can be read (`EXPIRATION_DATE_NOT_DETECTED`). Default `NO_ACTION` because many identity documents print no expiry date. Note: a *detected and past* expiry date always declines (`DOCUMENT_EXPIRED`), regardless of this option. */
   expiration_date_not_detected_action?: "NO_ACTION" | "DECLINE" | (string & {});
@@ -27,11 +27,11 @@ export interface IdVerificationVerifyParams {
   document_or_personal_number_format_mismatch_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** Preferred script for name/address fields on documents that print both Latin and non-Latin text (Arabic, Cyrillic, CJK, …). `latin` returns transliterated/Latin values; `non_latin` prefers the native script. */
   preferred_characters?: "latin" | "non_latin" | (string & {});
-  /** When `true` (default), persists the call as an API-type session — visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with document images returned as media URLs. When `false`, nothing is stored, `request_id` is a transient UUID, and images are returned inline as base64 JPEG strings. */
+  /** When `true` (default), persists the call as an API-type session - visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with document images returned as media URLs. When `false`, nothing is stored, `request_id` is a transient UUID, and images are returned inline as base64 JPEG strings. */
   save_api_request?: boolean;
   /** Optional opaque string (your internal user id, email, UUID…) stored on the persisted session and echoed back in the response. Use it to correlate API calls with your own records and to filter sessions later. */
   vendor_data?: string;
-  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"onboarding"}`) — it is parsed into an object. */
+  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"onboarding"}`) - it is parsed into an object. */
   metadata?: Record<string, unknown>;
 }
 
@@ -48,7 +48,7 @@ export interface IdVerificationVerifyResponse {
 }
 
 export interface IdVerificationVerifyResponseIdVerification {
-  /** `Approved` when no warning resolves to a decline; `Declined` otherwise — the `warnings` list explains why. */
+  /** `Approved` when no warning resolves to a decline; `Declined` otherwise - the `warnings` list explains why. */
   status?: "Approved" | "Declined" | (string & {});
   /** Detected document type display name: `Identity Card`, `Passport`, `Driver's License`, `Residence Permit`, `Health Insurance Card`, or `Tax Card`. `null` when the document could not be classified. */
   document_type?: string | null;
@@ -99,7 +99,7 @@ export interface IdVerificationVerifyResponseIdVerification {
   nationality?: string | null;
   /** Document-specific extras that have no dedicated column (e.g. `first_surname`/`second_surname` on Spanish IDs, license classes on driving licenses). */
   extra_fields?: Record<string, unknown> | null;
-  /** Parsed machine-readable zone. An **empty object** (`{}`) when the document has no MRZ or it could not be read — also check the `warnings` list in that case. Dates inside the MRZ use the raw `YYMMDD` format. */
+  /** Parsed machine-readable zone. An **empty object** (`{}`) when the document has no MRZ or it could not be read - also check the `warnings` list in that case. Dates inside the MRZ use the raw `YYMMDD` format. */
   mrz?: IdVerificationVerifyResponseIdVerificationMrz;
   /** Structured, geocoded breakdown of `address`. `null` when the document carries no address or it could not be parsed. */
   parsed_address?: IdVerificationVerifyResponseIdVerificationParsedAddress | null;
@@ -154,7 +154,7 @@ export interface IdVerificationVerifyResponseIdVerificationFrontImageQualityScor
   overall_score?: number;
 }
 
-/** Parsed machine-readable zone. An **empty object** (`{}`) when the document has no MRZ or it could not be read — also check the `warnings` list in that case. Dates inside the MRZ use the raw `YYMMDD` format. */
+/** Parsed machine-readable zone. An **empty object** (`{}`) when the document has no MRZ or it could not be read - also check the `warnings` list in that case. Dates inside the MRZ use the raw `YYMMDD` format. */
 export interface IdVerificationVerifyResponseIdVerificationMrz {
   surname?: string;
   name?: string;
@@ -230,7 +230,7 @@ export interface IdVerificationVerifyResponseIdVerificationWarnings {
   feature?: "ID_VERIFICATION" | (string & {});
   /** Extra context for some risks (e.g. `POSSIBLE_DUPLICATED_USER` includes `duplicated_session_id`); `null` for most. */
   additional_data?: Record<string, unknown> | null;
-  /** Severity. `error` warnings drive `status` to `Declined`; `information` entries are advisory and never decline on their own. (`warning` is not produced by this endpoint — its options only accept `DECLINE` or `NO_ACTION`.) */
+  /** Severity. `error` warnings drive `status` to `Declined`; `information` entries are advisory and never decline on their own. (`warning` is not produced by this endpoint - its options only accept `DECLINE` or `NO_ACTION`.) */
   log_type?: "error" | "warning" | "information" | (string & {});
   /** Human-readable one-line summary of the risk. */
   short_description?: string;

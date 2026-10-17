@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { argName, camel, kebab, pascal, propKey, resourceClass } from "../lib/naming.ts";
@@ -119,7 +121,7 @@ describe("load", () => {
   });
 
   it("loads the committed documents", () => {
-    const model = load(new URL("../../openapi", import.meta.url).pathname);
+    const model = load(fileURLToPath(new URL("../../openapi", import.meta.url)));
     const server = model.operations.filter((o) => o.sdk.server);
     expect(server.length).toBeGreaterThan(200);
     expect(model.operations.filter((o) => o.api === "account").every((o) => o.sdk.server)).toBe(

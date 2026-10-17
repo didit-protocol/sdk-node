@@ -21,17 +21,17 @@ export class FaceMatch extends APIResource {
    *
    * Compare two face images (1:1) and get back a similarity `score` (0–100) plus an `Approved`/`Declined` `status`.
    *
-   * **How it works.** Both images are decoded and analyzed by a biometric model (set `rotate_image=true` if captures may be sideways or upside down), then a similarity score between the two faces is computed. A score **strictly above** `face_match_score_decline_threshold` (default `30`) returns `status: "Approved"`; a score at or below it returns `Declined` with a `LOW_FACE_MATCH_SIMILARITY` warning. If no face pair can be scored at all, the call still returns `200` with `status: "Declined"` and a `NO_REFERENCE_IMAGE` warning — `score` is `null` on the default save path, or `0` with `save_api_request=false`. Submit one clear, front-facing face per image for best results.
+   * **How it works.** Both images are decoded and analyzed by a biometric model (set `rotate_image=true` if captures may be sideways or upside down), then a similarity score between the two faces is computed. A score **strictly above** `face_match_score_decline_threshold` (default `30`) returns `status: "Approved"`; a score at or below it returns `Declined` with a `LOW_FACE_MATCH_SIMILARITY` warning. If no face pair can be scored at all, the call still returns `200` with `status: "Declined"` and a `NO_REFERENCE_IMAGE` warning - `score` is `null` on the default save path, or `0` with `save_api_request=false`. Submit one clear, front-facing face per image for best results.
    *
    * **Billing.** Each `200` response consumes one Face Match API credit (standalone APIs have no free tier). When the organization's balance cannot cover the call, the endpoint returns `403` with the not-enough-credits error before any image processing.
    *
    * **Session persistence (`save_api_request`, default `true`).** When `true`, the call is persisted as an API-type session: it appears in the Business Console, the returned `request_id` is a real session id you can pass to `GET /v3/session/{sessionId}/decision/`, both images are stored as the session's face-match source/target images, and a `status.updated` webhook is emitted to your configured webhook endpoints. When `false`, nothing is stored and `request_id` is a one-off correlation UUID that cannot be looked up later.
    *
-   * **Face search index.** This endpoint never enrolls faces into your face search index and never runs blocklist or duplicate screening — use `POST /v3/passive-liveness/` or `POST /v3/face-search/` for those.
+   * **Face search index.** This endpoint never enrolls faces into your face search index and never runs blocklist or duplicate screening - use `POST /v3/passive-liveness/` or `POST /v3/face-search/` for those.
    *
    * **Sandbox.** Sandbox API keys skip all processing and billing: after request validation (malformed input still returns `400`), the endpoint returns a static `Approved` mock payload, no session is persisted, and no credits are consumed.
    *
-   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) — this API never returns `401`.
+   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) - this API never returns `401`.
    *
    * **Rate limit.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints; exceeding it returns `429`.
    *

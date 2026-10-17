@@ -5,7 +5,7 @@ import type { WebhookSubscribedEvents } from "./components.js";
 export interface WebhooksDestinationsCreateParams {
   /** Human-readable name displayed in Console → Webhooks. Helps distinguish destinations when you have several (e.g. "Prod", "Staging mirror"). */
   label: string;
-  /** HTTPS URL that will receive `POST` requests. Must be unique per application among non-deleted destinations. Use a stable, hardened endpoint — Didit retries failed deliveries on a backoff schedule. */
+  /** HTTPS URL that will receive `POST` requests. Must be unique per application among non-deleted destinations. Use a stable, hardened endpoint - Didit retries failed deliveries on a backoff schedule. */
   url: string;
   /** When `false`, the destination is saved but Didit will not push any webhooks to it. Useful for staging configs you want to keep parked. */
   enabled?: boolean;
@@ -24,7 +24,7 @@ export interface WebhooksDestinationsCreateResponse {
   webhook_version?: "v1" | "v2" | "v3" | (string & {});
   /** Auto-generated HMAC signing secret bound to this destination (43-character URL-safe token). Use it to verify the signature headers on incoming webhooks. Always returned in full to API-key callers; Console users need the `read:webhooks` permission, otherwise they see an empty string. */
   secret_shared_key?: string;
-  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
   subscribed_events?: WebhookSubscribedEvents;
   created_at?: Date;
   updated_at?: Date;
@@ -54,7 +54,7 @@ export interface WebhooksDestinationsListResponse {
   enabled?: boolean;
   /** Payload schema version sent to this destination. `v3` is the current/recommended format. */
   webhook_version?: "v1" | "v2" | "v3" | (string & {});
-  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
   subscribed_events?: WebhookSubscribedEvents;
   /** Cached length of `subscribed_events`, useful for UI rendering. */
   subscribed_events_count?: number;
@@ -80,7 +80,7 @@ export interface WebhooksDestinationsRetrieveResponse {
   webhook_version?: "v1" | "v2" | "v3" | (string & {});
   /** HMAC signing secret (43-character URL-safe token). Always returned in full to API-key callers; Console users need `read:webhooks`, otherwise an empty string. */
   secret_shared_key?: string;
-  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
   subscribed_events?: WebhookSubscribedEvents;
   created_at?: Date;
   updated_at?: Date;
@@ -108,7 +108,7 @@ export interface WebhooksDestinationsUpdateParams {
   enabled?: boolean;
   /** New payload schema version for future deliveries. */
   webhook_version?: "v1" | "v2" | "v3" | (string & {});
-  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
   subscribed_events?: WebhookSubscribedEvents;
 }
 
@@ -119,7 +119,7 @@ export interface WebhooksDestinationsUpdateResponse {
   enabled?: boolean;
   webhook_version?: "v1" | "v2" | "v3" | (string & {});
   secret_shared_key?: string;
-  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values — there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
+  /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
   subscribed_events?: WebhookSubscribedEvents;
   created_at?: Date;
   updated_at?: Date;

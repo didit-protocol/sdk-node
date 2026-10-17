@@ -26,7 +26,7 @@ export class Aml extends APIResource {
    *
    * **Match-score weights.** `aml_name_weight` + `aml_dob_weight` + `aml_country_weight` must sum to exactly 100 (defaults 60/25/15). Components missing from the request are re-normalized away; a matching `document_number` acts as a golden key that overrides `match_score` to 100.
    *
-   * **Latency.** Plain screenings typically complete in a few seconds. With `include_adverse_media=true` the API waits for adverse-media enrichment (an initial ~5 s pause plus up to ~25 s of polling) — configure a client timeout of **at least 60 seconds**.
+   * **Latency.** Plain screenings typically complete in a few seconds. With `include_adverse_media=true` the API waits for adverse-media enrichment (an initial ~5 s pause plus up to ~25 s of polling) - configure a client timeout of **at least 60 seconds**.
    *
    * **Persistence.** `save_api_request` defaults to **true**: the screening is stored as a session (`request_id` works with `GET /v3/session/{sessionId}/decision/`), it appears in the console, a `status.updated` webhook fires, and hit review statuses can be updated later. With `save_api_request=false` nothing is stored and `request_id` is a transient correlation id. `include_ongoing_monitoring=true` keeps re-screening the profile and requires `save_api_request=true` (enforced with a `400`).
    *
@@ -34,7 +34,7 @@ export class Aml extends APIResource {
    *
    * **Billing.** One AML API credit is charged after the first successful screening. Replayed idempotent responses are not charged again; an insufficient balance returns `403` before any new screening happens.
    *
-   * **Sandbox.** Keys from sandbox applications skip screening and billing entirely and return a mocked result — `Approved` with zero hits unless you pass `sandbox_scenario`. `save_api_request` works the same as on live keys, so a saved sandbox screening is retrievable through `GET /v3/session/{sessionId}/decision/` and `GET /v3/session/{sessionId}/generate-pdf/`.
+   * **Sandbox.** Keys from sandbox applications skip screening and billing entirely and return a mocked result - `Approved` with zero hits unless you pass `sandbox_scenario`. `save_api_request` works the same as on live keys, so a saved sandbox screening is retrievable through `GET /v3/session/{sessionId}/decision/` and `GET /v3/session/{sessionId}/generate-pdf/`.
    *
    * `POST /v3/aml/`
    *

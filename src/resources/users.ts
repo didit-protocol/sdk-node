@@ -104,7 +104,7 @@ export class Users extends APIResource {
   /**
    * Batch delete users
    *
-   * **Permanently delete** users — the user records are removed permanently. For everyday blocking prefer [Update User Status](#patch-/v3/users/-vendor_data-/update-status/) with `BLOCKED`. Select users with `vendor_data_list`, with `didit_internal_id_list`, or with both at once; or pass `delete_all: true`. The Console's `filter_*` batch params are rejected with a `400` rather than ignored, so a narrowed intent can never turn into a full wipe.
+   * **Permanently delete** users - the user records are removed permanently. For everyday blocking prefer [Update User Status](#patch-/v3/users/-vendor_data-/update-status/) with `BLOCKED`. Select users with `vendor_data_list`, with `didit_internal_id_list`, or with both at once; or pass `delete_all: true`. The Console's `filter_*` batch params are rejected with a `400` rather than ignored, so a narrowed intent can never turn into a full wipe.
    *
    * **Biometric templates:** every image-free biometric template retained for these users after session deletion (see `/v3/biometric-templates/`) is purged before the user is deleted, so the person stops matching in duplicate detection and Face Search. If a template cannot be purged because a biometric store is unavailable, the call returns `503`, no user in the request is deleted, and repeating the request finishes the job.
    *
@@ -133,25 +133,25 @@ export class Users extends APIResource {
    *
    * Render and download one compliance-ready PDF containing the full verification history of the user identified by `vendor_data`. It is the same document the Console produces from **User detail → Actions → Download PDF**, so periodic compliance exports no longer need a person clicking in the Console.
    *
-   * **What the report contains.** A cover page with the profile summary (name, date of birth, issuing states, approved emails and phones), the latest status of every feature, the session counters and an index of the sessions included — followed by the standard report of every included session, in chronological order (oldest first). Each session report is the same document `GET /v3/session/{sessionId}/generate-pdf/` returns for that session.
+   * **What the report contains.** A cover page with the profile summary (name, date of birth, issuing states, approved emails and phones), the latest status of every feature, the session counters and an index of the sessions included - followed by the standard report of every included session, in chronological order (oldest first). Each session report is the same document `GET /v3/session/{sessionId}/generate-pdf/` returns for that session.
    *
-   * **Eligible sessions.** Only User Verification (KYC) sessions in `Approved`, `Declined`, `In Review` or `Kyc Expired` are included; sessions in any other status are skipped. If the user has no session in one of those statuses the endpoint returns `403` — see below.
+   * **Eligible sessions.** Only User Verification (KYC) sessions in `Approved`, `Declined`, `In Review` or `Kyc Expired` are included; sessions in any other status are skipped. If the user has no session in one of those statuses the endpoint returns `403` - see below.
    *
    * **Cap.** The report is capped at the **20 most recent** reportable sessions. When a user has more, the newest 20 are included and the cover page states how many older sessions were left out. Use `GET /v3/sessions/?vendor_data=…` for the complete list as JSON.
    *
-   * **Branding.** If your application has white-label customization, the cover and every session report are rendered with your logo and privacy-policy URL; otherwise they carry Didit branding. Reports are rendered in English — there is no language parameter.
+   * **Branding.** If your application has white-label customization, the cover and every session report are rendered with your logo and privacy-policy URL; otherwise they carry Didit branding. Reports are rendered in English - there is no language parameter.
    *
-   * **No caching.** Every call re-renders the PDF from the current data, so a report generated after a manual review reflects the reviewer's decision. Two calls for the same user can produce byte-different files — archive the downloaded file if you need an immutable copy.
+   * **No caching.** Every call re-renders the PDF from the current data, so a report generated after a manual review reflects the reviewer's decision. Two calls for the same user can produce byte-different files - archive the downloaded file if you need an immutable copy.
    *
    * **Latency.** Rendering is synchronous and downloads every stored image of every included session, so a user with many media-heavy sessions can take tens of seconds. Use a generous client read timeout (120 s recommended) and stream the body to disk. Generation stops at a server-side time budget instead of running until your client gives up: if that budget is reached, the response is still a valid PDF containing the most recent sessions, and the cover states how many were omitted.
    *
-   * **Scope.** The user is resolved inside the application that owns the API key. A key can never export a user of another application — such a user does not exist for it and the endpoint returns `404`.
+   * **Scope.** The user is resolved inside the application that owns the API key. A key can never export a user of another application - such a user does not exist for it and the endpoint returns `404`.
    *
-   * **Trailing slash.** The canonical route ends with a trailing slash (`…/generate-pdf/`). A request without it is served directly with the same response — there is no `301` redirect, so no client has to follow redirects and `curl` does not need `-L`. Use the slashed URL as in the samples.
+   * **Trailing slash.** The canonical route ends with a trailing slash (`…/generate-pdf/`). A request without it is served directly with the same response - there is no `301` redirect, so no client has to follow redirects and `curl` does not need `-L`. Use the slashed URL as in the samples.
    *
    * `GET /v3/users/{vendor_data}/generate-pdf/`
    *
-   * @param vendorData Your unique identifier for the user — a free-form string (NOT a UUID). This is the same value you passed as `vendor_data` when creating the user's sessions, matched exactly as sent. URL-encode it; a value containing `/` cannot be addressed by this route.
+   * @param vendorData Your unique identifier for the user - a free-form string (NOT a UUID). This is the same value you passed as `vendor_data` when creating the user's sessions, matched exactly as sent. URL-encode it; a value containing `/` cannot be addressed by this route.
    */
   generatePdf(vendorData: string, options?: RequestOptions): APIPromise<Blob> {
     return this._client.request(USERS_GENERATE_PDF, [vendorData], undefined, options);
@@ -160,7 +160,7 @@ export class Users extends APIResource {
   /**
    * List users
    *
-   * List [users](/entities/users) Didit assembles from KYC sessions sharing the same `vendor_data` (free-form string, NOT a UUID), plus users created via the API. Paginated, ordered by `last_session_at` desc. This endpoint does not support filtering or search parameters — fetch pages and filter client-side.
+   * List [users](/entities/users) Didit assembles from KYC sessions sharing the same `vendor_data` (free-form string, NOT a UUID), plus users created via the API. Paginated, ordered by `last_session_at` desc. This endpoint does not support filtering or search parameters - fetch pages and filter client-side.
    *
    * `GET /v3/users/`
    */
@@ -194,7 +194,7 @@ export class Users extends APIResource {
    *
    * `GET /v3/users/{vendor_data}/`
    *
-   * @param vendorData Your unique identifier for the user — a free-form string (NOT a UUID). This is the same value you passed as `vendor_data` when creating the session that first introduced this user, matched exactly as sent.
+   * @param vendorData Your unique identifier for the user - a free-form string (NOT a UUID). This is the same value you passed as `vendor_data` when creating the session that first introduced this user, matched exactly as sent.
    */
   retrieve(vendorData: string, options?: RequestOptions): APIPromise<UserDetailItem> {
     return this._client.request(USERS_RETRIEVE, [vendorData], undefined, options);
@@ -257,7 +257,7 @@ export class Users extends APIResource {
   /**
    * Update user
    *
-   * Partial update of a user: `display_name`, `full_name`, `date_of_birth`, `status`, `metadata`, `approved_emails`/`approved_phones`/`issuing_states`. `metadata` fully replaces. **Note:** unlike [Update User Status](#patch-/v3/users/-vendor_data-/update-status/), changing `status` here does NOT record a status-change activity and does NOT sync the system blocklist — use the dedicated update-status endpoint for `BLOCKED`/unblock flows.
+   * Partial update of a user: `display_name`, `full_name`, `date_of_birth`, `status`, `metadata`, `approved_emails`/`approved_phones`/`issuing_states`. `metadata` fully replaces. **Note:** unlike [Update User Status](#patch-/v3/users/-vendor_data-/update-status/), changing `status` here does NOT record a status-change activity and does NOT sync the system blocklist - use the dedicated update-status endpoint for `BLOCKED`/unblock flows.
    *
    * `PATCH /v3/users/{vendor_data}/`
    *
@@ -274,7 +274,7 @@ export class Users extends APIResource {
   /**
    * Update user status
    *
-   * Flip only the lifecycle `status` of a user — `ACTIVE`/`FLAGGED`/`BLOCKED` (NOT session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded as a `STATUS_CHANGED` activity on the user.
+   * Flip only the lifecycle `status` of a user - `ACTIVE`/`FLAGGED`/`BLOCKED` (NOT session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded as a `STATUS_CHANGED` activity on the user.
    *
    * `PATCH /v3/users/{vendor_data}/update-status/`
    *

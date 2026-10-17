@@ -231,6 +231,59 @@ describe("render", () => {
   });
 });
 
+describe("render deprecated methods", () => {
+  const response = (ref: string) => ({
+    responses: {
+      "200": {
+        description: "ok",
+        content: { "application/json": { schema: { $ref: `#/components/schemas/${ref}` } } },
+      },
+    },
+  });
+  const entry = {
+    "x-didit-sdk": naming("old", "list"),
+    operation_key: "GET /v3/old/",
+    reason: "removed",
+    remove_in: "0.5.0",
+    operation: response("OldPage"),
+    components: {
+      OldPage: {
+        type: "object",
+        properties: { items: { type: "array", items: { $ref: "#/components/schemas/OldItem" } } },
+      },
+      OldItem: { type: "object", properties: { id: { type: "string" } } },
+    },
+  };
+
+  it("renders a deprecated method whose schemas left the live spec, keeping their names", () => {
+    const { files } = render(load(specDir({ deprecated: { "old.list": entry } })));
+    const types = files.get("src/types/components.ts")!;
+    expect(types).toMatch(/export interface OldPage \{\s+items\?: OldItem\[\];/);
+    expect(types).toContain("export interface OldItem {");
+    expect(files.get("src/resources/old.ts")).toContain("@deprecated");
+  });
+
+  it("suffixes a deprecated schema whose name a live schema took", () => {
+    const live = openapi(
+      { "/v3/new/": { get: response("OldItem") } },
+      { OldItem: { type: "object", properties: { other: { type: "integer" } } } },
+    );
+    const { files } = render(
+      load(
+        specDir({
+          verification: live,
+          overlay: { "GET /v3/new/": naming("fresh", "list") },
+          deprecated: { "old.list": entry },
+        }),
+      ),
+    );
+    const types = files.get("src/types/components.ts")!;
+    expect(types).toContain("export interface OldItem {");
+    expect(types).toMatch(/export interface OldPage \{\s+items\?: OldItemDeprecated\[\];/);
+    expect(types).toContain("export interface OldItemDeprecated {");
+  });
+});
+
 describe("render errors", () => {
   it("refuses a generated type that would shadow a hand-written export", () => {
     const dir = specDir({

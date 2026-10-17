@@ -11,6 +11,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as prettier from "prettier";
 
+import { byCodePoint } from "./lib/naming.ts";
 import { render } from "./lib/render.ts";
 import { CodegenError, load } from "./lib/spec.ts";
 
@@ -32,7 +33,7 @@ export async function generate(): Promise<Map<string, string>> {
   const { files } = render(model);
   const config = (await prettier.resolveConfig(join(ROOT, "src/index.ts"))) ?? {};
   const out = new Map<string, string>();
-  for (const [path, content] of [...files.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [path, content] of [...files.entries()].sort(([a], [b]) => byCodePoint(a, b))) {
     out.set(path, await prettier.format(content, { ...config, filepath: join(ROOT, path) }));
   }
   return out;

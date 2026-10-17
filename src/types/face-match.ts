@@ -7,15 +7,15 @@ export interface FaceMatchCompareParams {
   user_image: Uploadable;
   /** Reference face image to compare against (e.g. an ID document portrait or a previously enrolled photo). Same format and size limits as `user_image`. */
   ref_image: Uploadable;
-  /** Similarity threshold (0–100) that drives the response `status`. A computed score **at or below** this value sets `status` to `Declined` and adds a `LOW_FACE_MATCH_SIMILARITY` warning; a score strictly above it returns `Approved`. Default `30` is permissive — raise it (e.g. `50`–`60`) for stricter verification. Values outside 0–100 return `400`. */
+  /** Similarity threshold (0–100) that drives the response `status`. A computed score **at or below** this value sets `status` to `Declined` and adds a `LOW_FACE_MATCH_SIMILARITY` warning; a score strictly above it returns `Approved`. Default `30` is permissive - raise it (e.g. `50`–`60`) for stricter verification. Values outside 0–100 return `400`. */
   face_match_score_decline_threshold?: number;
-  /** When `true`, the service tries the input images in 90-degree increments (0, 90, 180, 270) and uses the orientation that yields the best face detection — useful for mobile captures with missing EXIF orientation. Adds latency, so only enable it if you cannot guarantee upright images. */
+  /** When `true`, the service tries the input images in 90-degree increments (0, 90, 180, 270) and uses the orientation that yields the best face detection - useful for mobile captures with missing EXIF orientation. Adds latency, so only enable it if you cannot guarantee upright images. */
   rotate_image?: boolean;
-  /** When `true` (default), persists the call as an API-type session — visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, and announced through a `status.updated` webhook. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
+  /** When `true` (default), persists the call as an API-type session - visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, and announced through a `status.updated` webhook. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
   save_api_request?: boolean;
   /** Optional opaque string (your internal user id, email, UUID…) stored on the persisted session and echoed back in the response. Use it to correlate API calls with your own records and to filter sessions later. */
   vendor_data?: string;
-  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"login"}`) — it is parsed into an object. */
+  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"login"}`) - it is parsed into an object. */
   metadata?: Record<string, unknown>;
 }
 
@@ -34,13 +34,13 @@ export interface FaceMatchCompareResponse {
 export interface FaceMatchCompareResponseFaceMatch {
   /** `Approved` when the similarity score is strictly above `face_match_score_decline_threshold` and a score could be computed; `Declined` otherwise (a warning explains why). */
   status?: "Approved" | "Declined" | (string & {});
-  /** Similarity score from 0 to 100 — the model's confidence that both images depict the same person. Rounded to two decimals only when `save_api_request` is true; with `save_api_request=false` the raw float is returned. `null` when no face pair could be scored (with the default `save_api_request=true`); with `save_api_request=false` the same condition can surface as `score: 0`. Either way a `NO_REFERENCE_IMAGE` warning is present and `status` is `Declined`. */
+  /** Similarity score from 0 to 100 - the model's confidence that both images depict the same person. Rounded to two decimals only when `save_api_request` is true; with `save_api_request=false` the raw float is returned. `null` when no face pair could be scored (with the default `save_api_request=true`); with `save_api_request=false` the same condition can surface as `score: 0`. Either way a `NO_REFERENCE_IMAGE` warning is present and `status` is `Declined`. */
   score?: number | null;
   /** Face-detection results for the analyzed images. */
   user_image?: FaceMatchCompareResponseFaceMatchUserImage;
   /** Face-detection results for the reference image, same shape as `user_image`. */
   ref_image?: FaceMatchCompareResponseFaceMatchRefImage;
-  /** Empty on a clean approval. `NO_REFERENCE_IMAGE` (`error`) — no face pair could be scored; `LOW_FACE_MATCH_SIMILARITY` (`error`) — score at or below the decline threshold. Any of these sets `status` to `Declined`. */
+  /** Empty on a clean approval. `NO_REFERENCE_IMAGE` (`error`) - no face pair could be scored; `LOW_FACE_MATCH_SIMILARITY` (`error`) - score at or below the decline threshold. Any of these sets `status` to `Declined`. */
   warnings?: FaceMatchCompareResponseFaceMatchWarnings[];
 }
 
@@ -56,11 +56,11 @@ export interface FaceMatchCompareResponseFaceMatchRefImageEntities {
   bbox?: number[];
   /** Face-detection confidence (0–1). */
   confidence?: number;
-  /** Model-estimated age of the detected face, in years. Informational only — it does not affect the face-match decision. */
+  /** Model-estimated age of the detected face, in years. Informational only - it does not affect the face-match decision. */
   age?: number;
   /** Model-predicted gender of the detected face (`male` or `female`). Informational only. */
   gender?: string;
-  /** Reserved field — always `null` in responses from this endpoint. */
+  /** Reserved field - always `null` in responses from this endpoint. */
   race?: string | null;
 }
 
@@ -77,11 +77,11 @@ export interface FaceMatchCompareResponseFaceMatchUserImageEntities {
   bbox?: number[];
   /** Face-detection confidence (0–1). */
   confidence?: number;
-  /** Model-estimated age of the detected face, in years. Informational only — it does not affect the face-match decision. */
+  /** Model-estimated age of the detected face, in years. Informational only - it does not affect the face-match decision. */
   age?: number;
   /** Model-predicted gender of the detected face (`male` or `female`). Informational only. */
   gender?: string;
-  /** Reserved field — always `null` in responses from this endpoint. */
+  /** Reserved field - always `null` in responses from this endpoint. */
   race?: string | null;
 }
 

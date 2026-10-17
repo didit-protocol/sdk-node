@@ -593,6 +593,8 @@ export function docLines(text: string | undefined, indent = "", extra: string[] 
     if (lines.length) lines.push("");
     lines.push(...extra);
   }
+  // Spec descriptions use em dashes; the SDK's own style is plain hyphens.
+  for (let i = 0; i < lines.length; i++) lines[i] = lines[i]!.replace(/ ?\u2014 ?/g, " - ");
   if (!lines.length) return [];
   if (lines.length === 1) return [`${indent}/** ${lines[0]} */`];
   return [

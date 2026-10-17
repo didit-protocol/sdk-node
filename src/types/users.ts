@@ -50,7 +50,7 @@ export interface UsersListParams {
 }
 
 export interface UsersListResponse {
-  /** Number of matching rows — exact up to 100, capped at 100 beyond that for performance. Do not use it to detect the last page; rely on `next` being `null` instead. */
+  /** Number of matching rows - exact up to 100, capped at 100 beyond that for performance. Do not use it to detect the last page; rely on `next` being `null` instead. */
   count?: number;
   /** Absolute URL of the next page, or `null` on the last page. */
   next?: string | null;
@@ -463,7 +463,7 @@ export interface UsersUpdateParams {
   date_of_birth?: string | null;
   /** User lifecycle status. Changing it via this generic PATCH does NOT sync the system blocklist or record a status-change activity; prefer the update-status endpoint. */
   status?: "ACTIVE" | "FLAGGED" | "BLOCKED" | (string & {});
-  /** Arbitrary JSON object you attach to the user. **Fully replaces** the existing metadata on update — merge client-side if you only want to add keys. */
+  /** Arbitrary JSON object you attach to the user. **Fully replaces** the existing metadata on update - merge client-side if you only want to add keys. */
   metadata?: Record<string, unknown> | null;
   /** Verified email addresses for this user, e.g. `["john@example.com"]`. Fully replaces the stored list. */
   approved_emails?: string[];

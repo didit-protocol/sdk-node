@@ -46,7 +46,7 @@ export interface BusinessesListParams {
 }
 
 export interface BusinessesListResponse {
-  /** Number of matching rows — exact up to 100, capped at 100 beyond that for performance. Do not use it to detect the last page; rely on `next` being `null` instead. */
+  /** Number of matching rows - exact up to 100, capped at 100 beyond that for performance. Do not use it to detect the last page; rely on `next` being `null` instead. */
   count?: number;
   /** Absolute URL of the next page, or `null` on the last page. */
   next?: string | null;
@@ -650,7 +650,7 @@ export interface BusinessesUpdateParams {
   country_code?: string | null;
   /** Business lifecycle status. Setting `BLOCKED` automatically adds the `vendor_data` to the system blocklist; flipping away from `BLOCKED` removes that blocklist entry. */
   status?: "ACTIVE" | "FLAGGED" | "BLOCKED" | (string & {});
-  /** Arbitrary JSON object you attach to the business. **Fully replaces** the existing metadata on update — merge client-side if you only want to add keys. */
+  /** Arbitrary JSON object you attach to the business. **Fully replaces** the existing metadata on update - merge client-side if you only want to add keys. */
   metadata?: Record<string, unknown> | null;
 }
 

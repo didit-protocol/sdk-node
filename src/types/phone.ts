@@ -20,13 +20,13 @@ export interface PhoneAssessRiskParams {
 export interface PhoneCheckCodeParams {
   /** The same phone number used in the matching [`POST /v3/phone/send/`](/standalone-apis/phone-send) call, in E.164 format. This is what links the check to the send. */
   phone_number: string;
-  /** The OTP the end user received. Must be 4–8 numeric digits — anything else returns `400` without consuming an attempt. A well-formed but wrong code returns `200` with `status: "Failed"` and consumes one of the 3 attempts. */
+  /** The OTP the end user received. Must be 4–8 numeric digits - anything else returns `400` without consuming an attempt. A well-formed but wrong code returns `200` with `status: "Failed"` and consumes one of the 3 attempts. */
   code: string;
   /** What to do when the same number was already used by a different user (different `vendor_data`) of your application. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings` and fills `phone.matches`. */
   duplicated_phone_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** What to do when the carrier lookup flags the number as a temporary/burner line (`phone.is_disposable`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
   disposable_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
-  /** What to do when the carrier lookup reports a virtual line type — `voip`, `isp`, or `vpn` (`phone.is_virtual`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
+  /** What to do when the carrier lookup reports a virtual line type - `voip`, `isp`, or `vpn` (`phone.is_virtual`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
   voip_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** When true, also look up the social footprint of the number - the messaging, social, e-commerce and professional platforms it is registered on. Billed as one `phone_social` unit per request in addition to this endpoint's own price. */
   enable_social?: boolean;
@@ -35,7 +35,7 @@ export interface PhoneCheckCodeParams {
 }
 
 export interface PhoneSendCodeParams {
-  /** Recipient phone number in E.164 format — leading `+` and country code (e.g., `+14155552671`). Numbers are validated and normalized to E.164; unparseable or invalid numbers return `400` with a `phone_number` field error. */
+  /** Recipient phone number in E.164 format - leading `+` and country code (e.g., `+14155552671`). Numbers are validated and normalized to E.164; unparseable or invalid numbers return `400` with a `phone_number` field error. */
   phone_number: string;
   /** OTP delivery options. All fields are optional. */
   options?: PhoneSendCodeParamsOptions;
@@ -53,7 +53,7 @@ export interface PhoneSendCodeParamsOptions {
   code_size?: number;
   /** BCP-47 locale used to localize the verification message (e.g., `en-US`, `fr`, `es`). Invalid formats return `400`. */
   locale?: string;
-  /** Preferred delivery channel. If the channel is unavailable for the destination country or number, the message automatically falls back to SMS — the send still reports `Success`. */
+  /** Preferred delivery channel. If the channel is unavailable for the destination country or number, the message automatically falls back to SMS - the send still reports `Success`. */
   preferred_channel?:
     "whatsapp" | "sms" | "telegram" | "voice" | "rcs" | "viber" | "zalo" | (string & {});
   /** When `true`, the send is white-labelled: if your application has no SMS sender name, the SMS names your white-label public name instead ("123456 is your verification code for Acme Bank"). Your SMS sender name, when set, is used with or without this flag. Applies to SMS messages, including an SMS fallback from another channel; WhatsApp codes are sent with a fixed message and are not branded. Defaults to `false`. */

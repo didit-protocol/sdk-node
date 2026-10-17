@@ -2,7 +2,7 @@
 // HTTP layer checks the method, the path (ids filled, application scope
 // expanded), the query, the body encoding and the response parsing.
 
-import { kebab } from "./naming.ts";
+import { byCodePoint, kebab } from "./naming.ts";
 import type { Field, Method } from "./operations.ts";
 import { isObject, type Json, type JsonObject, type Spec } from "./spec.ts";
 
@@ -286,14 +286,14 @@ function renderCase(method: Method): Case {
 
 export function renderTests(children: Map<string, ResourceNodeLike>): Map<string, string> {
   const out = new Map<string, string>();
-  for (const [segment, node] of [...children.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [segment, node] of [...children.entries()].sort(([a], [b]) => byCodePoint(a, b))) {
     const all: Method[] = [];
     const walk = (n: ResourceNodeLike): void => {
       all.push(...n.methods);
       for (const c of n.children.values()) walk(c);
     };
     walk(node);
-    all.sort((a, b) => `${a.resource}.${a.name}`.localeCompare(`${b.resource}.${b.name}`));
+    all.sort((a, b) => byCodePoint(`${a.resource}.${a.name}`, `${b.resource}.${b.name}`));
     const cases = all.map(renderCase);
     const usesBinary = all.some((m) => m.response.kind === "binary");
     const imports = ["expectAuth", "expectMatchesExample", "mockClient", "responseExample"];

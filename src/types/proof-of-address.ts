@@ -18,13 +18,13 @@ export interface ProofOfAddressVerifyParams {
   expected_last_name?: string;
   /** Comma-separated list of accepted document languages as ISO 639-1 codes (e.g. `en,es,fr`). When omitted or blank, **all 51 supported languages** are accepted. A document in a language outside the list adds `UNSUPPORTED_DOCUMENT_LANGUAGE` (governed by `poa_unsupported_language_action`); an unknown code in the list returns `400` with the full set of supported codes. */
   poa_languages_allowed?: string;
-  /** Comma-separated `key:value` pairs setting the maximum document age in months per document type — keys: `utility_bill`, `bank_statement`, `government_issued_document`, `other_poa_document`; values: `1`–`120`, or `-1` for unlimited (no age check). Defaults when omitted: `utility_bill:3,bank_statement:3,government_issued_document:12,other_poa_document:12`. A document older than its limit declines with `POA_DOCUMENT_EXPIRED`. **Caution:** when you provide this field, list *every* type you accept — omitted types are treated as not accepted (informational `POA_DOCUMENT_NOT_SUPPORTED_FOR_APPLICATION`) and their age check is skipped. */
+  /** Comma-separated `key:value` pairs setting the maximum document age in months per document type - keys: `utility_bill`, `bank_statement`, `government_issued_document`, `other_poa_document`; values: `1`–`120`, or `-1` for unlimited (no age check). Defaults when omitted: `utility_bill:3,bank_statement:3,government_issued_document:12,other_poa_document:12`. A document older than its limit declines with `POA_DOCUMENT_EXPIRED`. **Caution:** when you provide this field, list *every* type you accept - omitted types are treated as not accepted (informational `POA_DOCUMENT_NOT_SUPPORTED_FOR_APPLICATION`) and their age check is skipped. */
   poa_document_age_months?: string;
-  /** Accepted but **currently not applied** — name-mismatch warnings (`NAME_MISMATCH_WITH_PROVIDED`) follow `poa_address_mismatch_action` instead. Set `poa_address_mismatch_action` to control both name and address mismatch behavior. */
+  /** Accepted but **currently not applied** - name-mismatch warnings (`NAME_MISMATCH_WITH_PROVIDED`) follow `poa_address_mismatch_action` instead. Set `poa_address_mismatch_action` to control both name and address mismatch behavior. */
   poa_name_mismatch_action?: "DECLINE" | "NO_ACTION" | (string & {});
-  /** What to do on file-integrity problems — in practice only `DOCUMENT_METADATA_MISMATCH` is produced by this endpoint. */
+  /** What to do on file-integrity problems - in practice only `DOCUMENT_METADATA_MISMATCH` is produced by this endpoint. */
   poa_document_issues_action?: "DECLINE" | "NO_ACTION" | (string & {});
-  /** What to do when document manipulation is suspected (`SUSPECTED_DOCUMENT_MANIPULATION`) — e.g. the PDF was modified after digital signing, processed by a known PDF editor, shows overlay-text manipulation, or has inconsistent EXIF dates. */
+  /** What to do when document manipulation is suspected (`SUSPECTED_DOCUMENT_MANIPULATION`) - e.g. the PDF was modified after digital signing, processed by a known PDF editor, shows overlay-text manipulation, or has inconsistent EXIF dates. */
   poa_document_authenticity_action?: "DECLINE" | "NO_ACTION" | (string & {});
   /** What to do when the document language is outside `poa_languages_allowed` (`UNSUPPORTED_DOCUMENT_LANGUAGE`). */
   poa_unsupported_language_action?: "DECLINE" | "NO_ACTION" | (string & {});
@@ -32,11 +32,11 @@ export interface ProofOfAddressVerifyParams {
   poa_address_mismatch_action?: "DECLINE" | "NO_ACTION" | (string & {});
   /** What to do when no issuing company/organization can be identified on the document (`ISSUER_NOT_IDENTIFIED`). */
   poa_issuer_not_identified_action?: "DECLINE" | "NO_ACTION" | (string & {});
-  /** When `true` (default), persists the call as an API-type session — visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with the uploaded document stored. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
+  /** When `true` (default), persists the call as an API-type session - visible in the Business Console, retrievable via `GET /v3/session/{sessionId}/decision/` using the returned `request_id`, announced through a `status.updated` webhook, and with the uploaded document stored. When `false`, nothing is stored and `request_id` is a transient UUID for response correlation only. */
   save_api_request?: boolean;
   /** Optional opaque string (your internal user id, email, UUID…) stored on the persisted session and echoed back in the response. Use it to correlate API calls with your own records and to filter sessions later. */
   vendor_data?: string;
-  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"onboarding"}`) — it is parsed into an object. */
+  /** Optional JSON object stored with the session (when `save_api_request=true`) and echoed back in the response. In multipart requests, send it as a JSON-encoded string field (e.g. `metadata={"flow":"onboarding"}`) - it is parsed into an object. */
   metadata?: Record<string, unknown>;
 }
 
@@ -53,11 +53,11 @@ export interface ProofOfAddressVerifyResponse {
 }
 
 export interface ProofOfAddressVerifyResponsePoa {
-  /** `Approved` when no warning resolves to a decline; `Declined` otherwise — the `warnings` list explains why. */
+  /** `Approved` when no warning resolves to a decline; `Declined` otherwise - the `warnings` list explains why. */
   status?: "Approved" | "Declined" | (string & {});
-  /** Country the document was issued in, as extracted from the document — usually ISO 3166-1 alpha-3 (e.g. `ARG`). */
+  /** Country the document was issued in, as extracted from the document - usually ISO 3166-1 alpha-3 (e.g. `ARG`). */
   issuing_state?: string | null;
-  /** Detected document category. `UNKNOWN` means the document could not be classified as an acceptable Proof of Address and auto-declines with `INVALID_DOCUMENT_TYPE`. Never null — classification failures fall back to `UNKNOWN`. */
+  /** Detected document category. `UNKNOWN` means the document could not be classified as an acceptable Proof of Address and auto-declines with `INVALID_DOCUMENT_TYPE`. Never null - classification failures fall back to `UNKNOWN`. */
   document_type?:
     | "UTILITY_BILL"
     | "BANK_STATEMENT"
@@ -65,13 +65,13 @@ export interface ProofOfAddressVerifyResponsePoa {
     | "OTHER_POA_DOCUMENT"
     | "UNKNOWN"
     | (string & {});
-  /** Finer-grained classification within `document_type` — e.g. `ELECTRICITY_BILL`, `WATER_BILL`, `GAS_BILL`, `INTERNET_BILL`, `PHONE_BILL` (utility bills); `ACCOUNT_STATEMENT`, `CREDIT_CARD_STATEMENT` (bank statements); `TAX_ASSESSMENT`, `RESIDENCY_CERTIFICATE` (government documents). `UNKNOWN` when no subtype could be determined. Never null — classification failures fall back to `UNKNOWN`. */
+  /** Finer-grained classification within `document_type` - e.g. `ELECTRICITY_BILL`, `WATER_BILL`, `GAS_BILL`, `INTERNET_BILL`, `PHONE_BILL` (utility bills); `ACCOUNT_STATEMENT`, `CREDIT_CARD_STATEMENT` (bank statements); `TAX_ASSESSMENT`, `RESIDENCY_CERTIFICATE` (government documents). `UNKNOWN` when no subtype could be determined. Never null - classification failures fall back to `UNKNOWN`. */
   document_subtype?: string;
   /** Detected document language (ISO 639-1). */
   document_language?: string | null;
   /** Company or organization that issued the document. `null` adds `ISSUER_NOT_IDENTIFIED`. */
   issuer?: string | null;
-  /** Document issue date (`YYYY-MM-DD`). `null` when it could not be extracted — that declines with `UNABLE_TO_EXTRACT_ISSUE_DATE` on this endpoint. */
+  /** Document issue date (`YYYY-MM-DD`). `null` when it could not be extracted - that declines with `UNABLE_TO_EXTRACT_ISSUE_DATE` on this endpoint. */
   issue_date?: string | null;
   /** Explicit expiry/validity date printed on the document, when present. Independent of the `poa_document_age_months` age check. */
   expiration_date?: string | null;
@@ -136,9 +136,9 @@ export interface ProofOfAddressVerifyResponsePoaWarnings {
   risk?: string;
   /** Feature that raised the warning. Always `PROOF_OF_ADDRESS` on this endpoint. */
   feature?: "PROOF_OF_ADDRESS" | (string & {});
-  /** Extra context for some risks — e.g. `POA_DOCUMENT_EXPIRED` includes `expiration_reason` (`printed_expiration` or `age_window`), `document_type`, `document_subtype`, and `issue_date`, plus `expiration_date` on the `printed_expiration` path or `max_age_months` on the `age_window` path; `SUSPECTED_DOCUMENT_MANIPULATION` includes `reason` and `detection_method`. `null` for most risks. */
+  /** Extra context for some risks - e.g. `POA_DOCUMENT_EXPIRED` includes `expiration_reason` (`printed_expiration` or `age_window`), `document_type`, `document_subtype`, and `issue_date`, plus `expiration_date` on the `printed_expiration` path or `max_age_months` on the `age_window` path; `SUSPECTED_DOCUMENT_MANIPULATION` includes `reason` and `detection_method`. `null` for most risks. */
   additional_data?: Record<string, unknown> | null;
-  /** Severity. `error` warnings drive `status` to `Declined`; `information` entries are advisory and never decline on their own. (`warning` is not produced by this endpoint — its options only accept `DECLINE` or `NO_ACTION`.) */
+  /** Severity. `error` warnings drive `status` to `Declined`; `information` entries are advisory and never decline on their own. (`warning` is not produced by this endpoint - its options only accept `DECLINE` or `NO_ACTION`.) */
   log_type?: "error" | "information" | (string & {});
   /** Human-readable one-line summary of the risk. */
   short_description?: string;

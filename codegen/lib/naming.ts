@@ -106,3 +106,11 @@ const IDENT = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 export function propKey(name: string): string {
   return IDENT.test(name) ? name : JSON.stringify(name);
 }
+
+/**
+ * Order strings by UTF-16 code unit, the same on every machine (localeCompare
+ * follows the host's locale, so generated files would differ between machines).
+ */
+export function byCodePoint(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
