@@ -4,6 +4,9 @@
 // signed here; the issuer is a `fetch` stub, so nothing touches the network.
 // Every id, token and secret below is synthetic and built at run time.
 
+// Node.js 18 has no global crypto; the SDK finds it in node:crypto, and so do the tests.
+import { webcrypto as crypto } from "node:crypto";
+
 import { expect, vi } from "vitest";
 import { Authentication, type AuthenticationOptions } from "../../src/authentication/index.js";
 import { TokenVerificationError, type TokenVerificationReason } from "../../src/core/errors.js";

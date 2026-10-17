@@ -1,7 +1,8 @@
 // Access token and ID token verification (docs/DESIGN.md section 10) against a
 // stubbed issuer with locally generated keys; nothing touches the network.
 
-import { createHmac } from "node:crypto";
+// Node.js 18 has no global crypto; the SDK finds it in node:crypto, and so do the tests.
+import { createHmac, webcrypto as crypto } from "node:crypto";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Authentication,

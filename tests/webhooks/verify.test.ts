@@ -2,6 +2,7 @@
 // reference SDK (sdk-python tests/test_webhooks.py) covers, and the TypeScript
 // specifics: header shapes, non-enumerable event properties, verifyParsed.
 
+import { webcrypto } from "node:crypto";
 import type { IncomingHttpHeaders } from "node:http";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -203,7 +204,7 @@ describe("signatures", () => {
     ["short after trimming", ` ${"0".repeat(63)}`],
   ])("ignores a signature that is %s", async (_name, bad) => {
     const { body } = delivery(payload());
-    const verify = vi.spyOn(globalThis.crypto.subtle, "verify");
+    const verify = vi.spyOn(webcrypto.subtle, "verify");
     const headers = { "X-Signature": bad, "X-Signature-V2": bad, "X-Signature-Simple": bad };
     expect(await reasonOf(verifyWebhook(body, headers, SECRET, { allowSimple: true }))).toBe(
       "invalid_signature",
@@ -214,7 +215,7 @@ describe("signatures", () => {
 
   it("compares well-formed signatures with crypto.subtle.verify", async () => {
     const { body, headers } = delivery(payload());
-    const verify = vi.spyOn(globalThis.crypto.subtle, "verify");
+    const verify = vi.spyOn(webcrypto.subtle, "verify");
     await verifyWebhook(body, only(headers, "X-Signature"), SECRET);
     expect(verify).toHaveBeenCalledTimes(1);
     expect(verify.mock.calls[0]![0]).toBe("HMAC");
