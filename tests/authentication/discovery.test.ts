@@ -190,7 +190,6 @@ describe("discovery and JWKS", () => {
     ["a numeric y", { y: 42 }],
     ["x not base64url", { x: "!!!" }],
     ["a point off the curve", { x: b64url(new Uint8Array(32)), y: b64url(new Uint8Array(32)) }],
-    ["key_ops without verify", { key_ops: ["sign"] }],
   ])("treats a published key with %s as an unknown key", async (_name, change) => {
     issuer.keys = [];
     const odd = { ...key.jwk(), ...change };
@@ -200,9 +199,10 @@ describe("discovery and JWKS", () => {
     );
   });
 
-  it("accepts a published key without use and alg, and ignores private members", async () => {
+  it("accepts a published key without use and alg, and ignores other members", async () => {
     const { use: _use, alg: _alg, ...bare } = key.jwk();
-    issuer.route("GET", JWKS, () => json(200, { keys: [{ ...bare, d: b64url(new Uint8Array(32)) }] }));
+    const extra = { d: b64url(new Uint8Array(32)), key_ops: ["sign"], ext: false };
+    issuer.route("GET", JWKS, () => json(200, { keys: [{ ...bare, ...extra }] }));
     expect((await auth.verifyAccessToken(await key.sign(accessClaims()))).sub).toBe(IDENTITY_ID);
   });
 
