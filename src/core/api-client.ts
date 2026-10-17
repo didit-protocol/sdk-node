@@ -120,7 +120,7 @@ export function parseRetryAfter(value: string | null, now = Date.now()): number 
   if (!value) return undefined;
   const text = value.trim();
   let ms: number;
-  if (/^\d+(\.\d+)?$/.test(text)) ms = Number(text) * 1000;
+  if (/^[+-]?\d+(\.\d+)?$/.test(text)) ms = Number(text) * 1000;
   else {
     const date = Date.parse(text);
     if (Number.isNaN(date)) return undefined;

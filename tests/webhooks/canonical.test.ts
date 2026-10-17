@@ -166,15 +166,15 @@ describe("strings", () => {
   it("escapes like Python with ensure_ascii=False", () => {
     let s = "";
     for (let c = 0; c < 0x20; c++) s += String.fromCharCode(c);
-    s += '\u007f/  "\\';
+    s += '\u007f/\u2028\u2029"\\';
     expect(canonicalJson({ s })).toBe(
-      '{"s":"\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001f\u007f/  \\"\\\\"}',
+      '{"s":"\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001f\u007f/\u2028\u2029\\"\\\\"}',
     );
   });
 
   it("reads every escape and writes non-ASCII text literally", () => {
     expect(canonical('"\\"\\\\\\/\\b\\f\\n\\r\\t\\u00e9\\u00E9\\ud83d\\ude00"')).toBe(
-      '"\\"\\\\/\\b\\f\\n\\r\\téé😀"',
+      '"\\"\\\\/\\b\\f\\n\\r\\t\u00e9\u00e9\ud83d\ude00"',
     );
     expect(canonical('"<script>&amp;</script>"')).toBe('"<script>&amp;</script>"');
   });
@@ -189,10 +189,10 @@ describe("strings", () => {
   });
 
   it("encodes well-formed text exactly like TextEncoder", () => {
-    const s = "José 😀 山田";
+    const s = "Jos\u00e9 \ud83d\ude00 \u5c71\u7530";
     expect(encodeUtf8SurrogatePass(s)).toEqual(new TextEncoder().encode(s));
     expect(hex(encodeUtf8SurrogatePass("\ud800"))).toBe("eda080");
-    expect(hex(encodeUtf8SurrogatePass("\udbff😀éa"))).toBe("edafbff09f9880c3a961");
+    expect(hex(encodeUtf8SurrogatePass("\udbff\ud83d\ude00\u00e9a"))).toBe("edafbff09f9880c3a961");
   });
 });
 
@@ -201,7 +201,7 @@ describe("objects", () => {
     const text =
       '{"\\ud83d\\ude00":1,"\\ufb00":2,"\\uffff":3,"\\ue000":4,"a":5,"\\u00e9":6,"\\ud800\\udc00":7,"Z":8,"":9,"\\u007f":10}';
     const expected =
-      '{"":9,"Z":8,"a":5,"\u007f":10,"é":6,"":4,"ﬀ":2,"￿":3,"𐀀":7,"😀":1}';
+      '{"":9,"Z":8,"a":5,"\u007f":10,"\u00e9":6,"\ue000":4,"\ufb00":2,"\uffff":3,"\ud800\udc00":7,"\ud83d\ude00":1}';
     expect(canonical(text)).toBe(expected);
     expect(hex(encodeUtf8SurrogatePass(expected))).toBe(
       "7b22223a392c225a223a382c2261223a352c227f223a31302c22c3a9223a362c22ee8080223a342c22efac80223a322c22efbfbf223a332c22f0908080223a372c22f09f9880223a317d",
@@ -224,11 +224,11 @@ describe("objects", () => {
     expect(compareCodePoints("a", "b")).toBeLessThan(0);
     expect(compareCodePoints("ab", "a")).toBeGreaterThan(0);
     expect(compareCodePoints("x", "x")).toBe(0);
-    expect(compareCodePoints("😀", "😀z")).toBeLessThan(0);
+    expect(compareCodePoints("\ud83d\ude00", "\ud83d\ude00z")).toBeLessThan(0);
     // A pair (U+1F600) against a lone high surrogate then U+E000.
-    expect(compareCodePoints("😀", "\ud83d")).toBeGreaterThan(0);
-    expect(compareCodePoints("x\ud83d", "x😀")).toBeLessThan(0);
-    expect(compareCodePoints("ﬀ", "😀")).toBeLessThan(0);
+    expect(compareCodePoints("\ud83d\ude00", "\ud83d\ue000")).toBeGreaterThan(0);
+    expect(compareCodePoints("x\ud83d", "x\ud83d\ude00")).toBeLessThan(0);
+    expect(compareCodePoints("\ufb00", "\ud83d\ude00")).toBeLessThan(0);
   });
 
   it("lets the last duplicate key win and treats __proto__ as a plain key", () => {
@@ -289,7 +289,7 @@ describe("strict parsing", () => {
     '"nul\u0000"',
     "{} {}",
     '{"a":1}x',
-    "﻿{}",
+    "\ufeff{}",
   ])("refuses %j", (text) => {
     expect(reason(() => parseJson(text))).toBe("invalid_payload");
   });
@@ -310,7 +310,7 @@ describe("strict parsing", () => {
       expect(reason(() => decodeUtf8(new Uint8Array(bytes)))).toBe("invalid_payload");
     }
     const withBom = decodeUtf8(new Uint8Array([0xef, 0xbb, 0xbf, 0x7b, 0x7d]));
-    expect(withBom).toBe("﻿{}");
+    expect(withBom).toBe("\ufeff{}");
     expect(reason(() => parseJson(withBom))).toBe("invalid_payload");
   });
 });
