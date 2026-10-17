@@ -228,7 +228,7 @@ describe("headers", () => {
     for (const [label, attempt] of attempts) {
       const error = await attempt().catch((e: unknown) => e);
       expect(error, label).toBeInstanceOf(ConfigurationError);
-      expect(String((error as Error).message), label).not.toContain(secret);
+      expect((error as Error).message, label).not.toContain(secret);
       expect((error as Error).cause, label).toBeUndefined();
     }
   });

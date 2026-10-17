@@ -27,7 +27,7 @@ async function sent(front: Uploadable) {
 const BYTES = new Uint8Array([1, 2, 3]);
 
 function ascii(text: string): number[] {
-  return [...text].map((c) => c.charCodeAt(0));
+  return Array.from({ length: text.length }, (_, i) => text.charCodeAt(i));
 }
 
 describe("file inputs", () => {

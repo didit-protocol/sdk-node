@@ -134,10 +134,12 @@ describe("pages", () => {
       previous: null,
       results: [{ id: n }],
     }));
+    const items: unknown[] = [];
     const error = await (async () => {
-      for await (const item of didit.workflows.list()) void item;
+      for await (const item of didit.workflows.list()) items.push(item);
     })().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(APIResponseValidationError);
+    expect(items).toHaveLength(2);
     expect(calls.map((c) => c.url.hash)).toEqual(["", ""]);
   });
 

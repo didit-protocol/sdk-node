@@ -166,6 +166,7 @@ The SDK follows the API's `next` links and refuses a link to another origin, so 
 Upload parameters accept a `Blob` or `File`, a `Uint8Array` or `ArrayBuffer`, a web `ReadableStream`, a Node.js stream such as `fs.createReadStream("id.jpg")`, or `{ data, filename, contentType }`.
 `fileFromPath(path)` reads a file on Node.js, Bun and Deno; `toFile(bytes, filename)` names bytes.
 An upload without a name is sent as `file` plus the extension its content type or first bytes give (`file.jpg`, `file.pdf`).
+A request with a file is sent as multipart form data: objects in it travel as JSON text, and `null` fields are left out (multipart has no null).
 
 Binary responses (session and user PDFs, network reports, wallet screening PDFs, the import template, case attachments) return a `Blob`:
 
@@ -321,6 +322,8 @@ Set `DIDIT_LOG=debug` (or `logLevel: "debug"`) to log one line per HTTP request:
 | Bun           | 1.x                                                                                         |
 | Deno          | 2.x                                                                                         |
 | Edge runtimes | Cloudflare Workers, Vercel Edge and other runtimes with `fetch`, Web Crypto and Web Streams |
+
+CI runs the test suite on every Node.js version and a smoke test of the built package on Node.js 18, Bun, Deno and workerd (the Cloudflare Workers runtime).
 
 The SDK refuses to send your API key anywhere but the API, but it is a server-side library: never ship your API key to a browser.
 

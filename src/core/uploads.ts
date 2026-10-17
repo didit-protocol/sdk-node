@@ -110,7 +110,7 @@ function isFileUpload(value: unknown): value is FileUpload {
     value !== null &&
     !isFileData(value) &&
     "data" in value &&
-    isFileData((value as { data: unknown }).data)
+    isFileData(value.data)
   );
 }
 

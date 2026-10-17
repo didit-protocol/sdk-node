@@ -319,8 +319,9 @@ export class TypeBuilder {
     const existing = this.decls.get(decl.name);
     if (existing) {
       throw new CodegenError(
-        `Two different types are both named ${decl.name} (${existing.module} and ${decl.module}); ` +
-          "rename one of the operations or properties in openapi/overlay.json.",
+        `Two different types are both named ${decl.name} (${existing.module} and ${decl.module}). ` +
+          "For a type named after an operation, rename the operation in openapi/overlay.json; " +
+          "for a component, add it to COMPONENT_RENAMES in codegen/lib/types.ts.",
       );
     }
     this.decls.set(decl.name, decl);
