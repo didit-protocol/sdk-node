@@ -309,8 +309,17 @@ function renderTypes(module: string, decls: Decl[], all: Map<string, Decl>): str
 
 /** Build every generated file from the model. */
 export function render(model: Model): Rendered {
-  const builder = new TypeBuilder([model.specs.verification, model.specs.account], RESERVED_NAMES);
   const server = model.operations.filter((op) => op.sdk.server);
+  // Resource classes are exported next to the types, so their names are taken too.
+  const resourceClasses = new Set<string>();
+  for (const op of server) {
+    const segments = op.sdk.resource.split(".");
+    segments.forEach((_, i) => resourceClasses.add(resourceClass(segments.slice(0, i + 1).join("."))));
+  }
+  const builder = new TypeBuilder(
+    [model.specs.verification, model.specs.account],
+    new Set([...RESERVED_NAMES, ...resourceClasses, "DiditResources", "DATE_PLANS"]),
+  );
   builder.setResponseUsage(responseComponents(server));
   const methods = server
     .slice()
