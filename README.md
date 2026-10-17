@@ -239,8 +239,11 @@ switch (event.webhook_type) {
 
 Events are a union discriminated by `webhook_type`: session (`status.updated`, `data.updated`), user, business, transaction and Travel Rule events, `activity.created`, `workflow.compliance_changed`, `kyb.registry_search.resolved`, and `UnknownEvent` for any other type.
 Each event also has `event.verifiedBy` (which signature matched) and `event.bodyAuthenticated`.
+The event is the body as sent, except that the session `decision` is the generated decision type, so its date-times are `Date` objects.
 
-If your framework only gives you the parsed JSON body, `webhooks.verifyParsed(payload, headers, secret)` checks `X-Signature-V2` only. Prefer the raw body.
+The KYB registry search callback (`kyb.registry_search.resolved`) is delivered unsigned today (`X-Didit-Unsigned-Callback: true`), so `verify` rejects it with `missing_signature`. Do not trust its body: read the result from the API by its `request_id` instead.
+
+If your framework only gives you the parsed JSON body, `webhooks.verifyParsed(payload, headers, secret)` checks `X-Signature-V2` only, and fails for integers above 2^53 that `JSON.parse` has already rounded. Prefer the raw body.
 `X-Signature-Simple` signs the envelope only, not the body; it is accepted with `{ allowSimple: true }`, and then `event.bodyAuthenticated` is `false`: re-fetch the record from the API before acting on it.
 
 ## Transactions, wallet screening and Travel Rule

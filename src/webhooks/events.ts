@@ -1,9 +1,9 @@
 // Typed webhook events (docs/DESIGN.md section 9.4).
 //
-// An event is the parsed webhook body itself, so `JSON.stringify(event)` gives
-// the payload back and every field Didit sends is readable, including fields
-// this version of the SDK does not describe. Narrow it with
-// `switch (event.webhook_type)`.
+// An event is the parsed webhook body itself, so every field Didit sends is
+// readable, including fields this version of the SDK does not describe. The one
+// change: a session event's `decision` is the generated decision type, whose
+// date-times are Date objects. Narrow it with `switch (event.webhook_type)`.
 //
 // How narrowing works with UnknownEvent in the union: the twelve known events
 // declare `webhook_type` as a string literal, and UnknownEvent reads it through
@@ -227,6 +227,10 @@ export interface WorkflowComplianceChangedEvent extends WebhookEventBase {
  * `kyb.registry_search.resolved`: an asynchronous business registry search
  * finished. The callback names its type `event_type`; the SDK then sets
  * `webhook_type` from it (not enumerable, so the payload stays as sent).
+ *
+ * Didit delivers this callback unsigned today (`X-Didit-Unsigned-Callback:
+ * true`), so `verify` rejects it with `missing_signature`; read the result
+ * from the API by its `request_id` instead of trusting the body.
  */
 export interface KybRegistrySearchResolvedEvent extends WebhookEventBase {
   webhook_type: "kyb.registry_search.resolved";
