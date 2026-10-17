@@ -43,7 +43,8 @@ const RESERVED = new Set([
   "else", "enum", "export", "extends", "false", "finally", "for", "function", "if", "import", "in",
   "instanceof", "new", "null", "return", "super", "switch", "this", "throw", "true", "try",
   "typeof", "var", "void", "while", "with", "yield", "let", "static", "implements", "interface",
-  "package", "private", "protected", "public", "await", "arguments", "eval", "options",
+  "package", "private", "protected", "public", "await", "arguments", "eval", "options", "params",
+  "body",
 ]);
 
 /** A valid JavaScript identifier for a positional argument. */
