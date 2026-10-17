@@ -17,6 +17,10 @@ for await (const address of didit.travelRule.walletAddresses.list()) console.log
 
 const wallet = process.argv[2];
 if (wallet) {
-  const screening = await didit.walletScreening.screen({ wallet_address: wallet, direction: "inbound" });
+  const screening = await didit.walletScreening.screen({
+    wallet_address: wallet,
+    blockchain: "ETH",
+    direction: "inbound",
+  });
   console.log("Wallet screening:", JSON.stringify(screening, null, 2));
 }

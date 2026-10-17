@@ -9,6 +9,7 @@ const didit = new Didit();
 
 const transaction = await didit.transactions.create({
   transaction_id: `txn-${Date.now()}`,
+  transaction_category: "finance",
   transaction_at: new Date(),
   transaction_details: { direction: "outbound", amount: 2500, currency: "EUR" },
   subject: { vendor_data: "user-123", full_name: "Ada Lovelace" },

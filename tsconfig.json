@@ -21,7 +21,9 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"]
+    "types": ["node"],
+    // The examples import the package by name, as users do.
+    "paths": { "@didit-protocol/sdk-node": ["./src/index.ts"] }
   },
   "include": ["src", "tests", "codegen", "examples", "*.ts"]
 }

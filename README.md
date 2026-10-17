@@ -59,7 +59,7 @@ app.post("/webhooks/didit", express.raw({ type: "application/json" }), async (re
 });
 ```
 
-More runnable examples, including webhook receivers for Express, Fastify, Hono, Next.js, NestJS, Bun, Deno and Cloudflare Workers, are in [`examples/`](examples/).
+More runnable examples, including webhook receivers for Express, Fastify, Hono, Next.js, Cloudflare Workers, Bun and Deno, are in [`examples/`](examples/).
 
 ## Configuration
 
@@ -104,8 +104,8 @@ Path parameters are positional; everything else goes in one params object whose 
 ```ts
 await didit.idVerification.verify({ front_image: await fileFromPath("id-front.jpg") });
 await didit.aml.screen({ full_name: "Ada Lovelace", date_of_birth: "1815-12-10" });
-await didit.users.update("user-42", { status: "Active" });
-await didit.cases.notes.create(caseUuid, { body: "Checked with the customer" });
+await didit.users.update("user-42", { status: "ACTIVE" });
+await didit.cases.notes.create(caseUuid, { comment: "Checked with the customer" });
 ```
 
 Every request and response has a type, exported from the package:
@@ -238,15 +238,16 @@ If your framework only gives you the parsed JSON body, `webhooks.verifyParsed(pa
 ```ts
 const txn = await didit.transactions.create({
   transaction_id: "txn-1001",
+  transaction_category: "finance",
   transaction_details: { direction: "outbound", amount: 2500, currency: "EUR" },
   subject: { vendor_data: "user-42", full_name: "Ada Lovelace" },
 });
-console.log(txn.status, txn.score);
+console.log(txn.status, txn.score); // "APPROVED" | "IN_REVIEW" | "DECLINED" | ...
 
-const screening = await didit.walletScreening.screen({ wallet_address: "0x...", direction: "inbound" });
-const rules = await didit.transactions.rules.list();
-await didit.transactions.travelRule.confirmOwnership(txn.uuid, { /* ... */ });
+const screening = await didit.walletScreening.screen({ wallet_address: "0x...", blockchain: "ETH" });
+for await (const rule of didit.transactions.rules.list()) console.log(rule.name);
 const settings = await didit.travelRule.retrieveSettings();
+const vasps = await didit.travelRule.listVasps({ limit: 20 });
 ```
 
 The `transaction.created`, `transaction.status.updated` and `travel_rule.status.updated` webhooks are typed events.
