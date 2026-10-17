@@ -39,11 +39,19 @@ export interface Decl {
 }
 
 /**
- * How to turn date-time strings of a response into `Date` objects:
- * `1` this value; a string, the plan of that named type; `p` object
- * properties; `i` array items; `a` values of a map.
+ * How to turn the date-time strings of a response into `Date` objects:
+ * `1` this value is one; a string, the plan of that named type; `s` this value
+ * is one when it is a string (a union); `p` object properties; `i` array items;
+ * `a` values of a map.
  */
-export type DatePlan = 1 | string | { p?: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan };
+export type DatePlan = 1 | string | PlanNode;
+
+export interface PlanNode {
+  s?: 1;
+  p?: Record<string, DatePlan>;
+  i?: DatePlan;
+  a?: DatePlan;
+}
 
 const ANY: TypeRef = { expr: "unknown", deps: new Set() };
 
@@ -171,6 +179,8 @@ export class TypeBuilder {
   private readonly reserved: ReadonlySet<string>;
   /** Components of the live documents, for the deprecated operations that reuse them. */
   private readonly live: Spec[];
+  /** `spec:name` of every component reachable from a response. */
+  private responseUsage = new Set<string>();
 
   constructor(live: Spec[], reserved: ReadonlySet<string>) {
     this.live = live;
@@ -188,6 +198,11 @@ export class TypeBuilder {
       }
       this.componentNames.set(spec, own);
     }
+  }
+
+  /** Components used by responses get a `Param` variant when parameters need one. */
+  setResponseUsage(usage: Set<string>): void {
+    this.responseUsage = usage;
   }
 
   // Components -------------------------------------------------------------
@@ -237,7 +252,8 @@ export class TypeBuilder {
     const base = this.componentTypeName(key);
     const effective: Mode = mode === "param" && this.isSensitive(key) ? "param" : "response";
     // A component used only as a parameter keeps the plain name.
-    const typeName = effective === "param" ? `${base}Param` : base;
+    const inResponses = this.responseUsage.has(`${key.spec.name}:${key.name}`);
+    const typeName = effective === "param" && inResponses ? `${base}Param` : base;
     const id = `${effective}:${key.spec.name}:${key.name}:${base}`;
     if (!this.built.has(id)) {
       this.built.set(id, typeName);
@@ -328,9 +344,6 @@ export class TypeBuilder {
     if (Array.isArray(schema.enum)) return this.enumType(schema);
     const shape = this.objectShape(spec, schema);
     if (shape) {
-      if (defining) {
-        throw new CodegenError(`${hint}: an object alias must be declared as an interface.`);
-      }
       this.declareInterface(spec, schema, shape, hint, module, mode);
       return ref(hint, [hint]);
     }
@@ -345,7 +358,8 @@ export class TypeBuilder {
       case "boolean":
         return ref("boolean");
       case "array":
-        return arrayOf(this.type(spec, schema.items, hint, module, mode));
+        // A named array's inline items get their own name; a property's items share its name.
+        return arrayOf(this.type(spec, schema.items, defining ? `${hint}Item` : hint, module, mode));
       case "object":
       default: {
         if (schema.type === undefined && !("additionalProperties" in schema)) return ANY;
@@ -484,28 +498,10 @@ export class TypeBuilder {
       }
       return this.datePlan(spec, spec.pointer(target));
     }
-    const merged: { p: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan } = { p: {} };
-    let any = false;
-    const mergeIn = (plan: DatePlan | null): void => {
-      if (plan === null) return;
-      if (plan === 1 || typeof plan === "string") {
-        // A whole union member is a date or a named type: keep the first such plan.
-        if (!any) {
-          any = true;
-          Object.assign(merged, { self: plan });
-        }
-        return;
-      }
-      any = true;
-      if (plan.p) Object.assign(merged.p, plan.p);
-      if (plan.i !== undefined && merged.i === undefined) merged.i = plan.i;
-      if (plan.a !== undefined && merged.a === undefined) merged.a = plan.a;
-    };
     for (const key of ["oneOf", "anyOf"] as const) {
       const members = schema[key];
       if (Array.isArray(members)) {
-        for (const member of members as Json[]) mergeIn(this.datePlan(spec, member));
-        return finish(merged, any);
+        return this.mergePlans((members as Json[]).map((m) => this.datePlan(spec, m)));
       }
     }
     if (schema.type === "string") return schema.format === "date-time" ? 1 : null;
@@ -515,14 +511,12 @@ export class TypeBuilder {
     }
     const shape = this.objectShape(spec, schema);
     if (shape) {
+      const p: Record<string, DatePlan> = {};
       for (const [wire, prop] of Object.entries(shape.props)) {
         const plan = this.datePlan(spec, prop);
-        if (plan !== null) {
-          merged.p[wire] = plan;
-          any = true;
-        }
+        if (plan !== null) p[wire] = plan;
       }
-      return finish(merged, any);
+      return Object.keys(p).length ? { p } : null;
     }
     if (Array.isArray(schema.allOf) && (schema.allOf as Json[]).length === 1) {
       return this.datePlan(spec, (schema.allOf as Json[])[0]);
@@ -534,21 +528,31 @@ export class TypeBuilder {
     }
     return null;
   }
-}
 
-function finish(
-  merged: { p: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan; self?: DatePlan },
-  any: boolean,
-): DatePlan | null {
-  if (!any) return null;
-  if (merged.self !== undefined && !Object.keys(merged.p).length && merged.i === undefined) {
-    return merged.self;
+  /** One plan for the members of a union: the value's own JSON type picks the branch. */
+  private mergePlans(plans: (DatePlan | null)[]): DatePlan | null {
+    const present = plans.filter((p): p is DatePlan => p !== null);
+    if (present.length === 0) return null;
+    if (present.length === 1) return present[0]!;
+    const out: PlanNode = {};
+    for (let plan of present) {
+      if (typeof plan === "string") {
+        const named = this.plans.get(plan);
+        if (named === undefined) return plan; // still being built (recursive): keep the name
+        plan = named;
+      }
+      if (plan === 1) {
+        out.s = 1;
+        continue;
+      }
+      if (typeof plan === "string") return plan;
+      if (plan.s) out.s = 1;
+      if (plan.p) out.p = { ...plan.p, ...out.p };
+      if (plan.i !== undefined) out.i ??= plan.i;
+      if (plan.a !== undefined) out.a ??= plan.a;
+    }
+    return out;
   }
-  const out: { p?: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan } = {};
-  if (Object.keys(merged.p).length) out.p = merged.p;
-  if (merged.i !== undefined) out.i = merged.i;
-  if (merged.a !== undefined) out.a = merged.a;
-  return Object.keys(out).length ? out : null;
 }
 
 /** `/** ... *\/` lines for a description, safe inside a comment. */
