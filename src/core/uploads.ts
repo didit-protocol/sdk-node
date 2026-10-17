@@ -114,6 +114,11 @@ function nameOf(data: unknown): string | undefined {
   return undefined;
 }
 
+// The Blob constructor copies its parts, so a view on a shared or pooled buffer is fine.
+function part(bytes: Uint8Array): BlobPart {
+  return bytes as Uint8Array<ArrayBuffer>;
+}
+
 async function collect(stream: AsyncIterable<Uint8Array> | ReadableStream<Uint8Array>): Promise<Blob> {
   const chunks: BlobPart[] = [];
   if (typeof (stream as ReadableStream<Uint8Array>).getReader === "function") {
@@ -121,11 +126,11 @@ async function collect(stream: AsyncIterable<Uint8Array> | ReadableStream<Uint8A
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      chunks.push(value);
+      chunks.push(part(value));
     }
   } else {
     for await (const chunk of stream as AsyncIterable<Uint8Array>) {
-      chunks.push(typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk);
+      chunks.push(part(typeof chunk === "string" ? new TextEncoder().encode(chunk) : chunk));
     }
   }
   return new Blob(chunks);
@@ -148,7 +153,7 @@ export async function prepareFile(value: Uploadable): Promise<PreparedFile> {
   } else if (data instanceof ArrayBuffer) {
     blob = new Blob([data]);
   } else if (ArrayBuffer.isView(data)) {
-    blob = new Blob([new Uint8Array(data.buffer, data.byteOffset, data.byteLength)]);
+    blob = new Blob([part(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))]);
   } else if (
     typeof data === "object" &&
     (Symbol.asyncIterator in data || typeof (data as ReadableStream).getReader === "function")
