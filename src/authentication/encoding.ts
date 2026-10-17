@@ -11,7 +11,8 @@ const ENCODER = new TextEncoder();
 /** Unpadded base64url (RFC 7515 section 2) to bytes, or `null` when `text` is not that. */
 export function base64UrlDecode(text: string): Uint8Array<ArrayBuffer> | null {
   if (!BASE64URL.test(text) || text.length % 4 === 1) return null;
-  const padded = text.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (text.length % 4)) % 4);
+  const padded =
+    text.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (text.length % 4)) % 4);
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

@@ -91,9 +91,12 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   const path = pathOf(url);
   const fetchImpl = transport.fetch ?? globalThis.fetch;
   const controller = new AbortController();
-  const timer = setTimeout(() => {
-    controller.abort();
-  }, Math.min(transport.timeout, MAX_TIMER));
+  const timer = setTimeout(
+    () => {
+      controller.abort();
+    },
+    Math.min(transport.timeout, MAX_TIMER),
+  );
   const started = Date.now();
   const log = (status: number | null, responseHeaders: Headers | null, error?: string): void => {
     transport.logger?.debug(

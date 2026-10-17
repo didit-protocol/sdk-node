@@ -116,6 +116,11 @@ export interface CreateStepUpParams {
   returnTo?: string;
 }
 
+/** The fields of an options object; a JavaScript caller may pass nothing where one is required. */
+function fieldsOf<T extends object>(value: T | undefined): Partial<T> {
+  return value ?? {};
+}
+
 function requiredText(value: unknown, name: string): string {
   if (typeof value !== "string" || !value.trim()) throw new TypeError(`${name} is empty.`);
   return value.trim();
@@ -156,12 +161,15 @@ function amountText(amount: unknown): string {
   if (typeof amount === "string") {
     const text = amount.trim();
     if (!DECIMAL_TEXT.test(text)) {
-      throw new TypeError(`amount must be a decimal number such as "1500.00", got ${shown(amount)}.`);
+      throw new TypeError(
+        `amount must be a decimal number such as "1500.00", got ${shown(amount)}.`,
+      );
     }
     return text;
   }
   if (typeof amount === "number") {
-    if (!Number.isFinite(amount)) throw new TypeError(`amount must be a finite number, got ${amount}.`);
+    if (!Number.isFinite(amount))
+      throw new TypeError(`amount must be a finite number, got ${amount}.`);
     return plainDecimal(amount);
   }
   throw new TypeError("amount must be a decimal string or a number.");
@@ -215,11 +223,15 @@ export class Authentication {
 
   /** Throws `ConfigurationError` for an invalid issuer or option; sends no request. */
   constructor(options: AuthenticationOptions) {
-    const given: Partial<AuthenticationOptions> = (options as AuthenticationOptions | undefined) ?? {};
+    const given = fieldsOf(options);
     this.issuer = normaliseIssuer(given.issuer);
     this.#origin = new URL(this.issuer);
     const clientId: unknown = given.clientId;
-    if (clientId !== undefined && clientId !== null && (typeof clientId !== "string" || !clientId.trim())) {
+    if (
+      clientId !== undefined &&
+      clientId !== null &&
+      (typeof clientId !== "string" || !clientId.trim())
+    ) {
       throw new ConfigurationError("clientId is empty: pass your application id or leave it out.");
     }
     this.clientId = typeof clientId === "string" ? clientId.trim() : null;
@@ -306,7 +318,7 @@ export class Authentication {
    * carries no nonce.
    */
   async verifyIdToken(token: string, options: VerifyIdTokenOptions): Promise<IdTokenClaims> {
-    const given: Partial<VerifyIdTokenOptions> = (options as VerifyIdTokenOptions | undefined) ?? {};
+    const given = fieldsOf(options);
     const audience = this.#audience(given.audience, true);
     const nonce: unknown = given.nonce;
     if (nonce !== null && (typeof nonce !== "string" || !nonce)) {
@@ -329,7 +341,7 @@ export class Authentication {
    * has to complete a second factor.
    */
   async exchangeCode(params: ExchangeCodeParams): Promise<TokenResponse> {
-    const given: Partial<ExchangeCodeParams> = (params as ExchangeCodeParams | undefined) ?? {};
+    const given = fieldsOf(params);
     const code = requiredText(given.code, "code");
     const codeVerifier = requiredText(given.codeVerifier, "codeVerifier");
     const redirectUri = requiredText(given.redirectUri, "redirectUri");
@@ -399,9 +411,10 @@ export class Authentication {
     params: CreateStepUpParams,
   ): Promise<StepUp | StepUpNotRequired> {
     const token = bearerToken(accessToken, "accessToken");
-    const given: Partial<CreateStepUpParams> = (params as CreateStepUpParams | undefined) ?? {};
+    const given = fieldsOf(params);
     const body: Record<string, unknown> = { action: requiredText(given.action, "action") };
-    if (given.amount !== undefined && given.amount !== null) body.amount = amountText(given.amount);
+    const amount: unknown = given.amount;
+    if (amount !== undefined && amount !== null) body.amount = amountText(amount);
     const currency = optionalText(given.currency, "currency");
     if (currency !== undefined) body.currency = currency;
     const returnTo = optionalText(given.returnTo, "returnTo");
@@ -474,7 +487,8 @@ export class Authentication {
       new APIResponseValidationError(message, response.status, response.headers);
     const discovery = parseDiscovery(response.data);
     if (!discovery) throw invalid("The issuer's discovery document is not a JSON object.");
-    if (discovery.issuer === null) throw invalid(`The discovery document at ${url} names no issuer.`);
+    if (discovery.issuer === null)
+      throw invalid(`The discovery document at ${url} names no issuer.`);
     if (discovery.issuer !== this.issuer) {
       // Not cached and not counted as a failed fetch: it is raised every time.
       throw new ConfigurationError(
@@ -566,7 +580,8 @@ export class Authentication {
       }
       return null;
     }
-    const values: unknown[] = typeof audience === "string" ? [audience] : Array.isArray(audience) ? audience : [];
+    const values: unknown[] =
+      typeof audience === "string" ? [audience] : Array.isArray(audience) ? audience : [];
     if (!values.length || values.some((value) => typeof value !== "string" || !value)) {
       throw new TypeError("audience must be a non-empty string or a list of them.");
     }

@@ -24,13 +24,7 @@ export type StepUpMethod = "liveness" | "selfie" | "full_id" | (string & {});
  * every other value, including ones this version does not know, means no.
  */
 export type StepUpStatus =
-  | "pending"
-  | "review"
-  | "approved"
-  | "declined"
-  | "expired"
-  | "superseded"
-  | (string & {});
+  "pending" | "review" | "approved" | "declined" | "expired" | "superseded" | (string & {});
 
 /** `org`: the person's earliest organization membership, when customer organizations are on. */
 export interface OrganizationClaim {

@@ -56,11 +56,16 @@ function fail(reason: TokenVerificationReason, message: string): never {
   throw new TokenVerificationError(reason, message);
 }
 
+// JSON.stringify returns undefined for undefined, functions and symbols.
+function jsonText(value: unknown): string | undefined {
+  return JSON.stringify(value);
+}
+
 /** A short, safe rendering of a header or claim value for an error message. */
 export function shown(value: unknown): string {
   let text: string;
   try {
-    text = JSON.stringify(value) ?? String(value);
+    text = jsonText(value) ?? String(value);
   } catch {
     text = typeof value;
   }
@@ -96,7 +101,10 @@ function checkType(header: Record<string, unknown>, kind: TokenKind): void {
   // ID tokens are signed with typ JWT; refusing at+jwt keeps an access token from passing as one.
   if (typ !== undefined && typ !== null) {
     if (typeof typ !== "string" || !ID_TYPES.has(typ.toLowerCase())) {
-      fail("invalid_type", `The token is not an ID token: its header typ is ${shown(typ)}, not "JWT".`);
+      fail(
+        "invalid_type",
+        `The token is not an ID token: its header typ is ${shown(typ)}, not "JWT".`,
+      );
     }
   }
 }
@@ -131,7 +139,8 @@ export function parseToken(token: unknown, kind: TokenKind): ParsedToken {
   }
   checkType(header, kind);
   const kid = header.kid;
-  if (typeof kid !== "string" || !kid) fail("malformed", "The token header names no signing key (kid).");
+  if (typeof kid !== "string" || !kid)
+    fail("malformed", "The token header names no signing key (kid).");
   const claims = jsonObject(payloadPart, "payload");
   const signature = base64UrlDecode(signaturePart ?? "");
   if (!signature) fail("malformed", "The token signature is not base64url.");
