@@ -237,3 +237,20 @@ export function expectMatchesExample(actual: unknown, example: unknown, path = "
   }
   expect(actual, path).toEqual(example);
 }
+
+/** A fetch that records requests and answers each one from `handler`. */
+export function fakeFetch(handler: (request: RecordedRequest, index: number) => Reply | Response | Promise<Reply | Response>): {
+  fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+  calls: RecordedRequest[];
+} {
+  const calls: RecordedRequest[] = [];
+  return {
+    calls,
+    fetch: async (input, init) => {
+      const recorded = await record(input, init);
+      calls.push(recorded);
+      const reply = await handler(recorded, calls.length - 1);
+      return reply instanceof Response ? reply : replyResponse(reply);
+    },
+  };
+}
