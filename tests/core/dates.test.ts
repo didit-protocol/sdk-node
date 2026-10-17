@@ -46,7 +46,8 @@ describe("decodeDates", () => {
       "yesterday",
       "2026-10-17",
       "2026-13-45T99:00:00Z",
-      "2026-10-17T10:00:00",
+      "2026-13-45T99:00:00",
+      "2026-10-17T10:00:00+00",
     ]) {
       expect(decodeDates(text, 1, {})).toBe(text);
     }
@@ -58,6 +59,14 @@ describe("decodeDates", () => {
     );
     expect((decodeDates("2026-10-17 10:00:00+0000", 1, {}) as Date).getTime()).toBe(at(ISO));
     expect((decodeDates("2026-10-17T10:00Z", 1, {}) as Date).getTime()).toBe(at(ISO));
+  });
+
+  it("reads a date-time without a time zone as UTC, whatever the host's zone", () => {
+    expect((decodeDates("2026-10-17T10:00:00", 1, {}) as Date).getTime()).toBe(at(ISO));
+    expect((decodeDates("2026-10-17 10:00:00", 1, {}) as Date).getTime()).toBe(at(ISO));
+    expect((decodeDates("2026-10-17T10:00:00.5", 1, {}) as Date).toISOString()).toBe(
+      "2026-10-17T10:00:00.500Z",
+    );
   });
 
   it("ignores an unknown named plan, a missing plan and absent fields", () => {

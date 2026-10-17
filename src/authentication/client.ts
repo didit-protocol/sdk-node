@@ -475,6 +475,8 @@ export class Authentication {
   #discovery(): Promise<Discovery> {
     const cached = this.#cache.discovery();
     if (cached) return Promise.resolve(cached);
+    const refused = this.#cache.discoveryRefusal();
+    if (refused) return Promise.reject(refused);
     this.#discoveryFetch ??= this.#fetchDiscovery().finally(() => {
       this.#discoveryFetch = undefined;
     });
@@ -491,11 +493,13 @@ export class Authentication {
     if (discovery.issuer === null)
       throw invalid(`The discovery document at ${url} names no issuer.`);
     if (discovery.issuer !== this.issuer) {
-      // Not cached and not counted as a failed fetch: it is raised every time.
-      throw new ConfigurationError(
-        `The discovery document at ${url} names the issuer ${shown(discovery.issuer)}, ` +
-          `not ${JSON.stringify(this.issuer)}. Configure Authentication with the issuer it names ` +
-          "(an application's issuer changes when its custom domain is activated).",
+      // Raised for a minute without fetching again; not counted as a failed key fetch.
+      throw this.#cache.refuseDiscovery(
+        new ConfigurationError(
+          `The discovery document at ${url} names the issuer ${shown(discovery.issuer)}, ` +
+            `not ${JSON.stringify(this.issuer)}. Configure Authentication with the issuer it names ` +
+            "(an application's issuer changes when its custom domain is activated).",
+        ),
       );
     }
     // Codes and refresh tokens go to the token endpoint, and the keys decide which

@@ -151,9 +151,26 @@ export class IssuerCache {
   #keySet: Entry<KeySet> | null = null;
   #keySetAttemptedAt: number | null = null;
   #keySetFailed = false;
+  #discoveryRefusal: { error: Error; until: number } | null = null;
 
   constructor(clock: () => number) {
     this.#clock = clock;
+  }
+
+  /**
+   * Remember for a minute that the discovery document cannot be used (it names
+   * another issuer), so a misconfigured backend does not fetch it on every
+   * request. Returns `error`.
+   */
+  refuseDiscovery(error: Error): Error {
+    this.#discoveryRefusal = { error, until: this.#clock() + REFETCH_INTERVAL };
+    return error;
+  }
+
+  /** The error from {@link refuseDiscovery} while its minute lasts. */
+  discoveryRefusal(): Error | null {
+    const refusal = this.#discoveryRefusal;
+    return refusal && this.#clock() < refusal.until ? refusal.error : null;
   }
 
   /** The cached discovery document while it is fresh. */

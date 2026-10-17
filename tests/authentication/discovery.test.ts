@@ -265,13 +265,22 @@ describe("discovery and JWKS", () => {
     expect((await auth.refresh(REFRESH_TOKEN)).token_type).toBe("Bearer");
   });
 
-  it("does not cache an issuer mismatch as a failed key fetch", async () => {
+  it("raises an issuer mismatch for a minute without fetching discovery again", async () => {
     issuer.discovery!.issuer = "https://login.example.com";
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 5; i++) {
       expect(
         await rejection(auth.verifyAccessToken(await key.sign(accessClaims()))),
       ).toBeInstanceOf(ConfigurationError);
     }
+    expect(issuer.count(DISCOVERY)).toBe(1);
+    expect(issuer.count(JWKS)).toBe(0);
+    advance(59);
+    expect(await rejection(auth.refresh(REFRESH_TOKEN))).toBeInstanceOf(ConfigurationError);
+    expect(issuer.count(DISCOVERY)).toBe(1);
+    // A minute later it is fetched again, and the fixed issuer is used at once.
+    advance(1);
+    issuer.discovery!.issuer = ISSUER;
+    expect((await auth.verifyAccessToken(await key.sign(accessClaims()))).sub).toBeDefined();
     expect(issuer.count(DISCOVERY)).toBe(2);
   });
 

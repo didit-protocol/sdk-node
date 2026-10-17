@@ -126,6 +126,21 @@ describe("pages", () => {
     expect(items).toHaveLength(2);
   });
 
+  it("stops next links that differ only in their fragment", async () => {
+    let n = 0;
+    const { didit, calls } = pages(() => ({
+      count: 9,
+      next: `${API}/v3/workflows/?offset=2#page-${++n}`,
+      previous: null,
+      results: [{ id: n }],
+    }));
+    const error = await (async () => {
+      for await (const item of didit.workflows.list()) void item;
+    })().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(APIResponseValidationError);
+    expect(calls.map((c) => c.url.hash)).toEqual(["", ""]);
+  });
+
   it("refuses a list response that is not an object", async () => {
     const { didit } = pages(() => [1, 2]);
     await expect(didit.workflows.list()).rejects.toBeInstanceOf(APIResponseValidationError);

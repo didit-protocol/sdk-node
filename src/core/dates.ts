@@ -10,13 +10,17 @@
 export type DatePlan =
   1 | string | { s?: 1; p?: Record<string, DatePlan>; i?: DatePlan; a?: DatePlan };
 
-// RFC 3339 / ISO 8601 date-time with a time zone, as the API writes them.
+// RFC 3339 / ISO 8601 date-time, as the API writes them: mostly with a time
+// zone, but some fields (AML hit dates, NFC certificate dates) come without one.
 const DATE_TIME =
-  /^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[Zz]|[+-]\d{2}:?\d{2})$/;
+  /^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?([Zz]|[+-]\d{2}:?\d{2})?$/;
 
 function toDate(value: string): Date | string {
-  if (!DATE_TIME.test(value)) return value;
-  const date = new Date(value.replace(" ", "T"));
+  const match = DATE_TIME.exec(value);
+  if (!match) return value;
+  // A date-time without a zone is read as UTC, the zone the API works in
+  // (JavaScript would otherwise read it in the host's local time zone).
+  const date = new Date(value.replace(" ", "T") + (match[1] ? "" : "Z"));
   return Number.isNaN(date.getTime()) ? value : date;
 }
 

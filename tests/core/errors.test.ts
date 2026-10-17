@@ -102,6 +102,30 @@ describe("status errors", () => {
     expect(JSON.stringify(error.body)).not.toContain("sk_test_key_123");
     expect(String(error.stack)).not.toContain("sk_test_key_123");
   });
+
+  it("never keeps the API key in the error's headers", async () => {
+    const error = (await failing(
+      401,
+      { detail: "no" },
+      { "x-echo": "key=sk_test_key_123", "x-request-id": "req_1" },
+    )
+      .users.retrieve("u")
+      .catch((e: unknown) => e)) as APIStatusError;
+    expect(error.headers.get("x-echo")).toBe("key=[redacted]");
+    expect(error.headers.get("x-request-id")).toBe("req_1");
+  });
+
+  it("falls back to the body's request_id when no header carries one", async () => {
+    const error = (await failing(400, { detail: "bad", request_id: "body-req-1" })
+      .users.retrieve("u")
+      .catch((e: unknown) => e)) as APIStatusError;
+    expect(error.requestId).toBe("body-req-1");
+    expect(error.message).toBe("HTTP 400: bad (request id body-req-1)");
+    const header = (await failing(400, { request_id: "body" }, { "x-request-id": "hdr" })
+      .users.retrieve("u")
+      .catch((e: unknown) => e)) as APIStatusError;
+    expect(header.requestId).toBe("hdr");
+  });
 });
 
 describe("error messages", () => {

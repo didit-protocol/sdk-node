@@ -183,6 +183,56 @@ describe("headers", () => {
     expect(headers.has("x-skip")).toBe(false);
   });
 
+  it("never lets default or per-request headers replace, remove or misdirect the credentials", async () => {
+    const { didit, calls } = client(
+      { defaultHeaders: { "X-Api-Key": "other-key", Authorization: "Bearer default" } },
+      (request) => ({
+        json:
+          request.origin === DEFAULT_BASE_URL
+            ? { count: 0, next: null, previous: null, results: [] }
+            : [],
+      }),
+    );
+    await didit.workflows.list({}, { headers: { "x-api-key": null } });
+    await didit.workflows.list({}, { headers: { "X-API-KEY": "per-request" } });
+    await didit.withOptions({ accountToken: "acct" }).account.organizations.list();
+    await didit.account.login({ email: "user@example.com", password: "pw" });
+    expect(calls.map((c) => c.headers.get("x-api-key"))).toEqual([KEY, KEY, null, null]);
+    expect(calls.map((c) => c.headers.get("authorization"))).toEqual([
+      null,
+      null,
+      "Bearer acct",
+      null,
+    ]);
+  });
+
+  it("refuses header values HTTP cannot carry without echoing them", async () => {
+    const secret = "sk_live_SECRET";
+    const attempts: [string, () => Promise<unknown>][] = [
+      ["api key", () => client({ apiKey: `${secret}\r\nX-Evil: 1` }).didit.workflows.list()],
+      ["api key", () => client({ apiKey: `${secret} two` }).didit.workflows.list()],
+      [
+        "account token",
+        () => client({ accountToken: `${secret}\n` }).didit.account.organizations.list(),
+      ],
+      [
+        "default header",
+        () =>
+          client({ defaultHeaders: { "X-Team": `${secret}\r\nX-Evil: 1` } }).didit.workflows.list(),
+      ],
+      [
+        "request header",
+        () => client().didit.workflows.list({}, { headers: { "X-Team": `${secret}\nX-Evil: 1` } }),
+      ],
+    ];
+    for (const [label, attempt] of attempts) {
+      const error = await attempt().catch((e: unknown) => e);
+      expect(error, label).toBeInstanceOf(ConfigurationError);
+      expect(String((error as Error).message), label).not.toContain(secret);
+      expect((error as Error).cause, label).toBeUndefined();
+    }
+  });
+
   it("sends Idempotency-Key from the request options", async () => {
     const { didit, calls } = client({}, () => ({ status: 201, json: { session_id: "s" } }));
     await didit.sessions.create({ workflow_id: "wf" }, { idempotencyKey: "idem-1" });
@@ -222,6 +272,7 @@ describe("request encoding", () => {
       await expect(didit.users.retrieve(bad)).rejects.toThrow(ConfigurationError);
     }
     await expect(didit.users.retrieve(undefined as unknown as string)).rejects.toThrow(/required/);
+    await expect(didit.users.retrieve("a\ud800")).rejects.toThrow(ConfigurationError);
     expect(calls).toHaveLength(1);
   });
 

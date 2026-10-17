@@ -26,9 +26,13 @@ async function sent(front: Uploadable) {
 
 const BYTES = new Uint8Array([1, 2, 3]);
 
+function ascii(text: string): number[] {
+  return [...text].map((c) => c.charCodeAt(0));
+}
+
 describe("file inputs", () => {
   it.each([
-    ["a Blob", () => new Blob([BYTES], { type: "image/png" }), "file", "image/png"],
+    ["a Blob", () => new Blob([BYTES], { type: "image/png" }), "file.png", "image/png"],
     ["a Uint8Array", () => BYTES, "file", "application/octet-stream"],
     ["an ArrayBuffer", () => BYTES.slice().buffer, "file", "application/octet-stream"],
     ["a DataView", () => new DataView(BYTES.slice().buffer), "file", "application/octet-stream"],
@@ -79,6 +83,31 @@ describe("file inputs", () => {
     });
   });
 
+  it.each([
+    ["JPEG", [0xff, 0xd8, 0xff, 0xe0], "file.jpg", "image/jpeg"],
+    ["PNG", [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a], "file.png", "image/png"],
+    ["WebP", [...ascii("RIFF"), 0, 0, 0, 0, ...ascii("WEBP")], "file.webp", "image/webp"],
+    ["HEIC", [0, 0, 0, 24, ...ascii("ftypheic")], "file.heic", "image/heic"],
+    ["MP4", [0, 0, 0, 24, ...ascii("ftypisom")], "file.mp4", "video/mp4"],
+    ["PDF", ascii("%PDF-1.7"), "file.pdf", "application/pdf"],
+    ["TIFF", [0x49, 0x49, 0x2a, 0], "file.tiff", "image/tiff"],
+  ])("names unnamed %s bytes by their type", async (_label, head, filename, type) => {
+    const bytes = new Uint8Array([...head, 9, 9]);
+    expect(await sent(bytes)).toEqual({ filename, type, bytes: [...bytes] });
+    expect(await sent(new Blob([bytes]).stream())).toEqual({ filename, type, bytes: [...bytes] });
+  });
+
+  it("names an unnamed upload from its content type before its bytes", async () => {
+    const file = await sent({ data: new Uint8Array([0xff, 0xd8, 0xff]), contentType: "image/png" });
+    expect(file).toEqual({ filename: "file.png", type: "image/png", bytes: [0xff, 0xd8, 0xff] });
+  });
+
+  it("does not take an object with a non-file data key for a file", () => {
+    expect(isUploadable({ data: "order-42" })).toBe(false);
+    expect(isUploadable({ data: { nested: true } })).toBe(false);
+    expect(isUploadable({ data: BYTES, filename: "a.jpg" })).toBe(true);
+  });
+
   it("refuses something that is not a file", async () => {
     await expect(prepareFile({ data: 42 } as unknown as Uploadable)).rejects.toBeInstanceOf(
       ConfigurationError,
@@ -118,6 +147,19 @@ describe("multipart bodies", () => {
       when: "2026-01-02T00:00:00.000Z",
     });
     expect(Object.keys(request.files)).toEqual(["front_image"]);
+  });
+
+  it("sends an object with a data key in a non-file field as JSON text, not as a file", async () => {
+    const { didit, calls } = client();
+    await didit.idVerification.verify({
+      front_image: toFile(BYTES, "front.jpg"),
+      metadata: { data: "order-42" },
+      bytes_meta: { data: BYTES },
+    } as never);
+    const request = calls[0]!;
+    expect(Object.keys(request.files)).toEqual(["front_image"]);
+    expect(request.form.metadata).toBe('{"data":"order-42"}');
+    expect(request.form.bytes_meta).toBe('{"data":{"0":1,"1":2,"2":3}}');
   });
 
   it("repeats the field for a list of files", async () => {
