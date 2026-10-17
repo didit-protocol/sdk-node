@@ -73,7 +73,7 @@ jobs:
   codegen:
     name: Generated code is up to date
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -92,6 +92,21 @@ jobs:
         # Fails when src/resources, src/types, tests/generated or api.md differ from
         # what codegen/ produces from openapi/. Fix: pnpm generate
         run: pnpm generate:check
+      - name: A spec sync that renames and removes methods needs no hand edit
+        # Runs last: it changes openapi/ and the generated code of this job's checkout.
+        # Upstream renames every server method and drops one operation; the sync keeps
+        # the old names as deprecated, and the checks of spec-sync.yml must still pass.
+        run: |
+          upstream="$RUNNER_TEMP/upstream"
+          node codegen/tests/simulate-upstream.ts "$upstream"
+          pnpm spec-sync --from-dir "$upstream" --summary "$RUNNER_TEMP/spec-sync-summary.md"
+          pnpm generate
+          pnpm exec eslint .
+          pnpm exec prettier --check .
+          pnpm typecheck
+          pnpm test
+          pnpm build
+          pnpm check:package
 
   test:
     name: Test (Node ${{ matrix.node }}, ${{ matrix.os }})
