@@ -9,7 +9,10 @@ export type FileData =
 /** File bytes with the file name and content type to send. */
 export interface FileUpload {
   data: FileData;
-  /** Sent as the part's file name. Default: the File's or stream's name, else `file`. */
+  /**
+   * Sent as the part's file name. Default: the File's or stream's name, else
+   * `file` with the extension of the content type or of the bytes (`file.jpg`).
+   */
   filename?: string;
   /** Default: guessed from the file name. */
   contentType?: string;
@@ -90,14 +93,24 @@ export async function fileFromPath(
   return { data, filename, contentType: options.contentType ?? guessContentType(filename) };
 }
 
+function isStream(value: object): boolean {
+  return Symbol.asyncIterator in value || typeof (value as ReadableStream).getReader === "function";
+}
+
+function isFileData(value: unknown): value is FileData {
+  if (value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value))
+    return true;
+  return typeof value === "object" && value !== null && isStream(value);
+}
+
+/** `{ data, filename?, contentType? }` whose `data` is file bytes (so `{ data: "text" }` is not a file). */
 function isFileUpload(value: unknown): value is FileUpload {
   return (
     typeof value === "object" &&
     value !== null &&
+    !isFileData(value) &&
     "data" in value &&
-    !(value instanceof Blob) &&
-    !ArrayBuffer.isView(value) &&
-    !(value instanceof ArrayBuffer)
+    isFileData((value as { data: unknown }).data)
   );
 }
 
@@ -134,6 +147,43 @@ async function collect(
   return new Blob(chunks);
 }
 
+// Signatures of the file types the API takes, for uploads that come without a name.
+const SIGNATURES: readonly (readonly [string, (b: Uint8Array) => boolean])[] = [
+  ["jpg", (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff],
+  ["png", (b) => ascii(b, 1, 4) === "PNG" && b[0] === 0x89],
+  ["gif", (b) => ascii(b, 0, 4) === "GIF8"],
+  ["webp", (b) => ascii(b, 0, 4) === "RIFF" && ascii(b, 8, 12) === "WEBP"],
+  ["pdf", (b) => ascii(b, 0, 5) === "%PDF-"],
+  [
+    "heic",
+    (b) => ascii(b, 4, 8) === "ftyp" && /^(heic|heix|heim|heis|mif1|msf1)$/.test(ascii(b, 8, 12)),
+  ],
+  ["mov", (b) => ascii(b, 4, 8) === "ftyp" && ascii(b, 8, 12) === "qt  "],
+  ["mp4", (b) => ascii(b, 4, 8) === "ftyp"],
+  ["webm", (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3],
+  ["tiff", (b) => ascii(b, 0, 4) === "II*\0" || ascii(b, 0, 4) === "MM\0*"],
+  ["bmp", (b) => ascii(b, 0, 2) === "BM"],
+  ["zip", (b) => ascii(b, 0, 4) === "PK\x03\x04"],
+];
+
+function ascii(bytes: Uint8Array, start: number, end: number): string {
+  return String.fromCharCode(...bytes.subarray(start, end));
+}
+
+/**
+ * A file name for an upload that has none: `file` plus the extension its
+ * content type or first bytes give (`file.jpg`), since upload endpoints may
+ * check the extension of an image.
+ */
+async function defaultFilename(blob: Blob, contentType: string | undefined): Promise<string> {
+  const type = (contentType ?? blob.type).split(";")[0]?.trim().toLowerCase();
+  const fromType = Object.keys(CONTENT_TYPES).find((ext) => CONTENT_TYPES[ext] === type);
+  if (fromType) return `file.${fromType}`;
+  const head = new Uint8Array(await blob.slice(0, 16).arrayBuffer());
+  const match = SIGNATURES.find(([, test]) => test(head));
+  return match ? `file.${match[0]}` : "file";
+}
+
 /** A file part ready for FormData. Streams are read once, so a retry sends the same bytes. */
 export interface PreparedFile {
   blob: Blob;
@@ -144,7 +194,6 @@ export interface PreparedFile {
 export async function prepareFile(value: Uploadable): Promise<PreparedFile> {
   const upload: FileUpload = isFileUpload(value) ? value : { data: value };
   const data = upload.data;
-  const filename = upload.filename ?? nameOf(data) ?? "file";
   let blob: Blob;
   if (data instanceof Blob) {
     blob = data;
@@ -152,16 +201,15 @@ export async function prepareFile(value: Uploadable): Promise<PreparedFile> {
     blob = new Blob([data]);
   } else if (ArrayBuffer.isView(data)) {
     blob = new Blob([part(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))]);
-  } else if (
-    typeof data === "object" &&
-    (Symbol.asyncIterator in data || typeof (data as ReadableStream).getReader === "function")
-  ) {
+  } else if (typeof data === "object" && isStream(data)) {
     blob = await collect(data);
   } else {
     throw new ConfigurationError(
       "A file must be a Blob, a File, an ArrayBuffer, a typed array, a stream or { data, filename, contentType }.",
     );
   }
+  const filename =
+    upload.filename ?? nameOf(data) ?? (await defaultFilename(blob, upload.contentType));
   const type = upload.contentType ?? (blob.type || guessContentType(filename));
   if (blob.type !== type) blob = new Blob([blob], { type });
   return { blob, filename };
@@ -169,10 +217,5 @@ export async function prepareFile(value: Uploadable): Promise<PreparedFile> {
 
 /** Whether a params value is (or holds) a file. */
 export function isUploadable(value: unknown): boolean {
-  if (value === null || value === undefined) return false;
-  if (value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value))
-    return true;
-  if (typeof value !== "object") return false;
-  if (isFileUpload(value)) return true;
-  return Symbol.asyncIterator in value || typeof (value as ReadableStream).getReader === "function";
+  return isFileData(value) || isFileUpload(value);
 }

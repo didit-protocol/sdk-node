@@ -4,7 +4,11 @@ export interface RequestOptions {
   timeout?: number;
   /** Retries of failed requests that are safe to retry. Default: the client's `maxRetries`. */
   maxRetries?: number;
-  /** Extra headers; `null` removes a header the SDK would send (never the credentials). */
+  /**
+   * Extra headers; `null` removes a header the SDK would send. The credential
+   * headers (`x-api-key`, `Authorization`) cannot be set or removed here: use
+   * the `apiKey` and `accountToken` options.
+   */
   headers?: Record<string, string | null | undefined>;
   /** Extra query parameters. */
   query?: Record<string, string | number | boolean | Date | null | undefined>;

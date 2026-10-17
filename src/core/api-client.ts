@@ -51,7 +51,7 @@ export interface ClientOptions {
   timeout?: number | undefined;
   /** Retries of failed requests that are safe to retry. Default: 2. */
   maxRetries?: number | undefined;
-  /** Headers to add to every request. */
+  /** Headers to add to every request (not the credentials: use `apiKey` and `accountToken`). */
   defaultHeaders?: Record<string, string> | undefined;
   /** Your own `fetch` (proxies, instrumentation, mocks). Default: the global `fetch`. */
   fetch?: Fetch | undefined;
@@ -201,8 +201,29 @@ export function encodePath(template: string, values: Record<string, unknown>): s
         `The path parameter ${name} must be a non-empty id, got ${JSON.stringify(text)}.`,
       );
     }
-    return encodeURIComponent(text);
+    try {
+      return encodeURIComponent(text);
+    } catch {
+      // A lone surrogate has no UTF-8 form.
+      throw new ConfigurationError(`The path parameter ${name} is not valid Unicode text.`);
+    }
   });
+}
+
+// Visible ASCII: what an API key or token can be without breaking the header it goes in.
+const HEADER_TOKEN = /^[\x21-\x7e]+$/;
+const CREDENTIAL_HEADERS = ["x-api-key", "authorization"];
+
+/** `headers.set`, with an error that names the header but never echoes its value. */
+function setHeader(headers: Headers, name: string, value: string): void {
+  try {
+    headers.set(name, value);
+  } catch {
+    // Not chained: the runtime's error quotes the value, which may be a secret.
+    throw new ConfigurationError(
+      `The header ${JSON.stringify(name)} cannot be sent: its name or value has characters HTTP headers do not allow.`,
+    );
+  }
 }
 
 function jsonBody(value: unknown): string {
@@ -228,7 +249,9 @@ async function multipartBody(
   const form = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined || value === null) continue;
-    const isFile = fileFields.has(key) || isUploadable(value);
+    // Only the operation's file fields carry files (a Blob is a file anywhere):
+    // a metadata object that happens to have a `data` key stays JSON text.
+    const isFile = fileFields.has(key) || value instanceof Blob;
     if (isFile) {
       const files = Array.isArray(value) ? (value as Uploadable[]) : [value as Uploadable];
       for (const file of files) {
@@ -382,6 +405,8 @@ export class APIClient {
             response.response,
           );
         }
+        // The fragment never reaches the server, so it cannot make a page new.
+        target.hash = "";
         if (seen.has(target.href)) {
           throw invalid(
             "The API returned a pagination link that repeats an earlier page.",
@@ -447,6 +472,16 @@ export class APIClient {
           "access_token as accountToken (didit.withOptions({ accountToken })).",
       );
     }
+    if (auth === "api_key" && !HEADER_TOKEN.test(apiKey ?? "")) {
+      throw new ConfigurationError(
+        "The API key has characters an API key cannot have (spaces, line breaks or non-ASCII); copy it again from the console.",
+      );
+    }
+    if (auth === "account_token" && !HEADER_TOKEN.test(accountToken ?? "")) {
+      throw new ConfigurationError(
+        "The account token has characters a token cannot have (spaces, line breaks or non-ASCII).",
+      );
+    }
 
     // Query string and body fields.
     const fields: Record<string, unknown> =
@@ -468,10 +503,7 @@ export class APIClient {
     headers.set("User-Agent", userAgent());
     headers.set("X-Didit-Client", clientHeader());
     for (const [name, value] of Object.entries(this.#options.defaultHeaders ?? {}))
-      headers.set(name, value);
-    // Credentials only ever go to the origin of the API they belong to.
-    if (auth === "api_key") headers.set("x-api-key", apiKey ?? "");
-    else if (auth === "account_token") headers.set("Authorization", `Bearer ${accountToken ?? ""}`);
+      setHeader(headers, name, value);
 
     let body: string | FormData | undefined;
     if (op.body === "whole") {
@@ -493,11 +525,16 @@ export class APIClient {
       }
     }
     if (options.idempotencyKey !== undefined)
-      headers.set("Idempotency-Key", options.idempotencyKey);
+      setHeader(headers, "Idempotency-Key", options.idempotencyKey);
     for (const [name, value] of Object.entries(options.headers ?? {})) {
       if (value === null) headers.delete(name);
-      else if (value !== undefined) headers.set(name, value);
+      else if (value !== undefined) setHeader(headers, name, value);
     }
+    // Credentials last, so no default or per-request header can replace, remove
+    // or redirect them: each only ever goes to the origin of the API it belongs to.
+    for (const name of CREDENTIAL_HEADERS) headers.delete(name);
+    if (auth === "api_key") headers.set("x-api-key", apiKey ?? "");
+    else if (auth === "account_token") headers.set("Authorization", `Bearer ${accountToken ?? ""}`);
 
     const timeout = options.timeout ?? this.timeout;
     if (!Number.isFinite(timeout) || timeout <= 0) {

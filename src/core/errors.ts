@@ -63,11 +63,14 @@ export class APIStatusError extends DiditError {
   readonly body: unknown;
   /** The response headers. */
   readonly headers: Headers;
-  /** The request id the API returned, when it returned one. Quote it to support. */
+  /**
+   * The request id the API returned (a request id header, else the body's
+   * `request_id`), when it returned one. Quote it to support.
+   */
   readonly requestId: string | null;
 
   constructor(message: string, status: number, body: unknown, headers: Headers) {
-    const requestId = requestIdOf(headers);
+    const requestId = requestIdOf(headers) ?? bodyRequestId(body);
     super(requestId ? `${message} (request id ${requestId})` : message);
     this.status = status;
     this.body = body;
@@ -179,6 +182,12 @@ export function requestIdOf(headers: Headers): string | null {
   return null;
 }
 
+/** The `request_id` many API error bodies carry, when there is no request id header. */
+function bodyRequestId(body: unknown): string | null {
+  const value = isRecord(body) ? body.request_id : undefined;
+  return typeof value === "string" && value ? value : null;
+}
+
 type StatusErrorClass = new (
   message: string,
   status: number,
@@ -251,9 +260,18 @@ export function redact<T>(value: T, secrets: readonly string[]): T {
   return scrub(value) as T;
 }
 
+/** A copy of `headers` with every secret replaced (a server may echo a credential in a header). */
+export function redactHeaders(headers: Headers, secrets: readonly string[]): Headers {
+  const out = new Headers();
+  headers.forEach((value, name) => {
+    out.append(name, redact(value, secrets));
+  });
+  return out;
+}
+
 /**
  * The right APIStatusError subclass for a non-2xx response. Secrets (the API key,
- * tokens) are removed from the message and the body.
+ * tokens) are removed from the message, the body and the headers.
  */
 export function makeStatusError(
   status: number,
@@ -266,5 +284,5 @@ export function makeStatusError(
   const message = detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
   const ErrorClass =
     STATUS_ERRORS[status] ?? (status >= 500 ? InternalServerError : APIStatusError);
-  return new ErrorClass(message, status, cleanBody, headers);
+  return new ErrorClass(message, status, cleanBody, redactHeaders(headers, secrets));
 }
