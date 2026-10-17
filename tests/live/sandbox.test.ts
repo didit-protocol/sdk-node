@@ -15,13 +15,13 @@ describe.skipIf(!apiKey)("sandbox", () => {
   const didit = new Didit({ apiKey, baseURL: process.env.DIDIT_SANDBOX_BASE_URL || undefined });
 
   it("lists workflows", async () => {
-    const page = await didit.workflows.list({ limit: 5 } as never);
-    expect(page.count === null || page.count === undefined || page.count >= 0).toBe(true);
+    const page = await didit.workflows.list({ limit: 5 });
+    expect(page.count ?? 0).toBeGreaterThanOrEqual(0);
   });
 
   it("reads the first page of sessions", async () => {
     const page = await didit.sessions.list({ limit: 2 });
-    expect((page.results ?? []).length).toBeLessThanOrEqual(2);
+    expect(page.results.length).toBeLessThanOrEqual(2);
   });
 
   it.skipIf(!workflowId)("creates a session and reads its decision", async () => {

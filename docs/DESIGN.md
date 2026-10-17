@@ -16,15 +16,15 @@ The SDKs are thin, predictable and boring: no hidden magic, no framework lock-in
 
 ## 2. Repositories and packages
 
-| Language                | Repository                  | Package                                          | Import / namespace                             | Minimum runtime                                      |
-| ----------------------- | --------------------------- | ------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------- |
-| Python                  | `didit-protocol/sdk-python` | PyPI `didit-sdk` (see 2.1)                       | `import didit`                                 | Python 3.10                                          |
-| TypeScript / JavaScript | `didit-protocol/sdk-node`   | npm `@didit-protocol/sdk-node`                   | `import Didit from "@didit-protocol/sdk-node"` | Node 18 (also Bun, Deno, edge runtimes with `fetch`) |
-| Go                      | `didit-protocol/sdk-go`     | module `github.com/didit-protocol/sdk-go`        | `package didit`                                | Go 1.22                                              |
-| Java / Kotlin           | `didit-protocol/sdk-java`   | Maven `me.didit:didit-java`                      | `me.didit`                                     | Java 11                                              |
-| PHP                     | `didit-protocol/sdk-php`    | Packagist `didit-protocol/sdk-php`               | `Didit\`                                       | PHP 8.1                                              |
-| Ruby                    | `didit-protocol/sdk-ruby`   | RubyGems `didit-sdk` (the name `didit` is taken) | `require "didit"`, module `Didit`              | Ruby 3.1                                             |
-| C# / .NET               | `didit-protocol/sdk-dotnet` | NuGet `Didit`                                    | `namespace Didit`                              | .NET 8 and .NET Standard 2.0                         |
+| Language | Repository | Package | Import / namespace | Minimum runtime |
+|---|---|---|---|---|
+| Python | `didit-protocol/sdk-python` | PyPI `didit-sdk` (see 2.1) | `import didit` | Python 3.10 |
+| TypeScript / JavaScript | `didit-protocol/sdk-node` | npm `@didit-protocol/sdk-node` | `import Didit from "@didit-protocol/sdk-node"` | Node 18 (also Bun, Deno, edge runtimes with `fetch`) |
+| Go | `didit-protocol/sdk-go` | module `github.com/didit-protocol/sdk-go` | `package didit` | Go 1.22 |
+| Java / Kotlin | `didit-protocol/sdk-java` | Maven `me.didit:didit-java` | `me.didit` | Java 11 |
+| PHP | `didit-protocol/sdk-php` | Packagist `didit-protocol/sdk-php` | `Didit\` | PHP 8.1 |
+| Ruby | `didit-protocol/sdk-ruby` | RubyGems `didit-sdk` (the name `didit` is taken) | `require "didit"`, module `Didit` | Ruby 3.1 |
+| C# / .NET | `didit-protocol/sdk-dotnet` | NuGet `Didit` | `namespace Didit` | .NET 8 and .NET Standard 2.0 |
 
 The repository names follow the existing client SDKs (`sdk-web`, `sdk-ios`, `sdk-android`, `sdk-flutter`, `sdk-react-native`).
 The Maven group `me.didit` is the one `sdk-android` already publishes under.
@@ -41,13 +41,13 @@ The fallback name, if the transfer does not happen, is `didit-python`.
 
 Every SDK is generated from Didit's published OpenAPI documents and checked against them in CI.
 
-| File in `openapi/`     | Upstream                                                                                 | Base URL                        |
-| ---------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
-| `verification.json`    | `https://docs.didit.me/openapi-25.json` (mintlify-docs `openapi-25.json`, branch `main`) | `https://verification.didit.me` |
-| `account.json`         | `https://docs.didit.me/openapi-auth.json` (mintlify-docs `openapi-auth.json`)            | `https://apx.didit.me/auth/v2`  |
-| `overlay.json`         | this repository                                                                          | -                               |
-| `webhook-vectors.json` | generated from `service-didit-verification/src/sessions/utils/webhooks.py`               | -                               |
-| `SOURCE.json`          | URL, SHA-256 and fetch time of each upstream file                                        | -                               |
+| File in `openapi/` | Upstream | Base URL |
+|---|---|---|
+| `verification.json` | `https://docs.didit.me/openapi-25.json` (mintlify-docs `openapi-25.json`, branch `main`) | `https://verification.didit.me` |
+| `account.json` | `https://docs.didit.me/openapi-auth.json` (mintlify-docs `openapi-auth.json`) | `https://apx.didit.me/auth/v2` |
+| `overlay.json` | this repository | - |
+| `webhook-vectors.json` | generated from `service-didit-verification/src/sessions/utils/webhooks.py` | - |
+| `SOURCE.json` | URL, SHA-256 and fetch time of each upstream file | - |
 
 The upstream files are copied byte for byte and never edited by hand.
 `overlay.json` holds the SDK naming (section 4) for operations whose upstream definition does not carry it yet.
@@ -67,13 +67,7 @@ The sync never deletes a public SDK method silently: a removed operation is mark
 Every operation has an `x-didit-sdk` object:
 
 ```json
-{
-  "resource": "sessions.imports",
-  "method": "create",
-  "auth": "api_key",
-  "server": true,
-  "scope": "application"
-}
+{"resource": "sessions.imports", "method": "create", "auth": "api_key", "server": true, "scope": "application"}
 ```
 
 - `resource`: dot path of snake_case resource names; each segment becomes a nested resource accessor.
@@ -84,15 +78,15 @@ Every operation has an `x-didit-sdk` object:
 
 Convert names to the language's idiom and nothing else:
 
-| Language   | Example: `sessions.imports.create`                                                                    |
-| ---------- | ----------------------------------------------------------------------------------------------------- |
-| Python     | `client.sessions.imports.create(...)` and `await client.sessions.imports.create(...)` on `AsyncDidit` |
-| TypeScript | `await didit.sessions.imports.create({...})`                                                          |
-| Go         | `client.Sessions.Imports.Create(ctx, params)`                                                         |
-| Java       | `client.sessions().imports().create(params)` plus `createAsync` returning `CompletableFuture`         |
-| PHP        | `$didit->sessions->imports->create([...])`                                                            |
-| Ruby       | `didit.sessions.imports.create(...)`                                                                  |
-| C#         | `await client.Sessions.Imports.CreateAsync(...)`                                                      |
+| Language | Example: `sessions.imports.create` |
+|---|---|
+| Python | `client.sessions.imports.create(...)` and `await client.sessions.imports.create(...)` on `AsyncDidit` |
+| TypeScript | `await didit.sessions.imports.create({...})` |
+| Go | `client.Sessions.Imports.Create(ctx, params)` |
+| Java | `client.sessions().imports().create(params)` plus `createAsync` returning `CompletableFuture` |
+| PHP | `$didit->sessions->imports->create([...])` |
+| Ruby | `didit.sessions.imports.create(...)` |
+| C# | `await client.Sessions.Imports.CreateAsync(...)` |
 
 The full resource tree (version 1, 248 server operations in 47 resources) is in `overlay.json`.
 Highlights: `sessions`, `sessions.imports`, `sessions.reviews`, the standalone APIs (`id_verification.verify`, `face_match.compare`, `face_search.search`, `passive_liveness.check`, `age_estimation.estimate`, `proof_of_address.verify`, `document_ai.analyze`, `aml.screen`, `database_validation.validate`, `phone.send_code`, `email.check_code`, `ip.assess_risk`, `kyb.search`), `id_wallets`, `fraud_checks`, `users`, `businesses`, `transactions`, `transactions.rules`, `transactions.travel_rule`, `wallet_screening`, `travel_rule`, `travel_rule.wallet_addresses`, `workflows`, `questionnaires`, `webhooks.destinations`, `billing`, `biometric_templates`, `customization`, `cases` (with `notes`, `links`, `checklist`, `requests`, `teams`, `routing_rules`, `blueprints`, `regulatory_reports`), `regulatory_reports`, `report_templates`, `networks`, and `account` (`account.organizations`, `account.applications`).
@@ -134,14 +128,14 @@ Didit(api_key, base_url?, organization_id?, application_id?, timeout = 60s, max_
 
 ## 7. Errors, retries and timeouts
 
-| Error                                                                                                                                                                                                    | When                                                                                    |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `DiditError`                                                                                                                                                                                             | base of everything below                                                                |
-| `APIConnectionError` / `APITimeoutError`                                                                                                                                                                 | no response                                                                             |
-| `APIStatusError`                                                                                                                                                                                         | any non-2xx, with `status`, `body` (parsed JSON when possible), `headers`, `request_id` |
-| `BadRequestError` 400, `AuthenticationError` 401, `PermissionDeniedError` 403, `NotFoundError` 404, `ConflictError` 409, `UnprocessableEntityError` 422, `RateLimitError` 429, `InternalServerError` 5xx | subclasses of `APIStatusError`                                                          |
-| `WebhookVerificationError`                                                                                                                                                                               | section 9, with a machine-readable `reason`                                             |
-| `ConfigurationError`                                                                                                                                                                                     | missing API key, missing organization or application id                                 |
+| Error | When |
+|---|---|
+| `DiditError` | base of everything below |
+| `APIConnectionError` / `APITimeoutError` | no response |
+| `APIStatusError` | any non-2xx, with `status`, `body` (parsed JSON when possible), `headers`, `request_id` |
+| `BadRequestError` 400, `AuthenticationError` 401, `PermissionDeniedError` 403, `NotFoundError` 404, `ConflictError` 409, `UnprocessableEntityError` 422, `RateLimitError` 429, `InternalServerError` 5xx | subclasses of `APIStatusError` |
+| `WebhookVerificationError` | section 9, with a machine-readable `reason` |
+| `ConfigurationError` | missing API key, missing organization or application id |
 
 Retries: up to `max_retries` (default 2), exponential backoff starting at 0.5 s with full jitter, capped at 8 s, honouring `Retry-After` (seconds or HTTP date, capped at 60 s).
 Retry on connection errors, timeouts, 408, 429 and 5xx for `GET`, `HEAD`, `PUT` and `DELETE`.

@@ -4,3 +4,5 @@ dist/
 coverage/
 pnpm-lock.yaml
 CHANGELOG.md
+# The shared design contract is identical in all seven SDK repositories.
+docs/DESIGN.md
