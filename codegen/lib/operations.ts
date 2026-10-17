@@ -14,6 +14,8 @@ export interface PathArg {
 }
 
 export interface Field {
+  /** The key in the params object; differs from `wire` only for a query parameter named like a body field. */
+  key: string;
   wire: string;
   location: "query" | "body";
   required: boolean;
@@ -204,21 +206,21 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
       const resolved = spec.resolveObject(schema);
       if (resolved.readOnly === true) continue;
       const ex = exampleOf(undefined, resolved);
-      fields.push({ wire, location: "body", required: bodyRequired.has(wire), schema, example: ex.value, hasExample: ex.has });
+      fields.push({ key: wire, wire, location: "body", required: bodyRequired.has(wire), schema, example: ex.value, hasExample: ex.has });
     }
     for (const param of queryParams) {
       const wire = String(param.name);
-      if (wire in props) {
-        throw new CodegenError(`${op.key}: the query parameter ${wire} has the same name as a body field.`);
-      }
+      let key = wire;
+      // A query parameter named like a body field takes a `_query` suffix (as in the Python SDK).
+      while (key in props) key = `${key}_query`;
       const schema: JsonObject = { ...(isObject(param.schema) ? param.schema : {}) };
       const desc = description(param);
       if (desc) schema.description = desc;
       if (param.deprecated === true) schema.deprecated = true;
-      props[wire] = schema;
-      if (param.required === true) required.add(wire);
+      props[key] = schema;
+      if (param.required === true) required.add(key);
       const ex = "example" in param ? { has: true, value: param.example } : exampleOf(undefined, schema);
-      fields.push({ wire, location: "query", required: param.required === true, schema, example: ex.value, hasExample: ex.has });
+      fields.push({ key, wire, location: "query", required: param.required === true, schema, example: ex.value, hasExample: ex.has });
     }
     const combined: JsonObject = {
       type: "object",

@@ -88,7 +88,9 @@ function descriptorFor(method: Method): string {
   if (op.api === "account") parts.push(`api: "account"`);
   if (op.sdk.auth === "account_token" || op.sdk.auth === "none") parts.push(`auth: "${op.sdk.auth}"`);
   if (op.sdk.scope === "application") parts.push(`scope: "application"`);
-  const query = method.fields.filter((f) => f.location === "query").map((f) => f.wire);
+  const query = method.fields
+    .filter((f) => f.location === "query")
+    .map((f) => (f.key === f.wire ? f.wire : [f.key, f.wire]));
   if (query.length) parts.push(`query: ${JSON.stringify(query)}`);
   if (method.wholeBody) parts.push(`body: "whole"`);
   else if (method.bodyMode !== "none") parts.push(`body: "${method.bodyMode}"`);

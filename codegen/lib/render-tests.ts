@@ -167,7 +167,7 @@ function renderCase(method: Method): Case {
         value = synth(spec, field.schema);
       }
       if (value === null) continue;
-      params[field.wire] = value;
+      params[field.key] = value;
       if (field.location === "query") {
         query[field.wire] = formText(value as Json);
       } else if (method.fileFields.includes(field.wire) || hasFile(value)) {
@@ -200,7 +200,8 @@ function renderCase(method: Method): Case {
   const response = method.response;
   const reply: string[] = [`status: ${response.status}`];
   if (response.kind === "binary") reply.push(`body: BINARY, contentType: ${JSON.stringify(response.contentType)}`);
-  else if (response.kind === "json" || response.kind === "page") reply.push(`json: responseExample(${JSON.stringify(op.key)})`);
+  else if (response.kind === "json") reply.push(`json: responseExample(${JSON.stringify(op.key)})`);
+  else if (response.kind === "page") reply.push(`json: responseExample(${JSON.stringify(op.key)}, "page")`);
   lines.push(`    const { client, calls } = mockClient({ ${reply.join(", ")} });`);
   const call = `client.${op.sdk.resource.split(".").map((s) => s.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase())).join(".")}.${method.name}(${callArgs.join(", ")})`;
   if (response.kind === "page") lines.push(`    const page = await ${call};`);
@@ -236,8 +237,10 @@ function renderCase(method: Method): Case {
   } else if (response.kind === "none") {
     // Nothing to parse.
   } else if (response.kind === "page") {
-    lines.push(`    expectMatchesExample({ ...page }, responseExample(${JSON.stringify(op.key)}));`);
-    lines.push(`    expect(page.hasNextPage()).toBe(false);`);
+    const example = response.example;
+    const hasNext = isObject(example) && typeof example.next === "string" && example.next !== "";
+    lines.push(`    expectMatchesExample({ ...page }, responseExample(${JSON.stringify(op.key)}, "page"));`);
+    lines.push(`    expect(page.hasNextPage()).toBe(${hasNext});`);
   } else {
     lines.push(`    expectMatchesExample(result, responseExample(${JSON.stringify(op.key)}));`);
   }

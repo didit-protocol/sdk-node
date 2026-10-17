@@ -55,6 +55,12 @@ export interface PlanNode {
 
 const ANY: TypeRef = { expr: "unknown", deps: new Set() };
 
+/**
+ * Components whose name is taken by a hand-written export. `WebhookEvent` is the
+ * spec's enum of event names; the SDK's `WebhookEvent` is the typed event union.
+ */
+const COMPONENT_RENAMES: Readonly<Record<string, string>> = { WebhookEvent: "WebhookEventType" };
+
 function ref(expr: string, deps: Iterable<string> = []): TypeRef {
   return { expr, deps: new Set(deps) };
 }
@@ -193,6 +199,7 @@ export class TypeBuilder {
       for (const [s, n] of names) if (s !== spec) for (const x of n) others.add(x);
       for (const name of Object.keys(spec.components)) {
         let ts = /^[A-Z][A-Za-z0-9]*$/.test(name) ? name : pascal(name);
+        ts = COMPONENT_RENAMES[ts] ?? ts;
         if (others.has(name) && spec.name === "account") ts = `Account${ts}`;
         own.set(name, ts);
       }
