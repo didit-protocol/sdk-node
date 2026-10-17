@@ -223,7 +223,10 @@ export function responseExample(key: string, kind?: "page"): unknown {
 export function expectMatchesExample(actual: unknown, example: unknown, path = "$"): void {
   if (actual instanceof Date) {
     expect(typeof example, `${path} should be a date-time string`).toBe("string");
-    expect(actual.getTime(), path).toBe(new Date(example as string).getTime());
+    // The API's zone-less date-times are UTC (core/dates.ts); `new Date` would read them as local time.
+    const text = (example as string).replace(" ", "T");
+    const zoned = /([Zz]|[+-]\d{2}:?\d{2})$/.test(text) ? text : `${text}Z`;
+    expect(actual.getTime(), path).toBe(new Date(zoned).getTime());
     return;
   }
   if (Array.isArray(example)) {

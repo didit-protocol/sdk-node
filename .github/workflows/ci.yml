@@ -107,6 +107,10 @@ jobs:
           - os: ubuntu-latest
             node: 22
             coverage: true
+          # Runs the Linux Node 20 job far from UTC, so date handling cannot depend on the host's zone.
+          - os: ubuntu-latest
+            node: 20
+            tz: Pacific/Kiritimati
           - os: macos-latest
             node: 22
           - os: windows-latest
@@ -127,6 +131,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: vitest
         if: ${{ !matrix.coverage }}
+        env:
+          TZ: ${{ matrix.tz || 'UTC' }}
         run: pnpm test
       - name: vitest with the core coverage gate (90 %)
         if: ${{ matrix.coverage }}
