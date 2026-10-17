@@ -48,7 +48,8 @@ function pyStr(value: unknown): string {
   if (value === null) return "None";
   if (value === true) return "True";
   if (value === false) return "False";
-  return String(value);
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  throw new Error("the simple signature fields of a test payload are scalars");
 }
 
 export function payload(extra: Record<string, unknown> = {}): Record<string, unknown> {

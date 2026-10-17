@@ -10,7 +10,7 @@ import type {
   KYBRegistryShareholding,
   ReviewItem,
   SessionImportError,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface SessionsBatchDeleteParams {
   /** Numeric `session_number` values of the KYC sessions to delete, as digit-only strings (JSON numbers are also accepted and coerced). Required unless `delete_all` is `true`; an empty list returns `400`. Any non-digit entry rejects the whole request with `400` (unless `delete_all` is `true`, in which case validation is skipped and the entries are ignored). Numbers that do not match a live session in your application are silently skipped. */

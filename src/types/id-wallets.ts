@@ -22,7 +22,7 @@ import type {
   DigitalIdWalletApiPersonalausweisWalletVerificationStartCountryEnum,
   DigitalIdWalletApiSmartIdWalletVerificationStartCountryEnum,
   DigitalIdWalletApiUaePassWalletVerificationStartCountryEnum,
-} from "../types/components.js";
+} from "./components.js";
 
 /** Start a Auðkenni verification (ISL). */
 export interface IdWalletsStartAudkenniParams {

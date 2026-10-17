@@ -8,7 +8,7 @@ import type {
   TransactionRuleDetail,
   TransactionRuleLibraryEntry,
   TransactionRuleScope,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface TransactionsCreateParams {
   /** Your unique identifier for this transaction (max 128 characters). */

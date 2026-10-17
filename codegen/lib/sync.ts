@@ -300,8 +300,9 @@ export function diffSchema(
     else if (nv.length > ov.length)
       notes.push([`${where}: ${nv.length - ov.length} ${keyword} variant(s) added`, false]);
     else
-      ov.forEach((v, i) => { diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1); },
-      );
+      ov.forEach((v, i) => {
+        diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1);
+      });
   }
 }
 
@@ -624,15 +625,11 @@ export function sync(input: SyncInput): SyncResult {
     if (oldKey === newKey) continue;
     const [oldName, old] = oldOps.get(oldKey)!;
     const [newName, next] = newOps.get(newKey)!;
-    const change = describeChange(
-      oldDocs.get(oldName)!,
-      old,
-      newDocs.get(newName)!,
-      next,
-    );
+    const change = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
     const isBreaking = change.breaking;
     const notes =
-      change.notes.length === 1 && change.notes[0] === "descriptions, examples or other details changed"
+      change.notes.length === 1 &&
+      change.notes[0] === "descriptions, examples or other details changed"
         ? ["same parameters, body and response"]
         : change.notes;
     const detail = notes.join("; ");

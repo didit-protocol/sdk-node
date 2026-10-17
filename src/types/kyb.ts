@@ -5,7 +5,7 @@ import type {
   KYBRegistryIndustry,
   KYBRegistryOwnership,
   KYBRegistryShareholding,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface KybListShareholdersParams {
   /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral — use it shortly after the search that produced it. */

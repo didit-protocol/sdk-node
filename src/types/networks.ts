@@ -6,7 +6,7 @@ import type {
   NetworkNote,
   NetworkSignal,
   NetworkTimelineEvent,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface NetworksListMembersResponse {
   results?: NetworkMember[];

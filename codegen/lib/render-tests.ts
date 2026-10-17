@@ -106,9 +106,7 @@ function literal(value: Value): string {
   if (value === FILE) return FILE_LITERAL;
   if (Array.isArray(value)) return `[${value.map((v) => literal(v as Value)).join(", ")}]`;
   if (isObject(value)) {
-    const entries = Object.entries(value).map(
-      ([k, v]) => `${JSON.stringify(k)}: ${literal(v)}`,
-    );
+    const entries = Object.entries(value).map(([k, v]) => `${JSON.stringify(k)}: ${literal(v)}`);
     return `{ ${entries.join(", ")} }`;
   }
   return JSON.stringify(value);

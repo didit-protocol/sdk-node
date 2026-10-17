@@ -18,7 +18,7 @@ import type {
   CustomerMessagingLanguageEnum,
   CustomerMessagingPurposeEnum,
   RegulatoryReportDetail,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface CasesApplyEntityActionParams {
   client_reference?: string;

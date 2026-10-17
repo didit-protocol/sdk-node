@@ -342,7 +342,7 @@ describe("responses", () => {
     }));
     const decision = await didit.sessions.retrieveDecision("s");
     expect(decision.created_at).toBeInstanceOf(Date);
-    expect((decision.created_at!).toISOString()).toBe("2026-10-17T10:00:00.123Z");
+    expect(decision.created_at!.toISOString()).toBe("2026-10-17T10:00:00.123Z");
     expect(decision.status).toBe("Approved");
   });
 

@@ -4,7 +4,7 @@ import type {
   FraudCheckContextRequest,
   FraudCheckModuleSelectionRequest,
   FraudCheckSubjectRequest,
-} from "../types/components.js";
+} from "./components.js";
 
 export interface FraudChecksCreateParams {
   /** Your own reference for this check. Doubles as the idempotency key: reusing it with the same body returns the original check without running or billing the modules again; reusing it with a different body returns 409. */

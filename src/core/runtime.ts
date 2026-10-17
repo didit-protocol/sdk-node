@@ -21,12 +21,12 @@ interface DenoLike {
 
 function processLike(): ProcessLike | undefined {
   const value = (globalThis as { process?: unknown }).process;
-  return typeof value === "object" && value !== null ? (value) : undefined;
+  return typeof value === "object" && value !== null ? value : undefined;
 }
 
 function denoLike(): DenoLike | undefined {
   const value = (globalThis as { Deno?: unknown }).Deno;
-  return typeof value === "object" && value !== null ? (value) : undefined;
+  return typeof value === "object" && value !== null ? value : undefined;
 }
 
 /**
