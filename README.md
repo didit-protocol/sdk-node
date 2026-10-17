@@ -73,26 +73,32 @@ const didit = new Didit({
 });
 ```
 
-| Option | Default | Notes |
-|---|---|---|
-| `apiKey` | `DIDIT_API_KEY` | Sent as `x-api-key`, only to `baseURL`. A client without a key can still use `didit.account` and verify webhooks. |
-| `baseURL` | `https://verification.didit.me` | |
-| `organizationId`, `applicationId` | `DIDIT_ORGANIZATION_ID`, `DIDIT_APPLICATION_ID` | Needed by application-scoped methods (cases, networks, regulatory reports, report templates). |
-| `accountBaseURL` | `https://apx.didit.me/auth/v2` | The account management API (`didit.account`). |
-| `accountToken` | none | The `access_token` from `didit.account.login(...)`. |
-| `timeout` | `60_000` | Milliseconds, per attempt, including reading the body. |
-| `maxRetries` | `2` | See [Retries](#retries). |
-| `defaultHeaders` | none | Added to every request. |
-| `fetch` | global `fetch` | Your own `fetch` (proxies, instrumentation, tests). |
-| `fetchOptions` | none | Extra `fetch` options for every request, for example an undici `dispatcher` for a proxy. |
-| `logLevel`, `logger` | `DIDIT_LOG`, `console` | `debug` logs one line per request. |
+| Option                            | Default                                         | Notes                                                                                                             |
+| --------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `apiKey`                          | `DIDIT_API_KEY`                                 | Sent as `x-api-key`, only to `baseURL`. A client without a key can still use `didit.account` and verify webhooks. |
+| `baseURL`                         | `https://verification.didit.me`                 |                                                                                                                   |
+| `organizationId`, `applicationId` | `DIDIT_ORGANIZATION_ID`, `DIDIT_APPLICATION_ID` | Needed by application-scoped methods (cases, networks, regulatory reports, report templates).                     |
+| `accountBaseURL`                  | `https://apx.didit.me/auth/v2`                  | The account management API (`didit.account`).                                                                     |
+| `accountToken`                    | none                                            | The `access_token` from `didit.account.login(...)`.                                                               |
+| `timeout`                         | `60_000`                                        | Milliseconds, per attempt, including reading the body.                                                            |
+| `maxRetries`                      | `2`                                             | See [Retries](#retries).                                                                                          |
+| `defaultHeaders`                  | none                                            | Added to every request.                                                                                           |
+| `fetch`                           | global `fetch`                                  | Your own `fetch` (proxies, instrumentation, tests).                                                               |
+| `fetchOptions`                    | none                                            | Extra `fetch` options for every request, for example an undici `dispatcher` for a proxy.                          |
+| `logLevel`, `logger`              | `DIDIT_LOG`, `console`                          | `debug` logs one line per request.                                                                                |
 
 Create one client and reuse it. `didit.withOptions({ ... })` returns a new client with some options changed. Every method also takes request options as its last argument:
 
 ```ts
 await didit.sessions.create(
   { workflow_id },
-  { timeout: 10_000, maxRetries: 0, idempotencyKey: "order-123", headers: { "X-Trace": "abc" }, signal },
+  {
+    timeout: 10_000,
+    maxRetries: 0,
+    idempotencyKey: "order-123",
+    headers: { "X-Trace": "abc" },
+    signal,
+  },
 );
 ```
 
@@ -111,7 +117,11 @@ await didit.cases.notes.create(caseUuid, { comment: "Checked with the customer" 
 Every request and response has a type, exported from the package:
 
 ```ts
-import type { SessionsCreateParams, SessionsCreateResponse, TransactionDetail } from "@didit-protocol/sdk-node";
+import type {
+  SessionsCreateParams,
+  SessionsCreateResponse,
+  TransactionDetail,
+} from "@didit-protocol/sdk-node";
 ```
 
 Enums are open (`"Approved" | "Declined" | (string & {})`): a value added to the API later never breaks your build.
@@ -158,16 +168,16 @@ await writeFile("report.pdf", new Uint8Array(await pdf.arrayBuffer()));
 
 ## Errors
 
-| Error | When |
-|---|---|
-| `DiditError` | Base class of every error below. |
-| `APIConnectionError` / `APITimeoutError` | No response (network failure, timeout). |
-| `APIStatusError` | Any non-2xx answer, with `status`, `body` (parsed JSON when possible), `headers` and `requestId`. |
-| `BadRequestError` 400, `AuthenticationError` 401, `PermissionDeniedError` 403, `NotFoundError` 404, `ConflictError` 409, `UnprocessableEntityError` 422, `RateLimitError` 429, `InternalServerError` 5xx | Subclasses of `APIStatusError`. |
-| `APIResponseValidationError` | A 2xx answer the SDK cannot use (not JSON, a pagination link to another origin). |
-| `WebhookVerificationError` | A webhook failed verification; `reason` says why. |
-| `TokenVerificationError` | An Authentication token failed verification; `reason` says why. |
-| `ConfigurationError` | Missing API key, organization or application id, an empty webhook secret, an invalid option. Thrown before anything is sent. |
+| Error                                                                                                                                                                                                    | When                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `DiditError`                                                                                                                                                                                             | Base class of every error below.                                                                                             |
+| `APIConnectionError` / `APITimeoutError`                                                                                                                                                                 | No response (network failure, timeout).                                                                                      |
+| `APIStatusError`                                                                                                                                                                                         | Any non-2xx answer, with `status`, `body` (parsed JSON when possible), `headers` and `requestId`.                            |
+| `BadRequestError` 400, `AuthenticationError` 401, `PermissionDeniedError` 403, `NotFoundError` 404, `ConflictError` 409, `UnprocessableEntityError` 422, `RateLimitError` 429, `InternalServerError` 5xx | Subclasses of `APIStatusError`.                                                                                              |
+| `APIResponseValidationError`                                                                                                                                                                             | A 2xx answer the SDK cannot use (not JSON, a pagination link to another origin).                                             |
+| `WebhookVerificationError`                                                                                                                                                                               | A webhook failed verification; `reason` says why.                                                                            |
+| `TokenVerificationError`                                                                                                                                                                                 | An Authentication token failed verification; `reason` says why.                                                              |
+| `ConfigurationError`                                                                                                                                                                                     | Missing API key, organization or application id, an empty webhook secret, an invalid option. Thrown before anything is sent. |
 
 ```ts
 import { APIStatusError, NotFoundError } from "@didit-protocol/sdk-node";
@@ -244,7 +254,10 @@ const txn = await didit.transactions.create({
 });
 console.log(txn.status, txn.score); // "APPROVED" | "IN_REVIEW" | "DECLINED" | ...
 
-const screening = await didit.walletScreening.screen({ wallet_address: "0x...", blockchain: "ETH" });
+const screening = await didit.walletScreening.screen({
+  wallet_address: "0x...",
+  blockchain: "ETH",
+});
 for await (const rule of didit.transactions.rules.list()) console.log(rule.title, rule.mode);
 const settings = await didit.travelRule.retrieveSettings();
 const vasps = await didit.travelRule.listVasps({ limit: 20 });
@@ -267,7 +280,8 @@ try {
   const claims = await auth.verifyAccessToken(accessToken);
   console.log(claims.sub, claims.org?.role);
 } catch (error) {
-  if (error instanceof TokenVerificationError) console.log(error.reason); // e.g. "expired"
+  if (error instanceof TokenVerificationError)
+    console.log(error.reason); // e.g. "expired"
   else throw error;
 }
 ```
@@ -286,11 +300,11 @@ Set `DIDIT_LOG=debug` (or `logLevel: "debug"`) to log one line per HTTP request:
 
 ## Supported runtimes
 
-| Runtime | Versions |
-|---|---|
-| Node.js | 18, 20, 22, 24 |
-| Bun | 1.x |
-| Deno | 2.x |
+| Runtime       | Versions                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| Node.js       | 18, 20, 22, 24                                                                              |
+| Bun           | 1.x                                                                                         |
+| Deno          | 2.x                                                                                         |
 | Edge runtimes | Cloudflare Workers, Vercel Edge and other runtimes with `fetch`, Web Crypto and Web Streams |
 
 The SDK refuses to send your API key anywhere but the API, but it is a server-side library: never ship your API key to a browser.

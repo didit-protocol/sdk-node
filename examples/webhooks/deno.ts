@@ -14,11 +14,16 @@ declare const Deno: {
 Deno.serve({ port: 8000 }, async (request) => {
   if (request.method !== "POST") return new Response("Not found", { status: 404 });
   try {
-    const event = await webhooks.verify(await request.arrayBuffer(), request.headers, Deno.env.get("DIDIT_WEBHOOK_SECRET") ?? "");
+    const event = await webhooks.verify(
+      await request.arrayBuffer(),
+      request.headers,
+      Deno.env.get("DIDIT_WEBHOOK_SECRET") ?? "",
+    );
     console.log("received", event.webhook_type);
     return Response.json({ received: true });
   } catch (error) {
-    if (error instanceof WebhookVerificationError) return Response.json({ error: error.reason }, { status: 400 });
+    if (error instanceof WebhookVerificationError)
+      return Response.json({ error: error.reason }, { status: 400 });
     throw error;
   }
 });

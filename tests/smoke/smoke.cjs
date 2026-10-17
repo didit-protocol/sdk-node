@@ -10,7 +10,8 @@ const { join } = require("node:path");
 const sdk = require("../../dist/index.cjs");
 
 async function main() {
-  const { Didit, DiditError, ConfigurationError, webhooks, WebhookVerificationError, VERSION } = sdk;
+  const { Didit, DiditError, ConfigurationError, webhooks, WebhookVerificationError, VERSION } =
+    sdk;
   assert.equal(sdk.default, Didit);
   const didit = new Didit({ apiKey: "cjs-key" });
   assert.equal(typeof didit.sessions.create, "function");
@@ -18,7 +19,9 @@ async function main() {
   const error = await didit.cases.list().catch((e) => e);
   assert.ok(error instanceof ConfigurationError && error instanceof DiditError);
 
-  const { vectors } = JSON.parse(readFileSync(join(__dirname, "../../openapi/webhook-vectors.json"), "utf8"));
+  const { vectors } = JSON.parse(
+    readFileSync(join(__dirname, "../../openapi/webhook-vectors.json"), "utf8"),
+  );
   const vector = vectors.find((v) => v.expect === "valid");
   const realNow = Date.now;
   Date.now = () => vector.now * 1000;
@@ -30,7 +33,9 @@ async function main() {
   } finally {
     Date.now = realNow;
   }
-  const runtime = process.versions.bun ? `bun ${process.versions.bun}` : `node ${process.versions.node}`;
+  const runtime = process.versions.bun
+    ? `bun ${process.versions.bun}`
+    : `node ${process.versions.node}`;
   console.log(`smoke ok (CommonJS): @didit-protocol/sdk-node ${VERSION} on ${runtime}`);
 }
 

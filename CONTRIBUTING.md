@@ -14,19 +14,19 @@ pnpm install
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `pnpm generate` | Regenerate `src/resources`, `src/types` and `tests/generated` from `openapi/` |
-| `pnpm generate:check` | Fail when the generated code differs from what `openapi/` produces (CI) |
-| `pnpm test` | Unit, generated, contract, webhook and Authentication tests (no network) |
-| `pnpm test:coverage` | The same with the 90 % core coverage gate |
-| `pnpm test:live` | Live smoke tests against a sandbox application; needs `DIDIT_SANDBOX_API_KEY` |
-| `pnpm lint` | eslint and prettier |
-| `pnpm format` | prettier, writing |
-| `pnpm typecheck` | `tsc` strict on everything, and on the package without Node.js types |
-| `pnpm build` | ESM, CommonJS and declarations into `dist/` (tsup) |
-| `pnpm check:package` | publint and are-the-types-wrong on the packed package |
-| `pnpm spec-sync` | Download the upstream OpenAPI documents into `openapi/` (what the daily workflow runs) |
+| Command               | What it does                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm generate`       | Regenerate `src/resources`, `src/types` and `tests/generated` from `openapi/`          |
+| `pnpm generate:check` | Fail when the generated code differs from what `openapi/` produces (CI)                |
+| `pnpm test`           | Unit, generated, contract, webhook and Authentication tests (no network)               |
+| `pnpm test:coverage`  | The same with the 90 % core coverage gate                                              |
+| `pnpm test:live`      | Live smoke tests against a sandbox application; needs `DIDIT_SANDBOX_API_KEY`          |
+| `pnpm lint`           | eslint and prettier                                                                    |
+| `pnpm format`         | prettier, writing                                                                      |
+| `pnpm typecheck`      | `tsc` strict on everything, and on the package without Node.js types                   |
+| `pnpm build`          | ESM, CommonJS and declarations into `dist/` (tsup)                                     |
+| `pnpm check:package`  | publint and are-the-types-wrong on the packed package                                  |
+| `pnpm spec-sync`      | Download the upstream OpenAPI documents into `openapi/` (what the daily workflow runs) |
 
 ## How the code is organised
 

@@ -25,15 +25,18 @@ describe.skipIf(!apiKey)("sandbox", () => {
   });
 
   it.skipIf(!workflowId)("creates a session and reads its decision", async () => {
-    const session = await didit.sessions.create({ workflow_id: workflowId ?? "", vendor_data: "sdk-node-smoke" });
+    const session = await didit.sessions.create({
+      workflow_id: workflowId ?? "",
+      vendor_data: "sdk-node-smoke",
+    });
     expect(session.url).toBeTruthy();
     const decision = await didit.sessions.retrieveDecision(session.session_id);
     expect(decision.session_id).toBe(session.session_id);
   });
 
   it("answers 404 for an unknown session", async () => {
-    await expect(didit.sessions.retrieveDecision("00000000-0000-4000-8000-000000000000")).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      didit.sessions.retrieveDecision("00000000-0000-4000-8000-000000000000"),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

@@ -14,7 +14,11 @@ export default {
       return new Response("Not found", { status: 404 });
     }
     try {
-      const event = await webhooks.verify(await request.arrayBuffer(), request.headers, env.DIDIT_WEBHOOK_SECRET);
+      const event = await webhooks.verify(
+        await request.arrayBuffer(),
+        request.headers,
+        env.DIDIT_WEBHOOK_SECRET,
+      );
       console.log("received", event.webhook_type, event.event_id);
       return Response.json({ received: true });
     } catch (error) {

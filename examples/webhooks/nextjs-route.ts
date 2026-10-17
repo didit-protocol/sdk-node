@@ -8,7 +8,11 @@ export const runtime = "nodejs"; // also works with "edge"
 export async function POST(request: Request): Promise<Response> {
   const body = await request.text(); // the raw body, before any JSON parsing
   try {
-    const event = await webhooks.verify(body, request.headers, process.env.DIDIT_WEBHOOK_SECRET ?? "");
+    const event = await webhooks.verify(
+      body,
+      request.headers,
+      process.env.DIDIT_WEBHOOK_SECRET ?? "",
+    );
     if (event.webhook_type === "status.updated" && event.status === "Approved") {
       // Grant access for event.vendor_data ...
     }

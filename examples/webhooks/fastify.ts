@@ -23,7 +23,8 @@ app.post("/webhooks/didit", async (request, reply) => {
     }
     return { received: true };
   } catch (error) {
-    if (error instanceof WebhookVerificationError) return reply.code(400).send({ error: error.reason });
+    if (error instanceof WebhookVerificationError)
+      return reply.code(400).send({ error: error.reason });
     throw error;
   }
 });
