@@ -30,7 +30,8 @@ async function main() {
   } finally {
     Date.now = realNow;
   }
-  console.log(`smoke ok (CommonJS): @didit-protocol/sdk-node ${VERSION} on node ${process.versions.node}`);
+  const runtime = process.versions.bun ? `bun ${process.versions.bun}` : `node ${process.versions.node}`;
+  console.log(`smoke ok (CommonJS): @didit-protocol/sdk-node ${VERSION} on ${runtime}`);
 }
 
 main().catch((error) => {
