@@ -22,7 +22,6 @@ import type { SessionsRetrieveDecisionResponse } from "../types/sessions.js";
 /** Which header authenticated a delivery. */
 export type WebhookVerifiedBy = "signature" | "signature_v2" | "signature_simple";
 
-
 /** The environment of the application that sent the webhook. */
 export type WebhookEnvironment = "live" | "sandbox" | (string & {});
 

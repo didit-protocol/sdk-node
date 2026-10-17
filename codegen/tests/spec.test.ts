@@ -59,11 +59,17 @@ describe("load", () => {
     [{ resource: "a", method: "x", auth: "token", server: true }, /auth/],
     [{ resource: "a", method: "x", auth: "api_key", server: "yes" }, /server/],
     [{ resource: "a", method: "x", auth: "api_key", server: true, scope: "org" }, /scope/],
-    [{ resource: "a", method: "x", auth: "api_key", server: true, extra: 1 }, /unknown x-didit-sdk keys/],
+    [
+      { resource: "a", method: "x", auth: "api_key", server: true, extra: 1 },
+      /unknown x-didit-sdk keys/,
+    ],
     [{ resource: "a", method: "x", auth: "api_key" }, /missing "server"/],
     ["nope", /must be an object/],
   ])("refuses invalid naming %j", (raw, message) => {
-    const dir = specDir({ verification: openapi({ "/v3/a/": { get: ok } }), overlay: { "GET /v3/a/": raw } });
+    const dir = specDir({
+      verification: openapi({ "/v3/a/": { get: ok } }),
+      overlay: { "GET /v3/a/": raw },
+    });
     expect(() => load(dir)).toThrow(message);
   });
 
@@ -107,15 +113,17 @@ describe("load", () => {
     });
     expect(() => load(again)).toThrow(/provides old\.list again/);
     expect(() => load(specDir({ deprecated: { "wrong.name": entry } }))).toThrow(/entry name/);
-    expect(() => load(specDir({ deprecated: { "old.list": { ...entry, operation_key: "nope" } } }))).toThrow(
-      /operation_key/,
-    );
+    expect(() =>
+      load(specDir({ deprecated: { "old.list": { ...entry, operation_key: "nope" } } })),
+    ).toThrow(/operation_key/);
   });
 
   it("loads the committed documents", () => {
     const model = load(new URL("../../openapi", import.meta.url).pathname);
     const server = model.operations.filter((o) => o.sdk.server);
     expect(server.length).toBeGreaterThan(200);
-    expect(model.operations.filter((o) => o.api === "account").every((o) => o.sdk.server)).toBe(true);
+    expect(model.operations.filter((o) => o.api === "account").every((o) => o.sdk.server)).toBe(
+      true,
+    );
   });
 });

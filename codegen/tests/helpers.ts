@@ -16,11 +16,17 @@ export function specDir(options: {
   deprecated?: Doc;
 }): string {
   const dir = mkdtempSync(join(tmpdir(), "didit-codegen-"));
-  writeFileSync(join(dir, "verification.json"), JSON.stringify(options.verification ?? openapi({})));
+  writeFileSync(
+    join(dir, "verification.json"),
+    JSON.stringify(options.verification ?? openapi({})),
+  );
   writeFileSync(join(dir, "account.json"), JSON.stringify(options.account ?? openapi({})));
   writeFileSync(join(dir, "overlay.json"), JSON.stringify({ operations: options.overlay ?? {} }));
   if (options.deprecated) {
-    writeFileSync(join(dir, "deprecated-operations.json"), JSON.stringify({ methods: options.deprecated }));
+    writeFileSync(
+      join(dir, "deprecated-operations.json"),
+      JSON.stringify({ methods: options.deprecated }),
+    );
   }
   return dir;
 }
