@@ -364,7 +364,13 @@ function buildResponse(
       const type = builder.type(spec, schema, hint, module, "response");
       seen.push([key, type]);
       types.push(type);
-      plans.push(builder.datePlan(spec, schema));
+      const plan = builder.datePlan(spec, schema);
+      plans.push(plan);
+      // Named response types get a named plan too, so hand-written code (webhook
+      // events carry the session decision) can decode the same type.
+      if (plan !== null && typeof plan !== "string" && builder.decls.has(type.expr)) {
+        builder.plans.set(type.expr, plan);
+      }
     });
     let type = types.length === 1 ? types[0]! : union(types);
     if (empty) type = nullable(type);

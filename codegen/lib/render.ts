@@ -250,20 +250,28 @@ function renderResourceModule(top: ResourceNode, decls: Map<string, Decl>): stri
   return out.join("\n");
 }
 
-function renderRoot(root: ResourceNode, plans: Map<string, DatePlan>): string {
+function renderPlans(plans: Map<string, DatePlan>): string {
+  const out: string[] = [HEADER, ""];
+  out.push(`import type { DatePlan } from "../core/dates.js";`, "");
+  out.push("/** Date-time decoding plans of the named response types (see core/dates.ts). */");
+  out.push("export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {");
+  for (const name of [...plans.keys()].sort()) {
+    out.push(`  ${propKey(name)}: ${literalPlan(plans.get(name)!)},`);
+  }
+  out.push("};", "");
+  return out.join("\n");
+}
+
+function renderRoot(root: ResourceNode): string {
   const out: string[] = [HEADER, ""];
   out.push(`import { APIClient } from "../core/api-client.js";`);
   out.push(`import type { DatePlan } from "../core/dates.js";`);
+  out.push(`import { DATE_PLANS } from "./date-plans.js";`);
   const children = [...root.children.entries()].sort(([a], [b]) => a.localeCompare(b));
   for (const [segment, child] of children) {
     out.push(`import { ${child.className} } from "./${kebab(segment)}.js";`);
   }
   out.push("");
-  out.push("/** Date-time decoding plans of the named response types (see core/dates.ts). */");
-  out.push("export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {");
-  for (const name of [...plans.keys()].sort())
-    out.push(`  ${propKey(name)}: ${literalPlan(plans.get(name)!)},`);
-  out.push("};", "");
   out.push("/** Every resource of the API, one property per top-level resource. */");
   out.push("export abstract class DiditResources extends APIClient {");
   out.push(
@@ -316,7 +324,8 @@ export function render(model: Model): Rendered {
   for (const [segment, node] of root.children) {
     files.set(`src/resources/${kebab(segment)}.ts`, renderResourceModule(node, builder.decls));
   }
-  files.set("src/resources/index.ts", renderRoot(root, builder.plans));
+  files.set("src/resources/index.ts", renderRoot(root));
+  files.set("src/resources/date-plans.ts", renderPlans(builder.plans));
 
   const byModule = new Map<string, Decl[]>();
   for (const decl of builder.decls.values()) {

@@ -15,11 +15,13 @@
 // string) on UnknownEvent would keep it in every case, because a string is
 // comparable to every literal. tests/webhooks/types.test.ts proves this.
 
+import { decodeDates } from "../core/dates.js";
+import { DATE_PLANS } from "../resources/date-plans.js";
+import type { SessionsRetrieveDecisionResponse } from "../types/sessions.js";
+
 /** Which header authenticated a delivery. */
 export type WebhookVerifiedBy = "signature" | "signature_v2" | "signature_simple";
 
-// Replaced by the generated SessionsRetrieveDecisionResponse.
-type SessionDecision = Record<string, unknown>;
 
 /** The environment of the application that sent the webhook. */
 export type WebhookEnvironment = "live" | "sandbox" | (string & {});
@@ -115,8 +117,8 @@ interface SessionEventFields {
   vendor_data?: string | null;
   /** The metadata you attached to the session. */
   metadata?: Record<string, unknown> | null;
-  /** The session decision, the same shape `sessions.retrieveDecision` returns. */
-  decision?: SessionDecision | null;
+  /** The session decision, the same type `sessions.retrieveDecision` returns (date-times as `Date`). */
+  decision?: SessionsRetrieveDecisionResponse | null;
   /** The steps the user must redo and why, when the status is `Resubmitted`. */
   resubmit_info?: unknown;
 }
@@ -269,6 +271,10 @@ export type KnownWebhookEvent =
 /** A verified webhook event; narrow it with `switch (event.webhook_type)`. */
 export type WebhookEvent = KnownWebhookEvent | UnknownEvent;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function defineHidden(target: object, name: string, value: unknown): void {
   Object.defineProperty(target, name, {
     value,
@@ -297,5 +303,10 @@ export function parseEvent(
   // not authenticated, so it must not be able to claim that it is.
   defineHidden(payload, "verifiedBy", verifiedBy);
   defineHidden(payload, "bodyAuthenticated", verifiedBy !== "signature_simple");
+  // The decision is the generated response type, whose date-times are Date objects.
+  const type = payload.webhook_type;
+  if ((type === "status.updated" || type === "data.updated") && isRecord(payload.decision)) {
+    decodeDates(payload.decision, "SessionsRetrieveDecisionResponse", DATE_PLANS);
+  }
   return payload as WebhookEvent;
 }
