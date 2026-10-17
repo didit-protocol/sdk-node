@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ACCOUNT_ORIGIN,
   API_ORIGIN,
   expectAuth,
   expectMatchesExample,
@@ -40,10 +39,10 @@ describe("face_match", () => {
     expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
     expect(request.form).toEqual({});
     expect(Object.keys(request.files).sort()).toEqual(["ref_image", "user_image"]);
-    expect(request.files["ref_image"]).toEqual([
+    expect(request.files.ref_image).toEqual([
       { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
     ]);
-    expect(request.files["user_image"]).toEqual([
+    expect(request.files.user_image).toEqual([
       { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
     ]);
     expectMatchesExample(result, responseExample("POST /v3/face-match/"));

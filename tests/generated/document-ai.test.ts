@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ACCOUNT_ORIGIN,
   API_ORIGIN,
   expectAuth,
   expectMatchesExample,
@@ -40,7 +39,7 @@ describe("document_ai", () => {
         '[{"key": "employer_name", "name": "Employer name", "instruction": "The employer or company issuing the payslip.", "type": "text", "required": true, "is_full_name": false}, {"key": "employee_name", "name": "Employee name", "instruction": "The full name of the employee as printed on the payslip.", "type": "text", "required": true, "is_full_name": true}, {"key": "net_pay", "name": "Net pay", "instruction": "The net amount paid to the employee for the period.", "type": "number", "required": true, "is_full_name": false}, {"key": "pay_date", "name": "Pay date", "instruction": "The payment date shown on the payslip.", "type": "date", "required": false, "is_full_name": false}]',
     });
     expect(Object.keys(request.files).sort()).toEqual(["document"]);
-    expect(request.files["document"]).toEqual([
+    expect(request.files.document).toEqual([
       { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
     ]);
     expectMatchesExample(result, responseExample("POST /v3/document-ai/"));

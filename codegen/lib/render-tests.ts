@@ -125,6 +125,11 @@ function formText(value: Json): string {
   return JSON.stringify(value);
 }
 
+/** `.name` when `name` is an identifier, else `["name"]`. */
+function accessor(name: string): string {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? `.${name}` : `[${JSON.stringify(name)}]`;
+}
+
 function pathExample(method: Method, index: number): string {
   const arg = method.pathArgs[index]!;
   if (typeof arg.example === "string" && /^[A-Za-z0-9._~-]+$/.test(arg.example)) return arg.example;
@@ -239,7 +244,7 @@ function renderCase(method: Method): Case {
     );
     for (const name of files) {
       lines.push(
-        `    expect(request.files[${JSON.stringify(name)}]).toEqual([{ filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] }]);`,
+        `    expect(request.files${accessor(name)}).toEqual([{ filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] }]);`,
       );
     }
   } else if (method.bodyMode !== "none") {
@@ -282,14 +287,9 @@ export function renderTests(children: Map<string, ResourceNodeLike>): Map<string
     all.sort((a, b) => `${a.resource}.${a.name}`.localeCompare(`${b.resource}.${b.name}`));
     const cases = all.map(renderCase);
     const usesBinary = all.some((m) => m.response.kind === "binary");
-    const imports = [
-      "ACCOUNT_ORIGIN",
-      "API_ORIGIN",
-      "expectAuth",
-      "expectMatchesExample",
-      "mockClient",
-      "responseExample",
-    ];
+    const imports = ["expectAuth", "expectMatchesExample", "mockClient", "responseExample"];
+    if (all.some((m) => m.op.api === "account")) imports.push("ACCOUNT_ORIGIN");
+    if (all.some((m) => m.op.api !== "account")) imports.push("API_ORIGIN");
     if (usesBinary) imports.unshift("BINARY");
     const lines = [
       HEADER,

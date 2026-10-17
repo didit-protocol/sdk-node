@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ACCOUNT_ORIGIN,
   API_ORIGIN,
   expectAuth,
   expectMatchesExample,
@@ -35,7 +34,7 @@ describe("passive_liveness", () => {
     expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
     expect(request.form).toEqual({});
     expect(Object.keys(request.files).sort()).toEqual(["user_image"]);
-    expect(request.files["user_image"]).toEqual([
+    expect(request.files.user_image).toEqual([
       { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
     ]);
     expectMatchesExample(result, responseExample("POST /v3/passive-liveness/"));

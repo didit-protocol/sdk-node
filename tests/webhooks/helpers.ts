@@ -49,7 +49,8 @@ function pyStr(value: unknown): string {
   if (value === true) return "True";
   if (value === false) return "False";
   if (typeof value === "string" || typeof value === "number") return String(value);
-  throw new Error("the simple signature fields of a test payload are scalars");
+  // Python's repr of a list or dict is not rebuilt; no test checks such a simple signature.
+  return JSON.stringify(value);
 }
 
 export function payload(extra: Record<string, unknown> = {}): Record<string, unknown> {

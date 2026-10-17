@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   ACCOUNT_ORIGIN,
-  API_ORIGIN,
   expectAuth,
   expectMatchesExample,
   mockClient,

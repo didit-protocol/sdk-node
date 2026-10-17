@@ -3,7 +3,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ACCOUNT_ORIGIN,
   API_ORIGIN,
   expectAuth,
   expectMatchesExample,
@@ -32,7 +31,7 @@ describe("proof_of_address", () => {
     expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
     expect(request.form).toEqual({});
     expect(Object.keys(request.files).sort()).toEqual(["document"]);
-    expect(request.files["document"]).toEqual([
+    expect(request.files.document).toEqual([
       { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
     ]);
     expectMatchesExample(result, responseExample("POST /v3/poa/"));
