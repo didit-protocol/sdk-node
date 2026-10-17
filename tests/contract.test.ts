@@ -73,6 +73,38 @@ describe("contract", () => {
     expect(actual.size).toBe(server.length);
   });
 
+  it("agrees with a count made from the raw documents, without the generator's loader", () => {
+    // Read the JSON directly, so a loader bug that dropped operations would show here.
+    const read = (name: string): Record<string, unknown> =>
+      JSON.parse(readFileSync(`${OPENAPI}/${name}`, "utf8")) as Record<string, unknown>;
+    const overlay = (read("overlay.json").operations ?? {}) as Record<string, { server?: boolean }>;
+    const deprecated = (read("deprecated-operations.json").methods ?? {}) as Record<
+      string,
+      unknown
+    >;
+    let server = 0;
+    for (const [name, prefix] of [
+      ["verification.json", ""],
+      ["account.json", "account "],
+    ] as const) {
+      const paths = read(name).paths as Record<string, Record<string, Record<string, unknown>>>;
+      for (const [path, item] of Object.entries(paths)) {
+        for (const [method, op] of Object.entries(item)) {
+          if (
+            !["get", "post", "put", "patch", "delete", "head", "options", "trace"].includes(method)
+          )
+            continue;
+          const naming = (op["x-didit-sdk"] ??
+            overlay[`${prefix}${method.toUpperCase()} ${path}`]) as
+            { server?: boolean } | undefined;
+          if (naming?.server === true) server++;
+        }
+      }
+    }
+    expect(server).toBeGreaterThan(200);
+    expect(actual.size).toBe(server + Object.keys(deprecated).length);
+  });
+
   it("never exposes device, end-user token or public operations", () => {
     for (const op of model.operations.filter((o) => !o.sdk.server)) {
       expect(["device_token", "public", "none"]).toContain(op.sdk.auth);

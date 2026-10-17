@@ -69,6 +69,14 @@ export default tseslint.config(
     },
   },
   {
+    // The generated tests and the contract test call every method, including the
+    // ones a spec sync keeps as deprecated until their removal version.
+    files: ["tests/generated/**/*.ts", "tests/contract.test.ts"],
+    rules: {
+      "@typescript-eslint/no-deprecated": "off",
+    },
+  },
+  {
     files: ["**/*.js", "**/*.mjs", "**/*.cjs"],
     ...tseslint.configs.disableTypeChecked,
   },
