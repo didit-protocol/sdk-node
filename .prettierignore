@@ -1,0 +1,6 @@
+# Upstream copies and generated files keep their own formatting.
+openapi/
+dist/
+coverage/
+pnpm-lock.yaml
+CHANGELOG.md
