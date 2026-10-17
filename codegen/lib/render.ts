@@ -54,7 +54,8 @@ function camelSegment(segment: string): string {
   return segment.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 }
 
-function importLines(deps: Set<string>, decls: Map<string, Decl>, from: string, prefix: string): string[] {
+/** Imports for `deps`; `types` is the path from the importing file to src/types/. */
+function importLines(deps: Set<string>, decls: Map<string, Decl>, from: string, types: string): string[] {
   const byModule = new Map<string, string[]>();
   let uploadable = false;
   for (const dep of deps) {
@@ -70,10 +71,10 @@ function importLines(deps: Set<string>, decls: Map<string, Decl>, from: string, 
     byModule.set(decl.module, list);
   }
   const lines: string[] = [];
-  if (uploadable) lines.push(`import type { Uploadable } from "${prefix}core/uploads.js";`);
+  if (uploadable) lines.push(`import type { Uploadable } from "../core/uploads.js";`);
   for (const module of [...byModule.keys()].sort()) {
     const names = byModule.get(module)!.sort();
-    lines.push(`import type { ${names.join(", ")} } from "${prefix}types/${kebab(module)}.js";`);
+    lines.push(`import type { ${names.join(", ")} } from "${types}${kebab(module)}.js";`);
   }
   return lines;
 }
@@ -179,7 +180,7 @@ function renderResourceModule(top: ResourceNode, decls: Map<string, Decl>): stri
   const needsResource = nodes.some((node) => node !== top || base === "APIResource");
   if (needsResource) coreImports.push(`import { APIResource } from "../core/resource.js";`);
   out.push(...coreImports);
-  out.push(...importLines(deps, decls, "", "../"));
+  out.push(...importLines(deps, decls, "", "../types/"));
   if (base === "WebhookHelpers") out.push(`import { WebhookHelpers } from "../webhooks/resource.js";`);
   out.push("", ...descriptors, "");
   for (const node of nodes) {
@@ -243,7 +244,7 @@ function renderTypes(module: string, decls: Decl[], all: Map<string, Decl>): str
   const deps = new Set<string>();
   for (const decl of decls) for (const d of declDeps(decl)) deps.add(d);
   const out: string[] = [HEADER, ""];
-  const imports = importLines(deps, all, module, "../");
+  const imports = importLines(deps, all, module, "./");
   if (imports.length) out.push(...imports, "");
   out.push(decls.map(renderDecl).join("\n\n"), "");
   return out.join("\n");
