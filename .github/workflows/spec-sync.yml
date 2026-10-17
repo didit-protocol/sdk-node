@@ -1,0 +1,224 @@
+# Spec sync (docs/DESIGN.md section 3.1).
+#
+# Downloads the upstream OpenAPI documents into openapi/, regenerates the SDK, runs the
+# checks and opens (or updates) one pull request titled
+# "chore(spec): sync API spec YYYY-MM-DD" on the branch chore/spec-sync. The title is
+# fixed by DESIGN.md; the commit, and a BEGIN_COMMIT_OVERRIDE block in the pull request
+# body that release-please reads after a squash merge, carry the type that matches the
+# change: "feat(spec)!" when it breaks the public SDK surface, "feat(spec)" when it adds
+# or changes methods and types (a removed method is kept as deprecated, which is not
+# breaking yet), and "chore(spec)" for documentation-only changes.
+#
+# Token: pull requests opened with the default GITHUB_TOKEN do not trigger CI (GitHub does
+# not start workflows from events caused by GITHUB_TOKEN). To get CI on the sync pull
+# request, add a repository secret SPEC_SYNC_TOKEN (a fine-grained token with Contents and
+# Pull requests read and write on this repository only). Without it the workflow falls
+# back to GITHUB_TOKEN; then close and reopen the pull request, or push to its branch, to
+# start CI.
+#
+# Hand-pushed fixes: create-pull-request rebuilds chore/spec-sync from the default branch
+# on every run, which would drop a fix pushed to that branch by hand (usually an
+# openapi/overlay.json entry for a draft sync). While the open spec sync pull request
+# carries a commit that did not come from this workflow, the run leaves it alone; once
+# that pull request is merged or closed, the next run syncs whatever changed since. A
+# push to the branch while the run is checking its changes stops the run before it
+# would overwrite that push.
+name: Spec sync
+
+on:
+  schedule:
+    - cron: "37 6 * * *" # daily, 06:37 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spec-sync
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sync:
+    name: Sync the API spec
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      FORCE_COLOR: "1"
+    steps:
+      - name: Prepare
+        id: prepare
+        # The summary lives outside the checkout so that it is never committed.
+        run: |
+          echo "SUMMARY=$RUNNER_TEMP/spec-sync-summary.md" >> "$GITHUB_ENV"
+          echo "today=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # create-pull-request configures its own credentials from its token input.
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Leave hand-pushed fixes on the sync branch alone
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+          BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          # The branch head now, checked again just before the pull request is updated.
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null | grep -E '^[0-9a-f]{40}$' || true)"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          open="$(gh pr list --repo "$GITHUB_REPOSITORY" --head chore/spec-sync --base "$BASE" \
+            --state open --json number --jq 'length')"
+          if [ "$open" = "0" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT" # no open sync pull request
+            exit 0
+          fi
+          authors="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE}...chore/spec-sync" \
+            --jq '.commits[] | .commit.author.email, .commit.committer.email')"
+          if printf '%s\n' "$authors" | grep -v -x -F -e "$BOT_EMAIL" -e 'noreply@github.com' -e '' | grep -q .; then
+            echo "::warning::chore/spec-sync has commits that did not come from the spec sync (a fix pushed by hand). This run leaves the branch alone: merge or close the spec sync pull request, and the next run syncs whatever changed since."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download the upstream OpenAPI documents
+        id: sync
+        if: steps.guard.outputs.skip != 'true'
+        # Writes changed=true|false, breaking=true|false and release=breaking|feature|none
+        # to $GITHUB_OUTPUT and a markdown summary of the added, removed and changed
+        # operations to $SUMMARY.
+        run: pnpm spec-sync --summary "$SUMMARY"
+      - name: Regenerate the SDK and run the checks
+        id: checks
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          failed=false
+          {
+            echo
+            echo "## Checks"
+            echo
+          } >> "$SUMMARY"
+          run_check() {
+            name="$1"
+            shift
+            echo "::group::$name"
+            if "$@"; then
+              echo "- [x] $name" >> "$SUMMARY"
+            else
+              echo "- [ ] $name: **failed**, see the workflow run" >> "$SUMMARY"
+              echo "::error::$name failed"
+              failed=true
+            fi
+            echo "::endgroup::"
+          }
+          run_check "Regenerate (pnpm generate)" pnpm generate
+          run_check "eslint" pnpm exec eslint .
+          run_check "prettier --check" pnpm exec prettier --check .
+          run_check "tsc" pnpm typecheck
+          run_check "vitest" pnpm test
+          run_check "build and package checks" bash -c "pnpm build && pnpm check:package"
+          {
+            echo
+            echo "Opened by [spec sync run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})."
+            echo "Generated code comes from codegen/ and openapi/; do not edit it by hand."
+          } >> "$SUMMARY"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+      - name: Write the commit message
+        id: message
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          TODAY: ${{ steps.prepare.outputs.today }}
+          RELEASE: ${{ steps.sync.outputs.release }}
+        # A sync that breaks the public SDK surface must never ship as a patch release, and
+        # one that adds methods must reach a release at all (release-please skips chore).
+        run: |
+          case "$RELEASE" in
+            breaking) header="feat(spec)!: sync API spec ${TODAY}" ;;
+            feature) header="feat(spec): sync API spec ${TODAY}" ;;
+            *) header="chore(spec): sync API spec ${TODAY}" ;;
+          esac
+          {
+            echo "message<<SPEC_SYNC_EOF"
+            echo "$header"
+            if [ "$RELEASE" = "breaking" ]; then
+              echo
+              echo "BREAKING CHANGE: the API contract changed in a way that breaks the SDK surface; see the Breaking changes section of the pull request."
+            fi
+            echo "SPEC_SYNC_EOF"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$RELEASE" != "none" ]; then
+            {
+              echo
+              echo "## Release"
+              echo
+              echo "release-please reads the block below instead of the merge commit, so a squash merge with the pull request title still releases this as \`${header%%:*}\`. Keep it when you edit this description."
+              echo
+              echo "BEGIN_COMMIT_OVERRIDE"
+              echo "$header"
+              echo "END_COMMIT_OVERRIDE"
+            } >> "$SUMMARY"
+          fi
+      - name: Stop if someone pushed to the sync branch during this run
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEEN: ${{ steps.guard.outputs.head }}
+        run: |
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null | grep -E '^[0-9a-f]{40}$' || true)"
+          if [ "$head" != "$SEEN" ]; then
+            echo "::error::chore/spec-sync moved from '${SEEN}' to '${head}' while this run was checking its changes; nothing was pushed. Run the spec sync again."
+            exit 1
+          fi
+      - name: Open or update the spec sync pull request
+        id: pr
+        if: steps.sync.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.SPEC_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+          branch: chore/spec-sync
+          delete-branch: true
+          title: "chore(spec): sync API spec ${{ steps.prepare.outputs.today }}"
+          commit-message: ${{ steps.message.outputs.message }}
+          body-path: ${{ env.SUMMARY }}
+          # A sync that fails a check still opens the pull request, as a draft, so the fix
+          # (usually an openapi/overlay.json entry) can be pushed to the same branch.
+          draft: ${{ steps.checks.outputs.failed == 'true' }}
+          # Only the spec copies and the generated layer (api.md included); nothing else is committed.
+          add-paths: |
+            api.md
+            openapi
+            src/resources
+            src/types
+            tests/generated
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+      - name: Mark the pull request ready once its checks pass
+        # A sync that failed a check opens a draft; a later run whose checks pass clears it.
+        if: steps.sync.outputs.changed == 'true' && steps.checks.outputs.failed != 'true' && steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.pr.outputs.pull-request-number }}
+        run: |
+          if [ "$(gh pr view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = "true" ]; then
+            gh pr ready "$NUMBER" --repo "$GITHUB_REPOSITORY"
+          fi
+      - name: Fail the run when a check failed
+        if: steps.checks.outputs.failed == 'true'
+        run: |
+          echo "::error::The spec sync pull request was opened, but at least one check failed. See the Checks section of the pull request."
+          exit 1
