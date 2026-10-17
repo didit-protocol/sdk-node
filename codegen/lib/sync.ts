@@ -403,11 +403,21 @@ export function describeChange(
   return { notes, breaking: found.some(([, b]) => b) };
 }
 
-/** The version in which a method deprecated in `version` is deleted. */
+/** The minor version after `version`. */
 export function nextMinor(version: string): string {
   const match = /^(\d+)\.(\d+)/.exec(version);
   if (!match) return "0.1.0";
   return `${match[1]}.${Number(match[2]) + 1}.0`;
+}
+
+/**
+ * The version in which a method deprecated while the package is at `version`
+ * is deleted: two minors on. The sync pull request is a `feat`, so the first
+ * release that ships the deprecation is at most the next minor, and the method
+ * then stays deprecated for at least one minor version (DESIGN section 3.1).
+ */
+export function removalVersion(version: string): string {
+  return nextMinor(nextMinor(version));
 }
 
 interface Naming {
@@ -436,9 +446,17 @@ export interface SyncInput {
   version: string;
 }
 
+/**
+ * What the sync means for the next release: `breaking` changes the public SDK
+ * surface now, `feature` adds or changes methods and types (deprecations
+ * included), `none` changes documentation only.
+ */
+export type SyncRelease = "breaking" | "feature" | "none";
+
 export interface SyncResult {
   changed: boolean;
   breaking: boolean;
+  release: SyncRelease;
   summary: string;
   /** Files of openapi/ to write. */
   writes: Map<string, Uint8Array>;
@@ -472,10 +490,16 @@ export function sync(input: SyncInput): SyncResult {
     if (!equalBytes(old, data)) changedFiles.push(name);
   }
   if (!changedFiles.length) {
-    return { changed: false, breaking: false, summary: "No upstream change.\n", writes: new Map() };
+    return {
+      changed: false,
+      breaking: false,
+      release: "none",
+      summary: "No upstream change.\n",
+      writes: new Map(),
+    };
   }
 
-  const removeIn = nextMinor(input.version);
+  const removeIn = removalVersion(input.version);
   const overlay = json(input.files.get("overlay.json"), { operations: {} });
   const overlayOps = (isObject(overlay.operations) ? overlay.operations : {}) as Record<
     string,
@@ -521,6 +545,10 @@ export function sync(input: SyncInput): SyncResult {
     "",
   ];
   const breaking: string[] = [];
+  // Kept as deprecated methods: not breaking until removeIn.
+  const deprecations: string[] = [];
+  // Anything that changes the generated methods or types.
+  let feature = false;
   const kept: string[] = [];
 
   const keep = (
@@ -551,6 +579,7 @@ export function sync(input: SyncInput): SyncResult {
     kept.push(method);
   };
 
+  if (added.length || removed.length) feature = true;
   lines.push(`## Added operations (${added.length})`);
   for (const key of added) {
     const n = newNaming(key);
@@ -573,7 +602,7 @@ export function sync(input: SyncInput): SyncResult {
         `- \`${key}\` moved to \`${newServerNames.get(nameOf(n))!}\`; \`${nameOf(n)}\` keeps its name`,
       );
     } else {
-      breaking.push(
+      deprecations.push(
         `\`${nameOf(n)}\` was removed upstream (${key}); kept as a deprecated method until version ${removeIn}`,
       );
       lines.push(
@@ -602,7 +631,7 @@ export function sync(input: SyncInput): SyncResult {
       renames.push(
         `- \`${key}\` (\`${nameOf(before)}\`) is no longer a server operation (auth ${after.auth ?? "-"}); kept as a deprecated method until version ${removeIn}`,
       );
-      breaking.push(
+      deprecations.push(
         `\`${nameOf(before)}\` (${key}) now needs ${after.auth ?? "-"}, which server SDKs do not expose; kept as a deprecated method until version ${removeIn}`,
       );
       keep(before, key, "removed");
@@ -610,12 +639,13 @@ export function sync(input: SyncInput): SyncResult {
       renames.push(
         `- \`${key}\`: \`${nameOf(before)}\` renamed to \`${nameOf(after)}\`; the old name stays as a deprecated alias until version ${removeIn}`,
       );
-      breaking.push(
+      deprecations.push(
         `\`${nameOf(before)}\` was renamed upstream to \`${nameOf(after)}\` (${key}); the old name is a deprecated alias until version ${removeIn}`,
       );
       keep(before, key, "renamed", nameOf(after));
     }
   }
+  if (renames.length) feature = true;
   lines.push(`## Renamed methods (${renames.length})`, ...renames, "");
 
   const moves: string[] = [];
@@ -651,6 +681,7 @@ export function sync(input: SyncInput): SyncResult {
       }
     }
   }
+  if (moves.length) feature = true;
   lines.push(`## Moved or reassigned methods (${moves.length})`, ...moves, "");
 
   for (const method of Object.keys(deprecatedMethods).sort()) {
@@ -664,19 +695,37 @@ export function sync(input: SyncInput): SyncResult {
 
   const changes: string[] = [];
   for (const key of common) {
-    const [oldName, old] = oldOps.get(key)!;
-    const [newName, next] = newOps.get(key)!;
+    const [oldName, oldOp] = oldOps.get(key)!;
+    const [newName, newOp] = newOps.get(key)!;
+    const before = oldNaming(key);
+    const after = newNaming(key);
+    // Upstream taking over the overlay's naming as it is changes nothing in the SDK.
+    const sameNaming = same(before ?? null, after ?? null);
+    const old = sameNaming ? withoutNaming(oldOp) : oldOp;
+    const next = sameNaming ? withoutNaming(newOp) : newOp;
     const sameOp = same(old, next);
     if (sameOp && same(oldDocs.get(oldName)!.components, newDocs.get(newName)!.components))
       continue;
-    const { notes, breaking: isBreaking } = describeChange(
-      oldDocs.get(oldName)!,
-      old,
-      newDocs.get(newName)!,
-      next,
-    );
+    const described = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
+    let { notes, breaking: isBreaking } = described;
+    // A method that keeps its name but changes scope or credentials takes other
+    // arguments or needs another client option.
+    if (before?.server && after?.server && nameOf(before) === nameOf(after)) {
+      for (const field of ["scope", "auth"] as const) {
+        const was = (before as unknown as JsonObject)[field] ?? null;
+        const now = (after as unknown as JsonObject)[field] ?? null;
+        if (was !== now) {
+          notes = [
+            `x-didit-sdk ${field} ${JSON.stringify(was)} -> ${JSON.stringify(now)} (breaking)`,
+            ...notes,
+          ];
+          isBreaking = true;
+        }
+      }
+    }
     if (
       sameOp &&
+      !isBreaking &&
       notes.length === 1 &&
       notes[0] === "descriptions, examples or other details changed"
     )
@@ -685,7 +734,15 @@ export function sync(input: SyncInput): SyncResult {
     if (isBreaking)
       breaking.push(`\`${key}\`: ${notes.filter((n) => n.endsWith("(breaking)")).join("; ")}`);
   }
+  if (changes.length) feature = true;
   lines.push(`## Changed operations (${changes.length})`, ...changes, "");
+
+  // Components a deprecated method still uses keep their types.
+  const stillUsed = new Set<string>();
+  for (const entry of Object.values(deprecatedMethods)) {
+    if (isObject(entry.components))
+      for (const name of Object.keys(entry.components)) stillUsed.add(name);
+  }
 
   lines.push("## Schemas");
   for (const name of input.downloads.keys()) {
@@ -698,8 +755,11 @@ export function sync(input: SyncInput): SyncResult {
     const gone = Object.keys(oldSchemas)
       .filter((k) => !(k in newSchemas))
       .sort();
-    for (const schema of gone)
-      breaking.push(`${name}: schema \`${schema}\` removed (its type leaves the SDK)`);
+    for (const schema of gone) {
+      if (!stillUsed.has(schema))
+        breaking.push(`${name}: schema \`${schema}\` removed (its type leaves the SDK)`);
+    }
+    const keptSchemas = gone.filter((schema) => stillUsed.has(schema));
     const groups: [string, string[]][] = [
       [
         "added",
@@ -707,33 +767,53 @@ export function sync(input: SyncInput): SyncResult {
           .filter((k) => !(k in oldSchemas))
           .sort(),
       ],
-      ["removed", gone],
+      ["removed", gone.filter((schema) => !stillUsed.has(schema))],
+      ["removed upstream, type kept for the deprecated methods that use it", keptSchemas],
       [
         "changed",
         Object.keys(oldSchemas)
-          .filter((k) => k in newSchemas && !same(oldSchemas[k], newSchemas[k]))
+          .filter((k) => k in newSchemas && !same(shape(oldSchemas[k]), shape(newSchemas[k])))
+          .sort(),
+      ],
+      [
+        "descriptions or examples changed",
+        Object.keys(oldSchemas)
+          .filter(
+            (k) =>
+              k in newSchemas &&
+              !same(oldSchemas[k], newSchemas[k]) &&
+              same(shape(oldSchemas[k]), shape(newSchemas[k])),
+          )
           .sort(),
       ],
     ];
     for (const [label, names] of groups) {
-      if (names.length)
-        lines.push(`- ${name} ${label}: ${names.map((n) => `\`${n}\``).join(", ")}`);
+      if (!names.length) continue;
+      if (label !== "descriptions or examples changed") feature = true;
+      lines.push(`- ${name} ${label}: ${names.map((n) => `\`${n}\``).join(", ")}`);
     }
   }
   lines.push("");
 
   const dropped: string[] = [];
+  const differing: string[] = [];
   for (const key of Object.keys(overlayOps)) {
     const entry = newOps.get(key);
     const upstream = entry?.[1]["x-didit-sdk"];
     if (upstream === undefined) continue;
     if (!same(upstream, overlayOps[key]))
-      lines.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
+      differing.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
     dropped.push(key);
     Reflect.deleteProperty(overlayOps, key);
   }
-  if (dropped.length)
-    lines.push(`Dropped ${dropped.length} overlay entries that upstream now carries.`, "");
+  if (dropped.length) {
+    lines.push(
+      "## Overlay",
+      ...differing,
+      `Dropped ${dropped.length} overlay entries that upstream now carries.`,
+      "",
+    );
+  }
 
   lines.splice(
     2,
@@ -741,7 +821,11 @@ export function sync(input: SyncInput): SyncResult {
     "## Breaking changes",
     breaking.length ? breaking.map((b) => `- ${b}`).join("\n") : "None detected.",
     "",
+    "## Deprecated methods",
+    deprecations.length ? deprecations.map((d) => `- ${d}`).join("\n") : "None.",
+    "",
   );
+  const release: SyncRelease = breaking.length ? "breaking" : feature ? "feature" : "none";
 
   const writes = new Map<string, Uint8Array>();
   for (const [name, data] of input.downloads) writes.set(name, data);
@@ -764,8 +848,15 @@ export function sync(input: SyncInput): SyncResult {
   );
   return {
     changed: true,
-    breaking: breaking.length > 0,
+    breaking: release === "breaking",
+    release,
     summary: `${lines.join("\n").trimEnd()}\n`,
     writes,
   };
+}
+
+/** `op` without its `x-didit-sdk`, for comparing operations whose naming did not change. */
+function withoutNaming(op: JsonObject): JsonObject {
+  const { "x-didit-sdk": _naming, ...rest } = op;
+  return rest;
 }
