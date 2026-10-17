@@ -137,37 +137,59 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
   return proto === null || Object.getPrototypeOf(proto) === null;
 }
 
-function write(value: unknown, depth: number): string {
-  switch (typeof value) {
-    case "string":
-      return quoteString(value);
-    case "boolean":
-      return value ? "true" : "false";
-    case "number":
-      return writeFloat(value);
-    case "bigint":
-      return value.toString();
-    case "object": {
-      if (value === null) return "null";
-      if (value instanceof LosslessNumber) {
-        return value.isInteger ? integerLiteralString(value.raw) : writeFloat(Number(value.raw));
-      }
-      // Python's RecursionError, which also stops a self-referencing payload.
-      if (depth >= MAX_DEPTH) throw notJson(`nesting deeper than ${MAX_DEPTH} levels`);
-      if (Array.isArray(value)) {
+/** Thrown by {@link canonicalJsonWithin} when the text would pass its length limit. */
+class TooLong extends Error {}
+
+/** Writes canonical JSON and stops once the text passes `limit` UTF-16 code units. */
+class Writer {
+  private length = 0;
+
+  constructor(private readonly limit: number) {}
+
+  private count(text: string): string {
+    // Separators add at most one code unit per value or key; the limits that
+    // callers pass leave room for them.
+    this.length += text.length + 1;
+    if (this.length > this.limit) throw new TooLong();
+    return text;
+  }
+
+  write(value: unknown, depth: number): string {
+    switch (typeof value) {
+      case "string":
+        return this.count(quoteString(value));
+      case "boolean":
+        return value ? "true" : "false";
+      case "number":
+        return this.count(writeFloat(value));
+      case "bigint":
+        return this.count(value.toString());
+      case "object": {
+        if (value === null) return "null";
+        if (value instanceof LosslessNumber) {
+          return this.count(
+            value.isInteger ? integerLiteralString(value.raw) : writeFloat(Number(value.raw)),
+          );
+        }
+        // Python's RecursionError, which also stops a self-referencing payload.
+        if (depth >= MAX_DEPTH) throw notJson(`nesting deeper than ${MAX_DEPTH} levels`);
+        if (Array.isArray(value)) {
+          const parts: string[] = [];
+          // A hole in a sparse array reads as undefined, which is refused.
+          for (const item of value as unknown[]) parts.push(this.write(item, depth + 1));
+          return `[${parts.join(",")}]`;
+        }
+        if (!isPlainObject(value)) throw notJson("an object that is not a plain object");
+        const keys = Object.keys(value).sort(compareCodePoints);
         const parts: string[] = [];
-        // A hole in a sparse array reads as undefined, which is refused.
-        for (const item of value as unknown[]) parts.push(write(item, depth + 1));
-        return `[${parts.join(",")}]`;
+        for (const key of keys) {
+          parts.push(`${this.count(quoteString(key))}:${this.write(value[key], depth + 1)}`);
+        }
+        return `{${parts.join(",")}}`;
       }
-      if (!isPlainObject(value)) throw notJson("an object that is not a plain object");
-      const keys = Object.keys(value).sort(compareCodePoints);
-      const parts: string[] = [];
-      for (const key of keys) parts.push(`${quoteString(key)}:${write(value[key], depth + 1)}`);
-      return `{${parts.join(",")}}`;
+      default:
+        throw notJson(`a value of type ${typeof value}`);
     }
-    default:
-      throw notJson(`a value of type ${typeof value}`);
   }
 }
 
@@ -190,7 +212,23 @@ function write(value: unknown, depth: number): string {
  * levels (which includes a payload that contains itself).
  */
 export function canonicalJson(value: unknown): string {
-  return write(value, 0);
+  return new Writer(Infinity).write(value, 0);
+}
+
+/**
+ * {@link canonicalJson}, or `undefined` as soon as the text would be longer
+ * than `limit` UTF-16 code units. The verifier builds canonical JSON before it
+ * knows whether the delivery is genuine, and a float such as `1e308` expands
+ * to a 309-digit integer, so an unbounded build would let any request cost
+ * time and memory far beyond its size.
+ */
+export function canonicalJsonWithin(value: unknown, limit: number): string | undefined {
+  try {
+    return new Writer(limit).write(value, 0);
+  } catch (error) {
+    if (error instanceof TooLong) return undefined;
+    throw error;
+  }
 }
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;

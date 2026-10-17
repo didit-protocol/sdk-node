@@ -5,7 +5,7 @@
 import { ConfigurationError, WebhookVerificationError } from "../core/errors.js";
 import { webCrypto } from "../core/runtime.js";
 import {
-  canonicalJson,
+  canonicalJsonWithin,
   encodeUtf8SurrogatePass,
   hasLoneSurrogate,
   integerLiteralString,
@@ -205,6 +205,50 @@ function present(headers: Map<string, string>, names: readonly string[]): string
   return values;
 }
 
+/** The candidates that can be signatures at all: 64-character lowercase hex. */
+function wellFormed(candidates: readonly string[]): string[] {
+  return candidates.filter((c) => SIGNATURE.test(c));
+}
+
+// Slack for the canonical JSON of a re-encoded body (a proxy that writes `1e-7`
+// for Didit's `1e-07` makes the canonical form longer than the body it passes on).
+const CANONICAL_SLACK = 64 * 1024;
+
+/**
+ * Whether a well-formed `X-Signature-V2` candidate matches the canonical JSON
+ * of `body`. The canonical text of a genuine delivery is never longer than the
+ * body Didit sent, so it is built only up to `2 * size + 64 KiB` code units:
+ * a body full of floats like `1e308` (each 309 digits once canonical) stops
+ * there and fails as `invalid_signature` instead of costing gigabytes.
+ */
+async function matchesCanonical(
+  body: unknown,
+  size: number,
+  keys: Keys,
+  candidates: readonly string[],
+): Promise<boolean> {
+  if (!wellFormed(candidates).length) return false;
+  const canonical = canonicalJsonWithin(body, 2 * size + CANONICAL_SLACK);
+  return canonical !== undefined && matches(encodeUtf8SurrogatePass(canonical), keys, candidates);
+}
+
+/** The length of `value` as JSON text, the size its canonical JSON is measured against. */
+function jsonLength(value: Record<string, unknown>): number {
+  try {
+    return JSON.stringify(value).length;
+  } catch {
+    // A bigint (or anything else JSON.stringify refuses): measure it as its digits.
+    try {
+      return JSON.stringify(value, (_key, item: unknown) =>
+        typeof item === "bigint" ? item.toString() : item,
+      ).length;
+    } catch {
+      // A cycle; canonicalJson refuses it as invalid_payload.
+      return 0;
+    }
+  }
+}
+
 function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(2 * i, 2 * i + 2), 16);
@@ -246,7 +290,7 @@ async function matches(
   keys: Keys,
   candidates: readonly string[],
 ): Promise<boolean> {
-  const signatures = candidates.filter((c) => SIGNATURE.test(c)).map(hexToBytes);
+  const signatures = wellFormed(candidates).map(hexToBytes);
   if (!signatures.length) return false;
   const { subtle } = await webCrypto();
   for (const key of await keys.get()) {
@@ -368,7 +412,7 @@ export async function verifyWebhook(
   let verifiedBy: WebhookVerifiedBy | undefined;
   if (raw.length && (await matches(bytes, keys, raw))) {
     verifiedBy = "signature";
-  } else if (v2.length && (await matches(encodeUtf8SurrogatePass(canonicalJson(body)), keys, v2))) {
+  } else if (v2.length && (await matchesCanonical(body, bytes.length, keys, v2))) {
     verifiedBy = "signature_v2";
   } else if (options.allowSimple === true && simple.length) {
     const message = simpleMessage(body);
@@ -394,8 +438,8 @@ export async function verifyWebhook(
  * precision above 2^53, so a body with such an integer fails with
  * `invalid_signature` here unless it was parsed into a bigint.
  *
- * Returns a shallow copy of `payload` with the non-enumerable `verifiedBy`
- * and `bodyAuthenticated`; `payload` itself is not changed.
+ * Returns a copy of `payload` with the non-enumerable `verifiedBy` and
+ * `bodyAuthenticated`; `payload` itself is not changed.
  */
 export async function verifyWebhookParsed(
   payload: unknown,
@@ -430,11 +474,12 @@ export async function verifyWebhookParsed(
       "verifyWebhookParsed needs X-Signature-V2; pass the raw body to verifyWebhook to check X-Signature.",
     );
   }
-  if (!(await matches(encodeUtf8SurrogatePass(canonicalJson(body)), keys, v2))) {
+  if (!(await matchesCanonical(body, jsonLength(body), keys, v2))) {
     throw new WebhookVerificationError(
       "invalid_signature",
       "No webhook signature matches the secret.",
     );
   }
-  return parseEvent(body, "signature_v2");
+  // A deep copy: parseEvent decodes the decision's date-times in place.
+  return parseEvent(structuredClone(body), "signature_v2");
 }
