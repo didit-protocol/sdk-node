@@ -24,7 +24,9 @@ describe("reserved names", () => {
     });
     const checker = program.getTypeChecker();
     const source = program.getSourceFile(`${ROOT}src/index.ts`)!;
-    const exported = checker.getExportsOfModule(checker.getSymbolAtLocation(source)!).map((s) => s.name);
+    const exported = checker
+      .getExportsOfModule(checker.getSymbolAtLocation(source)!)
+      .map((s) => s.name);
 
     const { builder, methods } = render(load(`${ROOT}openapi`));
     const generated = new Set<string>([...builder.decls.keys(), "DiditResources", "DATE_PLANS"]);
