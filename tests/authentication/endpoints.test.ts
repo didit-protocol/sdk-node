@@ -161,7 +161,11 @@ describe("exchangeCode", () => {
   it("sends client_id when configured, and fetches discovery once", async () => {
     issuer.reply("POST", "/token/", 200, TOKEN_RESPONSE);
     const configured = issuer.client({ clientId: ` ${APPLICATION_ID} ` });
-    await configured.exchangeCode({ code: CODE, codeVerifier: CODE_VERIFIER, redirectUri: REDIRECT_URI });
+    await configured.exchangeCode({
+      code: CODE,
+      codeVerifier: CODE_VERIFIER,
+      redirectUri: REDIRECT_URI,
+    });
     expect(formOf(issuer.last("/token/")).client_id).toBe(APPLICATION_ID);
     await configured.refresh(REFRESH_TOKEN);
     expect(formOf(issuer.last("/token/"))).toEqual({
@@ -255,7 +259,12 @@ describe("refresh", () => {
       BadRequestError,
       "HTTP 400: invalid_grant: The refresh token was already used.",
     ],
-    [400, { non_field_errors: ["invalid_request"] }, BadRequestError, "HTTP 400: non_field_errors: invalid_request"],
+    [
+      400,
+      { non_field_errors: ["invalid_request"] },
+      BadRequestError,
+      "HTTP 400: non_field_errors: invalid_request",
+    ],
     [401, { detail: "invalid_token" }, AuthenticationError, "HTTP 401: invalid_token"],
     [403, { detail: "origin_not_allowed" }, PermissionDeniedError, "HTTP 403: origin_not_allowed"],
     [404, { detail: "Not found." }, NotFoundError, "HTTP 404: Not found."],
@@ -266,16 +275,19 @@ describe("refresh", () => {
     [503, { detail: "unavailable" }, InternalServerError, "HTTP 503: unavailable"],
     [418, { detail: "teapot" }, APIStatusError, "HTTP 418: teapot"],
     [302, undefined, APIStatusError, "HTTP 302"],
-  ])("maps HTTP %i to its error class and never retries", async (status, body, ErrorClass, message) => {
-    issuer.reply("POST", "/token/", status, body);
-    const error = await rejection(auth.refresh(REFRESH_TOKEN));
-    expect(error.constructor).toBe(ErrorClass);
-    expect((error as APIStatusError).status).toBe(status);
-    expect((error as APIStatusError).body).toEqual(body ?? null);
-    expect(error.message.startsWith(message)).toBe(true);
-    expect(error.message).not.toContain(REFRESH_TOKEN);
-    expect(issuer.count("/token/")).toBe(1);
-  });
+  ])(
+    "maps HTTP %i to its error class and never retries",
+    async (status, body, ErrorClass, message) => {
+      issuer.reply("POST", "/token/", status, body);
+      const error = await rejection(auth.refresh(REFRESH_TOKEN));
+      expect(error.constructor).toBe(ErrorClass);
+      expect((error as APIStatusError).status).toBe(status);
+      expect((error as APIStatusError).body).toEqual(body ?? null);
+      expect(error.message.startsWith(message)).toBe(true);
+      expect(error.message).not.toContain(REFRESH_TOKEN);
+      expect(issuer.count("/token/")).toBe(1);
+    },
+  );
 
   it("redacts an echoed refresh token", async () => {
     issuer.reply("POST", "/token/", 400, { detail: `bad token ${REFRESH_TOKEN}` });
@@ -284,8 +296,11 @@ describe("refresh", () => {
   });
 
   it("does not follow a redirect to another origin", async () => {
-    issuer.route("POST", "/token/", () =>
-      new Response(null, { status: 307, headers: { location: "https://evil.example/token/" } }),
+    issuer.route(
+      "POST",
+      "/token/",
+      () =>
+        new Response(null, { status: 307, headers: { location: "https://evil.example/token/" } }),
     );
     const error = await rejection(auth.refresh(REFRESH_TOKEN));
     expect(error).toBeInstanceOf(APIStatusError);
@@ -342,20 +357,32 @@ describe("getSession and revokeSession", () => {
   });
 
   it("refuses an empty token or one that cannot be a header, without echoing it", async () => {
-    for (const bad of ["", "  ", "abc\ndef", "tökén", undefined]) {
+    for (const bad of ["", "  ", "abc\ndef", "tökén", undefined] as unknown[]) {
       const error = await rejection(auth.getSession(bad as string));
       expect(error).toBeInstanceOf(TypeError);
       expect(error.message).toMatch(/^accessToken /);
-      if (bad) expect(error.message).not.toContain(bad);
+      if (typeof bad === "string" && bad) expect(error.message).not.toContain(bad);
     }
     expect(await rejection(auth.revokeSession(""))).toBeInstanceOf(TypeError);
     expect(issuer.requests).toEqual([]);
   });
 
   it.each([
-    ["HTML", () => new Response("<html>", { status: 200, headers: { "content-type": "text/html" } }), "got text/html"],
-    ["a JSON array", () => json(200, ["not", "an", "object"]), "Expected a JSON object from GET /session/."],
-    ["no content", () => new Response(null, { status: 204 }), "Expected a JSON object from GET /session/."],
+    [
+      "HTML",
+      () => new Response("<html>", { status: 200, headers: { "content-type": "text/html" } }),
+      "got text/html",
+    ],
+    [
+      "a JSON array",
+      () => json(200, ["not", "an", "object"]),
+      "Expected a JSON object from GET /session/.",
+    ],
+    [
+      "no content",
+      () => new Response(null, { status: 204 }),
+      "Expected a JSON object from GET /session/.",
+    ],
     ["no content type", () => new Response("not json", { status: 200, headers: {} }), "/session/"],
   ])("treats %s on success as a response validation error", async (_name, respond, message) => {
     issuer.route("GET", "/session/", respond);
@@ -411,7 +438,11 @@ describe("createStepUp and retrieveStepUp", () => {
       action: "contact",
       return_to: "https://app.example.com/profile",
     });
-    await auth.createStepUp(ACCESS_TOKEN, { action: "bank", currency: undefined, returnTo: undefined });
+    await auth.createStepUp(ACCESS_TOKEN, {
+      action: "bank",
+      currency: undefined,
+      returnTo: undefined,
+    });
     expect(JSON.parse(issuer.last("/step-up/").body!)).toEqual({ action: "bank" });
   });
 
@@ -442,7 +473,22 @@ describe("createStepUp and retrieveStepUp", () => {
   });
 
   it("refuses bad arguments before any request", async () => {
-    const amounts = [Number.NaN, Infinity, "Infinity", "12,50", "", "1_000", "1e3", "١٠", "NaN", ".5", "5.", true, [1], {}];
+    const amounts = [
+      Number.NaN,
+      Infinity,
+      "Infinity",
+      "12,50",
+      "",
+      "1_000",
+      "1e3",
+      "١٠",
+      "NaN",
+      ".5",
+      "5.",
+      true,
+      [1],
+      {},
+    ];
     for (const amount of amounts) {
       const error = await rejection(
         auth.createStepUp(ACCESS_TOKEN, { action: "payout", amount: amount as never }),
@@ -454,36 +500,50 @@ describe("createStepUp and retrieveStepUp", () => {
       const error = await rejection(auth.createStepUp(ACCESS_TOKEN, params as never));
       expect(error.message).toMatch(/^action is empty/);
     }
-    for (const params of [{ action: "bank", currency: 978 }, { action: "bank", returnTo: {} }]) {
-      expect(await rejection(auth.createStepUp(ACCESS_TOKEN, params as never))).toBeInstanceOf(TypeError);
+    for (const params of [
+      { action: "bank", currency: 978 },
+      { action: "bank", returnTo: {} },
+    ]) {
+      expect(await rejection(auth.createStepUp(ACCESS_TOKEN, params as never))).toBeInstanceOf(
+        TypeError,
+      );
     }
     expect(await rejection(auth.createStepUp("", { action: "bank" }))).toBeInstanceOf(TypeError);
-    for (const id of ["", ".", "..", undefined]) {
+    for (const id of ["", ".", "..", undefined] as unknown[]) {
       const error = await rejection(auth.retrieveStepUp(ACCESS_TOKEN, id as string));
       expect(error.message).toMatch(/^id must be a non-empty id/);
     }
     expect(issuer.requests).toEqual([]);
   });
 
-  it.each(["approved", "pending", "review", "declined", "expired", "superseded", "some_future_status"])(
-    "retrieves a step-up with status %s",
-    async (status) => {
-      const { required: _r, verification_url: _v, expires_in: _e, ...record } = STEP_UP_REQUIRED;
-      const body = { ...record, status, level: status === "approved" ? "liveness_face_match" : null };
-      issuer.reply("GET", `/step-up/${STEP_UP_ID}/`, 200, body);
-      const stepUp = await auth.retrieveStepUp(ACCESS_TOKEN, STEP_UP_ID);
-      expect(stepUp).toEqual(body);
-      expect(stepUp.required).toBeUndefined();
-      const request = issuer.last(`/step-up/${STEP_UP_ID}/`);
-      expect(request.method).toBe("GET");
-      expect(request.url.toString()).toBe(`${ISSUER}/step-up/${STEP_UP_ID}/`);
-      expect(request.headers.get("authorization")).toBe(`Bearer ${ACCESS_TOKEN}`);
-    },
-  );
+  it.each([
+    "approved",
+    "pending",
+    "review",
+    "declined",
+    "expired",
+    "superseded",
+    "some_future_status",
+  ])("retrieves a step-up with status %s", async (status) => {
+    const { required: _r, verification_url: _v, expires_in: _e, ...record } = STEP_UP_REQUIRED;
+    const body = { ...record, status, level: status === "approved" ? "liveness_face_match" : null };
+    issuer.reply("GET", `/step-up/${STEP_UP_ID}/`, 200, body);
+    const stepUp = await auth.retrieveStepUp(ACCESS_TOKEN, STEP_UP_ID);
+    expect(stepUp).toEqual(body);
+    expect(stepUp.required).toBeUndefined();
+    const request = issuer.last(`/step-up/${STEP_UP_ID}/`);
+    expect(request.method).toBe("GET");
+    expect(request.url.toString()).toBe(`${ISSUER}/step-up/${STEP_UP_ID}/`);
+    expect(request.headers.get("authorization")).toBe(`Bearer ${ACCESS_TOKEN}`);
+  });
 
   it("percent-encodes the step-up id", async () => {
-    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, "a/b?c#d"))).toBeInstanceOf(NotFoundError);
-    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, "it's(*)!"))).toBeInstanceOf(NotFoundError);
+    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, "a/b?c#d"))).toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, "it's(*)!"))).toBeInstanceOf(
+      NotFoundError,
+    );
     const [first, second] = issuer.requests;
     expect(first!.url.pathname).toBe("/step-up/a%2Fb%3Fc%23d/");
     expect(first!.url.search).toBe("");
@@ -492,7 +552,9 @@ describe("createStepUp and retrieveStepUp", () => {
 
   it("maps another session's step-up to NotFoundError", async () => {
     issuer.reply("GET", `/step-up/${STEP_UP_ID}/`, 404, { detail: "Not found." });
-    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, STEP_UP_ID))).toBeInstanceOf(NotFoundError);
+    expect(await rejection(auth.retrieveStepUp(ACCESS_TOKEN, STEP_UP_ID))).toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });
 
@@ -546,17 +608,20 @@ describe("transport failures", () => {
 
   it("times out a body that never ends", async () => {
     const slow = new FakeIssuer([]);
-    slow.route("POST", "/token/", (request) =>
-      new Response(
-        new ReadableStream({
-          start(controller) {
-            request.init.signal!.addEventListener("abort", () => {
-              controller.error(new DOMException("aborted", "AbortError"));
-            });
-          },
-        }),
-        { status: 200 },
-      ),
+    slow.route(
+      "POST",
+      "/token/",
+      (request) =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              request.init.signal!.addEventListener("abort", () => {
+                controller.error(new DOMException("aborted", "AbortError"));
+              });
+            },
+          }),
+          { status: 200 },
+        ),
     );
     const error = await rejection(slow.client({ timeout: 20 }).refresh(REFRESH_TOKEN));
     expect(error.constructor).toBe(APITimeoutError);
@@ -567,17 +632,20 @@ describe("transport failures", () => {
     freezeClock();
     const key = await SigningKey.generate("k_synthetic_key_1");
     const slow = new FakeIssuer([key]);
-    slow.route("GET", "/.well-known/jwks.json", (request) =>
-      new Promise((_resolve, reject) => {
-        request.init.signal!.addEventListener("abort", () => {
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      }),
+    slow.route(
+      "GET",
+      "/.well-known/jwks.json",
+      (request) =>
+        new Promise((_resolve, reject) => {
+          request.init.signal!.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }),
     );
     const client = slow.client({ timeout: 20 });
-    expect((await rejection(client.verifyAccessToken(await key.sign(accessClaims())))).constructor).toBe(
-      APITimeoutError,
-    );
+    expect(
+      (await rejection(client.verifyAccessToken(await key.sign(accessClaims())))).constructor,
+    ).toBe(APITimeoutError);
     const error = await rejection(client.verifyAccessToken(await key.sign(accessClaims())));
     expect(error.message).toMatch(/less than a minute ago/);
   });
@@ -619,7 +687,10 @@ describe("headers and logging", () => {
 
   it("logs one line per request with debug logging, never a token", async () => {
     const lines: string[] = [];
-    const client = issuer.client({ logLevel: "debug", logger: { debug: (line) => lines.push(line) } });
+    const client = issuer.client({
+      logLevel: "debug",
+      logger: { debug: (line) => lines.push(line) },
+    });
     issuer.reply("GET", "/session/", 200, SESSION_RESPONSE);
     issuer.reply("POST", "/token/", 200, TOKEN_RESPONSE);
     issuer.route("GET", `/step-up/${STEP_UP_ID}/`, () => {
@@ -632,7 +703,9 @@ describe("headers and logging", () => {
     expect(lines[0]).toMatch(/^didit: GET \/session\/ 200 \d+ms request_id=req_synthetic$/);
     expect(lines[1]).toMatch(/^didit: GET \/\.well-known\/openid-configuration 200 \d+ms$/);
     expect(lines[2]).toMatch(/^didit: POST \/token\/ 200 \d+ms request_id=req_synthetic$/);
-    expect(lines[3]).toMatch(new RegExp(`^didit: GET /step-up/${STEP_UP_ID}/ connection_error \\d+ms$`));
+    expect(lines[3]).toMatch(
+      new RegExp(`^didit: GET /step-up/${STEP_UP_ID}/ connection_error \\d+ms$`),
+    );
     const text = lines.join("\n");
     for (const secret of [ACCESS_TOKEN, REFRESH_TOKEN, ISSUED_ACCESS_TOKEN, ISSUED_REFRESH_TOKEN]) {
       expect(text).not.toContain(secret);
@@ -660,14 +733,21 @@ describe("headers and logging", () => {
   it("logs a timeout", async () => {
     const lines: string[] = [];
     const slow = new FakeIssuer([]);
-    slow.route("GET", "/session/", (request) =>
-      new Promise((_resolve, reject) => {
-        request.init.signal!.addEventListener("abort", () => {
-          reject(new DOMException("aborted", "AbortError"));
-        });
-      }),
+    slow.route(
+      "GET",
+      "/session/",
+      (request) =>
+        new Promise((_resolve, reject) => {
+          request.init.signal!.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }),
     );
-    const client = slow.client({ timeout: 10, logLevel: "debug", logger: { debug: (line) => lines.push(line) } });
+    const client = slow.client({
+      timeout: 10,
+      logLevel: "debug",
+      logger: { debug: (line) => lines.push(line) },
+    });
     await rejection(client.getSession(ACCESS_TOKEN));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatch(/^didit: GET \/session\/ timeout \d+ms$/);

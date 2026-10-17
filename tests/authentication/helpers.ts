@@ -124,9 +124,9 @@ export class SigningKey {
 }
 
 function withOverrides(base: Claims, overrides: Overrides): Claims {
-  const out: Claims = { ...base, ...overrides };
-  for (const [name, value] of Object.entries(out)) if (value === REMOVE) delete out[name];
-  return out;
+  return Object.fromEntries(
+    Object.entries({ ...base, ...overrides }).filter(([, value]) => value !== REMOVE),
+  );
 }
 
 /** The claims of a person's access token (issuer.session_tokens). */
@@ -188,7 +188,11 @@ export interface Recorded {
 
 export type Handler = (request: Recorded) => Response | Promise<Response>;
 
-export function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
+export function json(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json", "x-request-id": "req_synthetic", ...headers },

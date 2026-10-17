@@ -26,6 +26,7 @@ import {
   json,
   reason,
   rejection,
+  synthetic,
 } from "./helpers.js";
 
 const TOKEN_RESPONSE = { access_token: "a", token_type: "Bearer", expires_in: 300 };
@@ -128,7 +129,9 @@ describe("discovery and JWKS", () => {
   it("shares a failed fetch with every concurrent caller", async () => {
     issuer.route("GET", JWKS, () => json(503, { detail: "down" }));
     const tokens = await Promise.all([key.sign(accessClaims()), key.sign(accessClaims())]);
-    const errors = await Promise.all(tokens.map((token) => rejection(auth.verifyAccessToken(token))));
+    const errors = await Promise.all(
+      tokens.map((token) => rejection(auth.verifyAccessToken(token))),
+    );
     for (const error of errors) expect(error).toBeInstanceOf(InternalServerError);
     expect(issuer.count(JWKS)).toBe(1);
   });
@@ -174,7 +177,9 @@ describe("discovery and JWKS", () => {
   it("refetches an unknown kid once on a cold cache, then waits a minute", async () => {
     const stranger = await SigningKey.generate("k_never_published");
     const errors = await Promise.all(
-      [1, 2, 3].map(async () => reason(auth.verifyAccessToken(await stranger.sign(accessClaims())))),
+      [1, 2, 3].map(async () =>
+        reason(auth.verifyAccessToken(await stranger.sign(accessClaims()))),
+      ),
     );
     expect(errors).toEqual(["unknown_key", "unknown_key", "unknown_key"]);
     expect(issuer.count(JWKS)).toBe(1);
@@ -245,9 +250,9 @@ describe("discovery and JWKS", () => {
     expect(error.message).toContain('names the issuer "https://login.example.com"');
     for (const other of [`${ISSUER}/`, ISSUER.toUpperCase(), ` ${ISSUER}`]) {
       issuer.discovery!.issuer = other;
-      expect(await rejection(auth.verifyAccessToken(await key.sign(accessClaims())))).toBeInstanceOf(
-        ConfigurationError,
-      );
+      expect(
+        await rejection(auth.verifyAccessToken(await key.sign(accessClaims()))),
+      ).toBeInstanceOf(ConfigurationError);
     }
     // OpenID Connect Discovery 1.0 section 4.3: the issuer must be present too.
     delete issuer.discovery!.issuer;
@@ -263,9 +268,9 @@ describe("discovery and JWKS", () => {
   it("does not cache an issuer mismatch as a failed key fetch", async () => {
     issuer.discovery!.issuer = "https://login.example.com";
     for (let i = 0; i < 2; i++) {
-      expect(await rejection(auth.verifyAccessToken(await key.sign(accessClaims())))).toBeInstanceOf(
-        ConfigurationError,
-      );
+      expect(
+        await rejection(auth.verifyAccessToken(await key.sign(accessClaims()))),
+      ).toBeInstanceOf(ConfigurationError);
     }
     expect(issuer.count(DISCOVERY)).toBe(2);
   });
@@ -274,10 +279,18 @@ describe("discovery and JWKS", () => {
     ["token_endpoint", "http://acme.auth.didit.me/token/", "does not use https"],
     ["token_endpoint", "https://evil.example/steal", "not on the issuer's origin"],
     ["token_endpoint", `${ISSUER}:8443/token/`, "not on the issuer's origin"],
-    ["token_endpoint", ISSUER.replace("https://", "https://user:pass@") + "/token/", "not on the issuer's origin"],
+    [
+      "token_endpoint",
+      ISSUER.replace("https://", `https://user:${synthetic("pw")}@`) + "/token/",
+      "not on the issuer's origin",
+    ],
     ["jwks_uri", ISSUER.replace("https://", "http://") + JWKS, "does not use https"],
     ["jwks_uri", "https://keys.example.com/jwks.json", "not on the issuer's origin"],
-    ["jwks_uri", "https://sub.acme-0a1b2c3d4e5f60718293a4b5c6d7e8f9.auth.didit.me/jwks.json", "not on the issuer's origin"],
+    [
+      "jwks_uri",
+      "https://sub.acme-0a1b2c3d4e5f60718293a4b5c6d7e8f9.auth.didit.me/jwks.json",
+      "not on the issuer's origin",
+    ],
   ])("refuses a %s of %s (%s) and sends nothing there", async (field, value, message) => {
     issuer.discovery![field] = value;
     issuer.reply("POST", "/token/", 200, TOKEN_RESPONSE);
@@ -305,7 +318,9 @@ describe("discovery and JWKS", () => {
     const keysPath = "/keys/flaky.json";
     issuer.discovery!.jwks_uri = `${ISSUER}${keysPath}`;
     let up = false;
-    issuer.route("GET", keysPath, () => (up ? json(200, { keys: [key.jwk()] }) : json(500, { detail: "down" })));
+    issuer.route("GET", keysPath, () =>
+      up ? json(200, { keys: [key.jwk()] }) : json(500, { detail: "down" }),
+    );
     expect(await rejection(auth.verifyAccessToken(await key.sign(accessClaims())))).toBeInstanceOf(
       InternalServerError,
     );
@@ -329,12 +344,14 @@ describe("discovery and JWKS", () => {
     advance(60);
     up = false;
     const rotated = await SigningKey.generate("k_new");
-    expect(await rejection(auth.verifyAccessToken(await rotated.sign(accessClaims())))).toBeInstanceOf(
-      InternalServerError,
-    );
+    expect(
+      await rejection(auth.verifyAccessToken(await rotated.sign(accessClaims()))),
+    ).toBeInstanceOf(InternalServerError);
     advance(1);
     const newer = await SigningKey.generate("k_newer");
-    expect(await reason(auth.verifyAccessToken(await newer.sign(accessClaims())))).toBe("unknown_key");
+    expect(await reason(auth.verifyAccessToken(await newer.sign(accessClaims())))).toBe(
+      "unknown_key",
+    );
     expect(issuer.count(keysPath)).toBe(3);
     // Known keys keep verifying from the cache meanwhile.
     expect((await auth.verifyAccessToken(await key.sign(accessClaims()))).sub).toBe(IDENTITY_ID);
@@ -355,7 +372,10 @@ describe("discovery and JWKS", () => {
   });
 
   it.each([
-    [DISCOVERY, () => new Response("<html>", { status: 200, headers: { "content-type": "text/html" } })],
+    [
+      DISCOVERY,
+      () => new Response("<html>", { status: 200, headers: { "content-type": "text/html" } }),
+    ],
     [DISCOVERY, () => json(200, ["not", "an", "object"])],
     [DISCOVERY, () => new Response(null, { status: 200 })],
     [DISCOVERY, () => new Response(null, { status: 204 })],
@@ -379,14 +399,23 @@ describe("discovery and JWKS", () => {
   });
 
   it("allows a plain http issuer only on loopback", async () => {
-    for (const local of ["http://localhost:8000", "http://127.0.0.1:8000", "http://[::1]:8000", "http://acme.auth.localhost"]) {
+    for (const local of [
+      "http://localhost:8000",
+      "http://127.0.0.1:8000",
+      "http://[::1]:8000",
+      "http://acme.auth.localhost",
+    ]) {
       const localIssuer = new FakeIssuer([key], local);
       const localAuth = localIssuer.client();
       expect(localAuth.issuer).toBe(local);
       await localAuth.verifyAccessToken(await key.sign(accessClaims({ iss: local })));
       expect(localIssuer.last(DISCOVERY).url.toString()).toBe(`${local}${DISCOVERY}`);
     }
-    for (const remote of ["http://acme.auth.didit.me", "http://127.0.0.1.nip.io", "http://localhost.example.com"]) {
+    for (const remote of [
+      "http://acme.auth.didit.me",
+      "http://127.0.0.1.nip.io",
+      "http://localhost.example.com",
+    ]) {
       expect(() => new Authentication({ issuer: remote })).toThrow(ConfigurationError);
     }
   });

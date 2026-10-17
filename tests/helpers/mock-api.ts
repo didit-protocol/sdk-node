@@ -3,6 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect } from "vitest";
 
 import { Didit } from "../../src/index.js";
@@ -143,7 +144,7 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const ROOT = join(import.meta.dirname, "..", "..");
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 let specs: { verification: JsonObject; account: JsonObject; deprecated: JsonObject } | undefined;
 
 function loadSpecs(): NonNullable<typeof specs> {

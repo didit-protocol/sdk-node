@@ -139,8 +139,9 @@ export function parseToken(token: unknown, kind: TokenKind): ParsedToken {
   }
   checkType(header, kind);
   const kid = header.kid;
-  if (typeof kid !== "string" || !kid)
+  if (typeof kid !== "string" || !kid) {
     fail("malformed", "The token header names no signing key (kid).");
+  }
   const claims = jsonObject(payloadPart, "payload");
   const signature = base64UrlDecode(signaturePart ?? "");
   if (!signature) fail("malformed", "The token signature is not base64url.");

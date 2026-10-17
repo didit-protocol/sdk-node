@@ -102,9 +102,9 @@ describe("verifyAccessToken", () => {
     expect((await auth.verifyAccessToken(token, { audience: APPLICATION_ID })).aud).toBe(
       APPLICATION_ID,
     );
-    expect(
-      (await auth.verifyAccessToken(token, { audience: ["other", APPLICATION_ID] })).sub,
-    ).toBe(IDENTITY_ID);
+    expect((await auth.verifyAccessToken(token, { audience: ["other", APPLICATION_ID] })).sub).toBe(
+      IDENTITY_ID,
+    );
     expect(await reason(auth.verifyAccessToken(token, { audience: "other-application" }))).toBe(
       "invalid_audience",
     );
@@ -145,9 +145,9 @@ describe("verifyAccessToken", () => {
     );
     const other = await key.sign(accessClaims({ aud: "another-application" }));
     expect(await reason(configured.verifyAccessToken(other))).toBe("invalid_audience");
-    expect((await configured.verifyAccessToken(other, { audience: "another-application" })).sub).toBe(
-      IDENTITY_ID,
-    );
+    expect(
+      (await configured.verifyAccessToken(other, { audience: "another-application" })).sub,
+    ).toBe(IDENTITY_ID);
   });
 
   it.each(["HS256", "HS512", "RS256", "PS256", "EdDSA", "ES384", "ES512", "es256", "none"])(
@@ -177,7 +177,13 @@ describe("verifyAccessToken", () => {
   it("rejects HS256 signed with the public key bytes (key confusion)", async () => {
     const header = { alg: "HS256", typ: "at+jwt", kid: key.kid };
     const signingInput = `${segment(header)}.${segment(accessClaims())}`;
-    for (const secret of [JSON.stringify(key.jwk()), String(key.jwk().x)]) {
+    const publicKey = key.keyPair.publicKey;
+    const secrets = [
+      Buffer.from(await crypto.subtle.exportKey("raw", publicKey)),
+      Buffer.from(await crypto.subtle.exportKey("spki", publicKey)),
+      Buffer.from(JSON.stringify(key.jwk())),
+    ];
+    for (const secret of secrets) {
       const mac = createHmac("sha256", secret).update(signingInput).digest();
       const token = `${signingInput}.${b64url(mac)}`;
       expect(await reason(auth.verifyAccessToken(token))).toBe("unsupported_algorithm");
@@ -372,10 +378,13 @@ describe("verifyAccessToken", () => {
           "duplicate members written with escapes",
           `${b64url('{"alg":"ES256","typ":"at+jwt","kid":"k","\\u0061lg":"ES256"}')}.${payload}.${signature}`,
         ],
-        ["a header that is not UTF-8", `${b64url(new Uint8Array([0xff, 0xfe]))}.${payload}.${signature}`],
+        [
+          "a header that is not UTF-8",
+          `${b64url(new Uint8Array([0xff, 0xfe]))}.${payload}.${signature}`,
+        ],
         [
           "a header with a byte order mark",
-          `${b64url(`﻿${JSON.stringify({ alg: "ES256", typ: "at+jwt", kid })}`)}.${payload}.${signature}`,
+          `${b64url(`\ufeff${JSON.stringify({ alg: "ES256", typ: "at+jwt", kid })}`)}.${payload}.${signature}`,
         ],
         ["a payload that is not JSON", `${goodHeader}.${b64url("not json")}.${signature}`],
         ["a payload that is an array", `${goodHeader}.${b64url("[]")}.${signature}`],
@@ -386,11 +395,20 @@ describe("verifyAccessToken", () => {
           `${goodHeader}.${b64url(`{"sub":"a","exp":${NOW + 300},"exp":${NOW - 300}}`)}.${signature}`,
         ],
         ["NaN in the payload", `${goodHeader}.${b64url('{"exp":NaN}')}.${signature}`],
-        ["a deeply nested payload", `${goodHeader}.${b64url(`${"[".repeat(5000)}${"]".repeat(5000)}`)}.${signature}`],
+        [
+          "a deeply nested payload",
+          `${goodHeader}.${b64url(`${"[".repeat(5000)}${"]".repeat(5000)}`)}.${signature}`,
+        ],
         ["a signature that is not base64url", `${goodHeader}.${payload}.abc!`],
         ["no kid", `${segment({ alg: "ES256", typ: "at+jwt" })}.${payload}.${signature}`],
-        ["an empty kid", `${segment({ alg: "ES256", typ: "at+jwt", kid: "" })}.${payload}.${signature}`],
-        ["a kid that is a number", `${segment({ alg: "ES256", typ: "at+jwt", kid: 7 })}.${payload}.${signature}`],
+        [
+          "an empty kid",
+          `${segment({ alg: "ES256", typ: "at+jwt", kid: "" })}.${payload}.${signature}`,
+        ],
+        [
+          "a kid that is a number",
+          `${segment({ alg: "ES256", typ: "at+jwt", kid: 7 })}.${payload}.${signature}`,
+        ],
         [
           "critical extensions",
           `${segment({ alg: "ES256", typ: "at+jwt", kid, crit: ["b64"] })}.${payload}.${signature}`,
@@ -474,7 +492,9 @@ describe("verifyIdToken", () => {
   it("checks the nonce", async () => {
     const token = await key.sign(idClaims(), { typ: "JWT" });
     expect(
-      await reason(auth.verifyIdToken(token, { nonce: "another-sign-in", audience: APPLICATION_ID })),
+      await reason(
+        auth.verifyIdToken(token, { nonce: "another-sign-in", audience: APPLICATION_ID }),
+      ),
     ).toBe("invalid_nonce");
     expect(
       await reason(auth.verifyIdToken(token, { nonce: `${NONCE}x`, audience: APPLICATION_ID })),
@@ -510,9 +530,9 @@ describe("verifyIdToken", () => {
     expect(error).toBeInstanceOf(ConfigurationError);
     expect(error.message).toMatch(/audience/);
     expect(issuer.requests).toEqual([]);
-    expect(
-      await reason(auth.verifyIdToken(token, { nonce: NONCE, audience: "other" })),
-    ).toBe("invalid_audience");
+    expect(await reason(auth.verifyIdToken(token, { nonce: NONCE, audience: "other" }))).toBe(
+      "invalid_audience",
+    );
     const noAud = await key.sign(idClaims({ aud: REMOVE }), { typ: "JWT" });
     expect(
       await reason(auth.verifyIdToken(noAud, { nonce: NONCE, audience: APPLICATION_ID })),
@@ -530,7 +550,11 @@ describe("verifyIdToken", () => {
     expect(
       await reason(auth.verifyIdToken(other, { nonce: NONCE, audience: APPLICATION_ID })),
     ).toBe("invalid_signature");
-    const hs = unsignedToken({ alg: "HS256", typ: "JWT", kid: key.kid }, idClaims(), new Uint8Array(32));
+    const hs = unsignedToken(
+      { alg: "HS256", typ: "JWT", kid: key.kid },
+      idClaims(),
+      new Uint8Array(32),
+    );
     expect(await reason(auth.verifyIdToken(hs, { nonce: NONCE, audience: APPLICATION_ID }))).toBe(
       "unsupported_algorithm",
     );

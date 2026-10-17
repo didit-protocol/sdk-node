@@ -168,8 +168,9 @@ function amountText(amount: unknown): string {
     return text;
   }
   if (typeof amount === "number") {
-    if (!Number.isFinite(amount))
+    if (!Number.isFinite(amount)) {
       throw new TypeError(`amount must be a finite number, got ${amount}.`);
+    }
     return plainDecimal(amount);
   }
   throw new TypeError("amount must be a decimal string or a number.");
@@ -252,10 +253,9 @@ export class Authentication {
     let defaultHeaders: Headers;
     try {
       defaultHeaders = new Headers(given.defaultHeaders);
-    } catch (error) {
-      throw new ConfigurationError("defaultHeaders must map header names to string values.", {
-        cause: error,
-      });
+    } catch {
+      // No cause: the platform's message would quote the offending header value.
+      throw new ConfigurationError("defaultHeaders must map header names to string values.");
     }
     const level = given.logLevel ?? envLogLevel();
     this.#transport = {
