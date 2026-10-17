@@ -74,6 +74,7 @@ describe("contract", () => {
   });
 
   it("agrees with a count made from the raw documents, without the generator's loader", () => {
+    const HTTP_METHODS = ["get", "post", "put", "patch", "delete", "head", "options", "trace"];
     // Read the JSON directly, so a loader bug that dropped operations would show here.
     const read = (name: string): Record<string, unknown> =>
       JSON.parse(readFileSync(`${OPENAPI}/${name}`, "utf8")) as Record<string, unknown>;
@@ -87,16 +88,12 @@ describe("contract", () => {
       ["verification.json", ""],
       ["account.json", "account "],
     ] as const) {
-      const paths = read(name).paths as Record<string, Record<string, Record<string, unknown>>>;
+      type Naming = { server?: boolean } | undefined;
+      const paths = read(name).paths as Record<string, Record<string, { "x-didit-sdk"?: Naming }>>;
       for (const [path, item] of Object.entries(paths)) {
         for (const [method, op] of Object.entries(item)) {
-          if (
-            !["get", "post", "put", "patch", "delete", "head", "options", "trace"].includes(method)
-          )
-            continue;
-          const naming = (op["x-didit-sdk"] ??
-            overlay[`${prefix}${method.toUpperCase()} ${path}`]) as
-            { server?: boolean } | undefined;
+          if (!HTTP_METHODS.includes(method)) continue;
+          const naming = op["x-didit-sdk"] ?? overlay[`${prefix}${method.toUpperCase()} ${path}`];
           if (naming?.server === true) server++;
         }
       }
