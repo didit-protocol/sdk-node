@@ -174,16 +174,14 @@ function renderResourceModule(top: ResourceNode, decls: Map<string, Decl>): stri
   if (hasPage) coreImports.push(`import type { PagePromise } from "../core/pagination.js";`);
   coreImports.push(`import type { RequestOptions } from "../core/request-options.js";`);
   const base = top.path === "webhooks" ? "WebhookHelpers" : "APIResource";
-  if (base === "APIResource") coreImports.push(`import { APIResource } from "../core/resource.js";`);
+  const needsResource = nodes.some((node) => node !== top || base === "APIResource");
+  if (needsResource) coreImports.push(`import { APIResource } from "../core/resource.js";`);
   out.push(...coreImports);
   out.push(...importLines(deps, decls, "", "../"));
   if (base === "WebhookHelpers") out.push(`import { WebhookHelpers } from "../webhooks/resource.js";`);
   out.push("", ...descriptors, "");
   for (const node of nodes) {
     const nodeBase = node === top ? base : "APIResource";
-    if (nodeBase === "APIResource" && base !== "APIResource" && !out.includes(`import { APIResource } from "../core/resource.js";`)) {
-      out.splice(out.indexOf(`import type { RequestOptions } from "../core/request-options.js";`) + 1, 0, `import { APIResource } from "../core/resource.js";`);
-    }
     out.push(`/** \`${node.path}\` */`);
     out.push(`export class ${node.className} extends ${nodeBase} {`);
     for (const [segment, child] of node.children) {
