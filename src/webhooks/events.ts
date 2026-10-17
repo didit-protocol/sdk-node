@@ -244,9 +244,10 @@ export interface KybRegistrySearchResolvedEvent extends WebhookEventBase {
  * An event type this version of the SDK has no typed event for. Every field of
  * the body is there as sent; `webhook_type` holds its type.
  */
+// A Record type would not be the interface member the narrowing relies on.
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 export interface UnknownEvent extends WebhookEventBase {
   /** `webhook_type`: read through an index signature on purpose (see the top of this file). */
-  // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style -- a Record would not keep UnknownEvent an interface the narrowing relies on.
   [key: `webhook_type${string}`]: string;
 }
 
