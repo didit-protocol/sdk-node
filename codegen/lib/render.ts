@@ -380,6 +380,71 @@ function renderTypes(module: string, decls: Decl[], all: Map<string, Decl>): str
   return out.join("\n");
 }
 
+/** The `HEADER` line as a Markdown comment. */
+export const MARKDOWN_HEADER = `<!-- ${HEADER.slice(3)} -->`;
+
+function accessor(path: string): string {
+  return path.split(".").map(camelSegment).join(".");
+}
+
+/** One row of api.md: the call, the HTTP route, what it returns and notes. */
+function referenceRow(method: Method): string {
+  const { op } = method;
+  const args = method.pathArgs.map((a) => a.name);
+  if (method.params) {
+    const optional = !method.paramsRequired;
+    args.push(`params${optional ? "?" : ""}: ${method.params.expr}`);
+  }
+  const call = `didit.${accessor(method.resource)}.${method.name}(${args.join(", ")})`;
+  const { response } = method;
+  const returns =
+    response.kind === "page"
+      ? `page of \`${response.item!.expr}\``
+      : response.kind === "binary"
+        ? "`Blob`"
+        : response.kind === "none"
+          ? "nothing"
+          : `\`${response.type.expr}\``;
+  const notes: string[] = [];
+  if (op.deprecated) notes.push("**deprecated**");
+  if (op.sdk.scope === "application") notes.push("application scoped");
+  if (op.sdk.auth === "account_token") notes.push("needs `accountToken`");
+  if (method.fileFields.length) notes.push("upload");
+  if (method.idempotencyKey) notes.push("`idempotencyKey`");
+  const cell = (text: string): string => text.replace(/\|/g, "\\|");
+  return `| ${cell(`\`${call}\``)} | \`${op.httpMethod.toUpperCase()} ${op.path}\` | ${cell(returns)} | ${notes.join(", ")} |`;
+}
+
+/** api.md: every method with its route and types, so all of them are easy to find. */
+function renderApiReference(root: ResourceNode, count: number): string {
+  const out: string[] = [
+    MARKDOWN_HEADER,
+    "",
+    "# API reference",
+    "",
+    `Every method of \`@didit-protocol/sdk-node\`: ${count} methods, generated from \`openapi/\`. ` +
+      "Path parameters are positional, the other fields go in one `params` object, and every " +
+      "method takes request options as its last argument. Every type named here is exported " +
+      "from the package. _Application scoped_ methods need the `organizationId` and " +
+      "`applicationId` client options; a _page_ can be iterated with `for await`. Webhook " +
+      "verification and Authentication are described in the README.",
+    "",
+  ];
+  const walk = (node: ResourceNode): void => {
+    if (node.methods.length) {
+      out.push(`## \`didit.${accessor(node.path)}\``, "");
+      out.push("| Method | HTTP | Returns | Notes |", "| --- | --- | --- | --- |");
+      const sorted = node.methods.slice().sort((a, b) => byCodePoint(a.name, b.name));
+      for (const method of sorted) out.push(referenceRow(method));
+      out.push("");
+    }
+    for (const [, child] of [...node.children.entries()].sort(([a], [b]) => byCodePoint(a, b)))
+      walk(child);
+  };
+  walk(root);
+  return out.join("\n");
+}
+
 /** Build every generated file from the model. */
 export function render(model: Model): Rendered {
   const server = model.operations.filter((op) => op.sdk.server);
@@ -428,5 +493,6 @@ export function render(model: Model): Rendered {
   );
 
   for (const [path, content] of renderTests(root.children)) files.set(path, content);
+  files.set("api.md", renderApiReference(root, methods.length));
   return { files, methods, builder };
 }

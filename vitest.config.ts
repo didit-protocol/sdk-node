@@ -12,7 +12,7 @@ export default defineConfig({
       // The hand-written core (docs/DESIGN.md section 11: 90 % or more).
       include: ["src/core/**", "src/webhooks/**", "src/authentication/**", "src/client.ts"],
       reporter: ["text", "text-summary"],
-      thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
+      thresholds: { lines: 90, statements: 90, functions: 90, branches: 90 },
     },
   },
 });

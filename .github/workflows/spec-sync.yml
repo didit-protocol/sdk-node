@@ -80,7 +80,7 @@ jobs:
           BOT_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
           # The branch head now, checked again just before the pull request is updated.
-          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null || true)"
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null | grep -E '^[0-9a-f]{40}$' || true)"
           echo "head=$head" >> "$GITHUB_OUTPUT"
           open="$(gh pr list --repo "$GITHUB_REPOSITORY" --head chore/spec-sync --base "$BASE" \
             --state open --json number --jq 'length')"
@@ -179,7 +179,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SEEN: ${{ steps.guard.outputs.head }}
         run: |
-          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null || true)"
+          head="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/chore/spec-sync" --jq .object.sha 2>/dev/null | grep -E '^[0-9a-f]{40}$' || true)"
           if [ "$head" != "$SEEN" ]; then
             echo "::error::chore/spec-sync moved from '${SEEN}' to '${head}' while this run was checking its changes; nothing was pushed. Run the spec sync again."
             exit 1
@@ -198,8 +198,9 @@ jobs:
           # A sync that fails a check still opens the pull request, as a draft, so the fix
           # (usually an openapi/overlay.json entry) can be pushed to the same branch.
           draft: ${{ steps.checks.outputs.failed == 'true' }}
-          # Only the spec copies and the generated layer; nothing else is committed.
+          # Only the spec copies and the generated layer (api.md included); nothing else is committed.
           add-paths: |
+            api.md
             openapi
             src/resources
             src/types
