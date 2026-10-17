@@ -16,7 +16,7 @@ Development needs Node.js 22.18 or later (the generator runs TypeScript directly
 ## Commands
 
 - Install: `pnpm install`
-- Generate: `pnpm generate` (writes `src/resources`, `src/types`, `tests/generated` from `openapi/`); `pnpm generate:check` fails on drift
+- Generate: `pnpm generate` (writes `src/resources`, `src/types`, `tests/generated` and `api.md` from `openapi/`); `pnpm generate:check` fails on drift
 - Test: `pnpm test` (all unit tests, no network); `pnpm test:coverage` (90 % core gate); `pnpm test:live` (needs `DIDIT_SANDBOX_API_KEY`)
 - Lint: `pnpm lint` (eslint and prettier); format with `pnpm format`
 - Type-check: `pnpm typecheck`

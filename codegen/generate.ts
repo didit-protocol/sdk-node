@@ -1,4 +1,4 @@
-// Regenerate src/types, src/resources and tests/generated from openapi/.
+// Regenerate src/types, src/resources, tests/generated and api.md from openapi/.
 //
 //   node codegen/generate.ts          write the generated files
 //   node codegen/generate.ts --check  fail when the committed files differ
