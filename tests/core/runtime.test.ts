@@ -90,9 +90,10 @@ describe("runtime", () => {
   });
 
   it("uses the global Web Crypto, or node:crypto on Node.js 18", async () => {
-    const globalCrypto = globalThis.crypto;
+    const globalCrypto = (globalThis as { crypto?: Crypto }).crypto;
     let runtime = await fresh();
-    expect(await runtime.webCrypto()).toBe(globalCrypto);
+    // Node.js 18 has no global; the import path below covers it.
+    if (globalCrypto) expect(await runtime.webCrypto()).toBe(globalCrypto);
     vi.stubGlobal("crypto", undefined);
     runtime = await fresh();
     const loaded = await runtime.webCrypto();
