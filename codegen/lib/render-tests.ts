@@ -21,6 +21,14 @@ interface ResourceNodeLike {
 
 const FILE_LITERAL = `{ data: new Uint8Array([1, 2, 3]), filename: "document.jpg", contentType: "image/jpeg" }`;
 
+// Spec examples that look like credentials (JWTs, live keys) are replaced, so the
+// generated tests never carry token-shaped strings that secret scanners flag.
+const TOKEN_LIKE = /^(eyJ|sk_live_|pk_live_|whsec_(?!test_))/;
+
+function example<T extends Json>(value: T): T | string {
+  return typeof value === "string" && TOKEN_LIKE.test(value) ? "sample-token" : value;
+}
+
 function typeMatches(schema: JsonObject, value: Json): boolean {
   switch (schema.type) {
     case "string":
@@ -50,7 +58,7 @@ function synth(spec: Spec, raw: Json, depth = 0): Value {
     const first = (schema.enum as Json[]).find((v) => v !== null);
     if (first !== undefined) return first;
   }
-  if ("example" in schema && typeMatches(schema, schema.example)) return schema.example;
+  if ("example" in schema && typeMatches(schema, schema.example)) return example(schema.example);
   switch (schema.type) {
     case "string":
       switch (schema.format) {
@@ -132,7 +140,8 @@ function accessor(name: string): string {
 
 function pathExample(method: Method, index: number): string {
   const arg = method.pathArgs[index]!;
-  if (typeof arg.example === "string" && /^[A-Za-z0-9._~-]+$/.test(arg.example)) return arg.example;
+  if (typeof arg.example === "string" && /^[A-Za-z0-9._~-]+$/.test(arg.example))
+    return example(arg.example);
   return `${arg.wire.replace(/_/g, "-")}-${index + 1}`;
 }
 
@@ -172,7 +181,7 @@ function renderCase(method: Method): Case {
         field.hasExample &&
         typeMatches(spec.resolveObject(field.schema), field.example)
       ) {
-        value = field.example;
+        value = example(field.example);
       } else {
         value = synth(spec, field.schema);
       }

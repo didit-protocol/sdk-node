@@ -206,7 +206,7 @@ describe("sessions", () => {
       json: responseExample("POST /v3/session/import-shared/"),
     });
     const result = await client.sessions.importShared({
-      share_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      share_token: "sample-token",
       trust_review: false,
       workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
     });
@@ -220,7 +220,7 @@ describe("sessions", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({
-      share_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      share_token: "sample-token",
       trust_review: false,
       workflow_id: "9f9b1234-aaaa-bbbb-cccc-1234567890ab",
     });
