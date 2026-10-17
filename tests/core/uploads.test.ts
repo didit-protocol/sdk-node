@@ -29,12 +29,6 @@ const BYTES = new Uint8Array([1, 2, 3]);
 describe("file inputs", () => {
   it.each([
     ["a Blob", () => new Blob([BYTES], { type: "image/png" }), "file", "image/png"],
-    [
-      "a File",
-      () => new File([BYTES], "dir/id.webp", { type: "image/webp" }),
-      "id.webp",
-      "image/webp",
-    ],
     ["a Uint8Array", () => BYTES, "file", "application/octet-stream"],
     ["an ArrayBuffer", () => BYTES.slice().buffer, "file", "application/octet-stream"],
     ["a DataView", () => new DataView(BYTES.slice().buffer), "file", "application/octet-stream"],
@@ -55,6 +49,12 @@ describe("file inputs", () => {
   ])("accepts %s", async (_label, make, filename, type) => {
     const file = await sent(make() as Uploadable);
     expect(file).toEqual({ filename, type, bytes: [1, 2, 3] });
+  });
+
+  // File is a global from Node.js 20 on.
+  it.skipIf(typeof File === "undefined")("accepts a File and uses its name", async () => {
+    const file = await sent(new File([BYTES], "dir/id.webp", { type: "image/webp" }));
+    expect(file).toEqual({ filename: "id.webp", type: "image/webp", bytes: [1, 2, 3] });
   });
 
   it("names a file from an fs.ReadStream path and guesses its type", async () => {
