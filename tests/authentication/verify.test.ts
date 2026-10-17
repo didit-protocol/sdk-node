@@ -337,18 +337,13 @@ describe("verifyAccessToken", () => {
   });
 
   it.each(["exp", "nbf", "iat"])("rejects a %s beyond any number as malformed", async (claim) => {
-    const header = segment({ alg: "ES256", typ: "at+jwt", kid: key.kid });
-    // 1e400 parses as Infinity; sign the raw JSON so it reaches the claim checks.
-    const payload = JSON.stringify(accessClaims()).replace(/}$/, `,"${claim}x":0}`);
-    const raw = payload.replace(`"${claim}x":0`, `"${claim}":1e400`);
-    const body = claim === "nbf" ? raw : raw.replace(new RegExp(`"${claim}":\\d+,`), "");
-    const signingInput = `${header}.${b64url(body)}`;
-    const signature = await crypto.subtle.sign(
-      { name: "ECDSA", hash: "SHA-256" },
-      key.keyPair.privateKey,
-      new TextEncoder().encode(signingInput),
+    // 1e400 parses as Infinity; sign the raw JSON so that it reaches the claim checks.
+    const payload = JSON.stringify(accessClaims({ [claim]: 123456789 })).replace(
+      `"${claim}":123456789`,
+      `"${claim}":1e400`,
     );
-    const token = `${signingInput}.${b64url(new Uint8Array(signature))}`;
+    const header = segment({ alg: "ES256", typ: "at+jwt", kid: key.kid });
+    const token = await key.signSegments(header, b64url(payload));
     expect(await reason(auth.verifyAccessToken(token))).toBe("malformed");
   });
 
@@ -365,7 +360,7 @@ describe("verifyAccessToken", () => {
         ["five segments (JWE)", "a.b.c.d.e"],
         ["a header that is not base64url", `!!!.${payload}.${signature}`],
         ["a padded header", `${goodHeader}=.${payload}.${signature}`],
-        ["a header of impossible length", `${goodHeader}a.${payload}.${signature}`.replace(/^/, "a")],
+        ["a header of impossible length", `abcde.${payload}.${signature}`],
         ["a header that is not JSON", `${b64url("not json")}.${payload}.${signature}`],
         ["a header that is an array", `${b64url("[1, 2]")}.${payload}.${signature}`],
         ["a header that is null", `${b64url("null")}.${payload}.${signature}`],

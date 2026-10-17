@@ -3,6 +3,7 @@
 // helpers; `for await` walks every item of every page by following `next`.
 
 import { APIPromise, type RawResponse } from "./api-promise.js";
+import { DiditError } from "./errors.js";
 
 /** The fields every list response has. */
 export interface PageResponse<Item> {
@@ -49,7 +50,9 @@ class PageImpl<R, Item> implements PageMethods<R, Item> {
 
   getNextPage(): Promise<Page<R, Item>> {
     const next = this.#next();
-    if (next === null) return Promise.reject(new Error("This is the last page: there is no next link."));
+    if (next === null) {
+      return Promise.reject(new DiditError("This is the last page: there is no next link."));
+    }
     return this.#fetchNext(next, this as unknown as Page<R, Item>);
   }
 

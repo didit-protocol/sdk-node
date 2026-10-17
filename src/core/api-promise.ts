@@ -5,6 +5,8 @@ export interface RawResponse {
   response: Response;
   /** Stop the request timeout; called once the body is read. */
   done(): void;
+  /** Whether the request timeout fired (it also covers reading the body). */
+  timedOut(): boolean;
 }
 
 /** The parsed value together with the HTTP response it came from. */

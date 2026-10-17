@@ -108,7 +108,12 @@ export class SigningKey {
     const typ = options.typ === undefined ? "at+jwt" : options.typ;
     if (typ !== null) header.typ = typ;
     Object.assign(header, options.header ?? {});
-    const signingInput = `${segment(header)}.${segment(claims)}`;
+    return this.signSegments(segment(header), segment(claims));
+  }
+
+  /** Sign already encoded segments, for payloads JSON.stringify cannot write. */
+  async signSegments(header: string, payload: string): Promise<string> {
+    const signingInput = `${header}.${payload}`;
     const signature = await crypto.subtle.sign(
       { name: "ECDSA", hash: "SHA-256" },
       this.keyPair.privateKey,

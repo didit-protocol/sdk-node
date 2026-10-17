@@ -540,7 +540,9 @@ export class APIClient {
         throw new APIConnectionError(undefined, { cause: error });
       }
       this.#log(method, prepared.url, started, attempt, response);
-      if (response.status >= 200 && response.status < 300) return { response, done };
+      if (response.status >= 200 && response.status < 300) {
+        return { response, done, timedOut: () => timedOut.value };
+      }
 
       // An error status: read the body (still under the timeout) for the error.
       let text = "";
@@ -622,7 +624,8 @@ export class APIClient {
       return decodeDates(data, op.dates, this.datePlans) as T;
     } catch (error) {
       if (error instanceof DiditError) throw error;
-      // Reading the body failed: the connection broke or the timeout fired.
+      if (raw.timedOut()) throw new APITimeoutError(undefined, { cause: error });
+      // Reading the body failed: the connection broke.
       throw new APIConnectionError("The connection failed while reading the response.", { cause: error });
     } finally {
       raw.done();
