@@ -10,6 +10,7 @@ import {
   ConfigurationError,
   InternalServerError,
 } from "../../src/core/errors.js";
+import { webCrypto } from "../../src/core/runtime.js";
 import { VERSION } from "../../src/core/version.js";
 import {
   DISCOVERY,
@@ -230,20 +231,22 @@ describe("discovery and JWKS", () => {
 
   it("remembers imported keys for published kids only", async () => {
     const keySet = parseKeySet({ keys: [key.jwk()] })!;
-    const importKey = vi.spyOn(crypto.subtle, "importKey");
+    // Not the global: Node.js 18 has no global `crypto`.
+    const { subtle } = await webCrypto();
+    const importKey = vi.spyOn(subtle, "importKey");
     try {
       // Forged tokens pick their own kid; none of them may stay in memory.
       for (let i = 0; i < 1000; i++) {
         const error = await rejection(
-          keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, crypto.subtle),
+          keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, subtle),
         );
         expect((error as TokenVerificationError).reason).toBe("unknown_key");
       }
       expect(keySet.importedCount).toBe(0);
       expect(importKey).not.toHaveBeenCalled();
       const [first, second] = await Promise.all([
-        keySet.publicKey(key.kid, crypto.subtle),
-        keySet.publicKey(key.kid, crypto.subtle),
+        keySet.publicKey(key.kid, subtle),
+        keySet.publicKey(key.kid, subtle),
       ]);
       expect(first).toBe(second);
       expect(keySet.importedCount).toBe(1);
