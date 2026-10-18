@@ -237,9 +237,7 @@ describe("discovery and JWKS", () => {
     try {
       // Forged tokens pick their own kid; none of them may stay in memory.
       for (let i = 0; i < 1000; i++) {
-        const error = await rejection(
-          keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, subtle),
-        );
+        const error = await rejection(keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, subtle));
         expect((error as TokenVerificationError).reason).toBe("unknown_key");
       }
       expect(keySet.importedCount).toBe(0);
