@@ -287,4 +287,19 @@ describe("Retry-After and backoff", () => {
     expect(error).toBeInstanceOf(APIConnectionError);
     expect(calls).toHaveLength(1);
   });
+
+  it("stops waiting when the client's fetchOptions signal aborts during a backoff", async () => {
+    const controller = new AbortController();
+    vi.mocked(Math.random).mockReturnValue(1);
+    const { didit, calls } = client(() => ({ status: 503 }), {
+      fetchOptions: { signal: controller.signal },
+    });
+    const result = didit.users.retrieve("u").catch((e: unknown) => e);
+    await new Promise((r) => setTimeout(r, 20));
+    controller.abort();
+    const error = await result;
+    expect(error).toBeInstanceOf(APIConnectionError);
+    expect((error as Error).message).toMatch(/aborted/);
+    expect(calls).toHaveLength(1);
+  });
 });
