@@ -432,6 +432,9 @@ describe("spec sync", () => {
     const long = Array.from({ length: 5000 }, (_, i) => `- line ${i}`).join("\n");
     const cut = boundSummary(long, 1000, "the job summary");
     expect(cut.length).toBeLessThanOrEqual(1000);
+    for (let max = 200; max < 260; max++) {
+      expect(boundSummary(long, max, "x").length).toBeLessThanOrEqual(max);
+    }
     expect(cut).toMatch(/^- line 0\n/);
     expect(cut).toContain(`it has ${long.length} characters`);
     expect(cut).toContain("The full summary is in the job summary.");

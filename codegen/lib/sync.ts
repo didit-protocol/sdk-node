@@ -451,7 +451,7 @@ export function describeChange(
 export function boundSummary(summary: string, max: number, fullAt: string): string {
   if (summary.length <= max) return summary;
   const note = `\n**The summary is cut here: it has ${summary.length} characters, more than fit. The full summary is in ${fullAt}.**\n`;
-  const room = Math.max(0, max - note.length);
+  const room = Math.max(0, max - note.length - 1);
   const cut = summary.lastIndexOf("\n", room);
   return `${summary.slice(0, cut > 0 ? cut : room)}\n${note}`;
 }
@@ -587,18 +587,20 @@ export function sync(input: SyncInput): SyncResult {
   const removed = [...oldOps.keys()].filter((k) => !newOps.has(k)).sort();
   const common = [...oldOps.keys()].filter((k) => newOps.has(k)).sort();
 
-  // An added operation without naming that has the operationId of a removed one is
-  // that operation on another path: its naming moves with it, so the method keeps
-  // its name and the overlay needs no hand edit.
+  // An added operation without naming that has the operationId of a removed one in
+  // the same document is that operation on another path: its naming moves with it,
+  // so the method keeps its name and the overlay needs no hand edit.
   const removedById = new Map<string, string>();
   for (const key of removed) {
-    const id = oldOps.get(key)![1].operationId;
-    if (typeof id === "string" && id) removedById.set(id, key);
+    const [docName, op] = oldOps.get(key)!;
+    if (typeof op.operationId === "string" && op.operationId)
+      removedById.set(`${docName} ${op.operationId}`, key);
   }
   for (const key of added) {
-    if (newOps.get(key)![1]["x-didit-sdk"] !== undefined || oldOverlay[key] !== undefined) continue;
-    const id = newOps.get(key)![1].operationId;
-    const from = typeof id === "string" ? removedById.get(id) : undefined;
+    const [docName, op] = newOps.get(key)!;
+    if (op["x-didit-sdk"] !== undefined || oldOverlay[key] !== undefined) continue;
+    const id = op.operationId;
+    const from = typeof id === "string" ? removedById.get(`${docName} ${id}`) : undefined;
     if (from === undefined || !oldNaming(from)) continue;
     const value = oldOps.get(from)![1]["x-didit-sdk"] ?? oldOverlay[from];
     carried.set(key, { from, naming: value });
