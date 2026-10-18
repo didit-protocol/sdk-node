@@ -302,4 +302,36 @@ describe("Retry-After and backoff", () => {
     expect((error as Error).message).toMatch(/aborted/);
     expect(calls).toHaveLength(1);
   });
+
+  it("does not start a backoff when aborted while reading a retryable error body", async () => {
+    const controller = new AbortController();
+    vi.mocked(Math.random).mockReturnValue(1);
+    let calls = 0;
+    const didit = new Didit({
+      apiKey: "k",
+      fetchOptions: { signal: controller.signal },
+      fetch: (_input, init) => {
+        calls++;
+        // A 503 whose body only ends when the request is aborted.
+        const body = new ReadableStream({
+          start(stream) {
+            init?.signal?.addEventListener("abort", () => {
+              stream.error(new DOMException("aborted", "AbortError"));
+            });
+          },
+        });
+        queueMicrotask(() => {
+          controller.abort();
+        });
+        return Promise.resolve(new Response(body, { status: 503 }));
+      },
+    });
+    const started = Date.now();
+    const error = await didit.users.retrieve("u").catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(APIConnectionError);
+    expect((error as Error).message).toMatch(/aborted/);
+    // The first backoff would be 500 ms.
+    expect(Date.now() - started).toBeLessThan(400);
+    expect(calls).toBe(1);
+  });
 });

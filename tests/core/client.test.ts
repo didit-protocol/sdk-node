@@ -543,12 +543,14 @@ describe("cancellation", () => {
   );
 
   it("does not start a request whose fetchOptions signal is already aborted", async () => {
-    const { didit, calls } = client({ fetchOptions: { signal: AbortSignal.abort() } });
-    await expect(didit.users.retrieve("u")).rejects.toThrow(/aborted/);
+    const clientWide = client({ fetchOptions: { signal: AbortSignal.abort() } });
+    await expect(clientWide.didit.users.retrieve("u")).rejects.toThrow(/aborted/);
+    const perRequest = client();
     await expect(
-      didit.users.retrieve("u", { fetchOptions: { signal: AbortSignal.abort() } }),
+      perRequest.didit.users.retrieve("u", { fetchOptions: { signal: AbortSignal.abort() } }),
     ).rejects.toThrow(/aborted/);
-    expect(calls).toHaveLength(0);
+    expect(clientWide.calls).toHaveLength(0);
+    expect(perRequest.calls).toHaveLength(0);
   });
 
   it("removes its abort listeners when a request ends", async () => {
