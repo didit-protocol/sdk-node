@@ -33,6 +33,36 @@ const DOC_KEYS = new Set([
 ]);
 const MAX_NOTES = 25;
 const COMPONENT_PREFIX = "#/components/schemas/";
+/**
+ * The longest summary written for the pull request body. GitHub refuses a body over
+ * 65,536 characters, and the workflow appends the checks and the release block.
+ */
+export const MAX_SUMMARY = 60_000;
+// Objects whose keys are names (properties, media types, status codes), not keywords.
+const NAME_MAPS = new Set([
+  "properties",
+  "patternProperties",
+  "dependentSchemas",
+  "$defs",
+  "definitions",
+  "content",
+  "encoding",
+  "headers",
+  "links",
+  "callbacks",
+  "responses",
+  "mapping",
+]);
+
+/**
+ * Sample data a deprecated method does not need: examples and vendor extensions such
+ * as x-codeSamples (curl commands with API keys). Upstream examples can look like
+ * credentials (JWTs, API keys); the secret scan allowlists the upstream copies only,
+ * so deprecated-operations.json must not carry them.
+ */
+function isSample(key: string): boolean {
+  return key === "example" || key === "examples" || (key.startsWith("x-") && key !== "x-didit-sdk");
+}
 
 /** A download is not a document the SDK can be generated from. */
 export class SpecSyncError extends Error {
@@ -90,14 +120,23 @@ export function dereference(doc: Json, node: Json, depth = 0): Json {
 /**
  * `node` with every `$ref` inlined except component schemas, plus the component
  * schemas it uses (transitively), so a deprecated method keeps its type names.
+ * Sample data (examples, x-codeSamples and other vendor extensions) is left out.
  */
 export function detach(doc: Json, node: Json): { node: Json; components: Record<string, Json> } {
   const components: Record<string, Json> = {};
-  const inline = (value: Json, depth: number): Json => {
+  // `names`: the keys of `value` are names (of properties, media types...), not keywords.
+  const inline = (value: Json, depth: number, names = false): Json => {
     if (depth > 64) return {};
     if (Array.isArray(value)) return value.map((v: Json) => inline(v, depth + 1));
     if (!isObject(value)) return value;
+    if (names) {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, inline(v, depth + 1)]));
+    }
+    const entries = Object.entries(value)
+      .filter(([k]) => !isSample(k))
+      .map(([k, v]): [string, Json] => [k, k === "$ref" ? v : inline(v, depth + 1, NAME_MAPS.has(k))]);
     if (typeof value.$ref === "string") {
+      const extra = Object.fromEntries(entries.filter(([k]) => k !== "$ref"));
       if (value.$ref.startsWith(COMPONENT_PREFIX)) {
         const name = value.$ref
           .slice(COMPONENT_PREFIX.length)
@@ -107,15 +146,14 @@ export function detach(doc: Json, node: Json): { node: Json; components: Record<
           components[name] = {};
           components[name] = inline(pointer(doc, value.$ref) ?? {}, depth + 1);
         }
-        return value;
+        return { $ref: value.$ref, ...extra };
       }
       const found = pointer(doc, value.$ref);
       if (found === undefined) return { "x-unresolved-ref": value.$ref };
       const target = inline(found, depth + 1);
-      const extra = Object.fromEntries(Object.entries(value).filter(([k]) => k !== "$ref"));
       return isObject(target) ? { ...target, ...extra } : target;
     }
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, inline(v, depth + 1)]));
+    return Object.fromEntries(entries);
   };
   return { node: inline(node, 0), components };
 }
