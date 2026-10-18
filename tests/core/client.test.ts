@@ -112,6 +112,22 @@ describe("configuration", () => {
     );
   });
 
+  it.each(["synthetic-key-in-the-wrong-option", "synthetic:key-in-the-wrong-option"])(
+    "never quotes an invalid base URL, which may be a key passed in the wrong option (%s)",
+    (value) => {
+      for (const name of ["baseURL", "accountBaseURL"] as const) {
+        let error: unknown;
+        try {
+          new Didit({ apiKey: KEY, [name]: value });
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as Error).message).toBe(`${name} must be an absolute http(s) URL.`);
+      }
+    },
+  );
+
   it("validates timeout and maxRetries", () => {
     expect(() => new Didit({ apiKey: KEY, timeout: 0 })).toThrow(/timeout/);
     expect(() => new Didit({ apiKey: KEY, timeout: Number.NaN })).toThrow(/timeout/);
@@ -491,20 +507,24 @@ describe("cancellation", () => {
   it.each(["signal", "client fetchOptions.signal", "request fetchOptions.signal"] as const)(
     "aborts a request with the %s while the other two are set",
     async (which) => {
-      const option = new AbortController();
-      const clientWide = new AbortController();
-      const perRequest = new AbortController();
+      const controllers = {
+        signal: new AbortController(),
+        "client fetchOptions.signal": new AbortController(),
+        "request fetchOptions.signal": new AbortController(),
+      };
       const didit = new Didit({
         apiKey: KEY,
         fetch: hanging,
-        fetchOptions: { signal: clientWide.signal },
+        fetchOptions: { signal: controllers["client fetchOptions.signal"].signal },
       });
       const result = didit.users
-        .retrieve("u", { signal: option.signal, fetchOptions: { signal: perRequest.signal } })
+        .retrieve("u", {
+          signal: controllers.signal.signal,
+          fetchOptions: { signal: controllers["request fetchOptions.signal"].signal },
+        })
         .catch((e: unknown) => e);
       const reason = new Error("shutting down");
-      ({ signal: option, "client fetchOptions.signal": clientWide })[which]?.abort(reason) ??
-        perRequest.abort(reason);
+      controllers[which].abort(reason);
       const error = await result;
       expect(error).toBeInstanceOf(APIConnectionError);
       expect((error as Error).message).toMatch(/aborted/);
@@ -542,7 +562,7 @@ describe("cancellation", () => {
     const { didit } = client({ maxRetries: 1, fetchOptions: { signal } }, () =>
       call++ % 3 === 0 ? { status: 503 } : { json: { ok: true } },
     );
-    // A success, a retried success, an error status and a binary response.
+    // A retried success (with a backoff), a success, an error status and a success.
     await didit.users.retrieve("u");
     await didit.users.retrieve("u");
     await expect(didit.users.retrieve("u", { maxRetries: 0 })).rejects.toThrow();
