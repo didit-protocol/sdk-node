@@ -99,12 +99,19 @@ export class KeySet {
     return this.keys.has(kid);
   }
 
+  /** How many published keys have been imported (or are being imported); never more than `keys.size`. */
+  get importedCount(): number {
+    return this.#imported.size;
+  }
+
   /** The P-256 key published as `kid`, or `TokenVerificationError("unknown_key")`. */
   async publicKey(kid: string, subtle: SubtleCrypto): Promise<CryptoKey> {
-    let imported = this.#imported.get(kid);
-    if (!imported) {
-      const jwk = this.keys.get(kid);
-      const usable = jwk ? p256Jwk(jwk) : null;
+    // Only published kids are remembered: a `kid` comes from an unverified token,
+    // so remembering every one would let forged tokens grow this map without limit.
+    const jwk = this.keys.get(kid);
+    let imported = jwk ? this.#imported.get(kid) : undefined;
+    if (jwk && !imported) {
+      const usable = p256Jwk(jwk);
       imported = usable
         ? subtle
             .importKey("jwk", usable, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"])
@@ -112,7 +119,7 @@ export class KeySet {
         : Promise.resolve(null);
       this.#imported.set(kid, imported);
     }
-    const key = await imported;
+    const key = imported ? await imported : null;
     if (!key) {
       throw new TokenVerificationError(
         "unknown_key",

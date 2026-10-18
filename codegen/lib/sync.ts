@@ -33,6 +33,36 @@ const DOC_KEYS = new Set([
 ]);
 const MAX_NOTES = 25;
 const COMPONENT_PREFIX = "#/components/schemas/";
+/**
+ * The longest summary written for the pull request body. GitHub refuses a body over
+ * 65,536 characters, and the workflow appends the checks and the release block.
+ */
+export const MAX_SUMMARY = 60_000;
+// Objects whose keys are names (properties, media types, status codes), not keywords.
+const NAME_MAPS = new Set([
+  "properties",
+  "patternProperties",
+  "dependentSchemas",
+  "$defs",
+  "definitions",
+  "content",
+  "encoding",
+  "headers",
+  "links",
+  "callbacks",
+  "responses",
+  "mapping",
+]);
+
+/**
+ * Sample data a deprecated method does not need: examples and vendor extensions such
+ * as x-codeSamples (curl commands with API keys). Upstream examples can look like
+ * credentials (JWTs, API keys); the secret scan allowlists the upstream copies only,
+ * so deprecated-operations.json must not carry them.
+ */
+function isSample(key: string): boolean {
+  return key === "example" || key === "examples" || (key.startsWith("x-") && key !== "x-didit-sdk");
+}
 
 /** A download is not a document the SDK can be generated from. */
 export class SpecSyncError extends Error {
@@ -90,14 +120,26 @@ export function dereference(doc: Json, node: Json, depth = 0): Json {
 /**
  * `node` with every `$ref` inlined except component schemas, plus the component
  * schemas it uses (transitively), so a deprecated method keeps its type names.
+ * Sample data (examples, x-codeSamples and other vendor extensions) is left out.
  */
 export function detach(doc: Json, node: Json): { node: Json; components: Record<string, Json> } {
   const components: Record<string, Json> = {};
-  const inline = (value: Json, depth: number): Json => {
+  // `names`: the keys of `value` are names (of properties, media types...), not keywords.
+  const inline = (value: Json, depth: number, names = false): Json => {
     if (depth > 64) return {};
     if (Array.isArray(value)) return value.map((v: Json) => inline(v, depth + 1));
     if (!isObject(value)) return value;
+    if (names) {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, inline(v, depth + 1)]));
+    }
+    const entries = Object.entries(value)
+      .filter(([k]) => !isSample(k))
+      .map(([k, v]): [string, Json] => [
+        k,
+        k === "$ref" ? v : inline(v, depth + 1, NAME_MAPS.has(k)),
+      ]);
     if (typeof value.$ref === "string") {
+      const extra = Object.fromEntries(entries.filter(([k]) => k !== "$ref"));
       if (value.$ref.startsWith(COMPONENT_PREFIX)) {
         const name = value.$ref
           .slice(COMPONENT_PREFIX.length)
@@ -107,15 +149,14 @@ export function detach(doc: Json, node: Json): { node: Json; components: Record<
           components[name] = {};
           components[name] = inline(pointer(doc, value.$ref) ?? {}, depth + 1);
         }
-        return value;
+        return { $ref: value.$ref, ...extra };
       }
       const found = pointer(doc, value.$ref);
       if (found === undefined) return { "x-unresolved-ref": value.$ref };
       const target = inline(found, depth + 1);
-      const extra = Object.fromEntries(Object.entries(value).filter(([k]) => k !== "$ref"));
       return isObject(target) ? { ...target, ...extra } : target;
     }
-    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, inline(v, depth + 1)]));
+    return Object.fromEntries(entries);
   };
   return { node: inline(node, 0), components };
 }
@@ -403,6 +444,18 @@ export function describeChange(
   return { notes, breaking: found.some(([, b]) => b) };
 }
 
+/**
+ * `summary` cut at a line to at most `max` characters, with a note that says so and
+ * where the full text is.
+ */
+export function boundSummary(summary: string, max: number, fullAt: string): string {
+  if (summary.length <= max) return summary;
+  const note = `\n**The summary is cut here: it has ${summary.length} characters, more than fit. The full summary is in ${fullAt}.**\n`;
+  const room = Math.max(0, max - note.length - 1);
+  const cut = summary.lastIndexOf("\n", room);
+  return `${summary.slice(0, cut > 0 ? cut : room)}\n${note}`;
+}
+
 /** The minor version after `version`. */
 export function nextMinor(version: string): string {
   const match = /^(\d+)\.(\d+)/.exec(version);
@@ -521,14 +574,38 @@ export function sync(input: SyncInput): SyncResult {
     for (const [key, op] of operations(newDocs.get(name)!, PREFIXES[name] ?? ""))
       newOps.set(key, [name, op]);
   }
+  // Naming carried over to an operation that moved to another path (see below).
+  const carried = new Map<string, { from: string; naming: Json }>();
   const oldNaming = (key: string): Naming | undefined =>
     naming(oldOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
   const newNaming = (key: string): Naming | undefined =>
-    naming(newOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
+    naming(newOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key] ?? carried.get(key)?.naming);
+  // Only server operations become SDK methods; the rest cannot change the release.
+  const exposed = (n: Naming | undefined): boolean => n?.server !== false;
 
   const added = [...newOps.keys()].filter((k) => !oldOps.has(k)).sort();
   const removed = [...oldOps.keys()].filter((k) => !newOps.has(k)).sort();
   const common = [...oldOps.keys()].filter((k) => newOps.has(k)).sort();
+
+  // An added operation without naming that has the operationId of a removed one in
+  // the same document is that operation on another path: its naming moves with it,
+  // so the method keeps its name and the overlay needs no hand edit.
+  const removedById = new Map<string, string>();
+  for (const key of removed) {
+    const [docName, op] = oldOps.get(key)!;
+    if (typeof op.operationId === "string" && op.operationId)
+      removedById.set(`${docName} ${op.operationId}`, key);
+  }
+  for (const key of added) {
+    const [docName, op] = newOps.get(key)!;
+    if (op["x-didit-sdk"] !== undefined || oldOverlay[key] !== undefined) continue;
+    const id = op.operationId;
+    const from = typeof id === "string" ? removedById.get(`${docName} ${id}`) : undefined;
+    if (from === undefined || !oldNaming(from)) continue;
+    const value = oldOps.get(from)![1]["x-didit-sdk"] ?? oldOverlay[from];
+    carried.set(key, { from, naming: value });
+    overlayOps[key] = value;
+  }
   const newServerNames = new Map<string, string>();
   for (const key of newOps.keys()) {
     const n = newNaming(key);
@@ -579,16 +656,24 @@ export function sync(input: SyncInput): SyncResult {
     kept.push(method);
   };
 
-  if (added.length || removed.length) feature = true;
+  if (
+    added.some((key) => exposed(newNaming(key))) ||
+    removed.some((key) => exposed(oldNaming(key)))
+  )
+    feature = true;
   lines.push(`## Added operations (${added.length})`);
   for (const key of added) {
     const n = newNaming(key);
+    const from = carried.get(key)?.from;
+    const moved = from
+      ? ` (moved from \`${from}\`, same operationId; its overlay naming moved with it)`
+      : "";
     if (!n)
       lines.push(
         `- \`${key}\`: **no SDK naming**; add an entry to \`openapi/overlay.json\` (DESIGN section 4)`,
       );
-    else if (n.server) lines.push(`- \`${key}\` -> \`${nameOf(n)}\``);
-    else lines.push(`- \`${key}\` (not exposed by server SDKs: ${n.auth ?? "-"})`);
+    else if (n.server) lines.push(`- \`${key}\` -> \`${nameOf(n)}\`${moved}`);
+    else lines.push(`- \`${key}\` (not exposed by server SDKs: ${n.auth ?? "-"})${moved}`);
   }
   lines.push("");
 
@@ -708,6 +793,14 @@ export function sync(input: SyncInput): SyncResult {
       continue;
     const described = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
     let { notes, breaking: isBreaking } = described;
+    if (!exposed(before) && !exposed(after)) {
+      // No SDK method calls it, so nothing here can break or change the SDK.
+      if (!sameOp)
+        changes.push(
+          `- \`${key}\` (not exposed by server SDKs): ${notes.map((n) => n.replace(/ \(breaking\)$/, "")).join("; ")}`,
+        );
+      continue;
+    }
     // A method that keeps its name but changes scope or credentials takes other
     // arguments or needs another client option.
     if (before?.server && after?.server && nameOf(before) === nameOf(after)) {

@@ -14,8 +14,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  # Cancel superseded runs of a pull request; every push to main gets its own run.
+  # One group per pull request, where a new push cancels the superseded run; every
+  # other run (each push to main, each manual run) has a group of its own commit.
+  group: ci-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -92,15 +93,19 @@ jobs:
         # Fails when src/resources, src/types, tests/generated or api.md differ from
         # what codegen/ produces from openapi/. Fix: pnpm generate
         run: pnpm generate:check
+      - name: Set up gitleaks
+        uses: ./.github/actions/setup-gitleaks
       - name: A spec sync that renames and removes methods needs no hand edit
         # Runs last: it changes openapi/ and the generated code of this job's checkout.
         # Upstream renames every server method and drops one operation; the sync keeps
-        # the old names as deprecated, and the checks of spec-sync.yml must still pass.
+        # the old names as deprecated, and the checks and the secret scan of
+        # spec-sync.yml must still pass.
         run: |
           upstream="$RUNNER_TEMP/upstream"
           node codegen/tests/simulate-upstream.ts "$upstream"
           pnpm spec-sync --from-dir "$upstream" --summary "$RUNNER_TEMP/spec-sync-summary.md"
           pnpm generate
+          bash .github/scripts/scan-spec-sync.sh
           pnpm exec eslint .
           pnpm exec prettier --check .
           pnpm typecheck
@@ -260,27 +265,16 @@ jobs:
     name: Secret scan (gitleaks, full history)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      # The official gitleaks-action needs a paid licence for organisations, so the
-      # release binary is downloaded and verified against its published SHA-256.
-      GITLEAKS_VERSION: "8.30.1"
-      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
     steps:
       - name: Check out the repository with its full history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Install gitleaks ${{ env.GITLEAKS_VERSION }}
-        run: |
-          archive="$RUNNER_TEMP/gitleaks.tar.gz"
-          curl -sSfL --retry 3 -o "$archive" \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum --check --strict
-          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
-          "$RUNNER_TEMP/gitleaks" version
+      - name: Set up gitleaks
+        uses: ./.github/actions/setup-gitleaks
       - name: Scan every commit
-        run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --verbose --no-banner .'
+        run: gitleaks git --config .gitleaks.toml --redact --verbose --no-banner .
 
   live-smoke:
     name: Live smoke tests (sandbox)

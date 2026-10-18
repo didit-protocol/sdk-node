@@ -66,6 +66,19 @@ jobs:
       contents: read
       id-token: write # npm trusted publishing and provenance (OIDC)
     steps:
+      - name: Refuse to publish from a private repository
+        # npm refuses provenance from a private repository ("Only public source
+        # repositories are supported"), and DESIGN.md section 13 keeps this one private
+        # until the first release: make it public first, then re-run this job. Asked of
+        # the API, because a re-run keeps the event payload of the first run.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRIVATE="$(gh api "repos/${GITHUB_REPOSITORY}" --jq .private)"
+          if [ "$PRIVATE" != "false" ]; then
+            echo "::error::The repository is private (private=${PRIVATE}); npm publishes with provenance only from a public repository. Make it public (after the full-history secret scan), then re-run this job."
+            exit 1
+          fi
       - name: Check out the release tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
