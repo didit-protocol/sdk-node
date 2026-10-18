@@ -549,10 +549,12 @@ describe("cancellation", () => {
     const { signal } = controller;
     const add = signal.addEventListener.bind(signal);
     const remove = signal.removeEventListener.bind(signal);
-    vi.spyOn(signal, "addEventListener").mockImplementation((type, listener, options) => {
-      listeners.add(listener);
-      add(type, listener, options);
-    });
+    const added = vi
+      .spyOn(signal, "addEventListener")
+      .mockImplementation((type, listener, options) => {
+        listeners.add(listener);
+        add(type, listener, options);
+      });
     vi.spyOn(signal, "removeEventListener").mockImplementation((type, listener, options) => {
       listeners.delete(listener);
       remove(type, listener, options);
@@ -567,7 +569,7 @@ describe("cancellation", () => {
     await didit.users.retrieve("u");
     await expect(didit.users.retrieve("u", { maxRetries: 0 })).rejects.toThrow();
     await didit.users.retrieve("u");
-    expect(vi.mocked(signal.addEventListener)).toHaveBeenCalled();
+    expect(added).toHaveBeenCalled();
     expect(listeners.size).toBe(0);
   });
 });
