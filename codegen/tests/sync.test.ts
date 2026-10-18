@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  boundSummary,
   checkOpenAPI,
   detach,
   nextMinor,
@@ -280,6 +281,166 @@ describe("spec sync", () => {
     expect(detach(doc, { $ref: "#/components/missing" }).node).toEqual({
       "x-unresolved-ref": "#/components/missing",
     });
+  });
+
+  it("leaves sample data out of a detached operation, but not properties named like it", () => {
+    const doc = openapi(
+      {},
+      {
+        A: {
+          type: "object",
+          example: { api_key: "sample" },
+          properties: {
+            example: { type: "string", example: "sample" },
+            examples: { type: "array", items: { type: "string" } },
+            "x-note": { type: "string" },
+          },
+          "x-readme-id": "1",
+        },
+      },
+    );
+    const op = {
+      "x-didit-sdk": naming("a", "create"),
+      "x-codeSamples": [{ lang: "curl", source: "curl -H 'x-api-key: sample'" }],
+      parameters: [{ in: "query", name: "q", schema: { type: "string" }, example: "sample" }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/A", example: { api_key: "sample" } },
+            examples: { one: { value: { api_key: "sample" } } },
+          },
+        },
+      },
+      responses: { "200": { description: "ok" } },
+    };
+    const { node, components } = detach(doc, op);
+    expect(JSON.stringify([node, components])).not.toContain("sample");
+    expect(node).toEqual({
+      "x-didit-sdk": naming("a", "create"),
+      parameters: [{ in: "query", name: "q", schema: { type: "string" } }],
+      requestBody: {
+        content: { "application/json": { schema: { $ref: "#/components/schemas/A" } } },
+      },
+      responses: { "200": { description: "ok" } },
+    });
+    expect(components.A).toEqual({
+      type: "object",
+      properties: {
+        example: { type: "string" },
+        examples: { type: "array", items: { type: "string" } },
+        "x-note": { type: "string" },
+      },
+    });
+  });
+
+  it("records a removed method without the upstream examples and code samples", () => {
+    const next = base();
+    const current = base();
+    const retrieve = ((current.paths as Doc)["/v3/items/{id}/"] as Record<string, Doc>).get!;
+    retrieve["x-codeSamples"] = [{ lang: "curl", source: "curl -H 'x-api-key: sample-key'" }];
+    (current.components as { schemas: Record<string, Doc> }).schemas.Item!.example = {
+      id: "sample-id",
+    };
+    delete (next.paths as Doc)["/v3/items/{id}/"];
+    const files = new Map<string, Uint8Array | undefined>([
+      ["verification.json", bytes(current)],
+      ["account.json", bytes(openapi({ "/x/": { get: json({}) } }))],
+      ["overlay.json", bytes(OVERLAY)],
+    ]);
+    const downloads = new Map([
+      ["verification.json", bytes(next)],
+      ["account.json", files.get("account.json")!],
+    ]);
+    const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
+    const text = dec.decode(result.writes.get("deprecated-operations.json"));
+    expect(text).toContain('"items.retrieve"');
+    expect(text).not.toContain("sample");
+  });
+
+  it("releases nothing for changes to operations that server SDKs do not expose", () => {
+    const hidden = (name: string): Doc => ({
+      ...json({}),
+      "x-didit-sdk": { resource: "pickup", method: name, auth: "device_token", server: false },
+    });
+    const current = base();
+    (current.paths as Doc)["/v3/pickup/"] = { get: hidden("retrieve"), delete: hidden("delete") };
+    const next = base();
+    (next.paths as Doc)["/v3/pickup/"] = {
+      get: {
+        ...hidden("retrieve"),
+        parameters: [{ in: "query", name: "token", required: true, schema: { type: "string" } }],
+      },
+      post: hidden("create"),
+    };
+    const files = new Map<string, Uint8Array | undefined>([
+      ["verification.json", bytes(current)],
+      ["account.json", bytes(openapi({ "/x/": { get: json({}) } }))],
+      ["overlay.json", bytes(OVERLAY)],
+    ]);
+    const downloads = new Map([
+      ["verification.json", bytes(next)],
+      ["account.json", files.get("account.json")!],
+    ]);
+    const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
+    expect(result.changed).toBe(true);
+    expect(result.release).toBe("none");
+    expect(result.summary).toContain("## Breaking changes\nNone detected.");
+    expect(result.summary).toContain(
+      "`GET /v3/pickup/` (not exposed by server SDKs): parameter added: token (query), required",
+    );
+    expect(result.summary).toContain(
+      "`POST /v3/pickup/` (not exposed by server SDKs: device_token)",
+    );
+    expect(result.summary).toContain("`DELETE /v3/pickup/` (not exposed by server SDKs)");
+  });
+
+  it("moves the overlay naming with an operation that keeps its operationId on a new path", () => {
+    const current = base();
+    ((current.paths as Doc)["/v3/items/{id}/"] as Record<string, Doc>).get!.operationId =
+      "items_retrieve";
+    const next = structuredClone(current);
+    const paths = next.paths as Doc;
+    paths["/v3/items/{id}/detail/"] = paths["/v3/items/{id}/"];
+    delete paths["/v3/items/{id}/"];
+    const files = new Map<string, Uint8Array | undefined>([
+      ["verification.json", bytes(current)],
+      ["account.json", bytes(openapi({ "/x/": { get: json({}) } }))],
+      ["overlay.json", bytes(OVERLAY)],
+    ]);
+    const downloads = new Map([
+      ["verification.json", bytes(next)],
+      ["account.json", files.get("account.json")!],
+    ]);
+    const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
+    expect(result.summary).toContain(
+      "`GET /v3/items/{id}/detail/` -> `items.retrieve` (moved from `GET /v3/items/{id}/`, same operationId",
+    );
+    expect(result.summary).toContain(
+      "`items.retrieve` moved from `GET /v3/items/{id}/` to `GET /v3/items/{id}/detail/`: same parameters, body and response",
+    );
+    expect(result.summary).toContain("## Deprecated methods\nNone.");
+    expect(result.summary).not.toContain("no SDK naming");
+    expect(written(result, "overlay.json").operations).toEqual({
+      "GET /v3/items/": naming("items", "list"),
+      "GET /v3/items/{id}/detail/": naming("items", "retrieve"),
+    });
+    expect(written(result, "deprecated-operations.json").methods).toEqual({});
+  });
+
+  it("cuts a long summary at a line, with a note that says where the rest is", () => {
+    expect(boundSummary("short\n", 100, "the job summary")).toBe("short\n");
+    const long = Array.from({ length: 5000 }, (_, i) => `- line ${i}`).join("\n");
+    const cut = boundSummary(long, 1000, "the job summary");
+    expect(cut.length).toBeLessThanOrEqual(1000);
+    expect(cut).toMatch(/^- line 0\n/);
+    expect(cut).toContain(`it has ${long.length} characters`);
+    expect(cut).toContain("The full summary is in the job summary.");
+    expect(
+      cut
+        .split("\n")
+        .filter((l) => l.startsWith("- line"))
+        .every((l) => /^- line \d+$/.test(l)),
+    ).toBe(true);
   });
 
   it("computes the next minor version and the removal version two minors on", () => {
