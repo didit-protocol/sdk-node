@@ -6,12 +6,14 @@
 // when either changed, updates openapi/ (see codegen/lib/sync.ts). Writes
 // changed=true|false, breaking=true|false and release=breaking|feature|none to
 // $GITHUB_OUTPUT when set. The generator, not this script, regenerates the code.
+// The summary in FILE (the pull request body) is cut to MAX_SUMMARY characters;
+// the full summary goes to the job summary ($GITHUB_STEP_SUMMARY) when set.
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { SpecSyncError, sync, UPSTREAM } from "./lib/sync.ts";
+import { boundSummary, MAX_SUMMARY, SpecSyncError, sync, UPSTREAM } from "./lib/sync.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPENAPI = join(ROOT, "openapi");
@@ -75,8 +77,18 @@ async function main(): Promise<void> {
     throw error;
   }
   for (const [name, data] of result.writes) writeFileSync(join(OPENAPI, name), data);
-  if (summaryPath) writeFileSync(summaryPath, result.summary);
+  if (summaryPath) {
+    writeFileSync(
+      summaryPath,
+      boundSummary(result.summary, MAX_SUMMARY, "the job summary of the spec sync run"),
+    );
+  }
   console.log(result.summary);
+  const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+  if (stepSummary) {
+    // GitHub keeps at most 1 MiB of job summary per step.
+    appendFileSync(stepSummary, boundSummary(result.summary, 1_000_000, "the run's log"));
+  }
   const output = process.env.GITHUB_OUTPUT;
   if (output) {
     appendFileSync(
