@@ -69,6 +69,16 @@ export default tseslint.config(
     },
   },
   {
+    // A spec sync that renames or removes a method keeps the old name as deprecated
+    // until its removal version, so the sync pull request must stay green while the
+    // hand-written tests and examples still call it. The warning says what to move;
+    // the type check fails once the name is gone.
+    files: ["tests/**/*.ts", "examples/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-deprecated": "warn",
+    },
+  },
+  {
     // The generated tests and the contract test call every method, including the
     // ones a spec sync keeps as deprecated until their removal version.
     files: ["tests/generated/**/*.ts", "tests/contract.test.ts"],
