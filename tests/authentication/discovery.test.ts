@@ -228,6 +228,31 @@ describe("discovery and JWKS", () => {
     expect(parseKeySet({ keys: [key.jwk()] })?.has(key.kid)).toBe(true);
   });
 
+  it("remembers imported keys for published kids only", async () => {
+    const keySet = parseKeySet({ keys: [key.jwk()] })!;
+    const importKey = vi.spyOn(crypto.subtle, "importKey");
+    try {
+      // Forged tokens pick their own kid; none of them may stay in memory.
+      for (let i = 0; i < 1000; i++) {
+        const error = await rejection(
+          keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, crypto.subtle),
+        );
+        expect((error as TokenVerificationError).reason).toBe("unknown_key");
+      }
+      expect(keySet.importedCount).toBe(0);
+      expect(importKey).not.toHaveBeenCalled();
+      const [first, second] = await Promise.all([
+        keySet.publicKey(key.kid, crypto.subtle),
+        keySet.publicKey(key.kid, crypto.subtle),
+      ]);
+      expect(first).toBe(second);
+      expect(keySet.importedCount).toBe(1);
+      expect(importKey).toHaveBeenCalledTimes(1);
+    } finally {
+      importKey.mockRestore();
+    }
+  });
+
   it("does not let an unusable entry hide a usable key with the same kid", async () => {
     const rsa = { kty: "RSA", kid: key.kid, n: b64url(new Uint8Array(256).fill(1)), e: "AQAB" };
     issuer.route("GET", JWKS, () => json(200, { keys: [rsa, key.jwk()] }));
