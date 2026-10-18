@@ -1,0 +1,127 @@
+# NOTHING MAY BE PUBLISHED before Alex's explicit approval and the 2026-11-01 Didit release
+# (docs/DESIGN.md section 13). The GitHub environment `npm` used by the publish job must
+# require a reviewer, so that every upload to npm waits for an explicit approval.
+#
+# Run by hand only, so nothing is cut by accident:
+# 1. The first run opens the release pull request (version bump and the generated
+#    CHANGELOG.md).
+# 2. Once that pull request is merged, the next run creates the vX.Y.Z tag and the GitHub
+#    release; the publish job then waits for the `npm` environment approval, re-runs the
+#    checks on the tag and publishes with npm provenance (trusted publishing, OIDC).
+# The publish job is part of this workflow, so it runs whatever token created the release.
+#
+# Token: a release pull request opened with the default GITHUB_TOKEN gets no CI (GitHub
+# does not start workflows from events caused by GITHUB_TOKEN). Add a repository secret
+# RELEASE_PLEASE_TOKEN (a fine-grained token with Contents, Issues and Pull requests read
+# and write on this repository only) to fix that; without it the workflow falls back to
+# GITHUB_TOKEN, and CI on the release pull request must be started by hand.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Publish to npm
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      # Must require a reviewer (Settings > Environments > npm > Required reviewers).
+      name: npm
+      url: https://www.npmjs.com/package/@didit-protocol/sdk-node
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing and provenance (OIDC)
+    steps:
+      - name: Refuse to publish from a private repository
+        # npm refuses provenance from a private repository ("Only public source
+        # repositories are supported"), and DESIGN.md section 13 keeps this one private
+        # until the first release: make it public first, then re-run this job. Asked of
+        # the API, because a re-run keeps the event payload of the first run.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRIVATE="$(gh api "repos/${GITHUB_REPOSITORY}" --jq .private)"
+          if [ "$PRIVATE" != "false" ]; then
+            echo "::error::The repository is private (private=${PRIVATE}); npm publishes with provenance only from a public repository. Make it public (after the full-history secret scan), then re-run this job."
+            exit 1
+          fi
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Set up Node.js
+        # Node 24 ships npm 11, which publishes with trusted publishing.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Check that the release tag matches the package version
+        env:
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          code_version="$(sed -n 's/^export const VERSION = "\([^"]*\)".*/\1/p' src/core/version.ts)"
+          if [ "$RELEASE_TAG" != "v$version" ] || [ "$code_version" != "$version" ]; then
+            echo "::error::Release tag $RELEASE_TAG, package.json $version and src/core/version.ts $code_version must agree."
+            exit 1
+          fi
+          echo "Release tag $RELEASE_TAG matches version $version."
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check, test and build
+        run: |
+          pnpm generate:check
+          pnpm typecheck
+          pnpm test
+          pnpm build
+          pnpm check:package
+      - name: Publish with provenance
+        # Trusted publishing (OIDC) needs no token. Only for the very first release, before
+        # the npm package exists and its trusted publisher can be configured, set the
+        # environment secret NPM_TOKEN (a granular automation token); delete it afterwards.
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Trusted publishing needs npm 11.5.1 or later (Node.js 24 ships it).
+          node -e 'const [a, b, c] = process.argv[1].split(".").map(Number); if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) { console.error("npm " + process.argv[1] + " is too old for trusted publishing"); process.exit(1); }' "$(npm --version)"
+          if [ -n "$NPM_TOKEN" ]; then
+            printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$RUNNER_TEMP/.npmrc"
+            export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc"
+          fi
+          npm publish --provenance --access public
