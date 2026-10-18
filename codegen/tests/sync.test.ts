@@ -301,7 +301,7 @@ describe("spec sync", () => {
     );
     const op = {
       "x-didit-sdk": naming("a", "create"),
-      "x-codeSamples": [{ lang: "curl", source: "curl -H 'x-api-key: sample'" }],
+      "x-codeSamples": [{ lang: "curl", source: "curl https://example.invalid/sample" }],
       parameters: [{ in: "query", name: "q", schema: { type: "string" }, example: "sample" }],
       requestBody: {
         content: {
@@ -337,7 +337,7 @@ describe("spec sync", () => {
     const next = base();
     const current = base();
     const retrieve = ((current.paths as Doc)["/v3/items/{id}/"] as Record<string, Doc>).get!;
-    retrieve["x-codeSamples"] = [{ lang: "curl", source: "curl -H 'x-api-key: sample-key'" }];
+    retrieve["x-codeSamples"] = [{ lang: "curl", source: "curl https://example.invalid/sample" }];
     (current.components as { schemas: Record<string, Doc> }).schemas.Item!.example = {
       id: "sample-id",
     };
