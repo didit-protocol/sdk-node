@@ -72,7 +72,8 @@ interface PreparedRequest {
   body: string | FormData | undefined;
   timeout: number;
   maxRetries: number;
-  signal: AbortSignal | undefined;
+  /** The `signal` option and any `fetchOptions.signal`: the first to abort cancels the request. */
+  signals: readonly AbortSignal[];
   fetchOptions: RequestInit | undefined;
 }
 
@@ -135,41 +136,60 @@ export function retryDelay(retriesTaken: number, random: () => number = Math.ran
   return random() * ceiling;
 }
 
-function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
+/**
+ * Call `onAbort` once when the first of `signals` aborts; returns the function
+ * that removes the listeners. (`AbortSignal.any` needs Node.js 20.3.)
+ */
+function onAnyAbort(
+  signals: readonly AbortSignal[],
+  onAbort: (signal: AbortSignal) => void,
+): () => void {
+  const listeners = signals.map((signal) => {
+    const listener = (): void => {
+      unlink();
+      onAbort(signal);
+    };
+    signal.addEventListener("abort", listener, { once: true });
+    return { signal, listener };
+  });
+  const unlink = (): void => {
+    for (const { signal, listener } of listeners) signal.removeEventListener("abort", listener);
+  };
+  return unlink;
+}
+
+function sleep(ms: number, signals: readonly AbortSignal[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(abortError(signal));
+    const aborted = signals.find((s) => s.aborted);
+    if (aborted) {
+      reject(abortError(aborted));
       return;
     }
     const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
+      unlink();
       resolve();
     }, ms);
-    const onAbort = (): void => {
+    const unlink = onAnyAbort(signals, (signal) => {
       clearTimeout(timer);
       reject(abortError(signal));
-    };
-    signal?.addEventListener("abort", onAbort, { once: true });
+    });
   });
 }
 
-function abortError(signal: AbortSignal | undefined): APIConnectionError {
-  return new APIConnectionError("Request was aborted.", { cause: signal?.reason });
+function abortError(signal: AbortSignal): APIConnectionError {
+  return new APIConnectionError("Request was aborted.", { cause: signal.reason });
 }
 
 function validateBaseURL(name: string, value: string): { url: string; origin: string } {
+  // The value is never quoted: an API key passed in the wrong option must not reach the logs.
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    throw new ConfigurationError(
-      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
-    );
+    throw new ConfigurationError(`${name} must be an absolute http(s) URL.`);
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new ConfigurationError(
-      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
-    );
+    throw new ConfigurationError(`${name} must be an absolute http(s) URL.`);
   }
   if (parsed.username || parsed.password) {
     throw new ConfigurationError(`${name} must not contain credentials.`);
@@ -544,10 +564,15 @@ export class APIClient {
     if (!Number.isInteger(maxRetries) || maxRetries < 0) {
       throw new ConfigurationError("maxRetries must be an integer, 0 or more.");
     }
+    const clientFetchOptions = this.#options.fetchOptions;
     const fetchOptions =
-      this.#options.fetchOptions || options.fetchOptions
-        ? { ...this.#options.fetchOptions, ...options.fetchOptions }
+      clientFetchOptions || options.fetchOptions
+        ? { ...clientFetchOptions, ...options.fetchOptions }
         : undefined;
+    // The fetch gets its own signal (timeouts), so each of these is listened to instead.
+    const signals = [options.signal, clientFetchOptions?.signal, options.fetchOptions?.signal]
+      .filter((s): s is AbortSignal => s !== undefined && s !== null)
+      .filter((s, i, all) => all.indexOf(s) === i);
     return {
       method: op.method,
       url: url.href,
@@ -556,7 +581,7 @@ export class APIClient {
       body,
       timeout,
       maxRetries,
-      signal: options.signal,
+      signals,
       fetchOptions,
     };
   }
