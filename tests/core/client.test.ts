@@ -496,25 +496,34 @@ describe("cancellation", () => {
     expect(calls).toHaveLength(0);
   });
 
-  // Never answers; only an abort ends it.
-  const hanging: Fetch = (_input, init) =>
-    new Promise((_resolve, reject) => {
-      init?.signal?.addEventListener("abort", () => {
-        reject(new DOMException("aborted", "AbortError"));
-      });
+  // A fetch that never answers; only an abort ends it. `inFlight` resolves once it was called.
+  function hanging() {
+    let started = (): void => undefined;
+    const inFlight = new Promise<void>((resolve) => {
+      started = resolve;
     });
+    const fetch: Fetch = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("aborted", "AbortError"));
+        });
+        started();
+      });
+    return { fetch, inFlight };
+  }
 
   it.each(["signal", "client fetchOptions.signal", "request fetchOptions.signal"] as const)(
-    "aborts a request with the %s while the other two are set",
+    "aborts a request in flight with the %s while the other two are set",
     async (which) => {
       const controllers = {
         signal: new AbortController(),
         "client fetchOptions.signal": new AbortController(),
         "request fetchOptions.signal": new AbortController(),
       };
+      const { fetch, inFlight } = hanging();
       const didit = new Didit({
         apiKey: KEY,
-        fetch: hanging,
+        fetch,
         fetchOptions: { signal: controllers["client fetchOptions.signal"].signal },
       });
       const result = didit.users
@@ -523,6 +532,7 @@ describe("cancellation", () => {
           fetchOptions: { signal: controllers["request fetchOptions.signal"].signal },
         })
         .catch((e: unknown) => e);
+      await inFlight;
       const reason = new Error("shutting down");
       controllers[which].abort(reason);
       const error = await result;
@@ -536,9 +546,7 @@ describe("cancellation", () => {
     const { didit, calls } = client({ fetchOptions: { signal: AbortSignal.abort() } });
     await expect(didit.users.retrieve("u")).rejects.toThrow(/aborted/);
     await expect(
-      new Didit({ apiKey: KEY, fetch: hanging }).users.retrieve("u", {
-        fetchOptions: { signal: AbortSignal.abort() },
-      }),
+      didit.users.retrieve("u", { fetchOptions: { signal: AbortSignal.abort() } }),
     ).rejects.toThrow(/aborted/);
     expect(calls).toHaveLength(0);
   });
