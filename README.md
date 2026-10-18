@@ -86,7 +86,7 @@ const didit = new Didit({
 | `maxRetries`                      | `2`                                             | See [Retries](#retries).                                                                                          |
 | `defaultHeaders`                  | none                                            | Added to every request. They cannot replace the credentials (`x-api-key`, `Authorization`).                       |
 | `fetch`                           | global `fetch`                                  | Your own `fetch` (proxies, instrumentation, tests).                                                               |
-| `fetchOptions`                    | none                                            | Extra `fetch` options for every request, for example an undici `dispatcher` for a proxy.                          |
+| `fetchOptions`                    | none                                            | Extra `fetch` options for every request, such as an undici `dispatcher`. A `signal` here cancels every request.   |
 | `logLevel`, `logger`              | `DIDIT_LOG`, `console`                          | `debug` logs one line per request.                                                                                |
 
 The environment variables are read on Node.js, Bun and Deno (with `--allow-env`). Edge runtimes such as Cloudflare Workers pass configuration to the handler instead, so give it to the client: `new Didit({ apiKey: env.DIDIT_API_KEY })`.
@@ -105,6 +105,8 @@ await didit.sessions.create(
   },
 );
 ```
+
+`signal` cancels the request, its retries and the wait between them; a `signal` in `fetchOptions` does the same.
 
 ## Using the API
 
