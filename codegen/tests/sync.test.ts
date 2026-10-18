@@ -427,6 +427,31 @@ describe("spec sync", () => {
     expect(written(result, "deprecated-operations.json").methods).toEqual({});
   });
 
+  it("moves naming only between operations of the same document", () => {
+    const account = openapi({ "/x/": { get: { ...json({}), operationId: "shared_id" } } });
+    const nextAccount = openapi({ "/y/": { get: json({}) } });
+    const next = base();
+    (next.paths as Doc)["/v3/new/"] = { get: { ...json({}), operationId: "shared_id" } };
+    const files = new Map<string, Uint8Array | undefined>([
+      ["verification.json", bytes(base())],
+      ["account.json", bytes(account)],
+      [
+        "overlay.json",
+        bytes({
+          ...OVERLAY,
+          operations: { ...OVERLAY.operations, "account GET /x/": naming("account.x", "list") },
+        }),
+      ],
+    ]);
+    const downloads = new Map([
+      ["verification.json", bytes(next)],
+      ["account.json", bytes(nextAccount)],
+    ]);
+    const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
+    expect(result.summary).toContain("`GET /v3/new/`: **no SDK naming**");
+    expect((written(result, "overlay.json").operations as Doc)["GET /v3/new/"]).toBeUndefined();
+  });
+
   it("cuts a long summary at a line, with a note that says where the rest is", () => {
     expect(boundSummary("short\n", 100, "the job summary")).toBe("short\n");
     const long = Array.from({ length: 5000 }, (_, i) => `- line ${i}`).join("\n");
