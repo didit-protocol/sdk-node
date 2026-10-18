@@ -55,7 +55,7 @@ export interface ClientOptions {
   defaultHeaders?: Record<string, string> | undefined;
   /** Your own `fetch` (proxies, instrumentation, mocks). Default: the global `fetch`. */
   fetch?: Fetch | undefined;
-  /** Extra `fetch` options for every request (for example a proxy `dispatcher` on Node.js). */
+  /** Extra `fetch` options for every request (for example a proxy `dispatcher` on Node.js); a `signal` here cancels every request. */
   fetchOptions?: RequestInit | undefined;
   /** `debug` logs one line per request. Default: `DIDIT_LOG`, else `off`. */
   logLevel?: LogLevel | undefined;
@@ -72,7 +72,8 @@ interface PreparedRequest {
   body: string | FormData | undefined;
   timeout: number;
   maxRetries: number;
-  signal: AbortSignal | undefined;
+  /** The `signal` option and any `fetchOptions.signal`: the first to abort cancels the request. */
+  signals: readonly AbortSignal[];
   fetchOptions: RequestInit | undefined;
 }
 
@@ -135,41 +136,60 @@ export function retryDelay(retriesTaken: number, random: () => number = Math.ran
   return random() * ceiling;
 }
 
-function sleep(ms: number, signal: AbortSignal | undefined): Promise<void> {
+/**
+ * Call `onAbort` once when the first of `signals` aborts; returns the function
+ * that removes the listeners. (`AbortSignal.any` needs Node.js 20.3.)
+ */
+function onAnyAbort(
+  signals: readonly AbortSignal[],
+  onAbort: (signal: AbortSignal) => void,
+): () => void {
+  const listeners = signals.map((signal) => {
+    const listener = (): void => {
+      unlink();
+      onAbort(signal);
+    };
+    signal.addEventListener("abort", listener, { once: true });
+    return { signal, listener };
+  });
+  const unlink = (): void => {
+    for (const { signal, listener } of listeners) signal.removeEventListener("abort", listener);
+  };
+  return unlink;
+}
+
+function sleep(ms: number, signals: readonly AbortSignal[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(abortError(signal));
+    const aborted = signals.find((s) => s.aborted);
+    if (aborted) {
+      reject(abortError(aborted));
       return;
     }
     const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
+      unlink();
       resolve();
     }, ms);
-    const onAbort = (): void => {
+    const unlink = onAnyAbort(signals, (signal) => {
       clearTimeout(timer);
       reject(abortError(signal));
-    };
-    signal?.addEventListener("abort", onAbort, { once: true });
+    });
   });
 }
 
-function abortError(signal: AbortSignal | undefined): APIConnectionError {
-  return new APIConnectionError("Request was aborted.", { cause: signal?.reason });
+function abortError(signal: AbortSignal): APIConnectionError {
+  return new APIConnectionError("Request was aborted.", { cause: signal.reason });
 }
 
 function validateBaseURL(name: string, value: string): { url: string; origin: string } {
+  // The value is never quoted: an API key passed in the wrong option must not reach the logs.
   let parsed: URL;
   try {
     parsed = new URL(value);
   } catch {
-    throw new ConfigurationError(
-      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
-    );
+    throw new ConfigurationError(`${name} must be an absolute http(s) URL.`);
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    throw new ConfigurationError(
-      `${name} must be an absolute http(s) URL, got ${JSON.stringify(value)}.`,
-    );
+    throw new ConfigurationError(`${name} must be an absolute http(s) URL.`);
   }
   if (parsed.username || parsed.password) {
     throw new ConfigurationError(`${name} must not contain credentials.`);
@@ -544,10 +564,15 @@ export class APIClient {
     if (!Number.isInteger(maxRetries) || maxRetries < 0) {
       throw new ConfigurationError("maxRetries must be an integer, 0 or more.");
     }
+    const clientFetchOptions = this.#options.fetchOptions;
     const fetchOptions =
-      this.#options.fetchOptions || options.fetchOptions
-        ? { ...this.#options.fetchOptions, ...options.fetchOptions }
+      clientFetchOptions || options.fetchOptions
+        ? { ...clientFetchOptions, ...options.fetchOptions }
         : undefined;
+    // The fetch gets its own signal (timeouts), so each of these is listened to instead.
+    const signals = [options.signal, clientFetchOptions?.signal, options.fetchOptions?.signal]
+      .filter((s): s is AbortSignal => s !== undefined && s !== null)
+      .filter((s, i, all) => all.indexOf(s) === i);
     return {
       method: op.method,
       url: url.href,
@@ -556,7 +581,7 @@ export class APIClient {
       body,
       timeout,
       maxRetries,
-      signal: options.signal,
+      signals,
       fetchOptions,
     };
   }
@@ -590,22 +615,23 @@ export class APIClient {
 
   /** Send with retries; resolves with a 2xx response whose body is not read yet. */
   async #send(prepared: PreparedRequest): Promise<RawResponse> {
-    const { method, signal } = prepared;
+    const { method, signals } = prepared;
+    const aborted = (): AbortSignal | undefined => signals.find((s) => s.aborted);
     for (let attempt = 0; ; attempt++) {
-      if (signal?.aborted) throw abortError(signal);
+      const before = aborted();
+      if (before) throw abortError(before);
       const controller = new AbortController();
       const timedOut = { value: false };
       const timer = setTimeout(() => {
         timedOut.value = true;
         controller.abort();
       }, prepared.timeout);
-      const onAbort = (): void => {
+      const unlink = onAnyAbort(signals, () => {
         controller.abort();
-      };
-      signal?.addEventListener("abort", onAbort, { once: true });
+      });
       const done = (): void => {
         clearTimeout(timer);
-        signal?.removeEventListener("abort", onAbort);
+        unlink();
       };
       const started = Date.now();
       let response: Response;
@@ -613,14 +639,15 @@ export class APIClient {
         response = await this.#fetchFollowingRedirects(prepared, controller.signal);
       } catch (error) {
         done();
-        if (signal?.aborted) throw abortError(signal);
+        const cancelled = aborted();
+        if (cancelled) throw abortError(cancelled);
         const label = timedOut.value ? "timeout" : "connection error";
         this.#log(method, prepared.url, started, attempt, undefined, label);
         const retry = timedOut.value
           ? IDEMPOTENT.has(method)
           : IDEMPOTENT.has(method) || failedBeforeSending(error);
         if (retry && attempt < prepared.maxRetries) {
-          await sleep(retryDelay(attempt), signal);
+          await sleep(retryDelay(attempt), signals);
           continue;
         }
         if (timedOut.value) throw new APITimeoutError(undefined, { cause: error });
@@ -643,7 +670,7 @@ export class APIClient {
       }
       if (shouldRetryStatus(method, response.status) && attempt < prepared.maxRetries) {
         const wait = parseRetryAfter(response.headers.get("retry-after")) ?? retryDelay(attempt);
-        await sleep(wait, signal);
+        await sleep(wait, signals);
         continue;
       }
       let body: unknown = text === "" ? null : text;
