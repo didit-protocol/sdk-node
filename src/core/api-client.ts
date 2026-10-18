@@ -55,7 +55,7 @@ export interface ClientOptions {
   defaultHeaders?: Record<string, string> | undefined;
   /** Your own `fetch` (proxies, instrumentation, mocks). Default: the global `fetch`. */
   fetch?: Fetch | undefined;
-  /** Extra `fetch` options for every request (for example a proxy `dispatcher` on Node.js). */
+  /** Extra `fetch` options for every request (for example a proxy `dispatcher` on Node.js); a `signal` here cancels every request. */
   fetchOptions?: RequestInit | undefined;
   /** `debug` logs one line per request. Default: `DIDIT_LOG`, else `off`. */
   logLevel?: LogLevel | undefined;
@@ -615,22 +615,23 @@ export class APIClient {
 
   /** Send with retries; resolves with a 2xx response whose body is not read yet. */
   async #send(prepared: PreparedRequest): Promise<RawResponse> {
-    const { method, signal } = prepared;
+    const { method, signals } = prepared;
+    const aborted = (): AbortSignal | undefined => signals.find((s) => s.aborted);
     for (let attempt = 0; ; attempt++) {
-      if (signal?.aborted) throw abortError(signal);
+      const before = aborted();
+      if (before) throw abortError(before);
       const controller = new AbortController();
       const timedOut = { value: false };
       const timer = setTimeout(() => {
         timedOut.value = true;
         controller.abort();
       }, prepared.timeout);
-      const onAbort = (): void => {
+      const unlink = onAnyAbort(signals, () => {
         controller.abort();
-      };
-      signal?.addEventListener("abort", onAbort, { once: true });
+      });
       const done = (): void => {
         clearTimeout(timer);
-        signal?.removeEventListener("abort", onAbort);
+        unlink();
       };
       const started = Date.now();
       let response: Response;
@@ -638,14 +639,15 @@ export class APIClient {
         response = await this.#fetchFollowingRedirects(prepared, controller.signal);
       } catch (error) {
         done();
-        if (signal?.aborted) throw abortError(signal);
+        const cancelled = aborted();
+        if (cancelled) throw abortError(cancelled);
         const label = timedOut.value ? "timeout" : "connection error";
         this.#log(method, prepared.url, started, attempt, undefined, label);
         const retry = timedOut.value
           ? IDEMPOTENT.has(method)
           : IDEMPOTENT.has(method) || failedBeforeSending(error);
         if (retry && attempt < prepared.maxRetries) {
-          await sleep(retryDelay(attempt), signal);
+          await sleep(retryDelay(attempt), signals);
           continue;
         }
         if (timedOut.value) throw new APITimeoutError(undefined, { cause: error });
@@ -668,7 +670,7 @@ export class APIClient {
       }
       if (shouldRetryStatus(method, response.status) && attempt < prepared.maxRetries) {
         const wait = parseRetryAfter(response.headers.get("retry-after")) ?? retryDelay(attempt);
-        await sleep(wait, signal);
+        await sleep(wait, signals);
         continue;
       }
       let body: unknown = text === "" ? null : text;
