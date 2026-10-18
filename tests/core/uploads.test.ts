@@ -1,8 +1,8 @@
-import { createReadStream, mkdtempSync, writeFileSync } from "node:fs";
+import { createReadStream, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished } from "vitest";
 
 import Didit, {
   ConfigurationError,
@@ -63,6 +63,9 @@ describe("file inputs", () => {
 
   it("names a file from an fs.ReadStream path and guesses its type", async () => {
     const dir = mkdtempSync(join(tmpdir(), "didit-"));
+    onTestFinished(() => {
+      rmSync(dir, { recursive: true, force: true });
+    });
     const path = join(dir, "passport.JPG");
     writeFileSync(path, BYTES);
     expect(await sent(createReadStream(path))).toEqual({
