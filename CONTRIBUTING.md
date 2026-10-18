@@ -71,10 +71,11 @@ Nothing is published before Alex's explicit approval and the 2026-11-01 Didit re
 
 One-time setup before the first release (a repository admin):
 
-1. **npm.** Make sure the `@didit-protocol` organization exists on npmjs.com and that the publishers have 2FA. The package name `@didit-protocol/sdk-node` is free until the first publish.
-2. **GitHub environment.** Create the environment `npm` (Settings, Environments) with required reviewers (Alex), and allow only the `main` branch and `v*` tags to deploy to it.
-3. **First publish.** npm lets you configure a trusted publisher only for a package that exists. For the first release, add an environment secret `NPM_TOKEN` (a granular access token with publish rights on the `@didit-protocol` scope, short expiry) to the `npm` environment; the publish job uses it, still with provenance.
-4. **Trusted publishing.** After the first publish, on npmjs.com open the package settings and add a trusted publisher: GitHub Actions, organization `didit-protocol`, repository `sdk-node`, workflow `release-please.yml`, environment `npm`. Then delete `NPM_TOKEN`, and set the package's publishing access to require 2FA and disallow tokens.
-5. **Tokens for CI on bot pull requests (optional).** `RELEASE_PLEASE_TOKEN` and `SPEC_SYNC_TOKEN`: fine-grained tokens limited to this repository (Contents, Issues, Pull requests read and write), so that the release and spec sync pull requests get CI.
-6. **Code owners.** Give the `@didit-protocol/backend` team write access (or change `.github/CODEOWNERS`).
-7. **Security reports.** When the repository goes public, enable private vulnerability reporting (Settings, Code security), which `SECURITY.md` points to; GitHub offers it only on public repositories.
+1. **Public repository.** npm publishes with provenance only from a public repository, so the publish job refuses to run while this one is private. On release day, after the full-history secret scan (the `Secret scan` CI job), make the repository public, then publish.
+2. **npm.** Make sure the `@didit-protocol` organization exists on npmjs.com and that the publishers have 2FA. The package name `@didit-protocol/sdk-node` is free until the first publish.
+3. **GitHub environment.** Create the environment `npm` (Settings, Environments) with required reviewers (Alex), and allow only the `main` branch and `v*` tags to deploy to it.
+4. **First publish.** npm lets you configure a trusted publisher only for a package that exists. For the first release, add an environment secret `NPM_TOKEN` (a granular access token with publish rights on the `@didit-protocol` scope, short expiry) to the `npm` environment; the publish job uses it, still with provenance.
+5. **Trusted publishing.** After the first publish, on npmjs.com open the package settings and add a trusted publisher: GitHub Actions, organization `didit-protocol`, repository `sdk-node`, workflow `release-please.yml`, environment `npm`. Then delete `NPM_TOKEN`, and set the package's publishing access to require 2FA and disallow tokens.
+6. **Tokens for CI on bot pull requests (optional).** `RELEASE_PLEASE_TOKEN` and `SPEC_SYNC_TOKEN`: fine-grained tokens limited to this repository (Contents, Issues, Pull requests read and write), so that the release and spec sync pull requests get CI.
+7. **Code owners.** Give the `@didit-protocol/backend` team write access (or change `.github/CODEOWNERS`).
+8. **Security reports.** When the repository goes public, enable private vulnerability reporting (Settings, Code security), which `SECURITY.md` points to; GitHub offers it only on public repositories.

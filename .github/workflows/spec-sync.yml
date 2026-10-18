@@ -106,8 +106,9 @@ jobs:
         id: sync
         if: steps.guard.outputs.skip != 'true'
         # Writes changed=true|false, breaking=true|false and release=breaking|feature|none
-        # to $GITHUB_OUTPUT and a markdown summary of the added, removed and changed
-        # operations to $SUMMARY.
+        # to $GITHUB_OUTPUT, a markdown summary of the added, removed and changed
+        # operations to $SUMMARY (cut to fit a pull request description) and the full
+        # summary to the job summary.
         run: pnpm spec-sync --summary "$SUMMARY"
       - name: Regenerate the SDK and run the checks
         id: checks
