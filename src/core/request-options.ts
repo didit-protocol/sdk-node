@@ -16,7 +16,7 @@ export interface RequestOptions {
   body?: Record<string, unknown>;
   /** The `Idempotency-Key` header, for the operations that accept it. */
   idempotencyKey?: string;
-  /** Cancels the request (and its retries). */
+  /** Cancels the request (and its retries); so does a `signal` in `fetchOptions`. */
   signal?: AbortSignal;
   /** Extra `fetch` options for this request (for example a proxy `dispatcher` on Node.js). */
   fetchOptions?: RequestInit;

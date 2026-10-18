@@ -10,6 +10,7 @@ import Didit, {
   DEFAULT_MAX_RETRIES,
   DEFAULT_TIMEOUT,
   DiditError,
+  type Fetch,
   VERSION,
 } from "../../src/index.js";
 import { fakeFetch } from "../helpers/mock-api.js";
@@ -110,6 +111,22 @@ describe("configuration", () => {
       "http://localhost:8080/api",
     );
   });
+
+  it.each(["synthetic-key-in-the-wrong-option", "synthetic:key-in-the-wrong-option"])(
+    "never quotes an invalid base URL, which may be a key passed in the wrong option (%s)",
+    (value) => {
+      for (const name of ["baseURL", "accountBaseURL"] as const) {
+        let error: unknown;
+        try {
+          new Didit({ apiKey: KEY, [name]: value });
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toBeInstanceOf(ConfigurationError);
+        expect((error as Error).message).toBe(`${name} must be an absolute http(s) URL.`);
+      }
+    },
+  );
 
   it("validates timeout and maxRetries", () => {
     expect(() => new Didit({ apiKey: KEY, timeout: 0 })).toThrow(/timeout/);
@@ -477,5 +494,92 @@ describe("cancellation", () => {
       /aborted/,
     );
     expect(calls).toHaveLength(0);
+  });
+
+  // A fetch that never answers; only an abort ends it. `inFlight` resolves once it was called.
+  function hanging() {
+    let started = (): void => undefined;
+    const inFlight = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const fetch: Fetch = (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("aborted", "AbortError"));
+        });
+        started();
+      });
+    return { fetch, inFlight };
+  }
+
+  it.each(["signal", "client fetchOptions.signal", "request fetchOptions.signal"] as const)(
+    "aborts a request in flight with the %s while the other two are set",
+    async (which) => {
+      const controllers = {
+        signal: new AbortController(),
+        "client fetchOptions.signal": new AbortController(),
+        "request fetchOptions.signal": new AbortController(),
+      };
+      const { fetch, inFlight } = hanging();
+      const didit = new Didit({
+        apiKey: KEY,
+        fetch,
+        fetchOptions: { signal: controllers["client fetchOptions.signal"].signal },
+      });
+      const result = didit.users
+        .retrieve("u", {
+          signal: controllers.signal.signal,
+          fetchOptions: { signal: controllers["request fetchOptions.signal"].signal },
+        })
+        .catch((e: unknown) => e);
+      await inFlight;
+      const reason = new Error("shutting down");
+      controllers[which].abort(reason);
+      const error = await result;
+      expect(error).toBeInstanceOf(APIConnectionError);
+      expect((error as Error).message).toMatch(/aborted/);
+      expect((error as Error).cause).toBe(reason);
+    },
+  );
+
+  it("does not start a request whose fetchOptions signal is already aborted", async () => {
+    const clientWide = client({ fetchOptions: { signal: AbortSignal.abort() } });
+    await expect(clientWide.didit.users.retrieve("u")).rejects.toThrow(/aborted/);
+    const perRequest = client();
+    await expect(
+      perRequest.didit.users.retrieve("u", { fetchOptions: { signal: AbortSignal.abort() } }),
+    ).rejects.toThrow(/aborted/);
+    expect(clientWide.calls).toHaveLength(0);
+    expect(perRequest.calls).toHaveLength(0);
+  });
+
+  it("removes its abort listeners when a request ends", async () => {
+    const controller = new AbortController();
+    const listeners = new Set<unknown>();
+    const { signal } = controller;
+    const add = signal.addEventListener.bind(signal);
+    const remove = signal.removeEventListener.bind(signal);
+    const added = vi
+      .spyOn(signal, "addEventListener")
+      .mockImplementation((type, listener, options) => {
+        listeners.add(listener);
+        add(type, listener, options);
+      });
+    vi.spyOn(signal, "removeEventListener").mockImplementation((type, listener, options) => {
+      listeners.delete(listener);
+      remove(type, listener, options);
+    });
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    let call = 0;
+    const { didit } = client({ maxRetries: 1, fetchOptions: { signal } }, () =>
+      call++ % 3 === 0 ? { status: 503 } : { json: { ok: true } },
+    );
+    // A retried success (with a backoff), a success, an error status and a success.
+    await didit.users.retrieve("u");
+    await didit.users.retrieve("u");
+    await expect(didit.users.retrieve("u", { maxRetries: 0 })).rejects.toThrow();
+    await didit.users.retrieve("u");
+    expect(added).toHaveBeenCalled();
+    expect(listeners.size).toBe(0);
   });
 });
