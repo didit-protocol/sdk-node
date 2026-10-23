@@ -5,6 +5,7 @@ export type * from "./age-estimation.js";
 export type * from "./aml.js";
 export type * from "./aml-monitoring.js";
 export type * from "./analytics.js";
+export type * from "./bank.js";
 export type * from "./billing.js";
 export type * from "./biometric-templates.js";
 export type * from "./blocklist.js";
