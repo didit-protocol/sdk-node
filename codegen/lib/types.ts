@@ -250,7 +250,7 @@ export class TypeBuilder {
   private liveNames: Set<string> | undefined;
 
   /** The type names of the live documents' components. */
-  private liveTypeNames(): Set<string> {
+  liveTypeNames(): Set<string> {
     if (!this.liveNames) {
       this.liveNames = new Set();
       for (const spec of this.live) {

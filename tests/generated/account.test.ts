@@ -38,9 +38,12 @@ describe("account", () => {
   it("account.applications.list: GET /organizations/me/{org_id}/applications/", async () => {
     const { client, calls } = mockClient({
       status: 200,
-      json: responseExample("account GET /organizations/me/{org_id}/applications/"),
+      json: responseExample("account GET /organizations/me/{org_id}/applications/", "page"),
     });
-    const result = await client.account.applications.list("a1b2c3d4-5678-90ab-cdef-111111111111");
+    const page = await client.account.applications.list("a1b2c3d4-5678-90ab-cdef-111111111111", {
+      limit: 50,
+      offset: 0,
+    });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
@@ -48,14 +51,15 @@ describe("account", () => {
     expect(request.path).toBe(
       "/auth/v2/organizations/me/a1b2c3d4-5678-90ab-cdef-111111111111/applications/",
     );
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({ limit: "50", offset: "0" });
     expectAuth(request, "account_token");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
     expectMatchesExample(
-      result,
-      responseExample("account GET /organizations/me/{org_id}/applications/"),
+      { ...page },
+      responseExample("account GET /organizations/me/{org_id}/applications/", "page"),
     );
+    expect(page.hasNextPage()).toBe(false);
   });
 
   it("account.applications.retrieve: GET /organizations/me/{org_id}/applications/{app_id}/", async () => {
@@ -136,9 +140,9 @@ describe("account", () => {
   it("account.organizations.list: GET /organizations/me/", async () => {
     const { client, calls } = mockClient({
       status: 200,
-      json: responseExample("account GET /organizations/me/"),
+      json: responseExample("account GET /organizations/me/", "page"),
     });
-    const result = await client.account.organizations.list();
+    const page = await client.account.organizations.list();
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
@@ -148,7 +152,8 @@ describe("account", () => {
     expectAuth(request, "account_token");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
-    expectMatchesExample(result, responseExample("account GET /organizations/me/"));
+    expectMatchesExample({ ...page }, responseExample("account GET /organizations/me/", "page"));
+    expect(page.hasNextPage()).toBe(false);
   });
 
   it("account.register: POST /programmatic/register/", async () => {

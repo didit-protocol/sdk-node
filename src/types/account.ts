@@ -16,7 +16,14 @@ export interface AccountApplicationsCreateParams {
   description?: string;
 }
 
-/** PATCH body for application metadata. Send only the fields you want to change; omitted fields are preserved. `uuid`, `client_id`, and `api_key` cannot be updated. */
+export interface AccountApplicationsListParams {
+  /** Number of applications per page. Defaults to 50. */
+  limit?: number;
+  /** Number of applications to skip before the page starts. Defaults to 0. */
+  offset?: number;
+}
+
+/** PATCH body for application metadata. Send only the fields you want to change; omitted fields are preserved. `uuid`, `client_id`, and `api_key` cannot be updated. `products` is read-only: a `products` key in the body is ignored. */
 export interface AccountApplicationsUpdateParams {
   /** Application display name. */
   name?: string;
@@ -37,6 +44,13 @@ export interface AccountLoginParams {
   password: string;
 }
 
+export interface AccountOrganizationsListParams {
+  /** Page size. Defaults to 50. */
+  limit?: number;
+  /** Zero-based offset of the first result. */
+  offset?: number;
+}
+
 export interface AccountRegisterParams {
   /** Any valid email address (personal, work, alias). Used as the unique account identifier. */
   email: string;
@@ -49,6 +63,13 @@ export interface AccountResendOtpParams {
   email: string;
   /** Password chosen at registration. */
   password: string;
+}
+
+export interface AccountResendOtpResponse {
+  /** Always `A new verification code has been sent to your email.` */
+  message: string;
+  /** The address the code was sent to, normalized: lowercased, with any `+tag` removed from the local part (`Dev+test@Example.com` becomes `dev@example.com`). */
+  email: string;
 }
 
 export interface AccountVerifyEmailParams {

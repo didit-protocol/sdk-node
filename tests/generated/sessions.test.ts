@@ -12,6 +12,36 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("sessions", () => {
+  it("sessions.add_images: PATCH /v3/session/{sessionId}/add-images/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/session/{sessionId}/add-images/"),
+    });
+    const result = await client.sessions.addImages("11111111-2222-3333-4444-555555555555", {
+      file: {
+        data: new Uint8Array([1, 2, 3]),
+        filename: "document.jpg",
+        contentType: "image/jpeg",
+      },
+      model_type: "kyc",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/11111111-2222-3333-4444-555555555555/add-images/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(request.form).toEqual({ model_type: "kyc" });
+    expect(Object.keys(request.files).sort()).toEqual(["file"]);
+    expect(request.files.file).toEqual([
+      { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
+    ]);
+    expectMatchesExample(result, responseExample("PATCH /v3/session/{sessionId}/add-images/"));
+  });
+
   it("sessions.batch_delete: POST /v3/sessions/delete/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -63,6 +93,32 @@ describe("sessions", () => {
     );
   });
 
+  it("sessions.cancel_feature_override: POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/"),
+    });
+    const result = await client.sessions.cancelFeatureOverride(
+      "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "9b2f4c1e-8d3a-4e5f-a6b7-c8d9e0f1a2b3",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/3fa85f64-5717-4562-b3fc-2c963f66afa6/features/overrides/9b2f4c1e-8d3a-4e5f-a6b7-c8d9e0f1a2b3/cancel/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/"),
+    );
+  });
+
   it("sessions.create: POST /v3/session/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -101,6 +157,28 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("DELETE /v3/session/{sessionId}/delete/"));
+  });
+
+  it("sessions.export_aml_screening_history: GET /v3/session/{sessionId}/aml-screening-history/export/", async () => {
+    const { client, calls } = mockClient({ status: 200, body: BINARY, contentType: "text/csv" });
+    const result = await client.sessions.exportAmlScreeningHistory(
+      "11111111-2222-3333-4444-555555555555",
+      { node_id: "feature_aml_1" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/aml-screening-history/export/",
+    );
+    expect(request.query).toEqual({ node_id: "feature_aml_1" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("text/csv");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("text/csv");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
   });
 
   it("sessions.generate_pdf: GET /v3/session/{sessionId}/generate-pdf/", async () => {
@@ -292,6 +370,89 @@ describe("sessions", () => {
     expect(page.hasNextPage()).toBe(false);
   });
 
+  it("sessions.list_aml_screening_history: GET /v3/session/{sessionId}/aml-screening-history/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/aml-screening-history/", "page"),
+    });
+    const page = await client.sessions.listAmlScreeningHistory(
+      "11111111-2222-3333-4444-555555555555",
+      { node_id: "feature_aml_1", limit: 50, offset: 0, ordering: "completed_at" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/aml-screening-history/",
+    );
+    expect(request.query).toEqual({
+      node_id: "feature_aml_1",
+      limit: "50",
+      offset: "0",
+      ordering: "completed_at",
+    });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/session/{sessionId}/aml-screening-history/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("sessions.list_events: GET /v3/session/{sessionId}/events/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/events/", "page"),
+    });
+    const page = await client.sessions.listEvents("11111111-2222-3333-4444-555555555555", {
+      limit: 50,
+      offset: 0,
+      ordering: "sent_at",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/11111111-2222-3333-4444-555555555555/events/");
+    expect(request.query).toEqual({ limit: "50", offset: "0", ordering: "sent_at" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/session/{sessionId}/events/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("sessions.list_feature_overrides: GET /v3/session/{sessionId}/features/overrides/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/features/overrides/"),
+    });
+    const result = await client.sessions.listFeatureOverrides(
+      "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/3fa85f64-5717-4562-b3fc-2c963f66afa6/features/overrides/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/session/{sessionId}/features/overrides/"),
+    );
+  });
+
   it("sessions.list_networks: GET /v3/organization/{organization_id}/application/{application_id}/sessions/{session_id}/networks/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -319,6 +480,33 @@ describe("sessions", () => {
     );
   });
 
+  it("sessions.preview_decision_email: POST /v3/session/{sessionId}/decision-email-preview/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/decision-email-preview/"),
+    });
+    const result = await client.sessions.previewDecisionEmail(
+      "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      { new_status: "Approved" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/3fa85f64-5717-4562-b3fc-2c963f66afa6/decision-email-preview/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ new_status: "Approved" });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/decision-email-preview/"),
+    );
+  });
+
   it("sessions.preview_resubmission: POST /v3/session/{sessionId}/resubmission-preview/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -326,7 +514,6 @@ describe("sessions", () => {
     });
     const result = await client.sessions.previewResubmission(
       "11111111-2222-3333-4444-555555555555",
-      { email_address: "user@example.com" },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -339,10 +526,36 @@ describe("sessions", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({ email_address: "user@example.com" });
+    expect(request.json).toEqual({});
     expectMatchesExample(
       result,
       responseExample("POST /v3/session/{sessionId}/resubmission-preview/"),
+    );
+  });
+
+  it("sessions.regenerate_kyb_party: POST /v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/"),
+    });
+    const result = await client.sessions.regenerateKybParty(
+      "33333333-4444-5555-6666-777777777777",
+      "0a3f1e2c-7c2f-4a1b-9d55-2f8d2a5d6b41",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/0a3f1e2c-7c2f-4a1b-9d55-2f8d2a5d6b41/regenerate/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/"),
     );
   });
 
@@ -450,6 +663,128 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("POST /v3/session/{sessionId}/share/"));
   });
 
+  it("sessions.signatures.download_document: GET /v3/session/{sessionId}/signatures/{nodeId}/documents/{documentId}/file/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      body: BINARY,
+      contentType: "application/pdf",
+    });
+    const result = await client.sessions.signatures.downloadDocument(
+      "11111111-2222-3333-4444-555555555555",
+      "feature_signature",
+      "documentId-3",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/signatures/feature_signature/documents/documentId-3/file/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/pdf");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.signatures.download_evidence: GET /v3/session/{sessionId}/signatures/{nodeId}/evidence/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      body: BINARY,
+      contentType: "application/pdf",
+    });
+    const result = await client.sessions.signatures.downloadEvidence(
+      "11111111-2222-3333-4444-555555555555",
+      "feature_signature",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/signatures/feature_signature/evidence/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/pdf");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.signatures.download_field_image: GET /v3/session/{sessionId}/signatures/{nodeId}/fields/{fieldId}/image/", async () => {
+    const { client, calls } = mockClient({ status: 200, body: BINARY, contentType: "image/png" });
+    const result = await client.sessions.signatures.downloadFieldImage(
+      "11111111-2222-3333-4444-555555555555",
+      "feature_signature",
+      "fieldId-3",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/signatures/feature_signature/fields/fieldId-3/image/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("image/png");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("image/png");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.signatures.validate: POST /v3/session/{sessionId}/signatures/{nodeId}/validate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/signatures/{nodeId}/validate/"),
+    });
+    const result = await client.sessions.signatures.validate(
+      "11111111-2222-3333-4444-555555555555",
+      "feature_signature",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/signatures/feature_signature/validate/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/signatures/{nodeId}/validate/"),
+    );
+  });
+
+  it("sessions.simulate: POST /v3/session/{sessionId}/simulate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/simulate/"),
+    });
+    const result = await client.sessions.simulate("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/3fa85f64-5717-4562-b3fc-2c963f66afa6/simulate/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(result, responseExample("POST /v3/session/{sessionId}/simulate/"));
+  });
+
   it("sessions.update_aml_hit_status: PATCH /v3/session/{sessionId}/update-aml-hit-status/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -477,6 +812,33 @@ describe("sessions", () => {
     );
   });
 
+  it("sessions.update_aml_status: PATCH /v3/session/{sessionId}/update-aml-status/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/session/{sessionId}/update-aml-status/"),
+    });
+    const result = await client.sessions.updateAmlStatus("11111111-2222-3333-4444-555555555555", {
+      status: "Not Finished",
+      node_id_query: "feature_aml_1",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/update-aml-status/",
+    );
+    expect(request.query).toEqual({ node_id: "feature_aml_1" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ status: "Not Finished" });
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/session/{sessionId}/update-aml-status/"),
+    );
+  });
+
   it("sessions.update_data: PATCH /v3/session/{sessionId}/update-data/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -496,6 +858,33 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("PATCH /v3/session/{sessionId}/update-data/"));
+  });
+
+  it("sessions.update_document_ai_data: PATCH /v3/document-ai/{sessionId}/documents/{documentUuid}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/document-ai/{sessionId}/documents/{documentUuid}/"),
+    });
+    const result = await client.sessions.updateDocumentAiData(
+      "11111111-2222-3333-4444-555555555555",
+      "44444444-5555-6666-7777-888888888888",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/document-ai/11111111-2222-3333-4444-555555555555/documents/44444444-5555-6666-7777-888888888888/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/document-ai/{sessionId}/documents/{documentUuid}/"),
+    );
   });
 
   it("sessions.update_feature_status: PATCH /v3/session/{sessionId}/features/{nodeId}/update-status/", async () => {
@@ -621,5 +1010,75 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({ new_status: "Approved" });
     expectMatchesExample(result, responseExample("PATCH /v3/session/{sessionId}/update-status/"));
+  });
+
+  it("sessions.webhooks.list: GET /v3/session/{sessionId}/webhooks/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/webhooks/"),
+    });
+    const result = await client.sessions.webhooks.list("22222222-3333-4444-5555-666666666666");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/22222222-3333-4444-5555-666666666666/webhooks/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/session/{sessionId}/webhooks/"));
+  });
+
+  it("sessions.webhooks.resend: POST /v3/session/{sessionId}/webhook/{webhook_uuid}/resend", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/webhook/{webhook_uuid}/resend"),
+    });
+    const result = await client.sessions.webhooks.resend(
+      "22222222-3333-4444-5555-666666666666",
+      "66666666-7777-8888-9999-000000000001",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/22222222-3333-4444-5555-666666666666/webhook/66666666-7777-8888-9999-000000000001/resend",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/webhook/{webhook_uuid}/resend"),
+    );
+  });
+
+  it("sessions.webhooks.retrieve: GET /v3/session/{sessionId}/webhook/{webhook_uuid}", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/webhook/{webhook_uuid}"),
+    });
+    const result = await client.sessions.webhooks.retrieve(
+      "22222222-3333-4444-5555-666666666666",
+      "66666666-7777-8888-9999-000000000001",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/22222222-3333-4444-5555-666666666666/webhook/66666666-7777-8888-9999-000000000001",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/session/{sessionId}/webhook/{webhook_uuid}"),
+    );
   });
 });

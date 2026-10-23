@@ -129,7 +129,7 @@ interface ResourceNode {
   methods: Method[];
 }
 
-function tree(methods: Method[]): ResourceNode {
+function tree(methods: Method[], classNames: ReadonlyMap<string, string>): ResourceNode {
   const root: ResourceNode = {
     path: "",
     className: "DiditResources",
@@ -143,7 +143,12 @@ function tree(methods: Method[]): ResourceNode {
       let child = node.children.get(segment);
       if (!child) {
         const path = segments.slice(0, i + 1).join(".");
-        child = { path, className: resourceClass(path), children: new Map(), methods: [] };
+        child = {
+          path,
+          className: classNames.get(path) ?? resourceClass(path),
+          children: new Map(),
+          methods: [],
+        };
         node.children.set(segment, child);
       }
       node = child;
@@ -448,18 +453,22 @@ function renderApiReference(root: ResourceNode, count: number): string {
 /** Build every generated file from the model. */
 export function render(model: Model): Rendered {
   const server = model.operations.filter((op) => op.sdk.server);
-  // Resource classes are exported next to the types, so their names are taken too.
-  const resourceClasses = new Set<string>();
+  const reserved = new Set([...RESERVED_NAMES, "DiditResources", "DATE_PLANS"]);
+  const builder = new TypeBuilder([model.specs.verification, model.specs.account], reserved);
+  // Resource classes are exported next to the types, so their names are taken too. A resource
+  // whose class would share its name with a component (travel_rule.workspace and the
+  // TravelRuleWorkspace response) takes a Resource suffix.
+  const classNames = new Map<string, string>();
   for (const op of server) {
     const segments = op.sdk.resource.split(".");
-    segments.forEach((_, i) =>
-      resourceClasses.add(resourceClass(segments.slice(0, i + 1).join("."))),
-    );
+    segments.forEach((_, i) => {
+      const path = segments.slice(0, i + 1).join(".");
+      const base = resourceClass(path);
+      const name = builder.liveTypeNames().has(base) ? `${base}Resource` : base;
+      classNames.set(path, name);
+      reserved.add(name);
+    });
   }
-  const builder = new TypeBuilder(
-    [model.specs.verification, model.specs.account],
-    new Set([...RESERVED_NAMES, ...resourceClasses, "DiditResources", "DATE_PLANS"]),
-  );
   builder.setResponseUsage(responseComponents(server));
   const methods = server
     .slice()
@@ -469,7 +478,7 @@ export function render(model: Model): Rendered {
     .map((op) => buildMethod(op, builder));
   const files = new Map<string, string>();
 
-  const root = tree(methods);
+  const root = tree(methods, classNames);
   for (const [segment, node] of root.children) {
     files.set(`src/resources/${kebab(segment)}.ts`, renderResourceModule(node, builder.decls));
   }

@@ -1,5 +1,5 @@
 // The session events carry the decision as the generated
-// SessionsRetrieveDecisionResponse type, date-times included.
+// SessionDecision type, date-times included.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

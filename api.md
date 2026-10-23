@@ -2,31 +2,31 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 348 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
-| Method                                                        | HTTP                               | Returns               | Notes |
-| ------------------------------------------------------------- | ---------------------------------- | --------------------- | ----- |
-| `didit.account.login(params: AccountLoginParams)`             | `POST /programmatic/login/`        | `LoginResponse`       |       |
-| `didit.account.register(params: AccountRegisterParams)`       | `POST /programmatic/register/`     | `RegisterResponse`    |       |
-| `didit.account.resendOtp(params: AccountResendOtpParams)`     | `POST /programmatic/resend-otp/`   | `unknown`             |       |
-| `didit.account.verifyEmail(params: AccountVerifyEmailParams)` | `POST /programmatic/verify-email/` | `VerifyEmailResponse` |       |
+| Method                                                        | HTTP                               | Returns                    | Notes |
+| ------------------------------------------------------------- | ---------------------------------- | -------------------------- | ----- |
+| `didit.account.login(params: AccountLoginParams)`             | `POST /programmatic/login/`        | `LoginResponse`            |       |
+| `didit.account.register(params: AccountRegisterParams)`       | `POST /programmatic/register/`     | `RegisterResponse`         |       |
+| `didit.account.resendOtp(params: AccountResendOtpParams)`     | `POST /programmatic/resend-otp/`   | `AccountResendOtpResponse` |       |
+| `didit.account.verifyEmail(params: AccountVerifyEmailParams)` | `POST /programmatic/verify-email/` | `VerifyEmailResponse`      |       |
 
 ## `didit.account.applications`
 
-| Method                                                                                      | HTTP                                                      | Returns       | Notes                |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------- | -------------------- |
-| `didit.account.applications.create(orgId, params?: AccountApplicationsCreateParams)`        | `POST /organizations/me/{org_id}/applications/`           | `Application` | needs `accountToken` |
-| `didit.account.applications.list(orgId)`                                                    | `GET /organizations/me/{org_id}/applications/`            | `unknown`     | needs `accountToken` |
-| `didit.account.applications.retrieve(orgId, appId)`                                         | `GET /organizations/me/{org_id}/applications/{app_id}/`   | `Application` | needs `accountToken` |
-| `didit.account.applications.update(orgId, appId, params?: AccountApplicationsUpdateParams)` | `PATCH /organizations/me/{org_id}/applications/{app_id}/` | `Application` | needs `accountToken` |
+| Method                                                                                      | HTTP                                                      | Returns               | Notes                |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------- | -------------------- |
+| `didit.account.applications.create(orgId, params?: AccountApplicationsCreateParams)`        | `POST /organizations/me/{org_id}/applications/`           | `Application`         | needs `accountToken` |
+| `didit.account.applications.list(orgId, params?: AccountApplicationsListParams)`            | `GET /organizations/me/{org_id}/applications/`            | page of `Application` | needs `accountToken` |
+| `didit.account.applications.retrieve(orgId, appId)`                                         | `GET /organizations/me/{org_id}/applications/{app_id}/`   | `Application`         | needs `accountToken` |
+| `didit.account.applications.update(orgId, appId, params?: AccountApplicationsUpdateParams)` | `PATCH /organizations/me/{org_id}/applications/{app_id}/` | `Application`         | needs `accountToken` |
 
 ## `didit.account.organizations`
 
-| Method                               | HTTP                     | Returns          | Notes                |
-| ------------------------------------ | ------------------------ | ---------------- | -------------------- |
-| `didit.account.organizations.list()` | `GET /organizations/me/` | `Organization[]` | needs `accountToken` |
+| Method                                                                      | HTTP                     | Returns                | Notes                |
+| --------------------------------------------------------------------------- | ------------------------ | ---------------------- | -------------------- |
+| `didit.account.organizations.list(params?: AccountOrganizationsListParams)` | `GET /organizations/me/` | page of `Organization` | needs `accountToken` |
 
 ## `didit.ageEstimation`
 
@@ -36,15 +36,22 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 
 ## `didit.aml`
 
-| Method                                      | HTTP            | Returns             | Notes            |
-| ------------------------------------------- | --------------- | ------------------- | ---------------- |
-| `didit.aml.screen(params: AmlScreenParams)` | `POST /v3/aml/` | `AmlScreenResponse` | `idempotencyKey` |
+| Method                                      | HTTP                             | Returns                               | Notes            |
+| ------------------------------------------- | -------------------------------- | ------------------------------------- | ---------------- |
+| `didit.aml.retrieveDatasetFreshness()`      | `GET /v3/aml/dataset-freshness/` | `AmlRetrieveDatasetFreshnessResponse` |                  |
+| `didit.aml.screen(params: AmlScreenParams)` | `POST /v3/aml/`                  | `AmlScreenResponse`                   | `idempotencyKey` |
 
 ## `didit.amlMonitoring`
 
 | Method                                   | HTTP                                    | Returns                            | Notes |
 | ---------------------------------------- | --------------------------------------- | ---------------------------------- | ----- |
 | `didit.amlMonitoring.retrieveJob(jobId)` | `GET /v3/aml-monitoring/jobs/{job_id}/` | `AmlMonitoringRetrieveJobResponse` |       |
+
+## `didit.analytics`
+
+| Method                                                       | HTTP                                                                             | Returns                                                             | Notes              |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------ |
+| `didit.analytics.retrieve(params?: AnalyticsRetrieveParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/analytics/` | `ApplicationAnalyticsSummary \| ApplicationAnalyticsWidgetResponse` | application scoped |
 
 ## `didit.billing`
 
@@ -63,28 +70,37 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.biometricTemplates.list(params?: BiometricTemplatesListParams)`               | `GET /v3/biometric-templates/`                    | page of `BiometricTemplatesListResponseResults` |       |
 | `didit.biometricTemplates.retrieve(templateUuid)`                                    | `GET /v3/biometric-templates/{template_uuid}/`    | `BiometricTemplatesRetrieveResponse`            |       |
 
+## `didit.blocklist`
+
+| Method                                                  | HTTP                         | Returns                   | Notes |
+| ------------------------------------------------------- | ---------------------------- | ------------------------- | ----- |
+| `didit.blocklist.add(params: BlocklistAddParams)`       | `POST /v3/blocklist/add/`    | `BlocklistAddResponse`    |       |
+| `didit.blocklist.list(params?: BlocklistListParams)`    | `GET /v3/blocklist/`         | page of `BlocklistedItem` |       |
+| `didit.blocklist.remove(params: BlocklistRemoveParams)` | `POST /v3/blocklist/remove/` | `BlocklistRemoveResponse` |       |
+
 ## `didit.businessSessions`
 
-| Method                                                   | HTTP                                                                                                                    | Returns                                | Notes              |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ------------------ |
-| `didit.businessSessions.listNetworks(businessSessionId)` | `GET /v3/organization/{organization_id}/application/{application_id}/business-sessions/{business_session_id}/networks/` | `BusinessSessionsListNetworksResponse` | application scoped |
+| Method                                                   | HTTP                                                                                                                    | Returns                       | Notes              |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------ |
+| `didit.businessSessions.listNetworks(businessSessionId)` | `GET /v3/organization/{organization_id}/application/{application_id}/business-sessions/{business_session_id}/networks/` | `EntityNetworkMembershipList` | application scoped |
 
 ## `didit.businesses`
 
-| Method                                                                                              | HTTP                                                                                                                        | Returns                                                                                                                                                              | Notes              |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `didit.businesses.batchDelete(params?: BusinessesBatchDeleteParams)`                                | `POST /v3/businesses/delete/`                                                                                               | `BusinessesBatchDeleteResponse`                                                                                                                                      |                    |
-| `didit.businesses.create(params?: BusinessesCreateParams)`                                          | `POST /v3/businesses/create/`                                                                                               | `BusinessDetailItem`                                                                                                                                                 |                    |
-| `didit.businesses.list(params?: BusinessesListParams)`                                              | `GET /v3/businesses/`                                                                                                       | page of `BusinessListItem`                                                                                                                                           |                    |
-| `didit.businesses.listNetworks(vendorBusinessUuid)`                                                 | `GET /v3/organization/{organization_id}/application/{application_id}/businesses/{vendor_business_uuid}/networks/`           | `BusinessesListNetworksResponse`                                                                                                                                     | application scoped |
-| `didit.businesses.retrieve(vendorData)`                                                             | `GET /v3/businesses/{vendor_data}/`                                                                                         | `BusinessDetailItem`                                                                                                                                                 |                    |
-| `didit.businesses.retrieveOngoingMonitoringJob(jobId)`                                              | `GET /v3/organization/{organization_id}/application/{application_id}/vendor-businesses/toggle-ongoing-monitoring/{job_id}/` | `BusinessesRetrieveOngoingMonitoringJobResponse`                                                                                                                     | application scoped |
-| `didit.businesses.retrieveSessionOngoingMonitoringJob(jobId)`                                       | `GET /v3/organization/{organization_id}/application/{application_id}/businesses/toggle-ongoing-monitoring/{job_id}/`        | `BusinessesRetrieveSessionOngoingMonitoringJobResponse`                                                                                                              | application scoped |
-| `didit.businesses.setAmlMonitoring(params: BusinessesSetAmlMonitoringParams)`                       | `POST /v3/businesses/aml-monitoring/`                                                                                       | `BusinessesSetAmlMonitoringResponseVariant1 \| BusinessesSetAmlMonitoringResponseVariant2 \| BusinessesSetAmlMonitoringResponse202`                                  |                    |
-| `didit.businesses.setOngoingMonitoring(params: BusinessesSetOngoingMonitoringParams)`               | `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-businesses/toggle-ongoing-monitoring/`        | `BusinessesSetOngoingMonitoringResponseVariant1 \| BusinessesSetOngoingMonitoringResponseVariant2 \| BusinessesSetOngoingMonitoringResponse202`                      | application scoped |
-| `didit.businesses.setSessionOngoingMonitoring(params: BusinessesSetSessionOngoingMonitoringParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/businesses/toggle-ongoing-monitoring/`               | `BusinessesSetSessionOngoingMonitoringResponseVariant1 \| BusinessesSetSessionOngoingMonitoringResponseVariant2 \| BusinessesSetSessionOngoingMonitoringResponse202` | application scoped |
-| `didit.businesses.update(vendorData, params?: BusinessesUpdateParams)`                              | `PATCH /v3/businesses/{vendor_data}/`                                                                                       | `BusinessDetailItem`                                                                                                                                                 |                    |
-| `didit.businesses.updateStatus(vendorData, params: BusinessesUpdateStatusParams)`                   | `PATCH /v3/businesses/{vendor_data}/update-status/`                                                                         | `BusinessDetailItem`                                                                                                                                                 |                    |
+| Method                                                                                              | HTTP                                                                                                                        | Returns                                                 | Notes              |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------ |
+| `didit.businesses.batchDelete(params?: BusinessesBatchDeleteParams)`                                | `POST /v3/businesses/delete/`                                                                                               | `BusinessesBatchDeleteResponse`                         |                    |
+| `didit.businesses.create(params?: BusinessesCreateParams)`                                          | `POST /v3/businesses/create/`                                                                                               | `BusinessDetailItem`                                    |                    |
+| `didit.businesses.generateSessionPdf(businessSessionId)`                                            | `GET /v3/organization/{organization_id}/application/{application_id}/businesses/{business_session_id}/pdf/`                 | `Blob`                                                  | application scoped |
+| `didit.businesses.list(params?: BusinessesListParams)`                                              | `GET /v3/businesses/`                                                                                                       | page of `BusinessListItem`                              |                    |
+| `didit.businesses.listNetworks(vendorBusinessUuid)`                                                 | `GET /v3/organization/{organization_id}/application/{application_id}/businesses/{vendor_business_uuid}/networks/`           | `EntityNetworkMembershipList`                           | application scoped |
+| `didit.businesses.retrieve(vendorData)`                                                             | `GET /v3/businesses/{vendor_data}/`                                                                                         | `BusinessDetailItem`                                    |                    |
+| `didit.businesses.retrieveOngoingMonitoringJob(jobId)`                                              | `GET /v3/organization/{organization_id}/application/{application_id}/vendor-businesses/toggle-ongoing-monitoring/{job_id}/` | `OngoingMonitoringJob`                                  | application scoped |
+| `didit.businesses.retrieveSessionOngoingMonitoringJob(jobId)`                                       | `GET /v3/organization/{organization_id}/application/{application_id}/businesses/toggle-ongoing-monitoring/{job_id}/`        | `OngoingMonitoringJob`                                  | application scoped |
+| `didit.businesses.setAmlMonitoring(params: BusinessesSetAmlMonitoringParams)`                       | `POST /v3/businesses/aml-monitoring/`                                                                                       | `AMLMonitoringToggleResult \| AMLMonitoringJob`         |                    |
+| `didit.businesses.setOngoingMonitoring(params: BusinessesSetOngoingMonitoringParams)`               | `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-businesses/toggle-ongoing-monitoring/`        | `OngoingMonitoringToggleResult \| OngoingMonitoringJob` | application scoped |
+| `didit.businesses.setSessionOngoingMonitoring(params: BusinessesSetSessionOngoingMonitoringParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/businesses/toggle-ongoing-monitoring/`               | `OngoingMonitoringToggleResult \| OngoingMonitoringJob` | application scoped |
+| `didit.businesses.update(vendorData, params?: BusinessesUpdateParams)`                              | `PATCH /v3/businesses/{vendor_data}/`                                                                                       | `BusinessDetailItem`                                    |                    |
+| `didit.businesses.updateStatus(vendorData, params: BusinessesUpdateStatusParams)`                   | `PATCH /v3/businesses/{vendor_data}/update-status/`                                                                         | `BusinessDetailItem`                                    |                    |
 
 ## `didit.cases`
 
@@ -93,15 +109,15 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.cases.applyEntityAction(caseUuid, params: CasesApplyEntityActionParams)`    | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/entity-actions/`                       | `CaseActionCaseEntityActionResult` | application scoped |
 | `didit.cases.approveResolution(caseUuid)`                                          | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/approve/`                              | `CaseDetail`                       | application scoped |
 | `didit.cases.assign(caseUuid, params: CasesAssignParams)`                          | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/assign/`                               | `CaseDetail`                       | application scoped |
-| `didit.cases.bulkAssign(params: CasesBulkAssignParams)`                            | `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/assign/`                                      | `CasesBulkAssignResponse`          | application scoped |
-| `didit.cases.bulkUpdateStatus(params: CasesBulkUpdateStatusParams)`                | `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/status/`                                      | `CasesBulkUpdateStatusResponse`    | application scoped |
+| `didit.cases.bulkAssign(params: CasesBulkAssignParams)`                            | `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/assign/`                                      | `CaseBulkUpdateResult`             | application scoped |
+| `didit.cases.bulkUpdateStatus(params: CasesBulkUpdateStatusParams)`                | `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/status/`                                      | `CaseBulkUpdateResult`             | application scoped |
 | `didit.cases.create(params: CasesCreateParams)`                                    | `POST /v3/organization/{organization_id}/application/{application_id}/cases/`                                                  | `CaseDetail`                       | application scoped |
 | `didit.cases.delete(caseUuid)`                                                     | `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/`                                    | nothing                            | application scoped |
 | `didit.cases.escalate(caseUuid)`                                                   | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/escalate/`                             | `CaseDetail`                       | application scoped |
 | `didit.cases.findDuplicates(params?: CasesFindDuplicatesParams)`                   | `POST /v3/organization/{organization_id}/application/{application_id}/cases/duplicates/`                                       | `CaseDuplicateCaseDuplicatePage`   | application scoped |
 | `didit.cases.list(params?: CasesListParams)`                                       | `GET /v3/organization/{organization_id}/application/{application_id}/cases/`                                                   | page of `CaseListItem`             | application scoped |
 | `didit.cases.listActionReceipts(caseUuid, params?: CasesListActionReceiptsParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/action-receipts/`                       | `CaseActionCaseActionReceiptPage`  | application scoped |
-| `didit.cases.listAmlHits(caseUuid)`                                                | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/aml/`                                   | `Record<string, unknown>[]`        | application scoped |
+| `didit.cases.listAmlHits(caseUuid)`                                                | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/aml/`                                   | `AMLScreening[]`                   | application scoped |
 | `didit.cases.listEvents(caseUuid, params?: CasesListEventsParams)`                 | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/events/`                                | page of `CaseEvent`                | application scoped |
 | `didit.cases.listReviewers()`                                                      | `GET /v3/organization/{organization_id}/application/{application_id}/cases/reviewers/`                                         | `CasesListReviewersResponse`       | application scoped |
 | `didit.cases.print(caseUuid)`                                                      | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/print/`                                 | `CasesPrintResponse`               | application scoped |
@@ -122,7 +138,7 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.cases.blueprints.create(params: CasesBlueprintsCreateParams)`                            | `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/`                          | `CaseBlueprintDetail`                   | application scoped |
 | `didit.cases.blueprints.delete(blueprintUuid)`                                                  | `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/`       | nothing                                 | application scoped |
 | `didit.cases.blueprints.discardDraft(blueprintUuid, params: CasesBlueprintsDiscardDraftParams)` | `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/draft/` | nothing                                 | application scoped |
-| `didit.cases.blueprints.installPresets(params?: CasesBlueprintsInstallPresetsParams)`           | `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/presets/install/`          | `CasesBlueprintsInstallPresetsResponse` | application scoped |
+| `didit.cases.blueprints.installPresets(params?: CasesBlueprintsInstallPresetsParams)`           | `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/presets/install/`          | `CaseBlueprintPresetInstallResult`      | application scoped |
 | `didit.cases.blueprints.list(params?: CasesBlueprintsListParams)`                               | `GET /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/`                           | page of `CaseBlueprintListItem`         | application scoped |
 | `didit.cases.blueprints.listHistory(blueprintUuid, params?: CasesBlueprintsListHistoryParams)`  | `GET /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/history/`  | page of `CasePublicationPolicyRevision` | application scoped |
 | `didit.cases.blueprints.listPresets()`                                                          | `GET /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/presets/`                   | `CasesBlueprintsListPresetsResponse`    | application scoped |
@@ -173,6 +189,7 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.cases.requests.create(caseUuid, params: CasesRequestsCreateParams)`   | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/`                          | `CustomerMessagingCaseRequest`                | application scoped |
 | `didit.cases.requests.list(caseUuid, params?: CasesRequestsListParams)`      | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/`                           | page of `CustomerMessagingCaseRequest`        | application scoped |
 | `didit.cases.requests.preview(caseUuid, params: CasesRequestsPreviewParams)` | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/preview/`                  | `CustomerMessagingCaseRequestPreviewResponse` | application scoped |
+| `didit.cases.requests.remind(caseUuid, requestUuid)`                         | `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/`    | `CasesRequestsRemindResponse`                 | application scoped |
 | `didit.cases.requests.retrieveAttachment(caseUuid, requestUuid)`             | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/attachment/` | `Blob`                                        | application scoped |
 | `didit.cases.requests.retrieveOptions(caseUuid)`                             | `GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/options/`                   | `CustomerMessagingCaseRequestOptions`         | application scoped |
 
@@ -287,6 +304,25 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.idWallets.startUaePass(params: IdWalletsStartUaePassParams)`                 | `POST /v3/id-verification/wallets/uae-pass/`                          | `DigitalIdWalletApiWalletVerificationResponse` | `idempotencyKey` |
 | `didit.idWallets.startVipps(params: IdWalletsStartVippsParams)`                     | `POST /v3/id-verification/wallets/vipps/`                             | `DigitalIdWalletApiWalletVerificationResponse` | `idempotencyKey` |
 
+## `didit.investigator`
+
+| Method                                                                                   | HTTP                                                  | Returns                                   | Notes |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------- | ----- |
+| `didit.investigator.acceptRun(runId, params?: InvestigatorAcceptRunParams)`              | `POST /v3/investigator/runs/{run_id}/accept/`         | `InvestigatorDecision`                    |       |
+| `didit.investigator.batchAcceptRuns(params: InvestigatorBatchAcceptRunsParams)`          | `POST /v3/investigator/runs/batch-accept/`            | `InvestigatorBatchAcceptResponse`         |       |
+| `didit.investigator.exportActivity(params?: InvestigatorExportActivityParams)`           | `GET /v3/investigator/activity/export/`               | `Blob`                                    |       |
+| `didit.investigator.listActivity(params?: InvestigatorListActivityParams)`               | `GET /v3/investigator/activity/`                      | page of `Record<string, unknown>`         |       |
+| `didit.investigator.listGuardrails()`                                                    | `GET /v3/investigator/guardrails/`                    | `InvestigatorListGuardrailsResponse`      |       |
+| `didit.investigator.listQueue(params?: InvestigatorListQueueParams)`                     | `GET /v3/investigator/queue/`                         | page of `InvestigatorQueueRow`            |       |
+| `didit.investigator.overrideRun(runId, params: InvestigatorOverrideRunParams)`           | `POST /v3/investigator/runs/{run_id}/override/`       | `InvestigatorDecision`                    |       |
+| `didit.investigator.retrieveDashboard(params?: InvestigatorRetrieveDashboardParams)`     | `GET /v3/investigator/dashboard/`                     | `InvestigatorRetrieveDashboardResponse`   |       |
+| `didit.investigator.retrievePerformance(params?: InvestigatorRetrievePerformanceParams)` | `GET /v3/investigator/performance/`                   | `InvestigatorRetrievePerformanceResponse` |       |
+| `didit.investigator.retrieveRun(runId)`                                                  | `GET /v3/investigator/runs/{run_id}/`                 | `InvestigatorRunDetail`                   |       |
+| `didit.investigator.retrieveSettings()`                                                  | `GET /v3/investigator/settings/`                      | `InvestigatorSettings`                    |       |
+| `didit.investigator.retrieveSummary(params?: InvestigatorRetrieveSummaryParams)`         | `GET /v3/investigator/summary/`                       | `InvestigatorRetrieveSummaryResponse`     |       |
+| `didit.investigator.retrieveTransaction(transactionId)`                                  | `GET /v3/investigator/transactions/{transaction_id}/` | `InvestigatorRetrieveTransactionResponse` |       |
+| `didit.investigator.updateSettings(params?: InvestigatorUpdateSettingsParams)`           | `PATCH /v3/investigator/settings/`                    | `InvestigatorSettings`                    |       |
+
 ## `didit.ip`
 
 | Method                                            | HTTP                | Returns          | Notes |
@@ -302,18 +338,52 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.kyb.search(params: KybSearchParams)`                     | `POST /v3/kyb/search/`       | `KybSearchResponse`                                             |       |
 | `didit.kyb.select(params: KybSelectParams)`                     | `POST /v3/kyb/select/`       | `KybSelectResponse`                                             |       |
 
+## `didit.lists`
+
+| Method                                                     | HTTP                            | Returns                  | Notes |
+| ---------------------------------------------------------- | ------------------------------- | ------------------------ | ----- |
+| `didit.lists.create(params: ListsCreateParams)`            | `POST /v3/lists/`               | `ComplianceList`         |       |
+| `didit.lists.delete(listUuid)`                             | `DELETE /v3/lists/{list_uuid}/` | nothing                  |       |
+| `didit.lists.list(params?: ListsListParams)`               | `GET /v3/lists/`                | page of `ComplianceList` |       |
+| `didit.lists.retrieve(listUuid)`                           | `GET /v3/lists/{list_uuid}/`    | `ComplianceList`         |       |
+| `didit.lists.update(listUuid, params?: ListsUpdateParams)` | `PATCH /v3/lists/{list_uuid}/`  | `ListsUpdateResponse`    |       |
+
+## `didit.lists.entries`
+
+| Method                                                                           | HTTP                                                 | Returns                       | Notes |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------- | ----- |
+| `didit.lists.entries.create(listUuid, params?: ListsEntriesCreateParams)`        | `POST /v3/lists/{list_uuid}/entries/`                | `ComplianceListEntry`         |       |
+| `didit.lists.entries.delete(listUuid, entryUuid)`                                | `DELETE /v3/lists/{list_uuid}/entries/{entry_uuid}/` | nothing                       |       |
+| `didit.lists.entries.list(listUuid, params?: ListsEntriesListParams)`            | `GET /v3/lists/{list_uuid}/entries/`                 | page of `ComplianceListEntry` |       |
+| `didit.lists.entries.uploadFace(listUuid, params: ListsEntriesUploadFaceParams)` | `POST /v3/lists/{list_uuid}/entries/face-upload/`    | `ComplianceListEntry`         |       |
+
+## `didit.monitoringEvents`
+
+| Method                                                                                                               | HTTP                                     | Returns                                             | Notes |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------- | ----- |
+| `didit.monitoringEvents.create(params: MonitoringEventsCreateParams)`                                                | `POST /v3/events/`                       | `MonitoringEventIngestResult`                       |       |
+| `didit.monitoringEvents.createBatch(params: MonitoringEventsCreateBatchParams)`                                      | `POST /v3/events/batch/`                 | `MonitoringEventsCreateBatchResponse`               |       |
+| `didit.monitoringEvents.createSdkToken(params: MonitoringEventsCreateSdkTokenParams)`                                | `POST /v3/events/sdk-token/`             | `MonitoringEventsCreateSdkTokenResponse`            |       |
+| `didit.monitoringEvents.delete(eventUuid)`                                                                           | `DELETE /v3/events/{event_uuid}/delete/` | nothing                                             |       |
+| `didit.monitoringEvents.list(params?: MonitoringEventsListParams)`                                                   | `GET /v3/events/`                        | page of `MonitoringEvent`                           |       |
+| `didit.monitoringEvents.retrieve(eventUuid)`                                                                         | `GET /v3/events/{event_uuid}/`           | `MonitoringEventDetail`                             |       |
+| `didit.monitoringEvents.retrieveEnrichmentMetrics(params?: MonitoringEventsRetrieveEnrichmentMetricsParams)`         | `GET /v3/events/enrichment-metrics/`     | `MonitoringEventsRetrieveEnrichmentMetricsResponse` |       |
+| `didit.monitoringEvents.retrieveSubjectTimeline(vendorData, params?: MonitoringEventsRetrieveSubjectTimelineParams)` | `GET /v3/events/subjects/{vendor_data}/` | page of `MonitoringEvent`                           |       |
+
 ## `didit.networks`
 
-| Method                                                                            | HTTP                                                                                                    | Returns                            | Notes              |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------- | ------------------ |
-| `didit.networks.downloadReport(networkUuid)`                                      | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/report/`   | `Blob`                             | application scoped |
-| `didit.networks.list(params?: NetworksListParams)`                                | `GET /v3/organization/{organization_id}/application/{application_id}/networks/`                         | page of `NetworkListItem`          | application scoped |
-| `didit.networks.listMembers(networkUuid)`                                         | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/members/`  | `NetworksListMembersResponse`      | application scoped |
-| `didit.networks.listSignals(networkUuid)`                                         | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/signals/`  | `NetworksListSignalsResponse`      | application scoped |
-| `didit.networks.retrieve(networkUuid)`                                            | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/`          | `NetworkDetail`                    | application scoped |
-| `didit.networks.retrieveGraph(networkUuid, params?: NetworksRetrieveGraphParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/graph/`    | `NetworkGraph`                     | application scoped |
-| `didit.networks.retrieveMap(networkUuid)`                                         | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/map/`      | `NetworkMap`                       | application scoped |
-| `didit.networks.retrieveTimeline(networkUuid)`                                    | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/timeline/` | `NetworksRetrieveTimelineResponse` | application scoped |
+| Method                                                                                  | HTTP                                                                                                        | Returns                                  | Notes              |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------ |
+| `didit.networks.addTag(networkUuid, params: NetworksAddTagParams)`                      | `POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/add/`    | `NetworkDetailResponse`                  | application scoped |
+| `didit.networks.downloadReport(networkUuid)`                                            | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/report/`       | `Blob`                                   | application scoped |
+| `didit.networks.list(params?: NetworksListParams)`                                      | `GET /v3/organization/{organization_id}/application/{application_id}/networks/`                             | page of `NetworkListItem`                | application scoped |
+| `didit.networks.listMembers(networkUuid)`                                               | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/members/`      | `NetworksListMembersResponse`            | application scoped |
+| `didit.networks.listSignals(networkUuid)`                                               | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/signals/`      | `NetworksListSignalsResponse`            | application scoped |
+| `didit.networks.removeTag(networkUuid, params: NetworksRemoveTagParams)`                | `POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/remove/` | `NetworkDetailResponse`                  | application scoped |
+| `didit.networks.retrieve(networkUuid)`                                                  | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/`              | `NetworkDetailResponse`                  | application scoped |
+| `didit.networks.retrieveGraph(networkUuid, params?: NetworksRetrieveGraphParams)`       | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/graph/`        | `NetworkGraph`                           | application scoped |
+| `didit.networks.retrieveMap(networkUuid)`                                               | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/map/`          | `NetworkMap`                             | application scoped |
+| `didit.networks.retrieveTimeline(networkUuid, params?: NetworksRetrieveTimelineParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/timeline/`     | `NetworkTimeline \| NetworkTimelinePage` | application scoped |
 
 ## `didit.networks.notes`
 
@@ -378,27 +448,38 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 
 ## `didit.sessions`
 
-| Method                                                                                                     | HTTP                                                                                                  | Returns                                                                                                                          | Notes              |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `didit.sessions.batchDelete(params?: SessionsBatchDeleteParams)`                                           | `POST /v3/sessions/delete/`                                                                           | `SessionsBatchDeleteResponse \| SessionsBatchDeleteResponse202`                                                                  |                    |
-| `didit.sessions.bulkUpdateAmlHitStatus(sessionId, params: SessionsBulkUpdateAmlHitStatusParams)`           | `PATCH /v3/session/{sessionId}/bulk-update-aml-hit-status/`                                           | `unknown`                                                                                                                        |                    |
-| `didit.sessions.create(params: SessionsCreateParams)`                                                      | `POST /v3/session/`                                                                                   | `SessionsCreateResponse`                                                                                                         |                    |
-| `didit.sessions.delete(sessionId, params?: SessionsDeleteParams)`                                          | `DELETE /v3/session/{sessionId}/delete/`                                                              | `SessionsDeleteResponse`                                                                                                         |                    |
-| `didit.sessions.generatePdf(sessionId)`                                                                    | `GET /v3/session/{sessionId}/generate-pdf/`                                                           | `Blob`                                                                                                                           |                    |
-| `didit.sessions.importShared(params: SessionsImportSharedParams)`                                          | `POST /v3/session/import-shared/`                                                                     | `unknown`                                                                                                                        |                    |
-| `didit.sessions.list(params?: SessionsListParams)`                                                         | `GET /v3/sessions/`                                                                                   | page of `SessionsListResponseResultsKycSessionRowSessionKindUser \| SessionsListResponseResultsKybSessionRowSessionKindBusiness` |                    |
-| `didit.sessions.listNetworks(sessionId)`                                                                   | `GET /v3/organization/{organization_id}/application/{application_id}/sessions/{session_id}/networks/` | `SessionsListNetworksResponse`                                                                                                   | application scoped |
-| `didit.sessions.previewResubmission(sessionId, params: SessionsPreviewResubmissionParams)`                 | `POST /v3/session/{sessionId}/resubmission-preview/`                                                  | `SessionsPreviewResubmissionResponse`                                                                                            |                    |
-| `didit.sessions.retrieveDecision(sessionId, params?: SessionsRetrieveDecisionParams)`                      | `GET /v3/session/{sessionId}/decision/`                                                               | `SessionsRetrieveDecisionResponse`                                                                                               |                    |
-| `didit.sessions.retrieveDeletionJob(jobId)`                                                                | `GET /v3/sessions/delete/{job_id}/`                                                                   | `SessionsRetrieveDeletionJobResponse`                                                                                            |                    |
-| `didit.sessions.share(sessionId, params: SessionsShareParams)`                                             | `POST /v3/session/{sessionId}/share/`                                                                 | `SessionsShareResponse`                                                                                                          |                    |
-| `didit.sessions.updateAmlHitStatus(sessionId, params: SessionsUpdateAmlHitStatusParams)`                   | `PATCH /v3/session/{sessionId}/update-aml-hit-status/`                                                | `unknown`                                                                                                                        |                    |
-| `didit.sessions.updateData(sessionId, params?: SessionsUpdateDataParams)`                                  | `PATCH /v3/session/{sessionId}/update-data/`                                                          | `SessionsUpdateDataResponse`                                                                                                     |                    |
-| `didit.sessions.updateFeatureStatus(sessionId, nodeId, params: SessionsUpdateFeatureStatusParams)`         | `PATCH /v3/session/{sessionId}/features/{nodeId}/update-status/`                                      | `SessionsUpdateFeatureStatusResponse`                                                                                            |                    |
-| `didit.sessions.updateKybCompanyData(sessionId, companyUuid, params?: SessionsUpdateKybCompanyDataParams)` | `PATCH /v3/session/{sessionId}/kyb/{companyUuid}/update-data/`                                        | `SessionsUpdateKybCompanyDataResponse`                                                                                           |                    |
-| `didit.sessions.updateKybParty(sessionId, partyUuid, params: SessionsUpdateKybPartyParams)`                | `PATCH /v3/session/{sessionId}/kyb/parties/{partyUuid}/`                                              | `SessionsUpdateKybPartyResponse`                                                                                                 |                    |
-| `didit.sessions.updatePoaData(sessionId, params?: SessionsUpdatePoaDataParams)`                            | `PATCH /v3/session/{sessionId}/update-poa-data/`                                                      | `SessionsUpdatePoaDataResponse`                                                                                                  |                    |
-| `didit.sessions.updateStatus(sessionId, params: SessionsUpdateStatusParams)`                               | `PATCH /v3/session/{sessionId}/update-status/`                                                        | `SessionsUpdateStatusResponse`                                                                                                   |                    |
+| Method                                                                                                      | HTTP                                                                                                  | Returns                                                  | Notes              |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------ |
+| `didit.sessions.addImages(sessionId, params: SessionsAddImagesParams)`                                      | `PATCH /v3/session/{sessionId}/add-images/`                                                           | `SessionsAddImagesResponse`                              | upload             |
+| `didit.sessions.batchDelete(params?: SessionsBatchDeleteParams)`                                            | `POST /v3/sessions/delete/`                                                                           | `SessionsBatchDeleteResponse \| SessionDeletionJob`      |                    |
+| `didit.sessions.bulkUpdateAmlHitStatus(sessionId, params: SessionsBulkUpdateAmlHitStatusParams)`            | `PATCH /v3/session/{sessionId}/bulk-update-aml-hit-status/`                                           | `SessionsBulkUpdateAmlHitStatusResponse`                 |                    |
+| `didit.sessions.cancelFeatureOverride(sessionId, overrideId)`                                               | `POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/`                                | `FeatureStatusOverride`                                  |                    |
+| `didit.sessions.create(params: SessionsCreateParams)`                                                       | `POST /v3/session/`                                                                                   | `SessionsCreateResponse`                                 |                    |
+| `didit.sessions.delete(sessionId, params?: SessionsDeleteParams)`                                           | `DELETE /v3/session/{sessionId}/delete/`                                                              | `SessionsDeleteResponse`                                 |                    |
+| `didit.sessions.exportAmlScreeningHistory(sessionId, params?: SessionsExportAmlScreeningHistoryParams)`     | `GET /v3/session/{sessionId}/aml-screening-history/export/`                                           | `Blob`                                                   |                    |
+| `didit.sessions.generatePdf(sessionId)`                                                                     | `GET /v3/session/{sessionId}/generate-pdf/`                                                           | `Blob`                                                   |                    |
+| `didit.sessions.importShared(params: SessionsImportSharedParams)`                                           | `POST /v3/session/import-shared/`                                                                     | `SessionDecision`                                        |                    |
+| `didit.sessions.list(params?: SessionsListParams)`                                                          | `GET /v3/sessions/`                                                                                   | page of `UserSessionListItem \| BusinessSessionListItem` |                    |
+| `didit.sessions.listAmlScreeningHistory(sessionId, params?: SessionsListAmlScreeningHistoryParams)`         | `GET /v3/session/{sessionId}/aml-screening-history/`                                                  | page of `AMLScreeningRun`                                |                    |
+| `didit.sessions.listEvents(sessionId, params?: SessionsListEventsParams)`                                   | `GET /v3/session/{sessionId}/events/`                                                                 | page of `SessionEvent`                                   |                    |
+| `didit.sessions.listFeatureOverrides(sessionId)`                                                            | `GET /v3/session/{sessionId}/features/overrides/`                                                     | `SessionsListFeatureOverridesResponse`                   |                    |
+| `didit.sessions.listNetworks(sessionId)`                                                                    | `GET /v3/organization/{organization_id}/application/{application_id}/sessions/{session_id}/networks/` | `EntityNetworkMembershipList`                            | application scoped |
+| `didit.sessions.previewDecisionEmail(sessionId, params: SessionsPreviewDecisionEmailParams)`                | `POST /v3/session/{sessionId}/decision-email-preview/`                                                | `SessionsPreviewDecisionEmailResponse`                   |                    |
+| `didit.sessions.previewResubmission(sessionId, params?: SessionsPreviewResubmissionParams)`                 | `POST /v3/session/{sessionId}/resubmission-preview/`                                                  | `SessionsPreviewResubmissionResponse`                    |                    |
+| `didit.sessions.regenerateKybParty(sessionId, partyUuid)`                                                   | `POST /v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/`                                    | `KYBKeyPeopleParty`                                      |                    |
+| `didit.sessions.retrieveDecision(sessionId, params?: SessionsRetrieveDecisionParams)`                       | `GET /v3/session/{sessionId}/decision/`                                                               | `SessionDecision`                                        |                    |
+| `didit.sessions.retrieveDeletionJob(jobId)`                                                                 | `GET /v3/sessions/delete/{job_id}/`                                                                   | `SessionDeletionJob`                                     |                    |
+| `didit.sessions.share(sessionId, params: SessionsShareParams)`                                              | `POST /v3/session/{sessionId}/share/`                                                                 | `SessionsShareResponse`                                  |                    |
+| `didit.sessions.simulate(sessionId, params?: SessionsSimulateParams)`                                       | `POST /v3/session/{sessionId}/simulate/`                                                              | `SandboxSimulateResponse`                                |                    |
+| `didit.sessions.updateAmlHitStatus(sessionId, params: SessionsUpdateAmlHitStatusParams)`                    | `PATCH /v3/session/{sessionId}/update-aml-hit-status/`                                                | `SessionsUpdateAmlHitStatusResponse`                     |                    |
+| `didit.sessions.updateAmlStatus(sessionId, params: SessionsUpdateAmlStatusParams)`                          | `PATCH /v3/session/{sessionId}/update-aml-status/`                                                    | `SessionsUpdateAmlStatusResponse`                        |                    |
+| `didit.sessions.updateData(sessionId, params?: SessionsUpdateDataParams)`                                   | `PATCH /v3/session/{sessionId}/update-data/`                                                          | `SessionsUpdateDataResponse`                             |                    |
+| `didit.sessions.updateDocumentAiData(sessionId, documentUuid, params?: SessionsUpdateDocumentAiDataParams)` | `PATCH /v3/document-ai/{sessionId}/documents/{documentUuid}/`                                         | `SessionsUpdateDocumentAiDataResponse`                   |                    |
+| `didit.sessions.updateFeatureStatus(sessionId, nodeId, params: SessionsUpdateFeatureStatusParams)`          | `PATCH /v3/session/{sessionId}/features/{nodeId}/update-status/`                                      | `SessionsUpdateFeatureStatusResponse`                    |                    |
+| `didit.sessions.updateKybCompanyData(sessionId, companyUuid, params?: SessionsUpdateKybCompanyDataParams)`  | `PATCH /v3/session/{sessionId}/kyb/{companyUuid}/update-data/`                                        | `SessionsUpdateKybCompanyDataResponse`                   |                    |
+| `didit.sessions.updateKybParty(sessionId, partyUuid, params: SessionsUpdateKybPartyParams)`                 | `PATCH /v3/session/{sessionId}/kyb/parties/{partyUuid}/`                                              | `SessionsUpdateKybPartyResponse`                         |                    |
+| `didit.sessions.updatePoaData(sessionId, params?: SessionsUpdatePoaDataParams)`                             | `PATCH /v3/session/{sessionId}/update-poa-data/`                                                      | `SessionsUpdatePoaDataResponse`                          |                    |
+| `didit.sessions.updateStatus(sessionId, params: SessionsUpdateStatusParams)`                                | `PATCH /v3/session/{sessionId}/update-status/`                                                        | `SessionsUpdateStatusResponse`                           |                    |
 
 ## `didit.sessions.imports`
 
@@ -416,16 +497,42 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.sessions.reviews.create(sessionId, params?: SessionsReviewsCreateParams)` | `POST /v3/sessions/{session_id}/reviews/` | `SessionsReviewsCreateResponse` |       |
 | `didit.sessions.reviews.list(sessionId, params?: SessionsReviewsListParams)`     | `GET /v3/sessions/{session_id}/reviews/`  | page of `ReviewItem`            |       |
 
+## `didit.sessions.signatures`
+
+| Method                                                                                                             | HTTP                                                                           | Returns                              | Notes |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------ | ----- |
+| `didit.sessions.signatures.downloadDocument(sessionId, nodeId, documentId)`                                        | `GET /v3/session/{sessionId}/signatures/{nodeId}/documents/{documentId}/file/` | `Blob`                               |       |
+| `didit.sessions.signatures.downloadEvidence(sessionId, nodeId, params?: SessionsSignaturesDownloadEvidenceParams)` | `GET /v3/session/{sessionId}/signatures/{nodeId}/evidence/`                    | `Blob`                               |       |
+| `didit.sessions.signatures.downloadFieldImage(sessionId, nodeId, fieldId)`                                         | `GET /v3/session/{sessionId}/signatures/{nodeId}/fields/{fieldId}/image/`      | `Blob`                               |       |
+| `didit.sessions.signatures.validate(sessionId, nodeId, params?: SessionsSignaturesValidateParams)`                 | `POST /v3/session/{sessionId}/signatures/{nodeId}/validate/`                   | `SessionsSignaturesValidateResponse` |       |
+
+## `didit.sessions.webhooks`
+
+| Method                                                     | HTTP                                                         | Returns                    | Notes |
+| ---------------------------------------------------------- | ------------------------------------------------------------ | -------------------------- | ----- |
+| `didit.sessions.webhooks.list(sessionId)`                  | `GET /v3/session/{sessionId}/webhooks/`                      | `SessionWebhookDelivery[]` |       |
+| `didit.sessions.webhooks.resend(sessionId, webhookUuid)`   | `POST /v3/session/{sessionId}/webhook/{webhook_uuid}/resend` | `SessionWebhookDelivery`   |       |
+| `didit.sessions.webhooks.retrieve(sessionId, webhookUuid)` | `GET /v3/session/{sessionId}/webhook/{webhook_uuid}`         | `SessionWebhookDelivery`   |       |
+
 ## `didit.transactions`
 
-| Method                                                                        | HTTP                                                                                                                                             | Returns                                   | Notes              |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
-| `didit.transactions.create(params: TransactionsCreateParams)`                 | `POST /v3/transactions/`                                                                                                                         | `TransactionDetail`                       |                    |
-| `didit.transactions.createSdkToken(params: TransactionsCreateSdkTokenParams)` | `POST /v3/transactions/sdk-token/`                                                                                                               | `TransactionsCreateSdkTokenResponse`      |                    |
-| `didit.transactions.list(params?: TransactionsListParams)`                    | `GET /v3/transactions/`                                                                                                                          | page of `TransactionsListResponseResults` |                    |
-| `didit.transactions.listNetworks(transactionUuid)`                            | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/networks/`                                  | `TransactionsListNetworksResponse`        | application scoped |
-| `didit.transactions.listPartyNetworks(transactionUuid, transactionPartyUuid)` | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/` | `TransactionsListPartyNetworksResponse`   | application scoped |
-| `didit.transactions.retrieve(transactionId)`                                  | `GET /v3/transactions/{transaction_id}/`                                                                                                         | `TransactionDetail`                       |                    |
+| Method                                                                                  | HTTP                                                                                                                                             | Returns                                   | Notes              |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
+| `didit.transactions.create(params: TransactionsCreateParams)`                           | `POST /v3/transactions/`                                                                                                                         | `TransactionDetail`                       |                    |
+| `didit.transactions.createSdkToken(params: TransactionsCreateSdkTokenParams)`           | `POST /v3/transactions/sdk-token/`                                                                                                               | `TransactionsCreateSdkTokenResponse`      |                    |
+| `didit.transactions.generatePdf(transactionUuid)`                                       | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/`                                       | `Blob`                                    | application scoped |
+| `didit.transactions.list(params?: TransactionsListParams)`                              | `GET /v3/transactions/`                                                                                                                          | page of `TransactionsListResponseResults` |                    |
+| `didit.transactions.listNetworks(transactionUuid)`                                      | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/networks/`                                  | `EntityNetworkMembershipList`             | application scoped |
+| `didit.transactions.listPartyNetworks(transactionUuid, transactionPartyUuid)`           | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/` | `EntityNetworkMembershipList`             | application scoped |
+| `didit.transactions.listRelated(transactionId, params?: TransactionsListRelatedParams)` | `GET /v3/transactions/{transaction_id}/related/`                                                                                                 | page of `TransactionSummary`              |                    |
+| `didit.transactions.retrieve(transactionId)`                                            | `GET /v3/transactions/{transaction_id}/`                                                                                                         | `TransactionDetail`                       |                    |
+
+## `didit.transactions.notes`
+
+| Method                                                                                  | HTTP                                            | Returns                   | Notes |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------- | ----- |
+| `didit.transactions.notes.create(transactionId, params: TransactionsNotesCreateParams)` | `POST /v3/transactions/{transaction_id}/notes/` | `TransactionNote`         |       |
+| `didit.transactions.notes.list(transactionId, params?: TransactionsNotesListParams)`    | `GET /v3/transactions/{transaction_id}/notes/`  | page of `TransactionNote` |       |
 
 ## `didit.transactions.rules`
 
@@ -443,46 +550,84 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 
 ## `didit.transactions.travelRule`
 
-| Method                                                                                                                | HTTP                                                            | Returns                    | Notes |
-| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | -------------------------- | ----- |
-| `didit.transactions.travelRule.confirmOwnership(transactionId, params: TransactionsTravelRuleConfirmOwnershipParams)` | `POST /v3/transactions/{transaction_id}/travel-rule/ownership/` | `TravelRuleTransferDetail` |       |
-| `didit.transactions.travelRule.updateTransfer(transactionId, params?: TransactionsTravelRuleUpdateTransferParams)`    | `PATCH /v3/transactions/{transaction_id}/travel-rule/`          | `TravelRuleTransferDetail` |       |
+| Method                                                                                                                | HTTP                                                            | Returns                             | Notes |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------- | ----- |
+| `didit.transactions.travelRule.confirmOwnership(transactionId, params: TransactionsTravelRuleConfirmOwnershipParams)` | `POST /v3/transactions/{transaction_id}/travel-rule/ownership/` | `TravelRuleTransferDetail`          |       |
+| `didit.transactions.travelRule.createMessage(transactionId, params?: TransactionsTravelRuleCreateMessageParams)`      | `POST /v3/transactions/{transaction_id}/travel-rule/messages/`  | `TravelRuleMessage`                 |       |
+| `didit.transactions.travelRule.listMessages(transactionId)`                                                           | `GET /v3/transactions/{transaction_id}/travel-rule/messages/`   | `TravelRuleMessage[]`               |       |
+| `didit.transactions.travelRule.triggerTestVaspInbound(params: TransactionsTravelRuleTriggerTestVaspInboundParams)`    | `POST /v3/travel-rule/test-vasp/inbound/`                       | `TravelRuleTestVaspInboundResponse` |       |
+| `didit.transactions.travelRule.updateTransfer(transactionId, params?: TransactionsTravelRuleUpdateTransferParams)`    | `PATCH /v3/transactions/{transaction_id}/travel-rule/`          | `TravelRuleTransferDetail`          |       |
 
 ## `didit.travelRule`
 
-| Method                                                                              | HTTP                                   | Returns                           | Notes |
-| ----------------------------------------------------------------------------------- | -------------------------------------- | --------------------------------- | ----- |
-| `didit.travelRule.createWidgetSession(params: TravelRuleCreateWidgetSessionParams)` | `POST /v3/travel-rule/widget-session/` | `TravelRuleWidgetSessionResponse` |       |
-| `didit.travelRule.listVasps(params?: TravelRuleListVaspsParams)`                    | `GET /v3/travel-rule/vasps/`           | page of `VaspDirectoryEntry`      |       |
-| `didit.travelRule.registerInbound(params: TravelRuleRegisterInboundParams)`         | `POST /v3/travel-rule/inbound/`        | `TravelRuleInboundResponse`       |       |
-| `didit.travelRule.retrieveSettings()`                                               | `GET /v3/travel-rule/settings/`        | `TravelRuleSettingsDetail`        |       |
-| `didit.travelRule.updateSettings(params?: TravelRuleUpdateSettingsParams)`          | `PUT /v3/travel-rule/settings/`        | `TravelRuleSettingsDetail`        |       |
+| Method                                                                                           | HTTP                                                           | Returns                                             | Notes |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------- | ----- |
+| `didit.travelRule.clearVaspDecision(vaspId)`                                                     | `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`             | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.createWidgetSession(params?: TravelRuleCreateWidgetSessionParams)`             | `POST /v3/travel-rule/widget-session/`                         | `TravelRuleWidgetSessionResponse`                   |       |
+| `didit.travelRule.listVaspQuestionnaires(vaspId)`                                                | `GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/`          | `TravelRuleCounterpartyQuestionnaireList`           |       |
+| `didit.travelRule.listVasps(params?: TravelRuleListVaspsParams)`                                 | `GET /v3/travel-rule/vasps/`                                   | page of `VaspDirectoryEntry`                        |       |
+| `didit.travelRule.registerInbound(params: TravelRuleRegisterInboundParams)`                      | `POST /v3/travel-rule/inbound/`                                | `TravelRuleInboundResponse`                         |       |
+| `didit.travelRule.retrieveSettings()`                                                            | `GET /v3/travel-rule/settings/`                                | `TravelRuleSettingsDetail`                          |       |
+| `didit.travelRule.retrieveVasp(vaspId)`                                                          | `GET /v3/travel-rule/vasps/{vasp_id}/`                         | `VaspDirectoryEntry`                                |       |
+| `didit.travelRule.retrieveVaspDecision(vaspId)`                                                  | `GET /v3/travel-rule/vasps/{vasp_id}/decision/`                | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.retrieveVaspScreening(vaspId)`                                                 | `GET /v3/travel-rule/vasps/{vasp_id}/screening/`               | `TravelRuleCounterpartyScreeningStatus`             |       |
+| `didit.travelRule.screenVasp(vaspId, params?: TravelRuleScreenVaspParams)`                       | `POST /v3/travel-rule/vasps/{vasp_id}/screening/`              | `TravelRuleCounterpartyScreeningResult`             |       |
+| `didit.travelRule.sendComplianceEmailConfirmation()`                                             | `POST /v3/travel-rule/settings/compliance-email/confirmation/` | `TravelRuleSendComplianceEmailConfirmationResponse` |       |
+| `didit.travelRule.sendVaspQuestionnaire(vaspId, params?: TravelRuleSendVaspQuestionnaireParams)` | `POST /v3/travel-rule/vasps/{vasp_id}/questionnaires/`         | `TravelRuleCounterpartyQuestionnaire`               |       |
+| `didit.travelRule.updateSettings(params?: TravelRuleUpdateSettingsParams)`                       | `PUT /v3/travel-rule/settings/`                                | `TravelRuleSettingsDetail`                          |       |
+| `didit.travelRule.updateVaspDecision(vaspId, params: TravelRuleUpdateVaspDecisionParams)`        | `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`                | `TravelRuleCounterpartyDecisionResponse`            |       |
+
+## `didit.travelRule.counterpartyContacts`
+
+| Method                                                                                             | HTTP                                                           | Returns                                 | Notes |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- | ----- |
+| `didit.travelRule.counterpartyContacts.create(params: TravelRuleCounterpartyContactsCreateParams)` | `POST /v3/travel-rule/counterparty-contacts/`                  | `TravelRuleCounterpartyContact`         |       |
+| `didit.travelRule.counterpartyContacts.delete(contactUuid)`                                        | `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/` | nothing                                 |       |
+| `didit.travelRule.counterpartyContacts.list(params?: TravelRuleCounterpartyContactsListParams)`    | `GET /v3/travel-rule/counterparty-contacts/`                   | page of `TravelRuleCounterpartyContact` |       |
+
+## `didit.travelRule.transfers`
+
+| Method                                                                    | HTTP                             | Returns                         | Notes |
+| ------------------------------------------------------------------------- | -------------------------------- | ------------------------------- | ----- |
+| `didit.travelRule.transfers.list(params?: TravelRuleTransfersListParams)` | `GET /v3/travel-rule/transfers/` | page of `TravelRuleTransferRow` |       |
 
 ## `didit.travelRule.walletAddresses`
 
-| Method                                                                                               | HTTP                                                    | Returns                      | Notes |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------- | ----- |
-| `didit.travelRule.walletAddresses.create(params: TravelRuleWalletAddressesCreateParams)`             | `POST /v3/travel-rule/wallet-addresses/`                | `WalletAddressEntry`         |       |
-| `didit.travelRule.walletAddresses.delete(entryUuid)`                                                 | `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/` | nothing                      |       |
-| `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                | `GET /v3/travel-rule/wallet-addresses/`                 | page of `WalletAddressEntry` |       |
-| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)` | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`  | `WalletAddressEntryUpdate`   |       |
+| Method                                                                                               | HTTP                                                    | Returns                      | Notes  |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------- | ------ |
+| `didit.travelRule.walletAddresses.bulkImport(params?: TravelRuleWalletAddressesBulkImportParams)`    | `POST /v3/travel-rule/wallet-addresses/import/`         | `WalletAddressImportReport`  | upload |
+| `didit.travelRule.walletAddresses.create(params: TravelRuleWalletAddressesCreateParams)`             | `POST /v3/travel-rule/wallet-addresses/`                | `WalletAddressEntry`         |        |
+| `didit.travelRule.walletAddresses.delete(entryUuid)`                                                 | `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/` | nothing                      |        |
+| `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                | `GET /v3/travel-rule/wallet-addresses/`                 | page of `WalletAddressEntry` |        |
+| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)` | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`  | `WalletAddressEntryUpdate`   |        |
+
+## `didit.travelRule.workspace`
+
+| Method                                                                                      | HTTP                                             | Returns                                 | Notes |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------- | ----- |
+| `didit.travelRule.workspace.claim(params: TravelRuleWorkspaceClaimParams)`                  | `POST /v3/travel-rule/workspace/claim/`          | `TravelRuleWorkspace`                   |       |
+| `didit.travelRule.workspace.confirmDomain(params: TravelRuleWorkspaceConfirmDomainParams)`  | `POST /v3/travel-rule/workspace/domain/confirm/` | `TravelRuleWorkspace`                   |       |
+| `didit.travelRule.workspace.enableBilling(params?: TravelRuleWorkspaceEnableBillingParams)` | `POST /v3/travel-rule/workspace/billing/`        | `TravelRuleWorkspace`                   |       |
+| `didit.travelRule.workspace.get()`                                                          | `GET /v3/travel-rule/workspace/`                 | `TravelRuleWorkspace`                   |       |
+| `didit.travelRule.workspace.sendDomainCode()`                                               | `POST /v3/travel-rule/workspace/domain/code/`    | `TravelRuleWorkspaceDomainCodeResponse` |       |
+| `didit.travelRule.workspace.verifyDomainDns()`                                              | `POST /v3/travel-rule/workspace/domain/dns/`     | `TravelRuleWorkspace`                   |       |
 
 ## `didit.users`
 
-| Method                                                                      | HTTP                                                                                                                        | Returns                                                                                                                          | Notes              |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `didit.users.batchDelete(params?: UsersBatchDeleteParams)`                  | `POST /v3/users/delete/`                                                                                                    | `UsersBatchDeleteResponse`                                                                                                       |                    |
-| `didit.users.create(params: UsersCreateParams)`                             | `POST /v3/users/create/`                                                                                                    | `UserDetailItem`                                                                                                                 |                    |
-| `didit.users.generatePdf(vendorData)`                                       | `GET /v3/users/{vendor_data}/generate-pdf/`                                                                                 | `Blob`                                                                                                                           |                    |
-| `didit.users.list(params?: UsersListParams)`                                | `GET /v3/users/`                                                                                                            | page of `UserListItem`                                                                                                           |                    |
-| `didit.users.listNetworks(vendorUserUuid)`                                  | `GET /v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/`                    | `UsersListNetworksResponse`                                                                                                      | application scoped |
-| `didit.users.retrieve(vendorData)`                                          | `GET /v3/users/{vendor_data}/`                                                                                              | `UserDetailItem`                                                                                                                 |                    |
-| `didit.users.retrieveOngoingMonitoringJob(jobId)`                           | `GET /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/{job_id}/`      | `UsersRetrieveOngoingMonitoringJobResponse`                                                                                      | application scoped |
-| `didit.users.setAmlMonitoring(params: UsersSetAmlMonitoringParams)`         | `POST /v3/users/aml-monitoring/`                                                                                            | `UsersSetAmlMonitoringResponseVariant1 \| UsersSetAmlMonitoringResponseVariant2 \| UsersSetAmlMonitoringResponse202`             |                    |
-| `didit.users.setOngoingMonitoring(params: UsersSetOngoingMonitoringParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/`             | `UsersSetOngoingMonitoringResponseVariant1 \| UsersSetOngoingMonitoringResponseVariant2 \| UsersSetOngoingMonitoringResponse202` | application scoped |
-| `didit.users.update(vendorData, params?: UsersUpdateParams)`                | `PATCH /v3/users/{vendor_data}/`                                                                                            | `UserDetailItem`                                                                                                                 |                    |
-| `didit.users.updateStatus(vendorData, params: UsersUpdateStatusParams)`     | `PATCH /v3/users/{vendor_data}/update-status/`                                                                              | `UserDetailItem`                                                                                                                 |                    |
-| `didit.users.uploadFace(diditInternalId, params: UsersUploadFaceParams)`    | `POST /v3/organization/{organization_id}/application/{application_id}/vendor-users/by-id/{didit_internal_id}/faces/upload/` | `UsersUploadFaceResponse`                                                                                                        | application scoped |
+| Method                                                                      | HTTP                                                                                                                        | Returns                                                 | Notes              |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------ |
+| `didit.users.batchDelete(params?: UsersBatchDeleteParams)`                  | `POST /v3/users/delete/`                                                                                                    | `UsersBatchDeleteResponse`                              |                    |
+| `didit.users.create(params: UsersCreateParams)`                             | `POST /v3/users/create/`                                                                                                    | `UsersCreateResponse`                                   |                    |
+| `didit.users.generatePdf(vendorData)`                                       | `GET /v3/users/{vendor_data}/generate-pdf/`                                                                                 | `Blob`                                                  |                    |
+| `didit.users.list(params?: UsersListParams)`                                | `GET /v3/users/`                                                                                                            | page of `UserListItem`                                  |                    |
+| `didit.users.listNetworks(vendorUserUuid)`                                  | `GET /v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/`                    | `EntityNetworkMembershipList`                           | application scoped |
+| `didit.users.retrieve(vendorData)`                                          | `GET /v3/users/{vendor_data}/`                                                                                              | `UserDetailItem`                                        |                    |
+| `didit.users.retrieveOngoingMonitoringJob(jobId)`                           | `GET /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/{job_id}/`      | `OngoingMonitoringJob`                                  | application scoped |
+| `didit.users.setAmlMonitoring(params: UsersSetAmlMonitoringParams)`         | `POST /v3/users/aml-monitoring/`                                                                                            | `AMLMonitoringToggleResult \| AMLMonitoringJob`         |                    |
+| `didit.users.setOngoingMonitoring(params: UsersSetOngoingMonitoringParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/`             | `OngoingMonitoringToggleResult \| OngoingMonitoringJob` | application scoped |
+| `didit.users.update(vendorData, params?: UsersUpdateParams)`                | `PATCH /v3/users/{vendor_data}/`                                                                                            | `UserDetailItem`                                        |                    |
+| `didit.users.updateStatus(vendorData, params: UsersUpdateStatusParams)`     | `PATCH /v3/users/{vendor_data}/update-status/`                                                                              | `UserDetailItem`                                        |                    |
+| `didit.users.uploadFace(diditInternalId, params: UsersUploadFaceParams)`    | `POST /v3/organization/{organization_id}/application/{application_id}/vendor-users/by-id/{didit_internal_id}/faces/upload/` | `UsersUploadFaceResponse`                               | application scoped |
 
 ## `didit.walletScreening`
 
@@ -491,22 +636,33 @@ Every method of `@didit-protocol/sdk-node`: 257 methods, generated from `openapi
 | `didit.walletScreening.screen(params: WalletScreeningScreenParams)` | `POST /v3/wallet-screening/`     | `WalletScreeningResult` |       |
 | `didit.walletScreening.screenPdf(params: WalletScreeningResult)`    | `POST /v3/wallet-screening/pdf/` | `Blob`                  |       |
 
+## `didit.webhooks`
+
+| Method                                                             | HTTP                 | Returns         | Notes |
+| ------------------------------------------------------------------ | -------------------- | --------------- | ----- |
+| `didit.webhooks.retrieveConfig()`                                  | `GET /v3/webhook/`   | `WebhookConfig` |       |
+| `didit.webhooks.updateConfig(params?: WebhooksUpdateConfigParams)` | `PATCH /v3/webhook/` | `WebhookConfig` |       |
+
 ## `didit.webhooks.destinations`
 
-| Method                                                                                           | HTTP                                                  | Returns                                | Notes |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------- | ----- |
-| `didit.webhooks.destinations.create(params: WebhooksDestinationsCreateParams)`                   | `POST /v3/webhook/destinations/`                      | `WebhooksDestinationsCreateResponse`   |       |
-| `didit.webhooks.destinations.delete(destinationUuid)`                                            | `DELETE /v3/webhook/destinations/{destination_uuid}/` | nothing                                |       |
-| `didit.webhooks.destinations.list()`                                                             | `GET /v3/webhook/destinations/`                       | `WebhooksDestinationsListResponse[]`   |       |
-| `didit.webhooks.destinations.retrieve(destinationUuid)`                                          | `GET /v3/webhook/destinations/{destination_uuid}/`    | `WebhooksDestinationsRetrieveResponse` |       |
-| `didit.webhooks.destinations.update(destinationUuid, params?: WebhooksDestinationsUpdateParams)` | `PATCH /v3/webhook/destinations/{destination_uuid}/`  | `WebhooksDestinationsUpdateResponse`   |       |
+| Method                                                                                                                 | HTTP                                                                                  | Returns                                         | Notes |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------- | ----- |
+| `didit.webhooks.destinations.create(params: WebhooksDestinationsCreateParams)`                                         | `POST /v3/webhook/destinations/`                                                      | `WebhooksDestinationsCreateResponse`            |       |
+| `didit.webhooks.destinations.delete(destinationUuid)`                                                                  | `DELETE /v3/webhook/destinations/{destination_uuid}/`                                 | nothing                                         |       |
+| `didit.webhooks.destinations.list()`                                                                                   | `GET /v3/webhook/destinations/`                                                       | `WebhooksDestinationsListResponse[]`            |       |
+| `didit.webhooks.destinations.listDeliveries(destinationUuid, params?: WebhooksDestinationsListDeliveriesParams)`       | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`                         | page of `WebhookDestinationDelivery`            |       |
+| `didit.webhooks.destinations.resendDelivery(destinationUuid, deliveryUuid)`                                            | `POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/` | `WebhookDestinationDeliveryDetail`              |       |
+| `didit.webhooks.destinations.retrieve(destinationUuid)`                                                                | `GET /v3/webhook/destinations/{destination_uuid}/`                                    | `WebhooksDestinationsRetrieveResponse`          |       |
+| `didit.webhooks.destinations.retrieveAnalytics(destinationUuid, params?: WebhooksDestinationsRetrieveAnalyticsParams)` | `GET /v3/webhook/destinations/{destination_uuid}/analytics/`                          | `WebhooksDestinationsRetrieveAnalyticsResponse` |       |
+| `didit.webhooks.destinations.retrieveDelivery(destinationUuid, deliveryUuid)`                                          | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/`         | `WebhookDestinationDeliveryDetail`              |       |
+| `didit.webhooks.destinations.update(destinationUuid, params?: WebhooksDestinationsUpdateParams)`                       | `PATCH /v3/webhook/destinations/{destination_uuid}/`                                  | `WebhooksDestinationsUpdateResponse`            |       |
 
 ## `didit.workflows`
 
 | Method                                                                 | HTTP                                    | Returns                    | Notes |
 | ---------------------------------------------------------------------- | --------------------------------------- | -------------------------- | ----- |
-| `didit.workflows.create(params: WorkflowsCreateParams)`                | `POST /v3/workflows/`                   | `Record<string, unknown>`  |       |
+| `didit.workflows.create(params: WorkflowsCreateParams)`                | `POST /v3/workflows/`                   | `WorkflowDetail`           |       |
 | `didit.workflows.delete(settingsUuid)`                                 | `DELETE /v3/workflows/{settings_uuid}/` | nothing                    |       |
 | `didit.workflows.list(params?: WorkflowsListParams)`                   | `GET /v3/workflows/`                    | page of `WorkflowListItem` |       |
-| `didit.workflows.retrieve(settingsUuid)`                               | `GET /v3/workflows/{settings_uuid}/`    | `unknown`                  |       |
-| `didit.workflows.update(settingsUuid, params?: WorkflowsUpdateParams)` | `PATCH /v3/workflows/{settings_uuid}/`  | `Record<string, unknown>`  |       |
+| `didit.workflows.retrieve(settingsUuid)`                               | `GET /v3/workflows/{settings_uuid}/`    | `WorkflowDetail`           |       |
+| `didit.workflows.update(settingsUuid, params?: WorkflowsUpdateParams)` | `PATCH /v3/workflows/{settings_uuid}/`  | `WorkflowDetail`           |       |

@@ -4,6 +4,7 @@ import type {
   KYBRegistryAddress,
   KYBRegistryIndustry,
   KYBRegistryOwnership,
+  KYBRegistrySearchResults,
   KYBRegistryShareholding,
 } from "./components.js";
 
@@ -932,8 +933,10 @@ export interface KybSearchParams {
   name?: string;
   /** Registry registration number to search for. Either `name` or `registration_number` is required. */
   registration_number?: string;
-  /** Name-matching strategy applied by the registry search. */
-  search_type?: "contains" | "start_with" | "fuzzy" | (string & {});
+  /** Registry tier whose provider chain this search runs on. `basic` (default) searches the country's Lite chain; `shareholders` and `ubo` search that tier's ownership chain, which can be a different source, so an empty Lite search does not prove the registry lacks the company. A country that does not offer the named tier is searched at the highest tier it offers up to that one. Retrieve the candidate from the endpoint that sells the tier you searched: `POST /v3/kyb/select/` (Lite), `POST /v3/kyb/shareholders/` or `POST /v3/kyb/ubo/`. */
+  tier?: "basic" | "shareholders" | "ubo" | (string & {});
+  /** Name-matching strategy applied by the registry search. `contains` is the only accepted value: no registry source behind the search offers a prefix or fuzzy mode, so `start_with` and `fuzzy` are rejected with `400` (`not a valid choice`). */
+  search_type?: "contains" | (string & {});
   /** Your identifier for this lookup; echoed back and included in the webhook callback. */
   vendor_data?: string;
   /** Free-form JSON; echoed back and included in the webhook callback. */
@@ -945,46 +948,12 @@ export interface KybSearchParams {
 export interface KybSearchResponse {
   /** With `webhook_url`: the persisted search-request id, echoed as `request_id` in the `kyb.registry_search.resolved` callback. Without `webhook_url`: a transient correlation UUID (the search is not stored). */
   request_id?: string;
-  kyb_registry?: KybSearchResponseKybRegistry;
+  kyb_registry?: KYBRegistrySearchResults;
   /** Echo of the `vendor_data` you sent. */
   vendor_data?: string | null;
   /** Echo of the `metadata` you sent. */
   metadata?: Record<string, unknown> | null;
   created_at?: Date;
-}
-
-export interface KybSearchResponseKybRegistry {
-  /** Deduplicated candidate list. Empty while `search_resolved=false` (webhook mode) or when nothing matched. */
-  companies?: KybSearchResponseKybRegistryCompanies[];
-  pagination?: KybSearchResponseKybRegistryPagination;
-  /** Registry search lifecycle status. */
-  search_status?: "pending" | "resolved" | (string & {}) | null;
-  /** `true` once the candidate list is final. */
-  search_resolved?: boolean;
-}
-
-export interface KybSearchResponseKybRegistryCompanies {
-  /** Handle for this candidate - pass it to `POST /v3/kyb/select/` to retrieve the full profile. Ephemeral and scoped to this search: do not store it long-term; re-search to get a fresh one. */
-  kyb_response_id?: string | null;
-  /** Registered company name. */
-  name?: string | null;
-  /** Registry registration number. */
-  registration_number?: string | null;
-  /** Normalized registry status of the company (e.g. `active`, `dissolved`, `inactive`, `struck off`). */
-  status?: string | null;
-  /** Legal form as reported by the registry. */
-  type?: string | null;
-  /** Registry-reported risk level, when available. Usually `null` at search time. */
-  risk_level?: string | null;
-  /** Always `pending` for search candidates - the full company profile is only fetched (and billed) when you select the candidate. */
-  fetch_status?: string | null;
-}
-
-export interface KybSearchResponseKybRegistryPagination {
-  /** Number of candidates returned. */
-  total?: number;
-  page?: number;
-  per_page?: number;
 }
 
 export interface KybSelectParams {

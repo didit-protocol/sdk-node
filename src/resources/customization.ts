@@ -12,7 +12,7 @@ const CUSTOMIZATION_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/customization/",
   body: "auto",
-  files: ["image_favicon", "image_rectangular", "image_square"],
+  files: ["image_favicon", "image_rectangular", "image_rectangular_dark", "image_square"],
 };
 
 /** `customization` */

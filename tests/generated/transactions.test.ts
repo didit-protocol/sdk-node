@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   API_ORIGIN,
+  BINARY,
   expectAuth,
   expectMatchesExample,
   mockClient,
@@ -57,6 +58,29 @@ describe("transactions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({ vendor_data: "user-042" });
     expectMatchesExample(result, responseExample("POST /v3/transactions/sdk-token/"));
+  });
+
+  it("transactions.generate_pdf: GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      body: BINARY,
+      contentType: "application/pdf",
+    });
+    const result = await client.transactions.generatePdf("abcdef12-3456-7890-abcd-ef1234567890");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/transactions/abcdef12-3456-7890-abcd-ef1234567890/pdf/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/pdf");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
   });
 
   it("transactions.list: GET /v3/transactions/", async () => {
@@ -133,6 +157,71 @@ describe("transactions", () => {
         "GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/",
       ),
     );
+  });
+
+  it("transactions.list_related: GET /v3/transactions/{transaction_id}/related/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/transactions/{transaction_id}/related/", "page"),
+    });
+    const page = await client.transactions.listRelated("abcdef12-3456-7890-abcd-ef1234567890");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/abcdef12-3456-7890-abcd-ef1234567890/related/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/transactions/{transaction_id}/related/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("transactions.notes.create: POST /v3/transactions/{transaction_id}/notes/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/transactions/{transaction_id}/notes/"),
+    });
+    const result = await client.transactions.notes.create("abcdef12-3456-7890-abcd-ef1234567890", {
+      note: "value",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/abcdef12-3456-7890-abcd-ef1234567890/notes/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ note: "value" });
+    expectMatchesExample(result, responseExample("POST /v3/transactions/{transaction_id}/notes/"));
+  });
+
+  it("transactions.notes.list: GET /v3/transactions/{transaction_id}/notes/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/transactions/{transaction_id}/notes/", "page"),
+    });
+    const page = await client.transactions.notes.list("abcdef12-3456-7890-abcd-ef1234567890");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/abcdef12-3456-7890-abcd-ef1234567890/notes/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/transactions/{transaction_id}/notes/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
   });
 
   it("transactions.retrieve: GET /v3/transactions/{transaction_id}/", async () => {
@@ -347,6 +436,70 @@ describe("transactions", () => {
       result,
       responseExample("POST /v3/transactions/{transaction_id}/travel-rule/ownership/"),
     );
+  });
+
+  it("transactions.travel_rule.create_message: POST /v3/transactions/{transaction_id}/travel-rule/messages/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/transactions/{transaction_id}/travel-rule/messages/"),
+    });
+    const result = await client.transactions.travelRule.createMessage("transaction-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/transaction-id-1/travel-rule/messages/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/transactions/{transaction_id}/travel-rule/messages/"),
+    );
+  });
+
+  it("transactions.travel_rule.list_messages: GET /v3/transactions/{transaction_id}/travel-rule/messages/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/transactions/{transaction_id}/travel-rule/messages/"),
+    });
+    const result = await client.transactions.travelRule.listMessages("transaction-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/transaction-id-1/travel-rule/messages/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/transactions/{transaction_id}/travel-rule/messages/"),
+    );
+  });
+
+  it("transactions.travel_rule.trigger_test_vasp_inbound: POST /v3/travel-rule/test-vasp/inbound/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/travel-rule/test-vasp/inbound/"),
+    });
+    const result = await client.transactions.travelRule.triggerTestVaspInbound({
+      beneficiary_wallet_address: "value",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/test-vasp/inbound/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ beneficiary_wallet_address: "value" });
+    expectMatchesExample(result, responseExample("POST /v3/travel-rule/test-vasp/inbound/"));
   });
 
   it("transactions.travel_rule.update_transfer: PATCH /v3/transactions/{transaction_id}/travel-rule/", async () => {

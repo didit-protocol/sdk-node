@@ -9,27 +9,23 @@ import type {
   BusinessesBatchDeleteParams,
   BusinessesBatchDeleteResponse,
   BusinessesCreateParams,
-  BusinessesListNetworksResponse,
   BusinessesListParams,
   BusinessesListResponse,
-  BusinessesRetrieveOngoingMonitoringJobResponse,
-  BusinessesRetrieveSessionOngoingMonitoringJobResponse,
   BusinessesSetAmlMonitoringParams,
-  BusinessesSetAmlMonitoringResponse202,
-  BusinessesSetAmlMonitoringResponseVariant1,
-  BusinessesSetAmlMonitoringResponseVariant2,
   BusinessesSetOngoingMonitoringParams,
-  BusinessesSetOngoingMonitoringResponse202,
-  BusinessesSetOngoingMonitoringResponseVariant1,
-  BusinessesSetOngoingMonitoringResponseVariant2,
   BusinessesSetSessionOngoingMonitoringParams,
-  BusinessesSetSessionOngoingMonitoringResponse202,
-  BusinessesSetSessionOngoingMonitoringResponseVariant1,
-  BusinessesSetSessionOngoingMonitoringResponseVariant2,
   BusinessesUpdateParams,
   BusinessesUpdateStatusParams,
 } from "../types/businesses.js";
-import type { BusinessDetailItem, BusinessListItem } from "../types/components.js";
+import type {
+  AMLMonitoringJob,
+  AMLMonitoringToggleResult,
+  BusinessDetailItem,
+  BusinessListItem,
+  EntityNetworkMembershipList,
+  OngoingMonitoringJob,
+  OngoingMonitoringToggleResult,
+} from "../types/components.js";
 
 const BUSINESSES_BATCH_DELETE: OperationSpec = {
   method: "POST",
@@ -42,6 +38,13 @@ const BUSINESSES_CREATE: OperationSpec = {
   body: "json",
   dates: "BusinessDetailItem",
 };
+const BUSINESSES_GENERATE_SESSION_PDF: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/{organization_id}/application/{application_id}/businesses/{business_session_id}/pdf/",
+  scope: "application",
+  response: "binary",
+  accept: "application/pdf",
+};
 const BUSINESSES_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/businesses/",
@@ -52,7 +55,7 @@ const BUSINESSES_LIST_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/businesses/{vendor_business_uuid}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
 };
 const BUSINESSES_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -73,7 +76,7 @@ const BUSINESSES_SET_AML_MONITORING: OperationSpec = {
   method: "POST",
   path: "/v3/businesses/aml-monitoring/",
   body: "json",
-  dates: { p: { created_at: 1, completed_at: 1 } },
+  dates: "AMLMonitoringToggleResult",
 };
 const BUSINESSES_SET_ONGOING_MONITORING: OperationSpec = {
   method: "PATCH",
@@ -131,6 +134,28 @@ export class Businesses extends APIResource {
   }
 
   /**
+   * Download a business session PDF report
+   *
+   * Render the PDF report of one Business Verification (KYB) session: company registry data, key people and beneficial owners, documents, AML results and the other workflow features, plus the session's tags and review activity. With white-label customization on, the report carries your logo and privacy policy URL. The body is the PDF itself (`application/pdf`), not JSON.
+   *
+   * The session must be `Approved`, `Declined` or `In Review`; any other status returns `403`, so wait for the `status.updated` [webhook](https://docs.didit.me/integration/webhooks) first. The report is rendered on every call and nothing is billed, so store the file instead of fetching it repeatedly. `GET /v3/session/{sessionId}/generate-pdf/` renders the same kind of report by session ID alone.
+   *
+   * A PDF report counts as media: a scoped API key needs `businesses: read` and `media: read`, and a key limited to some workflows or to approved sessions cannot call it.
+   *
+   * `GET /v3/organization/{organization_id}/application/{application_id}/businesses/{business_session_id}/pdf/`
+   *
+   * @param businessSessionId `session_id` of the Business Verification (KYB) session, as returned when the session was created. A session of another application returns `404`.
+   */
+  generateSessionPdf(businessSessionId: string, options?: RequestOptions): APIPromise<Blob> {
+    return this._client.request(
+      BUSINESSES_GENERATE_SESSION_PDF,
+      [businessSessionId],
+      undefined,
+      options,
+    );
+  }
+
+  /**
    * List businesses
    *
    * List [businesses](/entities/businesses) Didit assembles from KYB sessions sharing the same `vendor_data` (free-form string, NOT a UUID), plus businesses created via the API. Paginated, ordered by `last_session_at` desc. This endpoint does not support filtering or search parameters - fetch pages and filter client-side.
@@ -156,7 +181,7 @@ export class Businesses extends APIResource {
   listNetworks(
     vendorBusinessUuid: string,
     options?: RequestOptions,
-  ): APIPromise<BusinessesListNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(BUSINESSES_LIST_NETWORKS, [vendorBusinessUuid], undefined, options);
   }
 
@@ -185,7 +210,7 @@ export class Businesses extends APIResource {
   retrieveOngoingMonitoringJob(
     jobId: string,
     options?: RequestOptions,
-  ): APIPromise<BusinessesRetrieveOngoingMonitoringJobResponse> {
+  ): APIPromise<OngoingMonitoringJob> {
     return this._client.request(
       BUSINESSES_RETRIEVE_ONGOING_MONITORING_JOB,
       [jobId],
@@ -206,7 +231,7 @@ export class Businesses extends APIResource {
   retrieveSessionOngoingMonitoringJob(
     jobId: string,
     options?: RequestOptions,
-  ): APIPromise<BusinessesRetrieveSessionOngoingMonitoringJobResponse> {
+  ): APIPromise<OngoingMonitoringJob> {
     return this._client.request(
       BUSINESSES_RETRIEVE_SESSION_ONGOING_MONITORING_JOB,
       [jobId],
@@ -227,11 +252,7 @@ export class Businesses extends APIResource {
   setAmlMonitoring(
     params: BusinessesSetAmlMonitoringParams,
     options?: RequestOptions,
-  ): APIPromise<
-    | BusinessesSetAmlMonitoringResponseVariant1
-    | BusinessesSetAmlMonitoringResponseVariant2
-    | BusinessesSetAmlMonitoringResponse202
-  > {
+  ): APIPromise<AMLMonitoringToggleResult | AMLMonitoringJob> {
     return this._client.request(BUSINESSES_SET_AML_MONITORING, [], params, options);
   }
 
@@ -245,11 +266,7 @@ export class Businesses extends APIResource {
   setOngoingMonitoring(
     params: BusinessesSetOngoingMonitoringParams,
     options?: RequestOptions,
-  ): APIPromise<
-    | BusinessesSetOngoingMonitoringResponseVariant1
-    | BusinessesSetOngoingMonitoringResponseVariant2
-    | BusinessesSetOngoingMonitoringResponse202
-  > {
+  ): APIPromise<OngoingMonitoringToggleResult | OngoingMonitoringJob> {
     return this._client.request(BUSINESSES_SET_ONGOING_MONITORING, [], params, options);
   }
 
@@ -263,18 +280,14 @@ export class Businesses extends APIResource {
   setSessionOngoingMonitoring(
     params: BusinessesSetSessionOngoingMonitoringParams,
     options?: RequestOptions,
-  ): APIPromise<
-    | BusinessesSetSessionOngoingMonitoringResponseVariant1
-    | BusinessesSetSessionOngoingMonitoringResponseVariant2
-    | BusinessesSetSessionOngoingMonitoringResponse202
-  > {
+  ): APIPromise<OngoingMonitoringToggleResult | OngoingMonitoringJob> {
     return this._client.request(BUSINESSES_SET_SESSION_ONGOING_MONITORING, [], params, options);
   }
 
   /**
    * Update business
    *
-   * Partial update of a business: `display_name`, `legal_name`, `registration_number`, `country_code`, `status`, `metadata`. `metadata` fully replaces. Setting `status` to `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry.
+   * Partial update of a business: `display_name`, `legal_name`, `registration_number`, `country_code`, `status`, `metadata`. `metadata` fully replaces. Setting `status` to `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Every edit is recorded in the company's activity: a status change with the optional `reason`, and a change to `display_name`, `legal_name`, `registration_number`, `country_code` or `metadata` as a profile update.
    *
    * `PATCH /v3/businesses/{vendor_data}/`
    *
@@ -291,7 +304,7 @@ export class Businesses extends APIResource {
   /**
    * Update business status
    *
-   * Flip only the lifecycle `status` of a business - VendorBusinessStatusChoices (`ACTIVE`/`FLAGGED`/`BLOCKED`, NOT session statuses). `BLOCKED` adds `vendor_data` to the system blocklist.
+   * Flip only the lifecycle `status` of a business: `ACTIVE`, `FLAGGED` or `BLOCKED` (not session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded in the company's activity, with the optional `reason`. Sending the current status changes nothing and records no `reason`. The `business.status.updated` webhook does not carry `reason`.
    *
    * `PATCH /v3/businesses/{vendor_data}/update-status/`
    *
