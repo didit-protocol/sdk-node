@@ -45,6 +45,16 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { aml: { p: { hits: { i: { p: { first_seen: 1, last_seen: 1 } } } } }, created_at: 1 },
   },
   Application: { p: { created_at: 1 } },
+  BankAccountCheckResponse: { p: { created_at: 1 } },
+  BankVerificationResult: {
+    p: {
+      connection: { p: { connected_at: 1, consent_expires_at: 1, last_refreshed_at: 1 } },
+      ownership: { p: { evaluated_at: 1 } },
+      evidence_purged_at: 1,
+      created_at: 1,
+      updated_at: 1,
+    },
+  },
   BiometricTemplatesListResponse: {
     p: { results: { i: { p: { retained_at: 1, expires_at: 1, purged_at: 1 } } } },
   },
@@ -332,6 +342,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       },
       document_ai_documents: { i: { p: { items: { i: { p: { created_at: 1 } } } } } },
       questionnaire_responses: { i: { p: { published_at: 1 } } },
+      bank_verifications: { i: "BankVerificationResult" },
       signatures: { i: "SignatureResult" },
       aml_screenings: { i: "AMLScreening" },
       ip_analyses: { i: { p: { matches: { i: { p: { verification_date: 1 } } } } } },

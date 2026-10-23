@@ -1033,6 +1033,214 @@ export interface ApplicationProduct {
   modules: Record<string, boolean>;
 }
 
+/** The company that should hold the account. Checks a business account. */
+export interface BankAccountCheckBusinessHolder {
+  /** The name of the company that should hold the account. Checks a business account. */
+  business_name: string;
+}
+
+/** The name the account is checked against. Send exactly one of `full_name` and `business_name`. */
+export type BankAccountCheckHolder = BankAccountCheckPersonHolder | BankAccountCheckBusinessHolder;
+
+/** The person who should hold the account. */
+export interface BankAccountCheckPersonHolder {
+  /** The full name of the person who should hold the account. */
+  full_name: string;
+}
+
+export interface BankAccountCheckResponse {
+  /** The ID of this check. */
+  request_id: string;
+  /** `match`: the bank holds the account under the name you sent. `close_match`: under a close name, for example a missing middle name or a typo. `no_match`: under another name, or there is no such account. `cannot_verify`: the bank answered without comparing the name, for example for a blocked or closed account. */
+  result: "match" | "close_match" | "no_match" | "cannot_verify" | (string & {});
+  /** Only on a `close_match`, and only when the bank returned it: the name on the account, as the bank holds it. `null` otherwise. */
+  holder_name: string | null;
+  /** The account, masked to its last 4 characters. */
+  account: string;
+  /** Your own reference, as you sent it. */
+  vendor_data: string | null;
+  /** When the check ran, in UTC. */
+  created_at: Date;
+}
+
+/** One Bank Verification step's result, for User and Business Verification. `method` says how the account was verified. See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
+export interface BankVerificationResult {
+  /** Version of this result shape. `1` today. */
+  schema_version?: number;
+  /** The ID of this result. */
+  bank_verification_id?: string;
+  /** The workflow node this result belongs to. */
+  node_id?: string;
+  /** The step's verdict, after its actions and status rules. */
+  status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
+  /** The first verdict the step reached, before any later change such as a manual review. */
+  original_status?: string | null;
+  /** How the account was verified: `open_banking` (bank sign-in: the person signed in at their bank), `account_lookup` (account check: the person typed the account details and the bank confirmed the name), `microdeposits` or `statement` (a statement upload). `null` until an account is evaluated. Workflow rules read the same value as `bank.method`. */
+  method?: "open_banking" | "account_lookup" | "microdeposits" | "statement" | (string & {}) | null;
+  /** The key of the route that ran the connection. Read `method`, not this key, to tell how the account was verified. */
+  provider?: string | null;
+  /** `native`: Didit's own route, billed to your Didit balance. `byok`: a marketplace provider you connected with your own credentials. */
+  credential_source?: "native" | "byok" | (string & {}) | null;
+  /** The route chosen before consent. It never changes afterwards. */
+  route?: BankVerificationResultRoute | null;
+  /** The latest attempt's connection. `null` before the first attempt. */
+  connection?: BankVerificationResultConnection | null;
+  /** The evaluated account. `null` until an account is evaluated. */
+  account?: BankVerificationResultAccount | null;
+  /** How the account holder compared with the verified identity. `null` until an account is evaluated. */
+  ownership?: BankVerificationResultOwnership | null;
+  /** The financial data the step read. Only bank sign-in reads it. */
+  financial_data?: BankVerificationResultFinancialData;
+  billing?: BankVerificationResultBilling | null;
+  /** The identity the holder was compared against, with its source. */
+  reference_identity?: Record<string, unknown> | null;
+  /** Account signals read from the transaction history, when the step read one. */
+  signals?: Record<string, unknown> | null;
+  /** Whether the step ended without a match after the person left at their bank. */
+  connection_abandoned?: boolean | null;
+  /** Whether the person's bank or country could not be reached on this step. */
+  not_covered?: boolean | null;
+  /** When the bank evidence was deleted under `bank_evidence_retention_days`. `null` otherwise. */
+  evidence_purged_at?: Date | null;
+  /** Informational codes, for example `holder_declared`. A warning never changes the status on its own. */
+  warnings?: string[];
+  /** Why the verdict came out the way it did, for example `OWNER_NAME_PARTIAL`. Several may apply. */
+  reason_codes?: string[];
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+/** The evaluated account. `null` until an account is evaluated. */
+export interface BankVerificationResultAccount {
+  /** The account number, masked. */
+  account_id_masked?: string | null;
+  /** The IBAN, masked. */
+  iban_masked?: string | null;
+  /** The sort code, in the United Kingdom. */
+  sort_code?: string | null;
+  /** The routing number, masked. */
+  routing_number_masked?: string | null;
+  type?: "checking" | "current" | "savings" | "business" | "other" | (string & {}) | null;
+  /** The bank's own account subtype. */
+  subtype?: string | null;
+  /** ISO 4217 currency of the account. */
+  currency?: string | null;
+  holder_type?: "person" | "business" | "unknown" | (string & {}) | null;
+  holders_count?: number | null;
+  is_joint?: boolean | null;
+  is_business?: boolean | null;
+}
+
+export interface BankVerificationResultBilling {
+  route?: "native" | "byok" | (string & {});
+  billed?: boolean;
+  /** The marketplace platform fee charged, for `byok`. */
+  marketplace_fee?: string | null;
+  /** The usage line the charge was booked on. */
+  usage_type?: string | null;
+}
+
+/** The latest attempt's connection. `null` before the first attempt. */
+export interface BankVerificationResultConnection {
+  status?:
+    | "pending"
+    | "connected"
+    | "cancelled"
+    | "timeout"
+    | "failed"
+    | "unsupported"
+    | "revoked"
+    | "expired"
+    | (string & {});
+  /** The bank's ID. `null` for an account check, where no bank is picked. */
+  institution_id?: string | null;
+  /** The bank's name. `null` for an account check. */
+  institution_name?: string | null;
+  /** The account's country, ISO 3166-1 alpha-3. */
+  institution_country?: string | null;
+  /** Whether the bank sign-in ran over OAuth or app-to-app. `null` for an account check. */
+  oauth?: boolean | null;
+  /** When the connection succeeded. */
+  connected_at?: Date | null;
+  /** When the bank consent ends, for bank sign-in. */
+  consent_expires_at?: Date | null;
+  /** When the financial data was last read again. */
+  last_refreshed_at?: Date | null;
+  /** The attempts the person spent on this step, every method together. */
+  attempts?: number;
+  /** Why the connection is not simply `connected`, for example `USER_CANCELLED`, `INSTITUTION_DOWN`, `ACCOUNT_NOT_FOUND`, `REFERENCE_IDENTITY_MISSING` or `VERIFICATION_COMPLETED`. */
+  reason_code?: string | null;
+}
+
+/** The financial data the step read. Only bank sign-in reads it. */
+export interface BankVerificationResultFinancialData {
+  /** With the `balances` scope. */
+  balances?: Record<string, unknown> | null;
+  /** With the `transactions` scope. */
+  transactions?: Record<string, unknown> | null;
+  /** With the `income` scope. */
+  income?: Record<string, unknown> | null;
+  /** Didit's categorization of the transactions read. `null` without them. */
+  categorization?: Record<string, unknown> | null;
+  /** The data the step asked for that the method which verified the account does not collect. Balances, transactions and income come from bank sign-in only, so an account verified by account check lists them here. Never a failure. Empty otherwise. */
+  not_collected?: ("balances" | "income" | "transactions" | (string & {}))[];
+}
+
+/** How the account holder compared with the verified identity. `null` until an account is evaluated. */
+export interface BankVerificationResultOwnership {
+  /** `partial_match` is a close match. `not_verifiable`: the bank answered with no holder to compare. `unknown`: the evidence could not be read, or there was no identity to compare. */
+  result?: "match" | "partial_match" | "no_match" | "unknown" | "not_verifiable" | (string & {});
+  /** The step whose identity the holder was compared against: `kyc`, `database_validation`, `expected_details`, `questionnaire`, `document_ai` or `kyb`. */
+  reference_identity_source?: string | null;
+  /** Didit's holder name score. */
+  name_score?: number | null;
+  /** The bank's own holder name score, when it returned one. */
+  provider_name_score?: number | null;
+  /** The holder address score, when address matching ran. */
+  address_score?: number | null;
+  /** The holder email score, when email matching ran. */
+  email_score?: number | null;
+  /** The holder phone score, when phone matching ran. */
+  phone_score?: number | null;
+  /** The holder date of birth score, when the bank shared one. */
+  dob_score?: number | null;
+  /** Whether the name landed in the close-match band. */
+  close_match?: boolean | null;
+  /** The person's answer when asked to confirm a close-match name. `null` when never asked. */
+  holder_confirmation?: "pending" | "confirmed" | "rejected" | (string & {}) | null;
+  /** Which name comparison produced the score. This is not the verification method: read the top-level `method` for that. */
+  method?:
+    | "exact"
+    | "token_set"
+    | "nickname"
+    | "transliteration"
+    | "fuzzy"
+    | "provider_only"
+    | "microdeposits"
+    | (string & {})
+    | null;
+  matched_holder_index?: number | null;
+  /** Each holder the bank listed, with its scores. */
+  holders?: Record<string, unknown>[];
+  owner_identity_available?: boolean | null;
+  evidence_freshness?: "live" | "cached" | "refreshed" | (string & {}) | null;
+  /** When the verdict was computed. */
+  evaluated_at?: Date | null;
+}
+
+/** The route chosen before consent. It never changes afterwards. */
+export interface BankVerificationResultRoute {
+  /** The route's key. */
+  provider_key?: string | null;
+  credential_source?: "native" | "byok" | (string & {});
+  /** Whether Didit's own route stood in for a marketplace provider that could not connect. */
+  is_fallback?: boolean;
+  /** The marketplace connection used, for `byok`. */
+  provider_connection_id?: string | null;
+  /** The data the connection asked for, for example `ownership` or `balances`. */
+  requested_scopes?: string[];
+}
+
 /** One blocklisted face, identity document, phone number or email address of a verification session. Fields that do not apply to the item's `type` are `null`. */
 export interface BlocklistedItem {
   /** What was blocklisted. */
@@ -5525,6 +5733,8 @@ export interface SessionDecision {
   document_ai_documents?: SessionDecisionDocumentAiDocuments[] | null;
   /** **Array of questionnaire response reports** - always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
   questionnaire_responses?: SessionDecisionQuestionnaireResponses[] | null;
+  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `microdeposits` or `statement` fallback. See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
+  bank_verifications?: BankVerificationResult[] | null;
   /** Electronic Signature results, one item per signer and signature step, for User and Business Verification. Present only when the workflow has an Electronic Signature step; an empty array until a signer reaches it. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature). */
   signatures?: SignatureResult[];
   /** **Array of AML screening reports** - always a JSON array, never a singular `aml` object. `null` until at least one AML step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `total_hits`, `entity_type`, `hits[]`, `score`, `screened_data`, `is_ongoing_monitoring_enabled`, and `warnings[]`. */
