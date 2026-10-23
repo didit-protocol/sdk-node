@@ -5,40 +5,69 @@ import type { OperationSpec } from "../core/operation.js";
 import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { ReviewItem, SessionImportError, SessionImportJob } from "../types/components.js";
 import type {
+  AMLScreeningRun,
+  BusinessSessionListItem,
+  EntityNetworkMembershipList,
+  FeatureStatusOverride,
+  KYBKeyPeopleParty,
+  ReviewItem,
+  SandboxSimulateResponse,
+  SessionDecision,
+  SessionDeletionJob,
+  SessionEvent,
+  SessionImportError,
+  SessionImportJob,
+  SessionWebhookDelivery,
+  UserSessionListItem,
+} from "../types/components.js";
+import type {
+  SessionsAddImagesParams,
+  SessionsAddImagesResponse,
   SessionsBatchDeleteParams,
   SessionsBatchDeleteResponse,
-  SessionsBatchDeleteResponse202,
   SessionsBulkUpdateAmlHitStatusParams,
+  SessionsBulkUpdateAmlHitStatusResponse,
   SessionsCreateParams,
   SessionsCreateResponse,
   SessionsDeleteParams,
   SessionsDeleteResponse,
+  SessionsExportAmlScreeningHistoryParams,
   SessionsImportSharedParams,
   SessionsImportsCreateParams,
   SessionsImportsListErrorsParams,
   SessionsImportsListErrorsResponse,
   SessionsImportsRetrieveTemplateParams,
-  SessionsListNetworksResponse,
+  SessionsListAmlScreeningHistoryParams,
+  SessionsListAmlScreeningHistoryResponse,
+  SessionsListEventsParams,
+  SessionsListEventsResponse,
+  SessionsListFeatureOverridesResponse,
   SessionsListParams,
   SessionsListResponse,
-  SessionsListResponseResultsKybSessionRowSessionKindBusiness,
-  SessionsListResponseResultsKycSessionRowSessionKindUser,
+  SessionsPreviewDecisionEmailParams,
+  SessionsPreviewDecisionEmailResponse,
   SessionsPreviewResubmissionParams,
   SessionsPreviewResubmissionResponse,
   SessionsRetrieveDecisionParams,
-  SessionsRetrieveDecisionResponse,
-  SessionsRetrieveDeletionJobResponse,
   SessionsReviewsCreateParams,
   SessionsReviewsCreateResponse,
   SessionsReviewsListParams,
   SessionsReviewsListResponse,
   SessionsShareParams,
   SessionsShareResponse,
+  SessionsSignaturesDownloadEvidenceParams,
+  SessionsSignaturesValidateParams,
+  SessionsSignaturesValidateResponse,
+  SessionsSimulateParams,
   SessionsUpdateAmlHitStatusParams,
+  SessionsUpdateAmlHitStatusResponse,
+  SessionsUpdateAmlStatusParams,
+  SessionsUpdateAmlStatusResponse,
   SessionsUpdateDataParams,
   SessionsUpdateDataResponse,
+  SessionsUpdateDocumentAiDataParams,
+  SessionsUpdateDocumentAiDataResponse,
   SessionsUpdateFeatureStatusParams,
   SessionsUpdateFeatureStatusResponse,
   SessionsUpdateKybCompanyDataParams,
@@ -88,6 +117,52 @@ const SESSIONS_REVIEWS_LIST: OperationSpec = {
   query: ["limit", "offset", "ordering"],
   dates: { p: { results: { i: "ReviewItem" } } },
 };
+const SESSIONS_SIGNATURES_DOWNLOAD_DOCUMENT: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/signatures/{nodeId}/documents/{documentId}/file/",
+  response: "binary",
+  accept: "application/pdf",
+};
+const SESSIONS_SIGNATURES_DOWNLOAD_EVIDENCE: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/signatures/{nodeId}/evidence/",
+  query: ["signature_id"],
+  response: "binary",
+  accept: "application/pdf",
+};
+const SESSIONS_SIGNATURES_DOWNLOAD_FIELD_IMAGE: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/signatures/{nodeId}/fields/{fieldId}/image/",
+  response: "binary",
+  accept: "image/png",
+};
+const SESSIONS_SIGNATURES_VALIDATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/signatures/{nodeId}/validate/",
+  body: "json",
+  dates: { p: { signatures: { i: "SignatureResult" } } },
+};
+const SESSIONS_WEBHOOKS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/webhooks/",
+  dates: { i: "SessionWebhookDelivery" },
+};
+const SESSIONS_WEBHOOKS_RESEND: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/webhook/{webhook_uuid}/resend",
+  dates: "SessionWebhookDelivery",
+};
+const SESSIONS_WEBHOOKS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/webhook/{webhook_uuid}",
+  dates: "SessionWebhookDelivery",
+};
+const SESSIONS_ADD_IMAGES: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/session/{sessionId}/add-images/",
+  body: "multipart",
+  files: ["file"],
+};
 const SESSIONS_BATCH_DELETE: OperationSpec = {
   method: "POST",
   path: "/v3/sessions/delete/",
@@ -100,12 +175,24 @@ const SESSIONS_BULK_UPDATE_AML_HIT_STATUS: OperationSpec = {
   query: [["node_id_query", "node_id"]],
   body: "json",
 };
+const SESSIONS_CANCEL_FEATURE_OVERRIDE: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/features/overrides/{overrideId}/cancel/",
+  dates: "FeatureStatusOverride",
+};
 const SESSIONS_CREATE: OperationSpec = { method: "POST", path: "/v3/session/", body: "json" };
 const SESSIONS_DELETE: OperationSpec = {
   method: "DELETE",
   path: "/v3/session/{sessionId}/delete/",
   body: "json",
   dates: { p: { biometric_template_expires_at: 1 } },
+};
+const SESSIONS_EXPORT_AML_SCREENING_HISTORY: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/aml-screening-history/export/",
+  query: ["node_id"],
+  response: "binary",
+  accept: "text/csv",
 };
 const SESSIONS_GENERATE_PDF: OperationSpec = {
   method: "GET",
@@ -117,6 +204,7 @@ const SESSIONS_IMPORT_SHARED: OperationSpec = {
   method: "POST",
   path: "/v3/session/import-shared/",
   body: "json",
+  dates: "SessionDecision",
 };
 const SESSIONS_LIST: OperationSpec = {
   method: "GET",
@@ -147,115 +235,73 @@ const SESSIONS_LIST: OperationSpec = {
   ],
   dates: { p: { results: { i: { p: { created_at: 1 } } } } },
 };
+const SESSIONS_LIST_AML_SCREENING_HISTORY: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/aml-screening-history/",
+  query: ["node_id", "limit", "offset", "ordering"],
+  dates: { p: { results: { i: "AMLScreeningRun" } } },
+};
+const SESSIONS_LIST_EVENTS: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/events/",
+  query: ["limit", "offset", "ordering"],
+  dates: { p: { results: { i: "SessionEvent" } } },
+};
+const SESSIONS_LIST_FEATURE_OVERRIDES: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/features/overrides/",
+  dates: { p: { flow_finished_at: 1, overrides: { i: "FeatureStatusOverride" } } },
+};
 const SESSIONS_LIST_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/sessions/{session_id}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
+};
+const SESSIONS_PREVIEW_DECISION_EMAIL: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/decision-email-preview/",
+  body: "json",
 };
 const SESSIONS_PREVIEW_RESUBMISSION: OperationSpec = {
   method: "POST",
   path: "/v3/session/{sessionId}/resubmission-preview/",
   body: "json",
 };
+const SESSIONS_REGENERATE_KYB_PARTY: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/",
+};
 const SESSIONS_RETRIEVE_DECISION: OperationSpec = {
   method: "GET",
   path: "/v3/session/{sessionId}/decision/",
   query: ["include"],
-  dates: {
-    p: {
-      id_verifications: {
-        i: {
-          p: {
-            id_lookup: { p: { checked_at: 1 } },
-            wallet_verification: { p: { verified_at: 1 } },
-            document_selfie_face_matches: { i: { p: { verification_date: 1 } } },
-            matches: { i: { p: { verification_date: 1 } } },
-          },
-        },
-      },
-      nfc_verifications: {
-        i: { p: { certificate_summary: { p: { not_valid_after: 1, not_valid_before: 1 } } } },
-      },
-      liveness_checks: { i: { p: { matches: { i: { p: { verification_date: 1 } } } } } },
-      phone_verifications: {
-        i: {
-          p: {
-            verified_at: 1,
-            lifecycle: { i: { p: { timestamp: 1 } } },
-            matches: { i: { p: { verification_date: 1 } } },
-          },
-        },
-      },
-      email_verifications: {
-        i: {
-          p: {
-            verified_at: 1,
-            lifecycle: { i: { p: { timestamp: 1 } } },
-            matches: { i: { p: { verification_date: 1 } } },
-          },
-        },
-      },
-      document_ai_documents: { i: { p: { items: { i: { p: { created_at: 1 } } } } } },
-      questionnaire_responses: { i: { p: { published_at: 1 } } },
-      aml_screenings: {
-        i: {
-          p: {
-            hits: {
-              i: {
-                p: {
-                  last_seen: 1,
-                  first_seen: 1,
-                  adverse_media_matches: { i: { p: { publication_date: 1 } } },
-                },
-              },
-            },
-            last_ongoing_screening_at: 1,
-            last_ongoing_screening_datasets_updated_at: 1,
-          },
-        },
-      },
-      ip_analyses: { i: { p: { matches: { i: { p: { verification_date: 1 } } } } } },
-      reviews: { i: { p: { created_at: 1 } } },
-      created_at: 1,
-      expires_at: 1,
-      registry_checks: {
-        i: {
-          p: {
-            company: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
-          },
-        },
-      },
-      key_people_checks: {
-        i: {
-          p: {
-            registry: {
-              p: {
-                officers: { i: { p: { kyc_verified_at: 1 } } },
-                beneficial_owners: { i: { p: { kyc_verified_at: 1 } } },
-              },
-            },
-          },
-        },
-      },
-      document_verifications: { i: { p: { items: { i: { p: { created_at: 1 } } } } } },
-      resubmissions: { i: { p: { created_at: 1 } } },
-    },
-  },
+  dates: "SessionDecision",
 };
 const SESSIONS_RETRIEVE_DELETION_JOB: OperationSpec = {
   method: "GET",
   path: "/v3/sessions/delete/{job_id}/",
-  dates: { p: { created_at: 1, completed_at: 1 } },
+  dates: "SessionDeletionJob",
 };
 const SESSIONS_SHARE: OperationSpec = {
   method: "POST",
   path: "/v3/session/{sessionId}/share/",
   body: "json",
 };
+const SESSIONS_SIMULATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/simulate/",
+  body: "json",
+};
 const SESSIONS_UPDATE_AML_HIT_STATUS: OperationSpec = {
   method: "PATCH",
   path: "/v3/session/{sessionId}/update-aml-hit-status/",
+  query: [["node_id_query", "node_id"]],
+  body: "json",
+};
+const SESSIONS_UPDATE_AML_STATUS: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/session/{sessionId}/update-aml-status/",
   query: [["node_id_query", "node_id"]],
   body: "json",
 };
@@ -265,10 +311,16 @@ const SESSIONS_UPDATE_DATA: OperationSpec = {
   query: ["node_id"],
   body: "json",
 };
+const SESSIONS_UPDATE_DOCUMENT_AI_DATA: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/document-ai/{sessionId}/documents/{documentUuid}/",
+  body: "json",
+};
 const SESSIONS_UPDATE_FEATURE_STATUS: OperationSpec = {
   method: "PATCH",
   path: "/v3/session/{sessionId}/features/{nodeId}/update-status/",
   body: "json",
+  dates: { p: { override: "FeatureStatusOverride" } },
 };
 const SESSIONS_UPDATE_KYB_COMPANY_DATA: OperationSpec = {
   method: "PATCH",
@@ -399,10 +451,193 @@ export class SessionsReviews extends APIResource {
   }
 }
 
+/** `sessions.signatures` */
+export class SessionsSignatures extends APIResource {
+  /**
+   * Download a signed document
+   *
+   * Download the signed PDF of one document of an Electronic Signature step. Use the `signed_file` path of `signatures[].documents[]` in the decision. The PDF holds the document the signer was shown with their field values stamped, the evidence page (unless `signature_evidence_page` is off) and the PAdES signature with its timestamp. Didit checks the file against `sha256_signed` before returning it.
+   *
+   * Works for User Verification (KYC) and Business Verification (KYB) sessions. Needs `read:sessions`; your API key works. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature#download-the-signed-documents).
+   *
+   * `GET /v3/session/{sessionId}/signatures/{nodeId}/documents/{documentId}/file/`
+   *
+   * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
+   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param documentId `id` of the document in `signatures[].documents[]`.
+   */
+  downloadDocument(
+    sessionId: string,
+    nodeId: string,
+    documentId: string,
+    options?: RequestOptions,
+  ): APIPromise<Blob> {
+    return this._client.request(
+      SESSIONS_SIGNATURES_DOWNLOAD_DOCUMENT,
+      [sessionId, nodeId, documentId],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Download the signature evidence
+   *
+   * Download a signer's evidence PDF: the level and format, the signer and their verified identity session, the code confirmation, the IP address, each document with its original SHA-256 and field values, the certificate, the timestamp and the SHA-256 of every signed file. Use the `evidence_file` path of the signer's item in `signatures[]`.
+   *
+   * Always pass `signature_id` when a Business Verification step has several signers: without it, the route picks one of the step's signers. Needs `read:sessions`; your API key works.
+   *
+   * `GET /v3/session/{sessionId}/signatures/{nodeId}/evidence/`
+   *
+   * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
+   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   */
+  downloadEvidence(
+    sessionId: string,
+    nodeId: string,
+    params: SessionsSignaturesDownloadEvidenceParams = {},
+    options?: RequestOptions,
+  ): APIPromise<Blob> {
+    return this._client.request(
+      SESSIONS_SIGNATURES_DOWNLOAD_EVIDENCE,
+      [sessionId, nodeId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Download a signature image
+   *
+   * Download the signature or initials a signer applied to a field, as PNG. Use the `image_url` of the field in `signatures[].documents[].fields[]`. Needs `read:sessions`; your API key works.
+   *
+   * `GET /v3/session/{sessionId}/signatures/{nodeId}/fields/{fieldId}/image/`
+   *
+   * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
+   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param fieldId The field on this signer's copy, as in the field's `image_url`.
+   */
+  downloadFieldImage(
+    sessionId: string,
+    nodeId: string,
+    fieldId: string,
+    options?: RequestOptions,
+  ): APIPromise<Blob> {
+    return this._client.request(
+      SESSIONS_SIGNATURES_DOWNLOAD_FIELD_IMAGE,
+      [sessionId, nodeId, fieldId],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Validate signatures again
+   *
+   * Re-check the signed documents of an Electronic Signature step. Didit re-reads every signed PDF, checks its SHA-256 and validates the PAdES signature, the certificate, the revocation data and the timestamp, then saves the result in each signer's `validation` and returns the updated items. Nothing is signed again. Send `signature_id` to check one signer; without it, every signer of the step is checked, and the call fails if any of them hasn't signed.
+   *
+   * Needs `write:sessions`; your API key works. In the console it's the **Validate again** button.
+   *
+   * `POST /v3/session/{sessionId}/signatures/{nodeId}/validate/`
+   *
+   * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
+   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   */
+  validate(
+    sessionId: string,
+    nodeId: string,
+    params: SessionsSignaturesValidateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsSignaturesValidateResponse> {
+    return this._client.request(SESSIONS_SIGNATURES_VALIDATE, [sessionId, nodeId], params, options);
+  }
+}
+
+/** `sessions.webhooks` */
+export class SessionsWebhooks extends APIResource {
+  /**
+   * List session webhook deliveries
+   *
+   * List every webhook delivery Didit recorded for one verification session, user (KYC) or business (KYB), newest first, as a plain JSON array (not paginated). Each entry is one attempt to one destination: the first send, each automatic [retry](https://docs.didit.me/integration/webhooks#retry-policy) and each resend are separate entries with their own `uuid`, and retries and resends keep the payload's `event_id`. `request_header` and `request_body` are JSON text; parse them to read the signatures and the payload. Delivery records are available for about 30 days, so an empty array means no webhook has been sent for the session yet or every delivery is older than that. A scoped API key needs `sessions: read` and `decisions: read`.
+   *
+   * `GET /v3/session/{sessionId}/webhooks/`
+   *
+   * @param sessionId UUID of the verification session, user (KYC) or business (KYB): the `session_id` returned by `POST /v3/session/`. The server resolves it against both session types.  **Must be a valid UUID.** The route only matches well-formed UUIDs, so a malformed value is rejected by the URL router before any application code runs and the response is a `404` **HTML** page rather than the JSON `{"detail": ...}` envelope shown below.
+   */
+  list(sessionId: string, options?: RequestOptions): APIPromise<SessionWebhookDelivery[]> {
+    return this._client.request(SESSIONS_WEBHOOKS_LIST, [sessionId], undefined, options);
+  }
+
+  /**
+   * Resend session webhook delivery
+   *
+   * Send a recorded session webhook again to the URL it first went to, with the same payload and `event_id` and a fresh `timestamp`, `X-Timestamp` header and signatures. Didit signs it with the current secret of the destination the delivery belongs to (or the application-level secret for a delivery to the legacy webhook URL), waits up to 5 seconds for your endpoint, records the attempt as a new delivery and returns it with `200` whatever your endpoint answered: read `response_status`. A resend is not retried automatically, and every call sends again, so make your endpoint idempotent on `event_id`. The path has no trailing slash and the request has no body. A scoped API key needs `webhooks: write` and `decisions: read`.
+   *
+   * `POST /v3/session/{sessionId}/webhook/{webhook_uuid}/resend`
+   *
+   * @param sessionId UUID of the verification session, user (KYC) or business (KYB): the `session_id` returned by `POST /v3/session/`. The server resolves it against both session types.  **Must be a valid UUID.** The route only matches well-formed UUIDs, so a malformed value is rejected by the URL router before any application code runs and the response is a `404` **HTML** page rather than the JSON `{"detail": ...}` envelope shown below.
+   * @param webhookUuid UUID of the delivery to resend: the `uuid` of an entry returned by `GET /v3/session/{sessionId}/webhooks/`. It must belong to the session in the path.
+   */
+  resend(
+    sessionId: string,
+    webhookUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<SessionWebhookDelivery> {
+    return this._client.request(
+      SESSIONS_WEBHOOKS_RESEND,
+      [sessionId, webhookUuid],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Get session webhook delivery
+   *
+   * Retrieve one webhook delivery of a verification session: the URL it went to, the HTTP status your endpoint returned, and the exact headers and JSON body Didit sent. `request_header` and `request_body` are JSON text; to check your [signature verification](https://docs.didit.me/integration/webhooks#signature-verification), recompute `X-Signature-V2` from the parsed body with the secret of the destination it was sent to (or the application-level secret for a delivery to the legacy webhook URL). The path has no trailing slash: with one it returns `404`. A scoped API key needs `sessions: read` and `decisions: read`.
+   *
+   * `GET /v3/session/{sessionId}/webhook/{webhook_uuid}`
+   *
+   * @param sessionId UUID of the verification session, user (KYC) or business (KYB): the `session_id` returned by `POST /v3/session/`. The server resolves it against both session types.  **Must be a valid UUID.** The route only matches well-formed UUIDs, so a malformed value is rejected by the URL router before any application code runs and the response is a `404` **HTML** page rather than the JSON `{"detail": ...}` envelope shown below.
+   * @param webhookUuid UUID of the delivery: the `uuid` of an entry returned by `GET /v3/session/{sessionId}/webhooks/`. It must belong to the session in the path.
+   */
+  retrieve(
+    sessionId: string,
+    webhookUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<SessionWebhookDelivery> {
+    return this._client.request(
+      SESSIONS_WEBHOOKS_RETRIEVE,
+      [sessionId, webhookUuid],
+      undefined,
+      options,
+    );
+  }
+}
+
 /** `sessions` */
 export class Sessions extends APIResource {
   readonly imports: SessionsImports = new SessionsImports(this._client);
   readonly reviews: SessionsReviews = new SessionsReviews(this._client);
+  readonly signatures: SessionsSignatures = new SessionsSignatures(this._client);
+  readonly webhooks: SessionsWebhooks = new SessionsWebhooks(this._client);
+
+  /**
+   * Add an image to a session
+   *
+   * Attach one extra image or PDF to the ID verification (`model_type=kyc`) or Proof of Address (`model_type=poa`) result of a finished User Verification (KYC) session, for example evidence collected outside the flow. The session must be `Approved`, `Declined`, `In Review` or `Kyc Expired` and carry the result named by `model_type`; Business Verification (KYB) sessions are not supported. Each call appends one file (to the most recent result when the step ran more than once), keeps the existing files and records a `FILE_ADDED` entry in the session activity log; the upload sends no webhook and does not change the session status. The file is compressed on upload and is returned in `extra_files` of the session decision. This endpoint is limited to 10 requests per minute per API key. A scoped API key needs `sessions: write`, and without `media: read` it receives the `extra_files` links as `null`.
+   *
+   * `PATCH /v3/session/{sessionId}/add-images/`
+   *
+   * @param sessionId UUID of the User Verification (KYC) session to add the file to (the `session_id` returned by `POST /v3/session/`). A Business Verification (KYB) session ID returns `404`.
+   */
+  addImages(
+    sessionId: string,
+    params: SessionsAddImagesParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsAddImagesResponse> {
+    return this._client.request(SESSIONS_ADD_IMAGES, [sessionId], params, options);
+  }
 
   /**
    * Bulk delete KYC sessions by session_number
@@ -418,6 +653,8 @@ export class Sessions extends APIResource {
    * Each deleted session gets exactly the same treatment as the single-session delete endpoint: the session, every verification attempt it holds, its decision and extracted data, its related feature records (ID verification, face, liveness, face match, and so on) and all of its stored files are deleted, it disappears from every read endpoint, and previously issued media URLs stop resolving. Webhook deliveries still queued for a deleted session, and their retries, are dropped; webhooks already delivered are not affected. Blocklist entries are **not** removed, credits already consumed are **not** refunded, and the parent User entities are **not** deleted (use `POST /v3/users/delete/` for those); no webhook is emitted for the deletion. Deletion is permanent and irreversible.
    *
    * **Selection semantics:**
+   * - With `delete_all: true` you can narrow the selection with the filters of `GET /v3/sessions/`, each prefixed with `filter_` (for example `filter_status`, `filter_workflow_id`, `filter_date_from`). Filters that take several values in List Sessions (`status`, `workflow_id`, `country`, `region`, `document_type`, `document_name`, `session_type`, `warning`, `organization_name`) accept a comma-separated string or an array; the others take one value. An empty value is ignored. Filters apply only together with `delete_all`, and a deletion job applies the same filters.
+   * - An unknown `filter_*` key, or a filter value that cannot be read, rejects the whole request with `400` before anything is deleted, so a mistyped filter never widens the deletion to every session.
    * - Entries in `session_numbers` that do not match a live KYC session in your application (unknown numbers, already-deleted sessions, or sessions owned by another application) are **silently skipped**: they do not appear in `results` and are not counted in a job's `total`.
    * - Validation failures (a non-numeric entry, an empty list, neither `session_numbers` nor `delete_all` provided, or a template retention the application cannot honour) reject the **whole request** with `400` and delete nothing.
    * - Sessions are deleted in groups. If a group cannot be deleted (for example because a storage service is unavailable), every session in that group is reported as `face_retention_outcome: failed_retryable` and stays in place; the other groups are unaffected. Repeat the request for those sessions. A job retries such a group by itself.
@@ -442,7 +679,7 @@ export class Sessions extends APIResource {
   batchDelete(
     params: SessionsBatchDeleteParams = {},
     options?: RequestOptions,
-  ): APIPromise<SessionsBatchDeleteResponse | SessionsBatchDeleteResponse202> {
+  ): APIPromise<SessionsBatchDeleteResponse | SessionDeletionJob> {
     return this._client.request(SESSIONS_BATCH_DELETE, [], params, options);
   }
 
@@ -463,8 +700,35 @@ export class Sessions extends APIResource {
     sessionId: string,
     params: SessionsBulkUpdateAmlHitStatusParams,
     options?: RequestOptions,
-  ): APIPromise<unknown> {
+  ): APIPromise<SessionsBulkUpdateAmlHitStatusResponse> {
     return this._client.request(SESSIONS_BULK_UPDATE_AML_HIT_STATUS, [sessionId], params, options);
+  }
+
+  /**
+   * Cancel a check override that waits for the flow to finish
+   *
+   * Cancel an override of a feature (step) status that is still `pending_until_flow_finishes`, so it never applies. The check keeps its status, the cancellation is recorded in the session's activity as `FEATURE_OVERRIDE_CANCELLED`, and no webhook is sent. The response is the override with `state: cancelled` and `cancel_reason: cancelled_by_reviewer`.
+   *
+   * An override that already applied or was cancelled returns `409` with the code `feature_override_not_pending`. Find override IDs with `GET /v3/session/{sessionId}/features/overrides/` or in the `override` returned by the feature status update.
+   *
+   * Requires the `write:sessions` privilege; a scoped API key needs write access to decisions.
+   *
+   * `POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/`
+   *
+   * @param sessionId UUID of the verification session. Accepts both user (KYC) and business (KYB) session IDs.
+   * @param overrideId The `id` of the override to cancel.
+   */
+  cancelFeatureOverride(
+    sessionId: string,
+    overrideId: string,
+    options?: RequestOptions,
+  ): APIPromise<FeatureStatusOverride> {
+    return this._client.request(
+      SESSIONS_CANCEL_FEATURE_OVERRIDE,
+      [sessionId, overrideId],
+      undefined,
+      options,
+    );
   }
 
   /**
@@ -494,7 +758,7 @@ export class Sessions extends APIResource {
    *
    * **What is deleted:**
    * - The session and every verification attempt it holds, including results that a resubmission replaced: the decision, extracted data, all related feature records (ID verification, face, liveness, face match, AML, registry checks, IP analysis, and so on), its reviews and its activity log.
-   * - All stored files owned by the session: document front/back photos (full, cropped, and privacy-blurred variants), document-capture videos, portrait crops, NFC chip portrait and signature images, face reference images, liveness videos, face-match source/target images, Proof of Address documents, and any extra uploaded files (KYC); uploaded company documents and extra files (KYB). Previously issued media URLs (`https://<media-host>/...`) stop resolving.
+   * - All stored files owned by the session: document front/back photos (full, cropped, and privacy-blurred variants), document-capture videos, portrait crops, NFC chip portrait and signature images, face reference images, liveness videos, face-match source/target images, Proof of Address documents, and any extra uploaded files (KYC); uploaded company documents and extra files (KYB). Electronic Signature documents, signed PDFs, evidence PDFs and signature images (KYC and KYB): their download paths stop working. Previously issued media URLs (`https://<media-host>/...`) stop resolving.
    * - The session's face data. Its face embedding is deleted too, unless you choose to keep an image-free template (see **Face biometric data**).
    * - Webhook deliveries still queued for the session, and their retries. Webhooks already delivered are not affected.
    * - For a Business Verification (KYB) session: the verifications it created for its key people (KYC) and its corporate owners (KYB), recursively, reported as `deleted_child_verifications`. A verification it only links to, such as an existing approved KYC it reused, is not deleted.
@@ -529,6 +793,28 @@ export class Sessions extends APIResource {
     options?: RequestOptions,
   ): APIPromise<SessionsDeleteResponse> {
     return this._client.request(SESSIONS_DELETE, [sessionId], params, options);
+  }
+
+  /**
+   * Export AML screening history as CSV
+   *
+   * Download the same ongoing-monitoring history as `GET /v3/session/{sessionId}/aml-screening-history/` as a CSV file, one line per completed re-screen, newest first, ready to hand to an auditor. The file is streamed whole (no pagination) and starts with a header line; an empty cell means unknown, dataset dates are never estimated, and a value that would start a spreadsheet formula is prefixed with an apostrophe. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Errors are returned as JSON, not CSV. A scoped API key needs `decisions: read` and `media: read`: the response is a file, so a key without `media: read` gets `403`.
+   *
+   * `GET /v3/session/{sessionId}/aml-screening-history/export/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs: the server resolves the ID across both session types. Must be a well-formed UUID; a malformed value does not match the route and returns an HTML `404`.
+   */
+  exportAmlScreeningHistory(
+    sessionId: string,
+    params: SessionsExportAmlScreeningHistoryParams = {},
+    options?: RequestOptions,
+  ): APIPromise<Blob> {
+    return this._client.request(
+      SESSIONS_EXPORT_AML_SCREENING_HISTORY,
+      [sessionId],
+      params,
+      options,
+    );
   }
 
   /**
@@ -573,7 +859,10 @@ export class Sessions extends APIResource {
    *
    * `POST /v3/session/import-shared/`
    */
-  importShared(params: SessionsImportSharedParams, options?: RequestOptions): APIPromise<unknown> {
+  importShared(
+    params: SessionsImportSharedParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionDecision> {
     return this._client.request(SESSIONS_IMPORT_SHARED, [], params, options);
   }
 
@@ -606,12 +895,67 @@ export class Sessions extends APIResource {
   list(
     params: SessionsListParams = {},
     options?: RequestOptions,
-  ): PagePromise<
-    SessionsListResponse,
-    | SessionsListResponseResultsKycSessionRowSessionKindUser
-    | SessionsListResponseResultsKybSessionRowSessionKindBusiness
-  > {
+  ): PagePromise<SessionsListResponse, UserSessionListItem | BusinessSessionListItem> {
     return this._client.requestPage(SESSIONS_LIST, [], params, options);
+  }
+
+  /**
+   * List AML screening history
+   *
+   * List every completed ongoing-monitoring re-screen of a session's AML check, newest first by `completed_at`, including the runs where nothing changed: alerts, activity entries and webhooks fire only when a result moves, so this history is the evidence that a clean subject was still being screened. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Only ongoing-monitoring re-screens are listed (the first screening is part of the session decision) and runs from before this history existed are not reconstructed, so a session without ongoing monitoring returns an empty list. `count` is exact up to 100 and capped at 100 above that, so follow `next` until it is `null`. A scoped API key needs `decisions: read`; see [Continuous AML monitoring](https://docs.didit.me/core-technology/aml-screening/continuous-monitoring-aml-screening).
+   *
+   * `GET /v3/session/{sessionId}/aml-screening-history/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs: the server resolves the ID across both session types. Must be a well-formed UUID; a malformed value does not match the route and returns an HTML `404`.
+   */
+  listAmlScreeningHistory(
+    sessionId: string,
+    params: SessionsListAmlScreeningHistoryParams = {},
+    options?: RequestOptions,
+  ): PagePromise<SessionsListAmlScreeningHistoryResponse, AMLScreeningRun> {
+    return this._client.requestPage(
+      SESSIONS_LIST_AML_SCREENING_HISTORY,
+      [sessionId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * List session events
+   *
+   * Read the event timeline of one verification session, newest first by `sent_at`: the screens the user saw, buttons and uploads, failed attempts, status and feature-step changes, and the workflow routing trace. Works for User Verification (KYC) and Business Verification (KYB) session IDs. Events are stored asynchronously, so a new event can take a few seconds to appear. Results are paginated with `limit` and `offset`; follow `next` until it is `null`. A scoped API key needs `sessions: read` and `decisions: read`, and without `media: read` it receives `file_url` as `null`. The routing events are described in [Retrieve session](https://docs.didit.me/sessions-api/retrieve-session).
+   *
+   * `GET /v3/session/{sessionId}/events/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs: the server resolves the ID across both session types. Must be a well-formed UUID; a malformed value does not match the route and returns an HTML `404`.
+   */
+  listEvents(
+    sessionId: string,
+    params: SessionsListEventsParams = {},
+    options?: RequestOptions,
+  ): PagePromise<SessionsListEventsResponse, SessionEvent> {
+    return this._client.requestPage(SESSIONS_LIST_EVENTS, [sessionId], params, options);
+  }
+
+  /**
+   * List a session's check overrides
+   *
+   * Every override of an individual feature (step) status on a User Verification (KYC) or Business Verification (KYB) session, newest first and not paginated: applied ones, ones waiting for the person to finish the flow (`pending_until_flow_finishes`) and cancelled ones, each with who asked, their reason, and whether it applied while the person was still in the flow (`forced`).
+   *
+   * `person_in_flow` tells you whether a new override with `defer_until_flow_finishes: true` would wait. `flow_finished_at` is when the person last finished the flow; it is `null` while they are still in it (a resubmission included) and when the session closed before they finished.
+   *
+   * Requires the `read:sessions` privilege; a scoped API key needs read access to decisions.
+   *
+   * `GET /v3/session/{sessionId}/features/overrides/`
+   *
+   * @param sessionId UUID of the verification session. Accepts both user (KYC) and business (KYB) session IDs.
+   */
+  listFeatureOverrides(
+    sessionId: string,
+    options?: RequestOptions,
+  ): APIPromise<SessionsListFeatureOverridesResponse> {
+    return this._client.request(SESSIONS_LIST_FEATURE_OVERRIDES, [sessionId], undefined, options);
   }
 
   /**
@@ -626,18 +970,43 @@ export class Sessions extends APIResource {
   listNetworks(
     sessionId: string,
     options?: RequestOptions,
-  ): APIPromise<SessionsListNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(SESSIONS_LIST_NETWORKS, [sessionId], undefined, options);
+  }
+
+  /**
+   * Preview a session's decision email
+   *
+   * Render the email the person receives when you set a session to `Approved` or `Declined` with `send_email: true`, without changing the session or sending anything. The response shows the subject and HTML exactly as they are sent, the recipient, the sender, the language, and whether confirming the change sends the email at all (`will_be_sent`, `not_sent_reason`).
+   *
+   * The recipient is the person's own address: the one they verified in an email verification step of the flow, else the one given in `contact_details` when the session was created. The sender is your application's verified sender domain when white label applies (`sender_kind: customer`), else Didit's sender (`sender_kind: didit`).
+   *
+   * To send exactly what you previewed, call [Update Session Status](/sessions-api/update-status) with the same `new_status`, `send_email: true`, `email_address` set to `recipient`, `email_language` set to `language` and `email_preview_token` set to `preview_token`. The receipt expires after 15 minutes. When the recipient, language, session status, sender or email changed since the preview, the update returns `409` before anything changes; preview again and confirm with the new receipt.
+   *
+   * Works for User Verification (KYC) and Business Verification (KYB) sessions in `Approved`, `Declined`, `In Review`, `Kyc Expired`, `Abandoned` or `Resubmitted` status. The status check runs before body validation. Requires the `write:sessions` privilege; a scoped API key needs write access to decisions. Responses use `Cache-Control: no-store`: treat them as sensitive verification content.
+   *
+   * `POST /v3/session/{sessionId}/decision-email-preview/`
+   *
+   * @param sessionId UUID of the verification session. Accepts both user (KYC) and business (KYB) session IDs.
+   */
+  previewDecisionEmail(
+    sessionId: string,
+    params: SessionsPreviewDecisionEmailParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsPreviewDecisionEmailResponse> {
+    return this._client.request(SESSIONS_PREVIEW_DECISION_EMAIL, [sessionId], params, options);
   }
 
   /**
    * Preview a resubmission email
    *
-   * Render the email that would accompany a KYC or KYB resubmission without changing the session, resetting checks, extending its expiry, running checks or sending mail. Requires write:sessions and an application-scoped session in Approved, Declined, In Review, Kyc Expired or Abandoned status. The server validates the selected workflow steps and renders its fixed translated template with the applicable verified white-label sender and branding. The request cannot set a subject, message body or action URL.
+   * Render the email that would accompany a KYC or KYB resubmission without changing the session, resetting checks, extending its expiry, running checks or sending mail. Requires the `write:sessions` privilege (a scoped API key needs write access to decisions) and a session in `Approved`, `Declined`, `In Review`, `Kyc Expired` or `Abandoned` status. The server validates the selected workflow steps and renders its fixed translated template with the applicable verified white-label sender and branding. The request cannot set a subject, message body or action URL.
    *
-   * The response includes the recipient, sender, subject, HTML, resolved steps and a signed preview_token. requires_user_action describes whether the selected steps include an interactive check. Email delivery remains conditional: if automatic checks finalize the verification during the subsequent resubmission, no action-request email is sent.
+   * `email_address` is optional. Without it, the email goes to the person's own address: the one they verified in an email verification step of the flow, else the one given in `contact_details` when the session was created. An address you pass wins (`recipient_source: request`). When no address is known and you pass none, `recipient` and `preview_token` are empty strings and no email can be sent.
    *
-   * This preview does not reserve session state or authorize delivery. After reviewing it, call Update Session Status with new_status=Resubmitted, the same selection, recipient and language, and email_preview_token set to the returned preview_token. The receipt expires after 15 minutes. When a receipt is supplied, changed inputs, message content, sender or session state return 409 before any mutation or send. Existing integrations may omit the receipt. Regenerate the preview after a conflict. Treat the response as sensitive verification content; responses use Cache-Control: no-store. Render HTML in a sandboxed frame, never directly in your application DOM.
+   * The response includes the recipient and where it comes from, the sender, subject, HTML, language, resolved steps, whether confirming sends the email (`will_be_sent`, `not_sent_reason`) and a signed `preview_token`. `requires_user_action` is `false` when every selected step runs without the person: the resubmission then finishes on its own and no email goes out (`not_sent_reason: no_user_action`).
+   *
+   * This preview does not reserve session state or authorize delivery. After reviewing it, call [Update Session Status](/sessions-api/update-status) with `new_status: Resubmitted`, the same `nodes_to_resubmit` and `email_language` you previewed, `send_email: true`, `email_address` set to `recipient` and `email_preview_token` set to `preview_token`. The receipt expires after 15 minutes. When a receipt is supplied, changed inputs, message content, sender or session state return `409` before any mutation or send. Existing integrations may omit the receipt. Regenerate the preview after a conflict. Treat the response as sensitive verification content; responses use `Cache-Control: no-store`. Render HTML in a sandboxed frame, never directly in your application DOM.
    *
    * `POST /v3/session/{sessionId}/resubmission-preview/`
    *
@@ -645,10 +1014,33 @@ export class Sessions extends APIResource {
    */
   previewResubmission(
     sessionId: string,
-    params: SessionsPreviewResubmissionParams,
+    params: SessionsPreviewResubmissionParams = {},
     options?: RequestOptions,
   ): APIPromise<SessionsPreviewResubmissionResponse> {
     return this._client.request(SESSIONS_PREVIEW_RESUBMISSION, [sessionId], params, options);
+  }
+
+  /**
+   * Regenerate a Key People party's KYC session
+   *
+   * Give a Key People party of a Business Verification (KYB) session a new individual KYC session after its previous one was deleted, so the Key People check can finish again; send no request body. It works only when the party's KYC session was deleted (`kyc_session_deleted: true`): a party whose KYC session still exists (in any status), a party that never had one, or a company party returns `409`. Didit creates a new hosted KYC session with the workflow the deleted one ran (its latest published version) or, when that is no longer known, the workflow your Key People settings assign to the party's role, emails the link to the party when an email is on file, clears `is_skipped`, and recomputes the Key People check and the business session status. It then sends a `data.updated` [webhook](https://docs.didit.me/integration/webhooks) for the business session with trigger `console_key_people_regenerate`; to exempt the party instead, use `PATCH /v3/session/{sessionId}/kyb/parties/{partyUuid}/`. A scoped API key needs `decisions: write`, and without `sessions: write` it receives `kyc_session_url` as `null`.
+   *
+   * `POST /v3/session/{sessionId}/kyb/parties/{partyUuid}/regenerate/`
+   *
+   * @param sessionId UUID of the parent Business Verification (KYB) session.
+   * @param partyUuid UUID of the Key People party (`key_people_checks[].submitted.parties[].uuid` on the business session decision). Must belong to the session referenced by `sessionId`.
+   */
+  regenerateKybParty(
+    sessionId: string,
+    partyUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<KYBKeyPeopleParty> {
+    return this._client.request(
+      SESSIONS_REGENERATE_KYB_PARTY,
+      [sessionId, partyUuid],
+      undefined,
+      options,
+    );
   }
 
   /**
@@ -656,7 +1048,7 @@ export class Sessions extends APIResource {
    *
    * Retrieve the complete decision report for a verification session - the rolled-up session `status` plus one report per verification feature the workflow executed. This is the canonical read endpoint for both User Verification (KYC) and Business Verification (KYB) sessions: the same path serves both, and the top-level `session_kind` discriminator tells you which shape you received (`"user"` or `"business"`).
    *
-   * **Every feature report is a plural array.** V3 workflows are graphs that can run the same feature more than once, so each block (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `phone_verifications`, `email_verifications`, `aml_screenings`, `ip_analyses`, `database_validations`, `questionnaire_responses`) is a JSON array whose items each carry a `node_id` identifying the workflow graph node that produced them. Read NFC as `response.nfc_verifications[0]` - never as a singular `nfc` field. A block is `null` until the workflow has run that feature at least once; features the workflow does not include never appear with data.
+   * **Every feature report is a plural array.** V3 workflows are graphs that can run the same feature more than once, so each block (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `phone_verifications`, `email_verifications`, `aml_screenings`, `ip_analyses`, `database_validations`, `questionnaire_responses`) is a JSON array whose items each carry a `node_id` identifying the workflow graph node that produced them. Read NFC as `response.nfc_verifications[0]` - never as a singular `nfc` field. A block is `null` until the workflow has run that feature at least once; features the workflow does not include never appear with data. Electronic Signature results are in `signatures`, which is present only when the workflow has an Electronic Signature step.
    *
    * **When to call.** The recommended pattern is event-driven: wait for the `status.updated` webhook that fires when the session reaches a decision (`Approved`, `Declined`, `In Review`), then call this endpoint once to fetch the full report. Polling also works - the endpoint can be called at any point in the session lifecycle and returns the data produced so far - but webhook-then-fetch is cheaper and faster. Media URLs in the response (document images, videos, PDFs) are short-lived presigned links: fetch them promptly or re-request the decision to get fresh ones, and do not persist them as long-term references.
    *
@@ -674,7 +1066,7 @@ export class Sessions extends APIResource {
     sessionId: string,
     params: SessionsRetrieveDecisionParams = {},
     options?: RequestOptions,
-  ): APIPromise<SessionsRetrieveDecisionResponse> {
+  ): APIPromise<SessionDecision> {
     return this._client.request(SESSIONS_RETRIEVE_DECISION, [sessionId], params, options);
   }
 
@@ -691,10 +1083,7 @@ export class Sessions extends APIResource {
    *
    * @param jobId The `job_id` returned with the `202` from `POST /v3/sessions/delete/`.
    */
-  retrieveDeletionJob(
-    jobId: string,
-    options?: RequestOptions,
-  ): APIPromise<SessionsRetrieveDeletionJobResponse> {
+  retrieveDeletionJob(jobId: string, options?: RequestOptions): APIPromise<SessionDeletionJob> {
     return this._client.request(SESSIONS_RETRIEVE_DELETION_JOB, [jobId], undefined, options);
   }
 
@@ -716,6 +1105,29 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Simulate a sandbox session's status
+   *
+   * Force a terminal status on a sandbox session after the fact, from your backend, without running the flow. Sandbox applications only: a live session returns `404`. Works for User Verification (KYC) and Business Verification (KYB) sessions.
+   *
+   * Set `new_status`, or let `scenario` or `risk` supply it. `risk` (or the first risk the scenario's magic values carry) adds that warning to the session. The change is recorded in the session's activity.
+   *
+   * `send_webhooks` (default `true`) sends exactly the webhooks a real status change sends. With `false` the status still changes and the console still updates live, but no webhook is logged or sent, the missed-webhook recovery never re-sends that decision, and the next status change sends webhooks as usual. The response echoes the value applied.
+   *
+   * Requires the `write:sessions` privilege; a scoped API key needs write access to sessions. An unknown `session_id` returns `404` and another application's session returns `403`, both before the body is read; a live session returns `404` only after the body is validated. To simulate from the hosted flow with the session's own token, use `POST /v3/session/{sessionId}/sandbox/simulate/`. See [Sandbox & Test Data](/integration/sandbox-testing) for the scenario catalog.
+   *
+   * `POST /v3/session/{sessionId}/simulate/`
+   *
+   * @param sessionId UUID of the sandbox verification session. Accepts both user (KYC) and business (KYB) session IDs.
+   */
+  simulate(
+    sessionId: string,
+    params: SessionsSimulateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SandboxSimulateResponse> {
+    return this._client.request(SESSIONS_SIMULATE, [sessionId], params, options);
+  }
+
+  /**
    * Update an AML hit review status
    *
    * Set the review status of a **single AML hit** (a potential sanction / PEP / watchlist / adverse-media match) returned by AML screening, without changing the overall session decision. Identify the hit by its `hit_id` (the `id` of an entry in the AML check's `hits` array - see the session decision).
@@ -734,8 +1146,25 @@ export class Sessions extends APIResource {
     sessionId: string,
     params: SessionsUpdateAmlHitStatusParams,
     options?: RequestOptions,
-  ): APIPromise<unknown> {
+  ): APIPromise<SessionsUpdateAmlHitStatusResponse> {
     return this._client.request(SESSIONS_UPDATE_AML_HIT_STATUS, [sessionId], params, options);
+  }
+
+  /**
+   * Update an AML check status
+   *
+   * Set the status of a session's AML screening check as a whole (the `status` of an `aml_screenings[]` entry in the session decision), for example `Approved` after your team cleared every hit. Works for KYC and KYB session IDs; pass `node_id` (query parameter or body field) when the session ran more than one AML step, otherwise the most recent AML check is updated. When the status actually changes, an `AML_STATUS_UPDATED` activity entry is recorded and a `data.updated` [webhook](https://docs.didit.me/integration/webhooks) is sent; sending the current status returns `200` and changes nothing. The session status is not recomputed: use `PATCH /v3/session/{sessionId}/update-status/` for the session decision and `PATCH /v3/session/{sessionId}/update-aml-hit-status/` for single hits. A scoped API key needs `decisions: write`.
+   *
+   * `PATCH /v3/session/{sessionId}/update-aml-status/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs: the server resolves the ID across both session types. Must be a well-formed UUID; a malformed value does not match the route and returns an HTML `404`.
+   */
+  updateAmlStatus(
+    sessionId: string,
+    params: SessionsUpdateAmlStatusParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsUpdateAmlStatusResponse> {
+    return this._client.request(SESSIONS_UPDATE_AML_STATUS, [sessionId], params, options);
   }
 
   /**
@@ -764,15 +1193,45 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Update a Document AI document
+   *
+   * Correct the fields Document AI extracted from one uploaded document, set its review status, or both, on a KYC or KYB session. `extracted_data` must be a JSON object and is merged key by key: a key you send replaces the stored value (a key sent as `null` is stored as `null`) and keys you leave out keep their values. The document status feeds the Document AI result of its workflow node in the session decision; the session status itself is not recomputed. Every successful call, including one that changes nothing, sends a `data.updated` [webhook](https://docs.didit.me/integration/webhooks) with trigger `manual_review`. A scoped API key needs `decisions: write`; see [Document AI](https://docs.didit.me/core-technology/document-ai/overview).
+   *
+   * `PATCH /v3/document-ai/{sessionId}/documents/{documentUuid}/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs: the server resolves the ID across both session types. Must be a well-formed UUID; a malformed value does not match the route and returns an HTML `404`.
+   * @param documentUuid UUID of the Document AI document (`document_ai_documents[].items[].uuid` in `GET /v3/session/{sessionId}/decision/`). It must belong to the session in the path.
+   */
+  updateDocumentAiData(
+    sessionId: string,
+    documentUuid: string,
+    params: SessionsUpdateDocumentAiDataParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsUpdateDocumentAiDataResponse> {
+    return this._client.request(
+      SESSIONS_UPDATE_DOCUMENT_AI_DATA,
+      [sessionId, documentUuid],
+      params,
+      options,
+    );
+  }
+
+  /**
    * Update an individual feature (step) status
    *
-   * Set the status of a single verification feature (step) within a session **without changing the overall session decision**. Target the feature by its workflow graph `nodeId` (use `default` for non-graph workflows where the step has no node).
+   * Set the status of a single verification feature (step) within a session. Target the feature by its workflow graph `nodeId`. On non-graph workflows, whose steps have no node, use `default` and also pass `feature_type` to say which step you mean.
    *
-   * Works for both User Verification (KYC) and Business Verification (KYB) sessions and every step type - ID/OCR, Liveness, Face Match, NFC, AML, Proof of Address, Phone, Email, Database Validation, Questionnaire, and the KYB registry / documents / key-people checks.
+   * Works for both User Verification (KYC) and Business Verification (KYB) sessions and every step type: ID/OCR, Liveness, Face Match, NFC, AML, Proof of Address, Phone, Email, Database Validation, Questionnaire, and the KYB registry / documents / key-people checks. This endpoint is **not** available for standalone API sessions (`session_type = API`).
    *
-   * `new_status` must be one of `Approved`, `Declined`, or `In Review`, and must differ from the feature's current status. A successful call fires a `data.updated` webhook and appends an activity entry (with actor attribution) to the session's review trail. This endpoint is **not** available for standalone API sessions (`session_type = API`).
+   * `new_status` must be one of `Approved`, `Declined`, or `In Review`, and must differ from the feature's current status.
    *
-   * Authenticate with your API key (`x-api-key`) or a user authorization header - either must carry the `write:sessions` privilege.
+   * **When the override applies.** Without `defer_until_flow_finishes` (or with `false`) the override applies at once, as it always did; when the person is still in the flow it is recorded as `forced`. With `defer_until_flow_finishes: true` while the person is still in the flow (the session is `Not Started`, `In Progress` or `Resubmitted` and has not finished), the override is stored as `pending_until_flow_finishes` and applies when the flow finishes, after the flow reaches its own decision. On a session whose flow already ended it applies at once either way. A waiting override is cancelled instead when the person redoes its step before finishing, when a newer override on the same check replaces it, when the session leaves the flow unfinished (abandoned, expired, or decided mid-flow), or when you cancel it with `POST /v3/session/{sessionId}/features/overrides/{overrideId}/cancel/`. List a session's overrides with `GET /v3/session/{sessionId}/features/overrides/`.
+   *
+   * **Effect on the session.** A session that already has a decision keeps it: only the check changes. When the session has no decision yet and its workflow is waiting on exactly this step, applying the override completes the step: the workflow moves on, later steps run, and a status node can set the session decision and fire `status.updated`.
+   *
+   * **Webhooks and activity.** A `data.updated` webhook fires when the override applies (at once, or when the flow finishes), never while it waits or when it is cancelled. Every override is recorded in the session's activity as `FEATURE_OVERRIDE_PENDING`, `FEATURE_OVERRIDE_APPLIED` or `FEATURE_OVERRIDE_CANCELLED`, with who made it; the request's entry carries your `comment`.
+   *
+   * Authenticate with your API key (`x-api-key`) or a user authorization header carrying the `write:sessions` privilege; a scoped API key needs write access to decisions.
    *
    * `PATCH /v3/session/{sessionId}/features/{nodeId}/update-status/`
    *
@@ -884,13 +1343,13 @@ export class Sessions extends APIResource {
    *
    * Manually override the final decision of a KYC or KYB verification session. Set `new_status` to `Approved` or `Declined` to record a manual decision, or to `Resubmitted` to clear specific verification steps and let the user redo them through the same verification URL. The endpoint accepts both user (KYC) and business (KYB) session IDs.
    *
-   * Call it once a session has reached a reviewable state: the current status must be `Approved`, `Declined`, `In Review`, `Kyc Expired`, `Abandoned`, or `Resubmitted`. Sessions that are still `Not Started`, `In Progress`, or `Awaiting User`, or that ended as `Expired`, return `400`. The new status must differ from the current one, and your API key's organization needs the `write:sessions` permission. The eligible-state check runs before body validation, so an ineligible session returns the `Wrong Current Status` error even when the payload is also invalid.
+   * Call it once a session has reached a reviewable state: the current status must be `Approved`, `Declined`, `In Review`, `Kyc Expired`, `Abandoned`, or `Resubmitted`. Sessions that are still `Not Started`, `In Progress`, or `Awaiting User`, or that ended as `Expired`, return `400`. Your API key needs the `write:sessions` permission (a scoped API key needs write access to decisions). The eligible-state check runs before body validation, so an ineligible session returns the `Wrong Current Status` error even when the payload is also invalid.
    *
-   * For `Resubmitted`, pass `nodes_to_resubmit` to choose which workflow steps the user must redo, or omit it to auto-select existing feature attempts in a resubmittable state (`Declined`, `In Review`, `Not Finished`, `Expired`). Never-attempted features are not auto-selected - list them explicitly in `nodes_to_resubmit`, or the request returns `400` when no recorded attempt needs resubmission. Captured data for the selected steps is deleted, the steps are reordered to match the workflow graph, the session's expiration window restarts, and the original verification URL becomes usable again. Backend-only steps (`AML`, `DATABASE_VALIDATION`, `IP_ANALYSIS`) at the head of the list run immediately without user interaction; if every resubmitted step is backend-only, the session re-finalizes within the same request. `KYB_REGISTRY` and `KYB_KEY_PEOPLE` cannot be resubmitted directly - resubmit the relevant child KYC sessions instead and the parent business session recomputes automatically.
+   * For `Resubmitted`, pass `nodes_to_resubmit` to choose which workflow steps the user must redo, or omit it to auto-select existing feature attempts in a resubmittable state (`Declined`, `In Review`, `Not Finished`, `Expired`). Never-attempted features are not auto-selected: list them explicitly in `nodes_to_resubmit`, or the request returns `400` when no recorded attempt needs resubmission. The selected steps' previous results move to the resubmission's history (returned by Get Decision with `include=resubmissions`), the steps are reordered to match the workflow graph, the session's expiration window restarts, and the original verification URL becomes usable again. Backend-only steps (`AML`, `DATABASE_VALIDATION`, `IP_ANALYSIS`) at the head of the list run immediately without user interaction; if every resubmitted step is backend-only, the session re-finalizes within the same request. `KYB_REGISTRY` and `KYB_KEY_PEOPLE` cannot be resubmitted directly: resubmit the relevant child KYC sessions instead and the parent business session recomputes automatically.
    *
-   * Every successful call fires the `status.updated` [webhook](/integration/webhooks) once the change commits and appends an activity entry - with actor attribution and your `comment` - to the session's `reviews`, visible in [Get Decision](#get-/v3/session/-sessionId-/decision/) and in the console activity timeline. The user-profile aggregates linked to the session's `vendor_data` update as well. Declining disables ongoing AML monitoring for the session; re-approving re-enables it (from `Resubmitted`, `Declined`, or `Kyc Expired`) when the workflow has monitoring turned on. Approving or declining a child KYC that belongs to a KYB key-people check recomputes the parent business session's status. Set `send_email: true` (with `email_address`) to notify the user: a status notice for `Approved`/`Declined`, or a resubmission email containing the verification link and per-step reasons for `Resubmitted`.
+   * Every call that changes the status fires the `status.updated` [webhook](/integration/webhooks) once the change commits and appends an activity entry (with actor attribution and your `comment`) to the session's `reviews`, visible in [Get Decision](#get-/v3/session/-sessionId-/decision/) and in the console activity timeline. The user-profile aggregates linked to the session's `vendor_data` update as well. Declining disables ongoing AML monitoring for the session; re-approving re-enables it (from `Resubmitted`, `Declined`, or `Kyc Expired`) when the workflow has monitoring turned on. Approving or declining a child KYC that belongs to a KYB key-people check recomputes the parent business session's status. Set `send_email: true` (with `email_address`) to notify the user: a status notice for `Approved`/`Declined`, or a resubmission email containing the verification link and per-step reasons for `Resubmitted`. To check the email first, preview it with [Preview Decision Email](/sessions-api/preview-decision-email) (`Approved`, `Declined`) or [Preview Resubmission Email](/sessions-api/preview-resubmission) (`Resubmitted`) and pass its `preview_token` as `email_preview_token`: the update then sends exactly the previewed email, or returns `409` before changing anything when the email or the session changed since the preview or the receipt is older than 15 minutes.
    *
-   * The operation is intentionally not repeatable with the same value: re-sending the current status returns `400` (`The new status is the same as the current status.`), so accidental double-submissions are harmless. Authentication and permission failures both return `403` - this API never responds `401`.
+   * Repeating `Approved` or `Declined` on a session that already has that status changes nothing and returns `200`: no webhook, no activity entry and no email. Repeating `Resubmitted` returns `400` (`The new status is the same as the current status.`). Missing or invalid credentials and missing permissions return `403`; an expired scoped API key returns `401`.
    *
    * `PATCH /v3/session/{sessionId}/update-status/`
    *

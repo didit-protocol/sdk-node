@@ -7,8 +7,10 @@ import { Account } from "./account.js";
 import { AgeEstimation } from "./age-estimation.js";
 import { Aml } from "./aml.js";
 import { AmlMonitoring } from "./aml-monitoring.js";
+import { Analytics } from "./analytics.js";
 import { Billing } from "./billing.js";
 import { BiometricTemplates } from "./biometric-templates.js";
+import { Blocklist } from "./blocklist.js";
 import { BusinessSessions } from "./business-sessions.js";
 import { Businesses } from "./businesses.js";
 import { Cases } from "./cases.js";
@@ -21,8 +23,11 @@ import { FaceSearch } from "./face-search.js";
 import { FraudChecks } from "./fraud-checks.js";
 import { IdVerification } from "./id-verification.js";
 import { IdWallets } from "./id-wallets.js";
+import { Investigator } from "./investigator.js";
 import { Ip } from "./ip.js";
 import { Kyb } from "./kyb.js";
+import { Lists } from "./lists.js";
+import { MonitoringEvents } from "./monitoring-events.js";
 import { Networks } from "./networks.js";
 import { PassiveLiveness } from "./passive-liveness.js";
 import { Phone } from "./phone.js";
@@ -45,8 +50,10 @@ export abstract class DiditResources extends APIClient {
   readonly ageEstimation: AgeEstimation = new AgeEstimation(this);
   readonly aml: Aml = new Aml(this);
   readonly amlMonitoring: AmlMonitoring = new AmlMonitoring(this);
+  readonly analytics: Analytics = new Analytics(this);
   readonly billing: Billing = new Billing(this);
   readonly biometricTemplates: BiometricTemplates = new BiometricTemplates(this);
+  readonly blocklist: Blocklist = new Blocklist(this);
   readonly businessSessions: BusinessSessions = new BusinessSessions(this);
   readonly businesses: Businesses = new Businesses(this);
   readonly cases: Cases = new Cases(this);
@@ -59,8 +66,11 @@ export abstract class DiditResources extends APIClient {
   readonly fraudChecks: FraudChecks = new FraudChecks(this);
   readonly idVerification: IdVerification = new IdVerification(this);
   readonly idWallets: IdWallets = new IdWallets(this);
+  readonly investigator: Investigator = new Investigator(this);
   readonly ip: Ip = new Ip(this);
   readonly kyb: Kyb = new Kyb(this);
+  readonly lists: Lists = new Lists(this);
+  readonly monitoringEvents: MonitoringEvents = new MonitoringEvents(this);
   readonly networks: Networks = new Networks(this);
   readonly passiveLiveness: PassiveLiveness = new PassiveLiveness(this);
   readonly phone: Phone = new Phone(this);
@@ -81,8 +91,10 @@ export { Account, AccountApplications, AccountOrganizations } from "./account.js
 export { AgeEstimation } from "./age-estimation.js";
 export { Aml } from "./aml.js";
 export { AmlMonitoring } from "./aml-monitoring.js";
+export { Analytics } from "./analytics.js";
 export { Billing } from "./billing.js";
 export { BiometricTemplates } from "./biometric-templates.js";
+export { Blocklist } from "./blocklist.js";
 export { BusinessSessions } from "./business-sessions.js";
 export { Businesses } from "./businesses.js";
 export {
@@ -105,8 +117,11 @@ export { FaceSearch } from "./face-search.js";
 export { FraudChecks } from "./fraud-checks.js";
 export { IdVerification } from "./id-verification.js";
 export { IdWallets } from "./id-wallets.js";
+export { Investigator } from "./investigator.js";
 export { Ip } from "./ip.js";
 export { Kyb } from "./kyb.js";
+export { Lists, ListsEntries } from "./lists.js";
+export { MonitoringEvents } from "./monitoring-events.js";
 export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";
 export { Phone } from "./phone.js";
@@ -114,9 +129,26 @@ export { ProofOfAddress } from "./proof-of-address.js";
 export { Questionnaires } from "./questionnaires.js";
 export { RegulatoryReports } from "./regulatory-reports.js";
 export { ReportTemplates } from "./report-templates.js";
-export { Sessions, SessionsImports, SessionsReviews } from "./sessions.js";
-export { Transactions, TransactionsRules, TransactionsTravelRule } from "./transactions.js";
-export { TravelRule, TravelRuleWalletAddresses } from "./travel-rule.js";
+export {
+  Sessions,
+  SessionsImports,
+  SessionsReviews,
+  SessionsSignatures,
+  SessionsWebhooks,
+} from "./sessions.js";
+export {
+  Transactions,
+  TransactionsNotes,
+  TransactionsRules,
+  TransactionsTravelRule,
+} from "./transactions.js";
+export {
+  TravelRule,
+  TravelRuleCounterpartyContacts,
+  TravelRuleTransfers,
+  TravelRuleWalletAddresses,
+  TravelRuleWorkspaceResource,
+} from "./travel-rule.js";
 export { Users } from "./users.js";
 export { WalletScreening } from "./wallet-screening.js";
 export { Webhooks, WebhooksDestinations } from "./webhooks.js";

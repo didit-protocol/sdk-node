@@ -12,6 +12,36 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("networks", () => {
+  it("networks.add_tag: POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/add/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/add/",
+      ),
+    });
+    const result = await client.networks.addTag("3fa85f64-5717-4562-b3fc-2c963f66afa6", {
+      tag_uuid: "00000000-0000-4000-8000-000000000001",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/networks/3fa85f64-5717-4562-b3fc-2c963f66afa6/tags/add/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ tag_uuid: "00000000-0000-4000-8000-000000000001" });
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/add/",
+      ),
+    );
+  });
+
   it("networks.download_report: GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/report/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -195,6 +225,36 @@ describe("networks", () => {
       ),
     );
     expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("networks.remove_tag: POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/remove/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/remove/",
+      ),
+    });
+    const result = await client.networks.removeTag("3fa85f64-5717-4562-b3fc-2c963f66afa6", {
+      tag_uuid: "00000000-0000-4000-8000-000000000001",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/networks/3fa85f64-5717-4562-b3fc-2c963f66afa6/tags/remove/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ tag_uuid: "00000000-0000-4000-8000-000000000001" });
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/remove/",
+      ),
+    );
   });
 
   it("networks.retrieve: GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/", async () => {

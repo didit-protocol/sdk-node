@@ -4,8 +4,17 @@ import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { AmlScreenParams, AmlScreenResponse } from "../types/aml.js";
+import type {
+  AmlRetrieveDatasetFreshnessResponse,
+  AmlScreenParams,
+  AmlScreenResponse,
+} from "../types/aml.js";
 
+const AML_RETRIEVE_DATASET_FRESHNESS: OperationSpec = {
+  method: "GET",
+  path: "/v3/aml/dataset-freshness/",
+  dates: { p: { dataset_freshness: "AMLDatasetFreshness" } },
+};
 const AML_SCREEN: OperationSpec = {
   method: "POST",
   path: "/v3/aml/",
@@ -17,6 +26,23 @@ const AML_SCREEN: OperationSpec = {
 
 /** `aml` */
 export class Aml extends APIResource {
+  /**
+   * Get AML dataset freshness
+   *
+   * Report how current the datasets behind AML screening are, per source family (`sanctions`, `pep`, `warnings`, `adverse_media`), as audit evidence for [ongoing AML monitoring](https://docs.didit.me/core-technology/aml-screening/continuous-monitoring-aml-screening#proving-that-monitoring-ran). The answer is platform-wide: no session in the path, no customer data in the body, the same answer for every application.
+   *
+   * Always `200` for an accepted key. Check `availability` first: when it is not `available`, `dataset_freshness` is `null`. Dates are never estimated: a family whose datasets reported no date is absent from `sources`, and a family where only some datasets reported one has `oldest_updated_at: null`. Readings are taken while ongoing monitoring runs, not on each call; `captured_at` says when.
+   *
+   * A scoped API key needs `sessions: read`; a key limited to some workflows or to approved sessions cannot call this endpoint. Nothing is billed.
+   *
+   * `GET /v3/aml/dataset-freshness/`
+   */
+  retrieveDatasetFreshness(
+    options?: RequestOptions,
+  ): APIPromise<AmlRetrieveDatasetFreshnessResponse> {
+    return this._client.request(AML_RETRIEVE_DATASET_FRESHNESS, [], undefined, options);
+  }
+
   /**
    * AML screening (standalone)
    *

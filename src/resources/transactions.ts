@@ -6,22 +6,30 @@ import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  EntityNetworkMembershipList,
   TransactionDetail,
+  TransactionNote,
   TransactionRuleBacktestResult,
   TransactionRuleDetail,
   TransactionRuleInstallResult,
   TransactionRuleLibraryEntry,
+  TransactionSummary,
+  TravelRuleMessage,
+  TravelRuleTestVaspInboundResponse,
   TravelRuleTransferDetail,
 } from "../types/components.js";
 import type {
   TransactionsCreateParams,
   TransactionsCreateSdkTokenParams,
   TransactionsCreateSdkTokenResponse,
-  TransactionsListNetworksResponse,
   TransactionsListParams,
-  TransactionsListPartyNetworksResponse,
+  TransactionsListRelatedParams,
+  TransactionsListRelatedResponse,
   TransactionsListResponse,
   TransactionsListResponseResults,
+  TransactionsNotesCreateParams,
+  TransactionsNotesListParams,
+  TransactionsNotesListResponse,
   TransactionsRulesBacktestParams,
   TransactionsRulesCreateParams,
   TransactionsRulesInstallLibraryParams,
@@ -32,9 +40,23 @@ import type {
   TransactionsRulesUninstallLibraryParams,
   TransactionsRulesUpdateParams,
   TransactionsTravelRuleConfirmOwnershipParams,
+  TransactionsTravelRuleCreateMessageParams,
+  TransactionsTravelRuleTriggerTestVaspInboundParams,
   TransactionsTravelRuleUpdateTransferParams,
 } from "../types/transactions.js";
 
+const TRANSACTIONS_NOTES_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/transactions/{transaction_id}/notes/",
+  body: "json",
+  dates: "TransactionNote",
+};
+const TRANSACTIONS_NOTES_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/transactions/{transaction_id}/notes/",
+  query: ["limit", "offset"],
+  dates: { p: { results: { i: "TransactionNote" } } },
+};
 const TRANSACTIONS_RULES_BACKTEST: OperationSpec = {
   method: "POST",
   path: "/v3/transactions/rules/backtest/",
@@ -89,6 +111,23 @@ const TRANSACTIONS_TRAVEL_RULE_CONFIRM_OWNERSHIP: OperationSpec = {
   body: "json",
   dates: "TravelRuleTransferDetail",
 };
+const TRANSACTIONS_TRAVEL_RULE_CREATE_MESSAGE: OperationSpec = {
+  method: "POST",
+  path: "/v3/transactions/{transaction_id}/travel-rule/messages/",
+  body: "json",
+  dates: "TravelRuleMessage",
+};
+const TRANSACTIONS_TRAVEL_RULE_LIST_MESSAGES: OperationSpec = {
+  method: "GET",
+  path: "/v3/transactions/{transaction_id}/travel-rule/messages/",
+  dates: { i: "TravelRuleMessage" },
+};
+const TRANSACTIONS_TRAVEL_RULE_TRIGGER_TEST_VASP_INBOUND: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/test-vasp/inbound/",
+  body: "json",
+  dates: "TravelRuleTestVaspInboundResponse",
+};
 const TRANSACTIONS_TRAVEL_RULE_UPDATE_TRANSFER: OperationSpec = {
   method: "PATCH",
   path: "/v3/transactions/{transaction_id}/travel-rule/",
@@ -107,29 +146,91 @@ const TRANSACTIONS_CREATE_SDK_TOKEN: OperationSpec = {
   body: "json",
   dates: { p: { expires_at: 1 } },
 };
+const TRANSACTIONS_GENERATE_PDF: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/",
+  scope: "application",
+  response: "binary",
+  accept: "application/pdf",
+};
 const TRANSACTIONS_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/transactions/",
-  query: ["limit", "offset"],
-  dates: { p: { results: { i: { p: { txn_date: 1, created_at: 1 } } } } },
+  query: ["limit", "offset", "travel_rule_status"],
+  dates: {
+    p: {
+      results: { i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionTravelRule" } } },
+    },
+  },
 };
 const TRANSACTIONS_LIST_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
 };
 const TRANSACTIONS_LIST_PARTY_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
+};
+const TRANSACTIONS_LIST_RELATED: OperationSpec = {
+  method: "GET",
+  path: "/v3/transactions/{transaction_id}/related/",
+  query: ["limit", "offset"],
+  dates: { p: { results: { i: "TransactionSummary" } } },
 };
 const TRANSACTIONS_RETRIEVE: OperationSpec = {
   method: "GET",
   path: "/v3/transactions/{transaction_id}/",
   dates: "TransactionDetail",
 };
+
+/** `transactions.notes` */
+export class TransactionsNotes extends APIResource {
+  /**
+   * Create transaction note
+   *
+   * Add a plain-text note to a monitored transaction's review timeline, where Console reviewers see it. A note is context, not a decision: the transaction's `status`, `score` and alerts do not change, no webhook is sent, and nothing is billed. The transaction's `activities` gain a `TRANSACTION_NOTE_ADDED` entry.
+   *
+   * Notes created with an API key have no author: `actor_email` and `actor_name` are `null`, so put the author in the text if you need it. Every address in `mentioned_emails` must belong to a member of your organization, otherwise the whole request fails with `400`; mentions are stored lower-cased and de-duplicated, and this endpoint does not notify the mentioned members.
+   *
+   * Each call creates a new note, so retrying a timed-out request can add it twice: list the notes before retrying. There is no API endpoint to edit or remove a note. A scoped API key needs `transactions: write`; a key limited to some workflows or to approved sessions cannot call this endpoint.
+   *
+   * `POST /v3/transactions/{transaction_id}/notes/`
+   *
+   * @param transactionId Didit transaction UUID: the `uuid` returned by `POST /v3/transactions/` and `GET /v3/transactions/`. Your own `txn_id` is not accepted.
+   */
+  create(
+    transactionId: string,
+    params: TransactionsNotesCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<TransactionNote> {
+    return this._client.request(TRANSACTIONS_NOTES_CREATE, [transactionId], params, options);
+  }
+
+  /**
+   * List transaction notes
+   *
+   * List the notes on one monitored transaction, newest first (`created_at` descending): notes you add through the API, notes and status changes reviewers make in the Console, and notes Didit adds automatically (a rule's `add_note` action, or a problem creating the user-action verification session), which carry `actor_name` `Rule Engine`. `metadata` tells the note types apart.
+   *
+   * Paginated with `limit` and `offset`. `count` is exact up to 100 and capped at 100 above that, so follow `next` until it is `null` instead of computing pages from `count`. This is a read with no side effects.
+   *
+   * A scoped API key needs `transactions: read`; a key limited to some workflows or to approved sessions cannot call this endpoint. Reviewers see the same list under **Notes** on the [transaction detail](https://docs.didit.me/transaction-monitoring/console#transaction-detail).
+   *
+   * `GET /v3/transactions/{transaction_id}/notes/`
+   *
+   * @param transactionId Didit transaction UUID: the `uuid` returned by `POST /v3/transactions/` and `GET /v3/transactions/`. Your own `txn_id` is not accepted.
+   */
+  list(
+    transactionId: string,
+    params: TransactionsNotesListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TransactionsNotesListResponse, TransactionNote> {
+    return this._client.requestPage(TRANSACTIONS_NOTES_LIST, [transactionId], params, options);
+  }
+}
 
 /** `transactions.rules` */
 export class TransactionsRules extends APIResource {
@@ -177,7 +278,7 @@ export class TransactionsRules extends APIResource {
   /**
    * Install library rules
    *
-   * Install one or more presets onto the application, by `library_keys` or a whole `bundle`. Installed presets evaluate immediately in their default mode; already-installed keys are skipped.
+   * Install one or more presets onto the application, by `library_keys` or a whole `bundle`. An installed preset is active at once while transaction monitoring is on, and disabled otherwise; already-installed keys are skipped. A library rule whose conditions read data the rules engine cannot evaluate yet is withheld until it can run. A request that names one in `library_keys` answers 400 and installs nothing ("These library rules cannot run yet: their conditions read data the rules engine cannot evaluate." followed by the keys), and a `bundle` install skips it. A withheld rule comes back on its own once its conditions can be evaluated. A `library_keys` entry that is not in the library is skipped, not refused.
    *
    * `POST /v3/transactions/rules/install/`
    */
@@ -205,7 +306,7 @@ export class TransactionsRules extends APIResource {
   /**
    * List rule library
    *
-   * Browse the full preset rule library (150+ rules) with each entry's complete configuration and an `is_installed` flag for this application. Filter by bundle, category, or free-text search.
+   * Browse the full preset rule library (150+ rules) with each entry's complete configuration and an `is_installed` flag for this application. Filter by bundle, category, or free-text search. A library rule whose conditions read data the rules engine cannot evaluate yet is withheld until it can run. Withheld rules are not listed.
    *
    * `GET /v3/transactions/rules/library/`
    */
@@ -246,7 +347,7 @@ export class TransactionsRules extends APIResource {
   /**
    * Update rule
    *
-   * Partially update a rule. Custom rules accept every configuration field. Library (PRESET) rules accept only `mode` - use it to activate, disable, or switch a preset to TEST; any other field returns 400.
+   * Partially update a rule. Custom rules accept every configuration field. Library (PRESET) rules accept only `mode` - use it to activate, disable, or switch a preset to TEST; any other field returns 400. An installed copy of a withheld library rule is switched off: setting its `mode` to anything but `DISABLED` answers 400 ("This library rule cannot run yet: its conditions read data the rules engine cannot evaluate.").
    *
    * `PATCH /v3/transactions/rules/{rule_uuid}/`
    *
@@ -266,11 +367,11 @@ export class TransactionsTravelRule extends APIResource {
   /**
    * Confirm or deny wallet ownership
    *
-   * Called by the beneficiary's application when its INTERNAL-rail transfer is UNCONFIRMED_OWNERSHIP. Confirming marks the matching wallet address book entry as ownership-verified and runs the beneficiary name match on both sides of the transfer; denying declines both sides.
+   * Resolve a transfer that waits on wallet ownership: call it on your own side of the transfer when it is UNCONFIRMED_OWNERSHIP, or when it is an inbound transfer in ON_HOLD. Confirming marks the matching wallet address book entry as ownership-verified (for an inbound ON_HOLD transfer with no entry, Didit creates one from beneficiary_data.wallet_address) and runs the beneficiary name match on both sides of the transfer; denying declines both sides. An inbound transfer whose deposit already settled moves on to FINISHED when the match succeeds. When the counterparty wallet was declared self-hosted (counterparty.payment_method.method_type: unhosted_wallet), confirming records that the customer verified who controls that wallet and completes the transfer (COMPLETED) in both directions, or FINISHED for an inbound deposit whose on-chain hash is already known. The wallet verified is the counterparty's: the destination of an outbound withdrawal, or the source (originator's wallet) of an inbound deposit. If it is not in your wallet address book yet, Didit adds it as ownership-verified under the counterparty's name; if the book already holds it under a different holder name, the transfer moves to COUNTERPARTY_MISMATCHED_DATA. For an inbound TRP transfer in UNCONFIRMED_OWNERSHIP, ON_HOLD or COUNTERPARTY_MISMATCHED_DATA, Didit sends your decision to the originating VASP instead: approving returns the payment address (wallet_address, or the matched entry's address) and moves the transfer to COMPLETED, and denying declines it. The same call also decides an inbound transfer that a GTR or Sygna Bridge counterparty sent and that waits for your review (`UNCONFIRMED_OWNERSHIP`, `ON_HOLD` or `COUNTERPARTY_MISMATCHED_DATA`): `confirmed: true` approves it (pass `wallet_address` when the transfer names none) and `confirmed: false` declines it, and the network is answered after the response, with retries. VerifyVASP takes its answer when it asks, so a VerifyVASP transfer that would need your review is declined at once and cannot be decided later.
    *
    * `POST /v3/transactions/{transaction_id}/travel-rule/ownership/`
    *
-   * @param transactionId Didit-stable transaction UUID that owns the transfer (the beneficiary side's transaction).
+   * @param transactionId Didit-stable UUID of the transaction your application holds for this transfer: the beneficiary side's transaction on an INTERNAL-rail transfer, or the transaction you created (outbound or inbound) when the counterparty wallet was declared self-hosted.
    */
   confirmOwnership(
     transactionId: string,
@@ -286,9 +387,68 @@ export class TransactionsTravelRule extends APIResource {
   }
 
   /**
-   * Finish, cancel, or resend a Travel Rule transfer
+   * Send a Travel Rule message or document request
    *
-   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to re-run routing for an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry).
+   * Sends a message or a document request to the counterparty VASP. Works on INTERNAL transfers (the other Didit customer sees it on its side of the pair) and EMAIL transfers (the counterparty is emailed and answers in the pickup portal). A transfer over TRP, GTR, TRUST, VerifyVASP or Sygna carries no messages, because those protocols have none. Limits: 100 messages per transfer, 5000 characters per body, 10 requested documents, 5 files of 10 MB each.
+   *
+   * `POST /v3/transactions/{transaction_id}/travel-rule/messages/`
+   *
+   * @param transactionId Didit-stable transaction UUID that owns the transfer.
+   */
+  createMessage(
+    transactionId: string,
+    params: TransactionsTravelRuleCreateMessageParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleMessage> {
+    return this._client.request(
+      TRANSACTIONS_TRAVEL_RULE_CREATE_MESSAGE,
+      [transactionId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * List Travel Rule messages
+   *
+   * Messages and document requests exchanged with the counterparty VASP about this transfer.
+   *
+   * `GET /v3/transactions/{transaction_id}/travel-rule/messages/`
+   *
+   * @param transactionId Didit-stable transaction UUID that owns the transfer.
+   */
+  listMessages(transactionId: string, options?: RequestOptions): APIPromise<TravelRuleMessage[]> {
+    return this._client.request(
+      TRANSACTIONS_TRAVEL_RULE_LIST_MESSAGES,
+      [transactionId],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Trigger an inbound transfer from the Didit Test VASP (sandbox)
+   *
+   * Sandbox applications only. The Didit Test VASP sends your application an inbound Travel Rule transfer, so you can exercise the receiving side of an exchange end to end before going live. The transfer is booked and decided by the same logic a real inbound transfer from a network runs against your wallet address book, so the inbox, the decision and the wallet ownership flow behave as they do live. Nothing leaves Didit. A live application receives 400. Send the same `reference` again to get the transfer the first call booked instead of a second one.
+   *
+   * `POST /v3/travel-rule/test-vasp/inbound/`
+   */
+  triggerTestVaspInbound(
+    params: TransactionsTravelRuleTriggerTestVaspInboundParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleTestVaspInboundResponse> {
+    return this._client.request(
+      TRANSACTIONS_TRAVEL_RULE_TRIGGER_TEST_VASP_INBOUND,
+      [],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Finish, cancel, resend, or update the originator wallet of a Travel Rule transfer
+   *
+   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way.
    *
    * `PATCH /v3/transactions/{transaction_id}/travel-rule/`
    *
@@ -310,13 +470,14 @@ export class TransactionsTravelRule extends APIResource {
 
 /** `transactions` */
 export class Transactions extends APIResource {
+  readonly notes: TransactionsNotes = new TransactionsNotes(this._client);
   readonly rules: TransactionsRules = new TransactionsRules(this._client);
   readonly travelRule: TransactionsTravelRule = new TransactionsTravelRule(this._client);
 
   /**
    * Create transaction
    *
-   * Submit a transaction for synchronous AML/risk monitoring. The transaction is created `APPROVED`, then your rules (and crypto screening, when applicable) run inline and may flip the returned `status` to `IN_REVIEW` or `DECLINED`. **`transaction_id` is your idempotency key** (max 128 chars, unique per app); reusing it returns 400. A `transaction.created` webhook is dispatched on success (sandbox applications are not billed and do not emit webhooks).
+   * Submit a transaction for synchronous AML/risk monitoring. The transaction is created `APPROVED`, then your rules (and crypto screening, when applicable) run inline and may flip the returned `status` to `IN_REVIEW` or `DECLINED`. **`transaction_id` is your idempotency key** (max 128 chars, unique per app); reusing it returns 400. A `transaction.created` webhook is dispatched on success for live applications. Sandbox applications are not billed and do not emit `transaction.created` or `transaction.status.updated` webhooks. Sandbox Travel Rule exchanges do emit `travel_rule.status.updated` webhooks with `environment: sandbox`. A Travel Rule transfer is stored and returned before any counterparty is contacted: `travel_rule.status` comes back `AWAITING_COUNTERPARTY` (or `NOT_APPLICABLE` below your threshold, `UNCONFIRMED_OWNERSHIP` for a declared self-hosted wallet, `COMPLETED` when the other wallet is your own verified wallet) and `travel_rule.protocol` is null. Didit then chooses the rail and sends the exchange, and every later status change of the transfer, including `COUNTERPARTY_VASP_NOT_FOUND` when no rail reaches the counterparty, arrives as a `travel_rule.status.updated` webhook. Your rules run again when the rail or the status changes.
    *
    * `POST /v3/transactions/`
    */
@@ -339,6 +500,23 @@ export class Transactions extends APIResource {
     options?: RequestOptions,
   ): APIPromise<TransactionsCreateSdkTokenResponse> {
     return this._client.request(TRANSACTIONS_CREATE_SDK_TOKEN, [], params, options);
+  }
+
+  /**
+   * Download a transaction PDF report
+   *
+   * Render one monitored transaction as a PDF report: overview and verdict, parties and payment methods, custom properties, alerts and rule runs, screening and Travel Rule results, the network summary, the cost breakdown, up to 50 related transactions and the 20 most recent activity entries. The body is the PDF itself (`application/pdf`), not JSON.
+   *
+   * The report is rendered from the transaction's current data on every call, so request it again after a status change. Nothing is stored and nothing is billed. Rendering can take a few seconds, so use a generous client timeout.
+   *
+   * This endpoint lives on an application-scoped path: put your organization ID and the ID of the application your API key belongs to in the URL ([find your organization ID](https://docs.didit.me/getting-started/api-authentication#find-your-organization-id)). A PDF report counts as media: a scoped API key needs `media: read` and `transactions: read`, and a key limited to some workflows or to approved sessions cannot call it.
+   *
+   * `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/`
+   *
+   * @param transactionUuid Didit transaction UUID: the `uuid` returned by `POST /v3/transactions/` and `GET /v3/transactions/`. Your own `txn_id` is not accepted.
+   */
+  generatePdf(transactionUuid: string, options?: RequestOptions): APIPromise<Blob> {
+    return this._client.request(TRANSACTIONS_GENERATE_PDF, [transactionUuid], undefined, options);
   }
 
   /**
@@ -367,7 +545,7 @@ export class Transactions extends APIResource {
   listNetworks(
     transactionUuid: string,
     options?: RequestOptions,
-  ): APIPromise<TransactionsListNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(TRANSACTIONS_LIST_NETWORKS, [transactionUuid], undefined, options);
   }
 
@@ -385,13 +563,34 @@ export class Transactions extends APIResource {
     transactionUuid: string,
     transactionPartyUuid: string,
     options?: RequestOptions,
-  ): APIPromise<TransactionsListPartyNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(
       TRANSACTIONS_LIST_PARTY_NETWORKS,
       [transactionUuid, transactionPartyUuid],
       undefined,
       options,
     );
+  }
+
+  /**
+   * List related transactions
+   *
+   * List the other transactions in your application that involve the same people or companies as this one. A transaction is related when any of its parties, in any role, has the same `vendor_data` as one of this transaction's parties. The transaction itself is never returned, and parties without `vendor_data` are ignored: when none of this transaction's parties has one, the result is always empty.
+   *
+   * Results use the summary shape of `GET /v3/transactions/`, newest first (`txn_date`, then `created_at`). Paginated with `limit` and `offset`; `count` is exact up to 100 and capped at 100 above that, so follow `next` until it is `null`.
+   *
+   * A scoped API key needs `transactions: read`; a key limited to some workflows or to approved sessions cannot call this endpoint. Send the same `vendor_data` for the same person or company on every [transaction](https://docs.didit.me/transaction-monitoring/transactions#subject-and-counterparty) to make this list complete.
+   *
+   * `GET /v3/transactions/{transaction_id}/related/`
+   *
+   * @param transactionId Didit transaction UUID: the `uuid` returned by `POST /v3/transactions/` and `GET /v3/transactions/`. Your own `txn_id` is not accepted.
+   */
+  listRelated(
+    transactionId: string,
+    params: TransactionsListRelatedParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TransactionsListRelatedResponse, TransactionSummary> {
+    return this._client.requestPage(TRANSACTIONS_LIST_RELATED, [transactionId], params, options);
   }
 
   /**

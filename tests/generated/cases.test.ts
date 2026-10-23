@@ -1341,6 +1341,33 @@ describe("cases", () => {
     );
   });
 
+  it("cases.requests.remind: POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/",
+      ),
+    });
+    const result = await client.cases.requests.remind("case-uuid-1", "request-uuid-2");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/cases/case-uuid-1/requests/request-uuid-2/remind/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/",
+      ),
+    );
+  });
+
   it("cases.requests.retrieve_attachment: GET /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/attachment/", async () => {
     const { client, calls } = mockClient({ status: 200, body: BINARY, contentType: "image/jpeg" });
     const result = await client.cases.requests.retrieveAttachment("case-uuid-1", "request-uuid-2");

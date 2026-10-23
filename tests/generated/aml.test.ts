@@ -11,6 +11,24 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("aml", () => {
+  it("aml.retrieve_dataset_freshness: GET /v3/aml/dataset-freshness/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/aml/dataset-freshness/"),
+    });
+    const result = await client.aml.retrieveDatasetFreshness();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/aml/dataset-freshness/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/aml/dataset-freshness/"));
+  });
+
   it("aml.screen: POST /v3/aml/", async () => {
     const { client, calls } = mockClient({ status: 200, json: responseExample("POST /v3/aml/") });
     const result = await client.aml.screen({ full_name: "Antonio Ejemplo Modelo" });

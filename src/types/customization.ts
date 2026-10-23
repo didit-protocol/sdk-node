@@ -54,12 +54,16 @@ export interface CustomizationUpdateParams {
   delete_logo_square?: boolean;
   /** When `true`, removes the current rectangular logo. */
   delete_logo_rectangular?: boolean;
+  /** When `true`, removes the current dark-mode logo, and `logo_rectangular_dark` then reads `null`. If the same multipart request also uploads `image_rectangular_dark`, the upload wins. */
+  delete_logo_rectangular_dark?: boolean;
   /** When `true`, removes the current favicon. */
   delete_favicon?: boolean;
-  /** Square logo (1:1 aspect ratio). Max **1 MB**. Allowed: `png`, `jpg`, `jpeg`, `webp`. */
+  /** Square logo (1:1 aspect ratio). PNG, JPG or WebP, at least 512 px on the long side, at most **1 MB**. */
   image_square?: Uploadable;
-  /** Rectangular logo (2:1 aspect ratio). Max **1 MB**. Allowed: `png`, `jpg`, `jpeg`, `webp`. */
+  /** Rectangular logo (2:1 aspect ratio). PNG, JPG or WebP, at least 512 px on the long side, at most **1 MB**. */
   image_rectangular?: Uploadable;
+  /** Rectangular logo for dark mode (2:1 aspect ratio), shown on a dark background. PNG, JPG or WebP, at least 512 px on the long side, at most **1 MB**. Returned as `logo_rectangular_dark`. */
+  image_rectangular_dark?: Uploadable;
   /** Favicon image. Max **500 KB**. */
   image_favicon?: Uploadable;
 }

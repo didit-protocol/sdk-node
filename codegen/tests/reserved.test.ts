@@ -33,12 +33,13 @@ describe("reserved names", () => {
     for (const method of methods) {
       const segments = method.resource.split(".");
       segments.forEach((_, i) => {
-        generated.add(
-          segments
-            .slice(0, i + 1)
-            .map((s) => s.replace(/(^|_)([a-z0-9])/g, (_m, _u, c: string) => c.toUpperCase()))
-            .join(""),
-        );
+        const name = segments
+          .slice(0, i + 1)
+          .map((s) => s.replace(/(^|_)([a-z0-9])/g, (_m, _u, c: string) => c.toUpperCase()))
+          .join("");
+        generated.add(name);
+        // A resource class that shares its name with a component type takes a Resource suffix.
+        generated.add(`${name}Resource`);
       });
     }
     const handWritten = exported.filter((name) => !generated.has(name) && name !== "default");

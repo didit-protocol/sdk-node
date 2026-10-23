@@ -2,20 +2,26 @@
 
 import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
+import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   AccountApplicationsCreateParams,
+  AccountApplicationsListParams,
   AccountApplicationsUpdateParams,
   AccountLoginParams,
+  AccountOrganizationsListParams,
   AccountRegisterParams,
   AccountResendOtpParams,
+  AccountResendOtpResponse,
   AccountVerifyEmailParams,
 } from "../types/account.js";
 import type {
   Application,
   LoginResponse,
   Organization,
+  PaginatedApplicationList,
+  PaginatedOrganizationList,
   RegisterResponse,
   VerifyEmailResponse,
 } from "../types/components.js";
@@ -33,6 +39,8 @@ const ACCOUNT_APPLICATIONS_LIST: OperationSpec = {
   path: "/organizations/me/{org_id}/applications/",
   api: "account",
   auth: "account_token",
+  query: ["limit", "offset"],
+  dates: "PaginatedApplicationList",
 };
 const ACCOUNT_APPLICATIONS_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -54,7 +62,8 @@ const ACCOUNT_ORGANIZATIONS_LIST: OperationSpec = {
   path: "/organizations/me/",
   api: "account",
   auth: "account_token",
-  dates: { i: "Organization" },
+  query: ["limit", "offset"],
+  dates: "PaginatedOrganizationList",
 };
 const ACCOUNT_LOGIN: OperationSpec = {
   method: "POST",
@@ -107,14 +116,18 @@ export class AccountApplications extends APIResource {
   /**
    * List the organization's applications
    *
-   * List every application in the organization. Use this to discover `app_id` values when recovering credentials from a new machine - follow with `GET /organizations/me/{org_id}/applications/{app_id}/` for the API key. Requires an owner or admin Bearer token.
+   * List the organization's applications, 50 per page by default. Use this to discover `app_id` values when recovering credentials from a new machine, then call `GET /organizations/me/{org_id}/applications/{app_id}/` for the API key. Requires an owner or admin Bearer token.
    *
    * `GET /organizations/me/{org_id}/applications/`
    *
    * @param orgId UUID of the organization. Look it up with `GET /organizations/me/`.
    */
-  list(orgId: string, options?: RequestOptions): APIPromise<unknown> {
-    return this._client.request(ACCOUNT_APPLICATIONS_LIST, [orgId], undefined, options);
+  list(
+    orgId: string,
+    params: AccountApplicationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PaginatedApplicationList, Application> {
+    return this._client.requestPage(ACCOUNT_APPLICATIONS_LIST, [orgId], params, options);
   }
 
   /**
@@ -134,7 +147,7 @@ export class AccountApplications extends APIResource {
   /**
    * Update Application
    *
-   * Update application metadata (name, URLs, redirect URIs). `api_key` and `client_id` are never rotated. Requires owner/admin JWT.
+   * Update application metadata (name, URLs, redirect URIs). `api_key` and `client_id` are never rotated. `products` is read-only: a `products` key in the body is ignored. Requires owner/admin JWT.
    *
    * `PATCH /organizations/me/{org_id}/applications/{app_id}/`
    *
@@ -160,8 +173,11 @@ export class AccountOrganizations extends APIResource {
    *
    * `GET /organizations/me/`
    */
-  list(options?: RequestOptions): APIPromise<Organization[]> {
-    return this._client.request(ACCOUNT_ORGANIZATIONS_LIST, [], undefined, options);
+  list(
+    params: AccountOrganizationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PaginatedOrganizationList, Organization> {
+    return this._client.requestPage(ACCOUNT_ORGANIZATIONS_LIST, [], params, options);
   }
 }
 
@@ -201,7 +217,10 @@ export class Account extends APIResource {
    *
    * `POST /programmatic/resend-otp/`
    */
-  resendOtp(params: AccountResendOtpParams, options?: RequestOptions): APIPromise<unknown> {
+  resendOtp(
+    params: AccountResendOtpParams,
+    options?: RequestOptions,
+  ): APIPromise<AccountResendOtpResponse> {
     return this._client.request(ACCOUNT_RESEND_OTP, [], params, options);
   }
 

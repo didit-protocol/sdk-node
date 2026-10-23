@@ -155,7 +155,7 @@ function renderCase(method: Method): Case {
   const spec = op.spec;
   const pathValues = method.pathArgs.map((_, i) => pathExample(method, i));
   const params: Record<string, Value> = {};
-  const query: Record<string, string> = {};
+  const query: Record<string, string | string[]> = {};
   const body: Record<string, Json> = {};
   const form: Record<string, string> = {};
   const files: string[] = [];
@@ -188,7 +188,9 @@ function renderCase(method: Method): Case {
       if (value === null) continue;
       params[field.key] = value;
       if (field.location === "query") {
-        query[field.wire] = formText(value);
+        // An array is sent as the repeated parameter; the mock reports one value as a string.
+        const items = Array.isArray(value) ? (value as Json[]).map(formText) : [formText(value)];
+        query[field.wire] = items.length === 1 ? items[0]! : items;
       } else if (method.fileFields.includes(field.wire) || hasFile(value)) {
         files.push(field.wire);
         if (method.bodyMode === "auto") useMultipart = true;

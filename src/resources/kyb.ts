@@ -112,6 +112,10 @@ export class Kyb extends APIResource {
    *
    * **`kyb_response_id` is ephemeral.** It is a per-search handle, not a stable company id. Select promptly after searching and re-search to get a fresh handle instead of storing it.
    *
+   * **`tier` picks the provider chain.** `tier` names the registry tier the search runs on: `basic` (the default, the Lite chain), `shareholders` or `ubo`. The search uses the provider chain that serves that tier, and it is not always the same chain the Lite search reads, so an empty Lite search is not proof that the registry does not hold the company - search again at the tier you need. A country that does not offer the tier you name is searched at the highest tier it offers up to that one. Retrieve the candidate from the endpoint that sells that tier: `POST /v3/kyb/select/` (Lite), `POST /v3/kyb/shareholders/` or `POST /v3/kyb/ubo/`.
+   *
+   * **Authentication.** `POST /v3/kyb/search/` (and `/v2/`) takes your application's API key in the `x-api-key` header. The hosted `POST /v1/kyb/search/` is the session-authenticated route a hosted verification flow calls: it answers `403` to an API key and takes no `tier` - the workflow's KYB registry configuration picks the chain.
+   *
    * **Two modes.**
    * - *Synchronous (default):* the API polls the registry until the search resolves and returns the final candidate list (`search_resolved: true`).
    * - *Asynchronous:* pass `webhook_url` and the API returns immediately - usually with `search_status: "pending"` and an empty candidate list - then POSTs a `kyb.registry_search.resolved` callback to your URL when the registry finishes. The callback body is `{"event_id", "event_type": "kyb.registry_search.resolved", "request_id", "vendor_data", "metadata", "search_status", "search_resolved", "kyb_registry", "timestamp", "created_at"}` - note `timestamp` and `created_at` in the callback are epoch integers, unlike this endpoint's ISO `created_at` - and is sent **unsigned** (header `X-Didit-Unsigned-Callback: true`, no `X-Signature`).

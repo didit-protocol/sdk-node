@@ -11,7 +11,6 @@ import type {
   CasesBlueprintsCreateParams,
   CasesBlueprintsDiscardDraftParams,
   CasesBlueprintsInstallPresetsParams,
-  CasesBlueprintsInstallPresetsResponse,
   CasesBlueprintsListHistoryParams,
   CasesBlueprintsListParams,
   CasesBlueprintsListPresetsResponse,
@@ -20,9 +19,7 @@ import type {
   CasesBlueprintsSaveDraftParams,
   CasesBlueprintsUpdateParams,
   CasesBulkAssignParams,
-  CasesBulkAssignResponse,
   CasesBulkUpdateStatusParams,
-  CasesBulkUpdateStatusResponse,
   CasesChecklistToggleItemParams,
   CasesCreateParams,
   CasesFindDuplicatesParams,
@@ -43,11 +40,11 @@ import type {
   CasesPrintResponse,
   CasesRegulatoryReportsCreateParams,
   CasesRegulatoryReportsListParams,
-  CasesRegulatoryReportsListResponse,
   CasesRejectResolutionParams,
   CasesRequestsCreateParams,
   CasesRequestsListParams,
   CasesRequestsPreviewParams,
+  CasesRequestsRemindResponse,
   CasesResolveParams,
   CasesRetrieveStatisticsParams,
   CasesRetrieveStatisticsResponse,
@@ -68,11 +65,14 @@ import type {
   CasesUpdateParams,
 } from "../types/cases.js";
 import type {
+  AMLScreening,
   CaseActionCaseActionReceipt,
   CaseActionCaseActionReceiptPage,
   CaseActionCaseEntityActionResult,
   CaseBlueprintDetail,
   CaseBlueprintListItem,
+  CaseBlueprintPresetInstallResult,
+  CaseBulkUpdateResult,
   CaseChecklistItem,
   CaseCollaborationCaseNote,
   CaseCollaborationPaginatedCaseNoteList,
@@ -94,6 +94,7 @@ import type {
   CustomerMessagingCaseRequestPreviewResponse,
   CustomerMessagingPaginatedCaseRequestList,
   RegulatoryReportDetail,
+  RegulatoryReportList,
   RoutingPublicationCaseRoutingRule,
   RoutingPublicationPaginatedPolicyRevisionList,
   RoutingPublicationPolicyDraft,
@@ -263,7 +264,7 @@ const CASES_REGULATORY_REPORTS_LIST: OperationSpec = {
   path: "/v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/regulatory-reports/",
   scope: "application",
   query: ["limit", "offset"],
-  dates: { p: { results: { i: "RegulatoryReportDetail" } } },
+  dates: "RegulatoryReportList",
 };
 const CASES_REQUESTS_CANCEL: OperationSpec = {
   method: "POST",
@@ -291,6 +292,12 @@ const CASES_REQUESTS_PREVIEW: OperationSpec = {
   scope: "application",
   body: "json",
   dates: "CustomerMessagingCaseRequestPreviewResponse",
+};
+const CASES_REQUESTS_REMIND: OperationSpec = {
+  method: "POST",
+  path: "/v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/",
+  scope: "application",
+  dates: { p: { request: "CustomerMessagingCaseRequest", reminded_at: 1, next_reminder_at: 1 } },
 };
 const CASES_REQUESTS_RETRIEVE_ATTACHMENT: OperationSpec = {
   method: "GET",
@@ -491,6 +498,7 @@ const CASES_LIST_AML_HITS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/aml/",
   scope: "application",
+  dates: { i: "AMLScreening" },
 };
 const CASES_LIST_EVENTS: OperationSpec = {
   method: "GET",
@@ -620,7 +628,7 @@ export class CasesBlueprints extends APIResource {
   installPresets(
     params: CasesBlueprintsInstallPresetsParams = {},
     options?: RequestOptions,
-  ): APIPromise<CasesBlueprintsInstallPresetsResponse> {
+  ): APIPromise<CaseBlueprintPresetInstallResult> {
     return this._client.request(CASES_BLUEPRINTS_INSTALL_PRESETS, [], params, options);
   }
 
@@ -947,7 +955,7 @@ export class CasesRegulatoryReports extends APIResource {
     caseUuid: string,
     params: CasesRegulatoryReportsListParams = {},
     options?: RequestOptions,
-  ): PagePromise<CasesRegulatoryReportsListResponse, RegulatoryReportDetail> {
+  ): PagePromise<RegulatoryReportList, RegulatoryReportDetail> {
     return this._client.requestPage(CASES_REGULATORY_REPORTS_LIST, [caseUuid], params, options);
   }
 }
@@ -1009,6 +1017,24 @@ export class CasesRequests extends APIResource {
     options?: RequestOptions,
   ): APIPromise<CustomerMessagingCaseRequestPreviewResponse> {
     return this._client.request(CASES_REQUESTS_PREVIEW, [caseUuid], params, options);
+  }
+
+  /**
+   * Remind the customer of a request
+   *
+   * Send a waiting customer request's email again, to the same verified recipient, with the same content. You can remind a request at most once every 24 hours. A reminder changes nothing else: the request keeps its deadline and the case keeps its status. Each reminder is logged on the case as a CUSTOMER_REQUEST event with action `reminded`. The response's `delivery_status` is how this reminder's delivery ended: SENT, SIMULATED (the email was not sent), or UNKNOWN (the email might have been accepted; it is not sent again automatically). `next_reminder_at` is when you can remind this request again. Returns 409 with a `reason` when the customer no longer has the request to answer, and 429 with `retry_at` and a `Retry-After` header when the request was reminded in the last 24 hours. Requires `write:cases`.
+   *
+   * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/`
+   *
+   * @param caseUuid Case UUID.
+   * @param requestUuid Customer request UUID, from the case's request list.
+   */
+  remind(
+    caseUuid: string,
+    requestUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<CasesRequestsRemindResponse> {
+    return this._client.request(CASES_REQUESTS_REMIND, [caseUuid, requestUuid], undefined, options);
   }
 
   /**
@@ -1279,7 +1305,7 @@ export class Cases extends APIResource {
   /**
    * Approve staged resolution (4-eyes)
    *
-   * Apply a resolution staged by resolve on a maker blueprint. The caller must be a different user than the one who submitted it, otherwise 403.
+   * Apply a resolution staged by resolve on a four-eyes blueprint. The caller must be a different officer than the one who submitted it, otherwise 403. When the resolution names a checker (the case's `checker`), only that member can approve it: any other caller, including an API key, gets 403.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/approve/`
    *
@@ -1316,7 +1342,7 @@ export class Cases extends APIResource {
   bulkAssign(
     params: CasesBulkAssignParams,
     options?: RequestOptions,
-  ): APIPromise<CasesBulkAssignResponse> {
+  ): APIPromise<CaseBulkUpdateResult> {
     return this._client.request(CASES_BULK_ASSIGN, [], params, options);
   }
 
@@ -1330,7 +1356,7 @@ export class Cases extends APIResource {
   bulkUpdateStatus(
     params: CasesBulkUpdateStatusParams,
     options?: RequestOptions,
-  ): APIPromise<CasesBulkUpdateStatusResponse> {
+  ): APIPromise<CaseBulkUpdateResult> {
     return this._client.request(CASES_BULK_UPDATE_STATUS, [], params, options);
   }
 
@@ -1421,7 +1447,7 @@ export class Cases extends APIResource {
    *
    * @param caseUuid Case UUID.
    */
-  listAmlHits(caseUuid: string, options?: RequestOptions): APIPromise<Record<string, unknown>[]> {
+  listAmlHits(caseUuid: string, options?: RequestOptions): APIPromise<AMLScreening[]> {
     return this._client.request(CASES_LIST_AML_HITS, [caseUuid], undefined, options);
   }
 
@@ -1469,7 +1495,7 @@ export class Cases extends APIResource {
   /**
    * Reject staged resolution (4-eyes)
    *
-   * Reject a resolution staged by resolve and return the case to its maker blueprint. The caller must be a different user than the one who submitted it, otherwise 403.
+   * Reject a resolution staged by resolve and return the case to its maker blueprint. The caller must be a different officer than the one who submitted it, otherwise 403. When the resolution names a checker (the case's `checker`), only that member can reject it: any other caller, including an API key, gets 403.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/reject-approval/`
    *
@@ -1512,7 +1538,7 @@ export class Cases extends APIResource {
   /**
    * Resolve case
    *
-   * Resolve the case as false_positive or valid_threat. Blocked with 400 if the blueprint's checklist is not optional and items remain incomplete, or if the blueprint requires a resolution note and none is given. When the case's blueprint has a four_eyes_checker_blueprint configured, the resolution is staged (case.pending_resolution) and the case moves to the checker blueprint instead of resolving immediately; a different user must call approve or reject-approval.
+   * Resolve the case with one of five resolutions: FALSE_POSITIVE (no concern found), VALID_THREAT (concern confirmed), INCONCLUSIVE, REQUIREMENTS_NOT_MET or REQUIREMENTS_SATISFIED. Blocked with 400 if the blueprint's checklist is not optional and items remain incomplete, or if the blueprint requires a resolution note and none is given. When the case's blueprint has a four-eyes checker step (four_eyes_checker_blueprint), the resolution is staged (case.pending_resolution) and the case moves to the checker blueprint instead of resolving immediately; a different officer must call approve or reject-approval. Submit a four-eyes resolution as a console member: a resolution an API key submits has no recorded maker, so approve and reject-approval return 403 for every caller. On a four-eyes blueprint you can name the member who must approve with `checker`: then only that member can approve or reject the resolution, and the response's `checker` names them. Without `checker`, the resolution waits on the checker blueprint's queue. Sending `checker` for a blueprint without a checker step returns 400.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/resolve/`
    *
@@ -1594,7 +1620,7 @@ export class Cases extends APIResource {
   /**
    * Update case
    *
-   * Update the case's title, priority, due date, or tags. Logs PRIORITY_CHANGED/DUE_DATE_CHANGED/TAG_ADDED/TAG_REMOVED events as applicable.
+   * Update the case's title, priority, due date, tags, or owning review team. Send only the fields you want to change; fields you omit keep their value. `tags` replaces the whole tag list. `team` takes the uuid of an active review team of this application (list them with `GET .../cases/teams/`), or null to clear the team. Requires a full-access API key, or `write:cases` for a console member: a key with restricted access gets 403. Logs PRIORITY_CHANGED, DUE_DATE_CHANGED, TAG_ADDED, TAG_REMOVED and TEAM_CHANGED events as applicable; a title change is saved without a timeline event. Returns the updated case.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/`
    *

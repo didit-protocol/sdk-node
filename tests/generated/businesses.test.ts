@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   API_ORIGIN,
+  BINARY,
   expectAuth,
   expectMatchesExample,
   mockClient,
@@ -47,6 +48,31 @@ describe("businesses", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("POST /v3/businesses/create/"));
+  });
+
+  it("businesses.generate_session_pdf: GET /v3/organization/{organization_id}/application/{application_id}/businesses/{business_session_id}/pdf/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      body: BINARY,
+      contentType: "application/pdf",
+    });
+    const result = await client.businesses.generateSessionPdf(
+      "22222222-3333-4444-5555-666666666666",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/businesses/22222222-3333-4444-5555-666666666666/pdf/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/pdf");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
   });
 
   it("businesses.list: GET /v3/businesses/", async () => {

@@ -17,7 +17,7 @@
 
 import { decodeDates } from "../core/dates.js";
 import { DATE_PLANS } from "../resources/date-plans.js";
-import type { SessionsRetrieveDecisionResponse } from "../types/sessions.js";
+import type { SessionDecision } from "../types/components.js";
 
 /** Which header authenticated a delivery. */
 export type WebhookVerifiedBy = "signature" | "signature_v2" | "signature_simple";
@@ -117,7 +117,7 @@ interface SessionEventFields {
   /** The metadata you attached to the session. */
   metadata?: Record<string, unknown> | null;
   /** The session decision, the same type `sessions.retrieveDecision` returns (date-times as `Date`). */
-  decision?: SessionsRetrieveDecisionResponse | null;
+  decision?: SessionDecision | null;
   /** The steps the user must redo and why, when the status is `Resubmitted`. */
   resubmit_info?: unknown;
 }
@@ -309,7 +309,7 @@ export function parseEvent(
   // The decision is the generated response type, whose date-times are Date objects.
   const type = payload.webhook_type;
   if ((type === "status.updated" || type === "data.updated") && isRecord(payload.decision)) {
-    decodeDates(payload.decision, "SessionsRetrieveDecisionResponse", DATE_PLANS);
+    decodeDates(payload.decision, "SessionDecision", DATE_PLANS);
   }
   return payload as WebhookEvent;
 }

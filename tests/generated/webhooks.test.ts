@@ -65,6 +65,68 @@ describe("webhooks", () => {
     expectMatchesExample(result, responseExample("GET /v3/webhook/destinations/"));
   });
 
+  it("webhooks.destinations.list_deliveries: GET /v3/webhook/destinations/{destination_uuid}/deliveries/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/webhook/destinations/{destination_uuid}/deliveries/", "page"),
+    });
+    const page = await client.webhooks.destinations.listDeliveries(
+      "11111111-2222-3333-4444-555555555555",
+      { limit: 50, offset: 0, date_from: "2026-10-01", date_to: "2026-10-16" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/webhook/destinations/11111111-2222-3333-4444-555555555555/deliveries/",
+    );
+    expect(request.query).toEqual({
+      limit: "50",
+      offset: "0",
+      date_from: "2026-10-01",
+      date_to: "2026-10-16",
+    });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/webhook/destinations/{destination_uuid}/deliveries/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("webhooks.destinations.resend_delivery: POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/",
+      ),
+    });
+    const result = await client.webhooks.destinations.resendDelivery(
+      "11111111-2222-3333-4444-555555555555",
+      "66666666-7777-8888-9999-000000000001",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/webhook/destinations/11111111-2222-3333-4444-555555555555/deliveries/66666666-7777-8888-9999-000000000001/resend/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/",
+      ),
+    );
+  });
+
   it("webhooks.destinations.retrieve: GET /v3/webhook/destinations/{destination_uuid}/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -85,6 +147,62 @@ describe("webhooks", () => {
     expectMatchesExample(
       result,
       responseExample("GET /v3/webhook/destinations/{destination_uuid}/"),
+    );
+  });
+
+  it("webhooks.destinations.retrieve_analytics: GET /v3/webhook/destinations/{destination_uuid}/analytics/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/webhook/destinations/{destination_uuid}/analytics/"),
+    });
+    const result = await client.webhooks.destinations.retrieveAnalytics(
+      "11111111-2222-3333-4444-555555555555",
+      { date_from: "2026-10-01", date_to: "2026-10-16" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/webhook/destinations/11111111-2222-3333-4444-555555555555/analytics/",
+    );
+    expect(request.query).toEqual({ date_from: "2026-10-01", date_to: "2026-10-16" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/webhook/destinations/{destination_uuid}/analytics/"),
+    );
+  });
+
+  it("webhooks.destinations.retrieve_delivery: GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/",
+      ),
+    });
+    const result = await client.webhooks.destinations.retrieveDelivery(
+      "11111111-2222-3333-4444-555555555555",
+      "66666666-7777-8888-9999-000000000001",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/webhook/destinations/11111111-2222-3333-4444-555555555555/deliveries/66666666-7777-8888-9999-000000000001/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample(
+        "GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/",
+      ),
     );
   });
 
@@ -110,5 +228,42 @@ describe("webhooks", () => {
       result,
       responseExample("PATCH /v3/webhook/destinations/{destination_uuid}/"),
     );
+  });
+
+  it("webhooks.retrieve_config: GET /v3/webhook/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/webhook/"),
+    });
+    const result = await client.webhooks.retrieveConfig();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/webhook/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/webhook/"));
+  });
+
+  it("webhooks.update_config: PATCH /v3/webhook/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/webhook/"),
+    });
+    const result = await client.webhooks.updateConfig();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/webhook/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(result, responseExample("PATCH /v3/webhook/"));
   });
 });

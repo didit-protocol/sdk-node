@@ -5,7 +5,7 @@ import type { OperationSpec } from "../core/operation.js";
 import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { WorkflowListItem } from "../types/components.js";
+import type { WorkflowDetail, WorkflowListItem } from "../types/components.js";
 import type {
   WorkflowsCreateParams,
   WorkflowsListParams,
@@ -13,7 +13,12 @@ import type {
   WorkflowsUpdateParams,
 } from "../types/workflows.js";
 
-const WORKFLOWS_CREATE: OperationSpec = { method: "POST", path: "/v3/workflows/", body: "json" };
+const WORKFLOWS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/workflows/",
+  body: "json",
+  dates: "WorkflowDetail",
+};
 const WORKFLOWS_DELETE: OperationSpec = {
   method: "DELETE",
   path: "/v3/workflows/{settings_uuid}/",
@@ -25,11 +30,16 @@ const WORKFLOWS_LIST: OperationSpec = {
   query: ["limit", "offset"],
   dates: { p: { results: { i: "WorkflowListItem" } } },
 };
-const WORKFLOWS_RETRIEVE: OperationSpec = { method: "GET", path: "/v3/workflows/{settings_uuid}/" };
+const WORKFLOWS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/workflows/{settings_uuid}/",
+  dates: "WorkflowDetail",
+};
 const WORKFLOWS_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/workflows/{settings_uuid}/",
   body: "json",
+  dates: "WorkflowDetail",
 };
 
 /** `workflows` */
@@ -41,10 +51,7 @@ export class Workflows extends APIResource {
    *
    * `POST /v3/workflows/`
    */
-  create(
-    params: WorkflowsCreateParams,
-    options?: RequestOptions,
-  ): APIPromise<Record<string, unknown>> {
+  create(params: WorkflowsCreateParams, options?: RequestOptions): APIPromise<WorkflowDetail> {
     return this._client.request(WORKFLOWS_CREATE, [], params, options);
   }
 
@@ -84,7 +91,7 @@ export class Workflows extends APIResource {
    *
    * @param settingsUuid Per-version UUID of the workflow (the `uuid` value returned by the list endpoint). Each version of a workflow has its own `settings_uuid`.
    */
-  retrieve(settingsUuid: string, options?: RequestOptions): APIPromise<unknown> {
+  retrieve(settingsUuid: string, options?: RequestOptions): APIPromise<WorkflowDetail> {
     return this._client.request(WORKFLOWS_RETRIEVE, [settingsUuid], undefined, options);
   }
 
@@ -101,7 +108,7 @@ export class Workflows extends APIResource {
     settingsUuid: string,
     params: WorkflowsUpdateParams = {},
     options?: RequestOptions,
-  ): APIPromise<Record<string, unknown>> {
+  ): APIPromise<WorkflowDetail> {
     return this._client.request(WORKFLOWS_UPDATE, [settingsUuid], params, options);
   }
 }

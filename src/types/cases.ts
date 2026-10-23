@@ -15,9 +15,9 @@ import type {
   CaseRoutingCondition,
   CaseRoutingRule,
   CaseRoutingRuleCreate,
+  CustomerMessagingCaseRequest,
   CustomerMessagingLanguageEnum,
   CustomerMessagingPurposeEnum,
-  RegulatoryReportDetail,
 } from "./components.js";
 
 export interface CasesApplyEntityActionParams {
@@ -75,10 +75,6 @@ export interface CasesBlueprintsDiscardDraftParams {
 export interface CasesBlueprintsInstallPresetsParams {
   /** Subset of screening_hit, aml_investigation, suspicious_activity, kyc. Omit to install all. */
   preset_keys?: string[] | null;
-}
-
-export interface CasesBlueprintsInstallPresetsResponse {
-  created?: string[];
 }
 
 export interface CasesBlueprintsListHistoryParams {
@@ -162,32 +158,18 @@ export interface CasesBulkAssignParams {
   assignee_name?: string | null;
 }
 
-export interface CasesBulkAssignResponse {
-  updated?: number;
-  failures?: CasesBulkAssignResponseFailures[];
-}
-
-export interface CasesBulkAssignResponseFailures {
-  case_uuid?: string;
-  detail?: string;
-}
-
 export interface CasesBulkUpdateStatusParams {
   case_uuids: string[];
   status: "OPEN" | "AWAITING_USER" | "RESOLVED" | (string & {});
   /** Required when status is RESOLVED. */
-  resolution?: "FALSE_POSITIVE" | "VALID_THREAT" | (string & {});
+  resolution?:
+    | "FALSE_POSITIVE"
+    | "VALID_THREAT"
+    | "INCONCLUSIVE"
+    | "REQUIREMENTS_NOT_MET"
+    | "REQUIREMENTS_SATISFIED"
+    | (string & {});
   note?: string | null;
-}
-
-export interface CasesBulkUpdateStatusResponse {
-  updated?: number;
-  failures?: CasesBulkUpdateStatusResponseFailures[];
-}
-
-export interface CasesBulkUpdateStatusResponseFailures {
-  case_uuid?: string;
-  detail?: string;
 }
 
 export interface CasesChecklistToggleItemParams {
@@ -395,14 +377,6 @@ export interface CasesRegulatoryReportsListParams {
   offset?: number;
 }
 
-export interface CasesRegulatoryReportsListResponse {
-  /** Number of matching rows, capped at 100 for performance. */
-  count?: number;
-  next?: string | null;
-  previous?: string | null;
-  results?: RegulatoryReportDetail[];
-}
-
 export interface CasesRejectResolutionParams {
   notes?: string | null;
 }
@@ -445,10 +419,28 @@ export interface CasesRequestsPreviewParams {
   language?: CustomerMessagingLanguageEnum;
 }
 
+export interface CasesRequestsRemindResponse {
+  request: CustomerMessagingCaseRequest;
+  /** When this reminder was recorded. */
+  reminded_at: Date;
+  /** How this reminder's delivery ended. SIMULATED: the email was not sent. UNKNOWN: the email might have been accepted; it is not sent again automatically. */
+  delivery_status: "SENT" | "SIMULATED" | "UNKNOWN" | (string & {});
+  /** When you can remind this request again: `reminded_at` plus 24 hours. */
+  next_reminder_at: Date;
+}
+
 export interface CasesResolveParams {
-  resolution: "FALSE_POSITIVE" | "VALID_THREAT" | (string & {});
+  resolution:
+    | "FALSE_POSITIVE"
+    | "VALID_THREAT"
+    | "INCONCLUSIVE"
+    | "REQUIREMENTS_NOT_MET"
+    | "REQUIREMENTS_SATISFIED"
+    | (string & {});
   /** Required when the blueprint sets require_resolution_note. */
   note?: string | null;
+  /** Four-eyes blueprints only. The user uuid of the member who must approve this resolution (the same id as `assigned_to.uuid` on a case, or `members[].user_id` on a review team). The member must have case access to this application and cannot be the officer who submits the resolution. Omit it or send null to leave the resolution to the checker queue. */
+  checker?: string | null;
 }
 
 export interface CasesRetrieveStatisticsParams {
@@ -677,8 +669,13 @@ export interface CasesTransferParams {
 }
 
 export interface CasesUpdateParams {
+  /** New case title. */
   title?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH" | (string & {});
+  /** New deadline. Send null to clear it. */
   due_at?: string | Date | null;
+  /** The complete tag list. It replaces the current tags. */
   tags?: string[];
+  /** UUID of the review team that owns the case. It must be an active team of this application. Send null to clear the team. */
+  team?: string | null;
 }

@@ -6,25 +6,88 @@ import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  TravelRuleCounterpartyContact,
+  TravelRuleCounterpartyDecisionResponse,
+  TravelRuleCounterpartyQuestionnaire,
+  TravelRuleCounterpartyQuestionnaireList,
+  TravelRuleCounterpartyScreeningResult,
+  TravelRuleCounterpartyScreeningStatus,
   TravelRuleInboundResponse,
   TravelRuleSettingsDetail,
+  TravelRuleTransferRow,
   TravelRuleWidgetSessionResponse,
+  TravelRuleWorkspace,
+  TravelRuleWorkspaceDomainCodeResponse,
   VaspDirectoryEntry,
   WalletAddressEntry,
   WalletAddressEntryUpdate,
+  WalletAddressImportReport,
 } from "../types/components.js";
 import type {
+  TravelRuleCounterpartyContactsCreateParams,
+  TravelRuleCounterpartyContactsListParams,
+  TravelRuleCounterpartyContactsListResponse,
   TravelRuleCreateWidgetSessionParams,
   TravelRuleListVaspsParams,
   TravelRuleListVaspsResponse,
   TravelRuleRegisterInboundParams,
+  TravelRuleScreenVaspParams,
+  TravelRuleSendComplianceEmailConfirmationResponse,
+  TravelRuleSendVaspQuestionnaireParams,
+  TravelRuleTransfersListParams,
+  TravelRuleTransfersListResponse,
   TravelRuleUpdateSettingsParams,
+  TravelRuleUpdateVaspDecisionParams,
+  TravelRuleWalletAddressesBulkImportParams,
   TravelRuleWalletAddressesCreateParams,
   TravelRuleWalletAddressesListParams,
   TravelRuleWalletAddressesListResponse,
   TravelRuleWalletAddressesUpdateParams,
+  TravelRuleWorkspaceClaimParams,
+  TravelRuleWorkspaceConfirmDomainParams,
+  TravelRuleWorkspaceEnableBillingParams,
 } from "../types/travel-rule.js";
 
+const TRAVEL_RULE_COUNTERPARTY_CONTACTS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/counterparty-contacts/",
+  body: "json",
+  dates: "TravelRuleCounterpartyContact",
+};
+const TRAVEL_RULE_COUNTERPARTY_CONTACTS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/travel-rule/counterparty-contacts/{contact_uuid}/",
+  response: "none",
+};
+const TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/counterparty-contacts/",
+  query: ["counterparty", "limit", "offset"],
+  dates: { p: { results: { i: "TravelRuleCounterpartyContact" } } },
+};
+const TRAVEL_RULE_TRANSFERS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/transfers/",
+  query: [
+    "direction",
+    "status",
+    "rail",
+    "kind",
+    "currency",
+    "start_date",
+    "end_date",
+    "counterparty",
+    "limit",
+    "offset",
+  ],
+  dates: { p: { results: { i: "TravelRuleTransferRow" } } },
+};
+const TRAVEL_RULE_WALLET_ADDRESSES_BULK_IMPORT: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/wallet-addresses/import/",
+  body: "auto",
+  files: ["file"],
+};
 const TRAVEL_RULE_WALLET_ADDRESSES_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/travel-rule/wallet-addresses/",
@@ -47,16 +110,68 @@ const TRAVEL_RULE_WALLET_ADDRESSES_UPDATE: OperationSpec = {
   path: "/v3/travel-rule/wallet-addresses/{entry_uuid}/",
   body: "json",
 };
+const TRAVEL_RULE_WORKSPACE_CLAIM: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/workspace/claim/",
+  body: "json",
+  dates: "TravelRuleWorkspace",
+};
+const TRAVEL_RULE_WORKSPACE_CONFIRM_DOMAIN: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/workspace/domain/confirm/",
+  body: "json",
+  dates: "TravelRuleWorkspace",
+};
+const TRAVEL_RULE_WORKSPACE_ENABLE_BILLING: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/workspace/billing/",
+  body: "json",
+  dates: "TravelRuleWorkspace",
+};
+const TRAVEL_RULE_WORKSPACE_GET: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/workspace/",
+  dates: "TravelRuleWorkspace",
+};
+const TRAVEL_RULE_WORKSPACE_SEND_DOMAIN_CODE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/workspace/domain/code/",
+};
+const TRAVEL_RULE_WORKSPACE_VERIFY_DOMAIN_DNS: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/workspace/domain/dns/",
+  dates: "TravelRuleWorkspace",
+};
+const TRAVEL_RULE_CLEAR_VASP_DECISION: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
+  dates: "TravelRuleCounterpartyDecisionResponse",
+};
 const TRAVEL_RULE_CREATE_WIDGET_SESSION: OperationSpec = {
   method: "POST",
   path: "/v3/travel-rule/widget-session/",
   body: "json",
   dates: "TravelRuleWidgetSessionResponse",
 };
+const TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/questionnaires/",
+  dates: "TravelRuleCounterpartyQuestionnaireList",
+};
 const TRAVEL_RULE_LIST_VASPS: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/vasps/",
-  query: ["search", "limit", "offset"],
+  query: [
+    "search",
+    "network",
+    "jurisdiction",
+    "reachable",
+    "kind",
+    "risk",
+    "responsiveness",
+    "limit",
+    "offset",
+  ],
   dates: { p: { results: { i: "VaspDirectoryEntry" } } },
 };
 const TRAVEL_RULE_REGISTER_INBOUND: OperationSpec = {
@@ -69,14 +184,131 @@ const TRAVEL_RULE_RETRIEVE_SETTINGS: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/settings/",
 };
+const TRAVEL_RULE_RETRIEVE_VASP: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/",
+  dates: "VaspDirectoryEntry",
+};
+const TRAVEL_RULE_RETRIEVE_VASP_DECISION: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
+  dates: "TravelRuleCounterpartyDecisionResponse",
+};
+const TRAVEL_RULE_RETRIEVE_VASP_SCREENING: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/screening/",
+  dates: "TravelRuleCounterpartyScreeningStatus",
+};
+const TRAVEL_RULE_SCREEN_VASP: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/vasps/{vasp_id}/screening/",
+  body: "json",
+  dates: "TravelRuleCounterpartyScreeningResult",
+};
+const TRAVEL_RULE_SEND_COMPLIANCE_EMAIL_CONFIRMATION: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/settings/compliance-email/confirmation/",
+};
+const TRAVEL_RULE_SEND_VASP_QUESTIONNAIRE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/vasps/{vasp_id}/questionnaires/",
+  body: "json",
+  dates: "TravelRuleCounterpartyQuestionnaire",
+};
 const TRAVEL_RULE_UPDATE_SETTINGS: OperationSpec = {
   method: "PUT",
   path: "/v3/travel-rule/settings/",
   body: "json",
 };
+const TRAVEL_RULE_UPDATE_VASP_DECISION: OperationSpec = {
+  method: "PUT",
+  path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
+  body: "json",
+  dates: "TravelRuleCounterpartyDecisionResponse",
+};
+
+/** `travel_rule.counterparty_contacts` */
+export class TravelRuleCounterpartyContacts extends APIResource {
+  /**
+   * Add a counterparty contact
+   *
+   * Adds a private compliance address for one directory entry. Only your application sees and uses it, and the EMAIL rail writes to it before any platform contact. Adding an address the entry already has among your own contacts returns that contact.
+   *
+   * `POST /v3/travel-rule/counterparty-contacts/`
+   */
+  create(
+    params: TravelRuleCounterpartyContactsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyContact> {
+    return this._client.request(TRAVEL_RULE_COUNTERPARTY_CONTACTS_CREATE, [], params, options);
+  }
+
+  /**
+   * Delete a counterparty contact
+   *
+   * Deletes one of your application's own contacts. The EMAIL rail stops writing to it at once. Platform contacts cannot be deleted.
+   *
+   * `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/`
+   *
+   * @param contactUuid contact_uuid
+   */
+  delete(contactUuid: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(
+      TRAVEL_RULE_COUNTERPARTY_CONTACTS_DELETE,
+      [contactUuid],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * List counterparty contacts
+   *
+   * The compliance addresses the EMAIL rail may write to for your application: Didit's platform contacts plus your application's own private ones, bounced ones included, newest first. Paginated with `limit` (default 50) and `offset`; `count` stops at 100, so 100 means 100 or more.
+   *
+   * `GET /v3/travel-rule/counterparty-contacts/`
+   */
+  list(
+    params: TravelRuleCounterpartyContactsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleCounterpartyContactsListResponse, TravelRuleCounterpartyContact> {
+    return this._client.requestPage(TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST, [], params, options);
+  }
+}
+
+/** `travel_rule.transfers` */
+export class TravelRuleTransfers extends APIResource {
+  /**
+   * List Travel Rule transfers
+   *
+   * Your application's Travel Rule transfers, newest first, paginated with `limit` (default 50) and `offset`. Rows carry VASP names, wallets and memos only, never person data. Comma-separated values select several. An unknown value answers 400 naming the parameter, for example `{"direction": ["Unknown value(s): inbound."]}`.
+   *
+   * `GET /v3/travel-rule/transfers/`
+   */
+  list(
+    params: TravelRuleTransfersListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleTransfersListResponse, TravelRuleTransferRow> {
+    return this._client.requestPage(TRAVEL_RULE_TRANSFERS_LIST, [], params, options);
+  }
+}
 
 /** `travel_rule.wallet_addresses` */
 export class TravelRuleWalletAddresses extends APIResource {
+  /**
+   * Import wallet addresses in bulk
+   *
+   * Add up to 10,000 wallets to your Travel Rule address book in one call, as JSON or as a CSV file. A wallet can be sent by its address, by the SHA-256 of its lowercased address (`address_hash`) to keep the address private, or both. The import is idempotent: a wallet already in the book is reported as `existing` and left untouched, so the same file can be sent again. Each row is validated on its own, so one bad row never fails the others. A wallet imported by its hash only matches transfers to that address and can be proven with the wallet-ownership widget like any other entry.
+   *
+   * `POST /v3/travel-rule/wallet-addresses/import/`
+   */
+  bulkImport(
+    params: TravelRuleWalletAddressesBulkImportParams = {},
+    options?: RequestOptions,
+  ): APIPromise<WalletAddressImportReport> {
+    return this._client.request(TRAVEL_RULE_WALLET_ADDRESSES_BULK_IMPORT, [], params, options);
+  }
+
   /**
    * Register a wallet address
    *
@@ -94,7 +326,7 @@ export class TravelRuleWalletAddresses extends APIResource {
   /**
    * Delete a wallet address
    *
-   * Deletes the entry. It stops matching new transfers immediately and the address is freed up for re-registration.
+   * Deletes the entry together with its ownership proofs and the screenshots they stored. It stops matching new transfers immediately and the address is freed up for re-registration. Transfers that already used the wallet keep their own record of it and read the same. Deletion is irreversible.
    *
    * `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/`
    *
@@ -141,9 +373,107 @@ export class TravelRuleWalletAddresses extends APIResource {
   }
 }
 
+/** `travel_rule.workspace` */
+export class TravelRuleWorkspaceResource extends APIResource {
+  /**
+   * Claim a directory entry
+   *
+   * Claims the directory entry this workspace is. When the work email is at a domain the entry lists, the claim is proved and applies at once: the VASP profile and Travel Rule settings are filled from the entry and Travel Rule is turned on, so the next transfer to it routes over the Didit network. Otherwise the claim waits for review (`pending_review`).
+   *
+   * `POST /v3/travel-rule/workspace/claim/`
+   */
+  claim(
+    params: TravelRuleWorkspaceClaimParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleWorkspace> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_CLAIM, [], params, options);
+  }
+
+  /**
+   * Confirm the domain verification code
+   *
+   * Spends the emailed code and marks the email domain verified.
+   *
+   * `POST /v3/travel-rule/workspace/domain/confirm/`
+   */
+  confirmDomain(
+    params: TravelRuleWorkspaceConfirmDomainParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleWorkspace> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_CONFIRM_DOMAIN, [], params, options);
+  }
+
+  /**
+   * Enable outbound billing
+   *
+   * Turns outbound Travel Rule billing on for the workspace. Receiving stays free. This cannot be turned back off through the API: contact Didit support.
+   *
+   * `POST /v3/travel-rule/workspace/billing/`
+   */
+  enableBilling(
+    params: TravelRuleWorkspaceEnableBillingParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleWorkspace> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_ENABLE_BILLING, [], params, options);
+  }
+
+  /**
+   * Get the free Travel Rule workspace
+   *
+   * Reads the free workspace of an application that joined free: directory claim, domain proof, billing and Didit network listing.
+   *
+   * `GET /v3/travel-rule/workspace/`
+   */
+  get(options?: RequestOptions): APIPromise<TravelRuleWorkspace> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_GET, [], undefined, options);
+  }
+
+  /**
+   * Email a domain verification code
+   *
+   * Emails a single-use code to the workspace's work address to prove it controls the email domain. Throttled, and a limited number of wrong attempts is accepted per code. Also returns the TXT record for the DNS alternative.
+   *
+   * `POST /v3/travel-rule/workspace/domain/code/`
+   */
+  sendDomainCode(options?: RequestOptions): APIPromise<TravelRuleWorkspaceDomainCodeResponse> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_SEND_DOMAIN_CODE, [], undefined, options);
+  }
+
+  /**
+   * Verify the domain from its TXT record
+   *
+   * Checks for the `didit-tr-verify.<domain>` TXT record returned by the code endpoint and marks the domain verified when it matches. One of the two proofs, the emailed code or the TXT record, is enough.
+   *
+   * `POST /v3/travel-rule/workspace/domain/dns/`
+   */
+  verifyDomainDns(options?: RequestOptions): APIPromise<TravelRuleWorkspace> {
+    return this._client.request(TRAVEL_RULE_WORKSPACE_VERIFY_DOMAIN_DNS, [], undefined, options);
+  }
+}
+
 /** `travel_rule` */
 export class TravelRule extends APIResource {
+  readonly counterpartyContacts: TravelRuleCounterpartyContacts =
+    new TravelRuleCounterpartyContacts(this._client);
+  readonly transfers: TravelRuleTransfers = new TravelRuleTransfers(this._client);
   readonly walletAddresses: TravelRuleWalletAddresses = new TravelRuleWalletAddresses(this._client);
+  readonly workspace: TravelRuleWorkspaceResource = new TravelRuleWorkspaceResource(this._client);
+
+  /**
+   * Clear your decision on a VASP
+   *
+   * Clear your application's own decision on a counterparty. The response shows the decision that applies afterwards: null, or for an entity of a brand the brand's decision, which the entity follows again.
+   *
+   * `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  clearVaspDecision(
+    vaspId: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyDecisionResponse> {
+    return this._client.request(TRAVEL_RULE_CLEAR_VASP_DECISION, [vaspId], undefined, options);
+  }
 
   /**
    * Mint a wallet-ownership widget session
@@ -153,16 +483,32 @@ export class TravelRule extends APIResource {
    * `POST /v3/travel-rule/widget-session/`
    */
   createWidgetSession(
-    params: TravelRuleCreateWidgetSessionParams,
+    params: TravelRuleCreateWidgetSessionParams = {},
     options?: RequestOptions,
   ): APIPromise<TravelRuleWidgetSessionResponse> {
     return this._client.request(TRAVEL_RULE_CREATE_WIDGET_SESSION, [], params, options);
   }
 
   /**
+   * List due-diligence questionnaires with a VASP
+   *
+   * Every due-diligence questionnaire your application sent the counterparty, newest first, with its status and, once answered, the answers. Private to your application.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  listVaspQuestionnaires(
+    vaspId: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyQuestionnaireList> {
+    return this._client.request(TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES, [vaspId], undefined, options);
+  }
+
+  /**
    * Search the VASP directory
    *
-   * Paginated search across discoverable Didit customers with Travel Rule enabled, plus VASPs catalogued in the internal counterparty registry. Excludes your own application's profile.
+   * Paginated, name-sorted search of the VASP directory: the shared directory entries, which Didit builds from the ESMA interim MiCA register, the public TRISA directory, the global LEI register and its own curation, plus the members of the Didit network. Each row carries the routes your application has to it today. Your own application's profile is never listed. Rows also carry the shared due-diligence assessment and your application's own decision, entity screening and questionnaires.
    *
    * `GET /v3/travel-rule/vasps/`
    */
@@ -176,7 +522,7 @@ export class TravelRule extends APIResource {
   /**
    * Register an after-deposit (sunrise) inbound transfer
    *
-   * Register Travel Rule data for a crypto deposit that already settled on-chain before any exchange took place. Creates an inbound travelRule transaction (or reuses an unclaimed deposit) and resolves the transfer against your wallet address book. A transaction.created webhook fires for newly-created transactions.
+   * Register Travel Rule data for a crypto deposit that already settled on-chain before any exchange took place. Creates an inbound travelRule transaction (or reuses an unclaimed deposit) and resolves the transfer against your wallet address book. For a newly created transaction, Didit sends transaction.created first and the travel_rule.status.updated webhooks after it.
    *
    * `POST /v3/travel-rule/inbound/`
    */
@@ -199,6 +545,103 @@ export class TravelRule extends APIResource {
   }
 
   /**
+   * Get a VASP directory entry
+   *
+   * One directory entry or Didit network member by the id the search returned, with the same fields and the routes your application has to it.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/.
+   */
+  retrieveVasp(vaspId: string, options?: RequestOptions): APIPromise<VaspDirectoryEntry> {
+    return this._client.request(TRAVEL_RULE_RETRIEVE_VASP, [vaspId], undefined, options);
+  }
+
+  /**
+   * Get your decision on a VASP
+   *
+   * Your application's decision on a counterparty (a directory entry or a Didit network member): approved, restricted or blocked. An entity of a brand with no decision of its own follows the brand's decision, named in inherited_from. Private to your application.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/decision/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  retrieveVaspDecision(
+    vaspId: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyDecisionResponse> {
+    return this._client.request(TRAVEL_RULE_RETRIEVE_VASP_DECISION, [vaspId], undefined, options);
+  }
+
+  /**
+   * Get a VASP's entity screening
+   *
+   * Whether counterparty screening is on for your application, what one screening costs your organization, how long a result stays fresh, and your latest sanctions and adverse-media screening of the counterparty. Reading it is free.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/screening/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  retrieveVaspScreening(
+    vaspId: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyScreeningStatus> {
+    return this._client.request(TRAVEL_RULE_RETRIEVE_VASP_SCREENING, [vaspId], undefined, options);
+  }
+
+  /**
+   * Screen a VASP
+   *
+   * Screen the counterparty entity against sanctions and adverse media for your application. Opt-in: counterparty_screening_enabled must be on in your Travel Rule settings. Each new screening is billed at your organization's Company AML Screening price; a screening younger than 30 days is returned instead (200, not billed) unless you send refresh: true. One screening of a counterparty runs at a time per application. The result is private to your application. Sandbox applications are never screened.
+   *
+   * `POST /v3/travel-rule/vasps/{vasp_id}/screening/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  screenVasp(
+    vaspId: string,
+    params: TravelRuleScreenVaspParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyScreeningResult> {
+    return this._client.request(TRAVEL_RULE_SCREEN_VASP, [vaspId], params, options);
+  }
+
+  /**
+   * Send the compliance email confirmation
+   *
+   * Emails a single-use confirmation link to your VASP profile's compliance_email. Opening the link and pressing its confirm button confirms the address, which the Didit network needs before it lists your profile. A new request replaces the previous link; the link stops working when the compliance email changes. One email per minute per address.
+   *
+   * `POST /v3/travel-rule/settings/compliance-email/confirmation/`
+   */
+  sendComplianceEmailConfirmation(
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleSendComplianceEmailConfirmationResponse> {
+    return this._client.request(
+      TRAVEL_RULE_SEND_COMPLIANCE_EMAIL_CONFIRMATION,
+      [],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Send a due-diligence questionnaire to a VASP
+   *
+   * Email Didit's standard due-diligence questionnaire to a compliance address on record for the counterparty, with a single-use answer link. The counterparty has 30 days to answer every question; the answers stay current for 365 days. A new send replaces your earlier unanswered questionnaire to the same counterparty, whose link stops working. One email per minute per address.
+   *
+   * `POST /v3/travel-rule/vasps/{vasp_id}/questionnaires/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  sendVaspQuestionnaire(
+    vaspId: string,
+    params: TravelRuleSendVaspQuestionnaireParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyQuestionnaire> {
+    return this._client.request(TRAVEL_RULE_SEND_VASP_QUESTIONNAIRE, [vaspId], params, options);
+  }
+
+  /**
    * Update Travel Rule settings
    *
    * Upsert the application's Travel Rule settings and VASP profile. Partial update - only send the fields you want to change. Setting `is_enabled: true` requires a non-blank `legal_name` (already stored or included in the same request), otherwise returns 400.
@@ -210,5 +653,22 @@ export class TravelRule extends APIResource {
     options?: RequestOptions,
   ): APIPromise<TravelRuleSettingsDetail> {
     return this._client.request(TRAVEL_RULE_UPDATE_SETTINGS, [], params, options);
+  }
+
+  /**
+   * Set your decision on a VASP
+   *
+   * Make or change your application's decision on a counterparty: APPROVED, RESTRICTED or BLOCKED, with an optional reason. It never changes the shared directory entry and acts only through your transaction rules (counterparty_dd_status). A decision on a brand also covers each of its entities that has no decision of its own.
+   *
+   * `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  updateVaspDecision(
+    vaspId: string,
+    params: TravelRuleUpdateVaspDecisionParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyDecisionResponse> {
+    return this._client.request(TRAVEL_RULE_UPDATE_VASP_DECISION, [vaspId], params, options);
   }
 }

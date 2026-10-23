@@ -2,15 +2,26 @@
 
 import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
+import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  WebhookConfig,
+  WebhookDestinationDelivery,
+  WebhookDestinationDeliveryDetail,
+} from "../types/components.js";
+import type {
   WebhooksDestinationsCreateParams,
   WebhooksDestinationsCreateResponse,
+  WebhooksDestinationsListDeliveriesParams,
+  WebhooksDestinationsListDeliveriesResponse,
   WebhooksDestinationsListResponse,
+  WebhooksDestinationsRetrieveAnalyticsParams,
+  WebhooksDestinationsRetrieveAnalyticsResponse,
   WebhooksDestinationsRetrieveResponse,
   WebhooksDestinationsUpdateParams,
   WebhooksDestinationsUpdateResponse,
+  WebhooksUpdateConfigParams,
 } from "../types/webhooks.js";
 import { WebhookHelpers } from "../webhooks/resource.js";
 
@@ -18,7 +29,16 @@ const WEBHOOKS_DESTINATIONS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/webhook/destinations/",
   body: "json",
-  dates: { p: { created_at: 1, updated_at: 1, summary: { p: { last_delivery_at: 1 } } } },
+  dates: {
+    p: {
+      previous_secret_expires_at: 1,
+      created_at: 1,
+      updated_at: 1,
+      failing_since: 1,
+      last_success_at: 1,
+      summary: { p: { last_delivery_at: 1 } },
+    },
+  },
 };
 const WEBHOOKS_DESTINATIONS_DELETE: OperationSpec = {
   method: "DELETE",
@@ -28,18 +48,78 @@ const WEBHOOKS_DESTINATIONS_DELETE: OperationSpec = {
 const WEBHOOKS_DESTINATIONS_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/webhook/destinations/",
-  dates: { i: { p: { last_delivery_at: 1, created_at: 1, updated_at: 1 } } },
+  dates: {
+    i: {
+      p: {
+        last_delivery_at: 1,
+        failing_since: 1,
+        last_success_at: 1,
+        created_at: 1,
+        updated_at: 1,
+      },
+    },
+  },
+};
+const WEBHOOKS_DESTINATIONS_LIST_DELIVERIES: OperationSpec = {
+  method: "GET",
+  path: "/v3/webhook/destinations/{destination_uuid}/deliveries/",
+  query: ["limit", "offset", "date_from", "date_to"],
+  dates: { p: { results: { i: "WebhookDestinationDelivery" } } },
+};
+const WEBHOOKS_DESTINATIONS_RESEND_DELIVERY: OperationSpec = {
+  method: "POST",
+  path: "/v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/",
+  dates: "WebhookDestinationDeliveryDetail",
 };
 const WEBHOOKS_DESTINATIONS_RETRIEVE: OperationSpec = {
   method: "GET",
   path: "/v3/webhook/destinations/{destination_uuid}/",
-  dates: { p: { created_at: 1, updated_at: 1, summary: { p: { last_delivery_at: 1 } } } },
+  dates: {
+    p: {
+      previous_secret_expires_at: 1,
+      created_at: 1,
+      updated_at: 1,
+      failing_since: 1,
+      last_success_at: 1,
+      summary: { p: { last_delivery_at: 1 } },
+    },
+  },
+};
+const WEBHOOKS_DESTINATIONS_RETRIEVE_ANALYTICS: OperationSpec = {
+  method: "GET",
+  path: "/v3/webhook/destinations/{destination_uuid}/analytics/",
+  query: ["date_from", "date_to"],
+};
+const WEBHOOKS_DESTINATIONS_RETRIEVE_DELIVERY: OperationSpec = {
+  method: "GET",
+  path: "/v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/",
+  dates: "WebhookDestinationDeliveryDetail",
 };
 const WEBHOOKS_DESTINATIONS_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/webhook/destinations/{destination_uuid}/",
   body: "json",
-  dates: { p: { created_at: 1, updated_at: 1, summary: { p: { last_delivery_at: 1 } } } },
+  dates: {
+    p: {
+      previous_secret_expires_at: 1,
+      created_at: 1,
+      updated_at: 1,
+      failing_since: 1,
+      last_success_at: 1,
+      summary: { p: { last_delivery_at: 1 } },
+    },
+  },
+};
+const WEBHOOKS_RETRIEVE_CONFIG: OperationSpec = {
+  method: "GET",
+  path: "/v3/webhook/",
+  dates: "WebhookConfig",
+};
+const WEBHOOKS_UPDATE_CONFIG: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/webhook/",
+  body: "json",
+  dates: "WebhookConfig",
 };
 
 /** `webhooks.destinations` */
@@ -47,7 +127,7 @@ export class WebhooksDestinations extends APIResource {
   /**
    * Create webhook destination
    *
-   * Create a webhook destination. The response includes the auto-generated `secret_shared_key` HMAC signing secret (also readable later via `GET /v3/webhook/destinations/{destination_uuid}/`). Always send `subscribed_events` with at least one event (no wildcards): an explicit empty list is rejected with 400, and omitting the field creates a destination subscribed to nothing, which never receives a webhook. The `(application, url)` pair must be unique among non-deleted destinations.
+   * Create a webhook destination. The response includes the auto-generated `secret_shared_key` HMAC signing secret (also readable later via `GET /v3/webhook/destinations/{destination_uuid}/`). Always send `subscribed_events` with at least one event (no wildcards): an explicit empty list is rejected with 400, and omitting the field creates a destination subscribed to nothing, which never receives a webhook. The `(application, url)` pair must be unique among the application's destinations.
    *
    * `POST /v3/webhook/destinations/`
    */
@@ -61,7 +141,7 @@ export class WebhooksDestinations extends APIResource {
   /**
    * Delete webhook destination
    *
-   * Delete a webhook destination. Future events stop being pushed to its URL. Past delivery records are not affected and stay queryable from the Business Console, so deleting a destination is not a way to remove your delivery history. Calling again returns 404.
+   * Permanently delete a webhook destination, its signing secret and its entire delivery log. This cannot be undone. No new webhook is sent to the destination's URL; other destinations subscribed to the same events keep receiving them. Afterwards the destination no longer appears in `GET /v3/webhook/destinations/`, and every route under `/v3/webhook/destinations/{destination_uuid}/`, including its deliveries, a delivery's detail and its resend, answers 404. The application's legacy `webhook_url` is set to the URL of the oldest remaining enabled destination, or cleared when no enabled destination is left. Calling DELETE again returns 404.
    *
    * `DELETE /v3/webhook/destinations/{destination_uuid}/`
    *
@@ -79,7 +159,7 @@ export class WebhooksDestinations extends APIResource {
   /**
    * List webhook destinations
    *
-   * List all webhook destinations (unpaginated array, oldest first). Each row includes URL, subscribed events, and delivery health metrics. The signing secret is NOT included in the list - fetch a single destination (`GET /v3/webhook/destinations/{destination_uuid}/`) to read `secret_shared_key`.
+   * List all webhook destinations (unpaginated array, oldest first). Each item carries the destination's configuration, its delivery metrics for the last 30 days (`metrics_window_days`) with one `daily_points` entry per day, and its health (`health_status`, `failing_streak`, `failing_since`, `last_success_at`). The list has no `summary` object and never includes the signing secret: each item shows only `secret_last4`. Fetch a single destination (`GET /v3/webhook/destinations/{destination_uuid}/`) to read `secret_shared_key`.
    *
    * `GET /v3/webhook/destinations/`
    */
@@ -88,9 +168,54 @@ export class WebhooksDestinations extends APIResource {
   }
 
   /**
+   * List webhook destination deliveries
+   *
+   * Page through every delivery attempt to one webhook destination, newest first. The first send of each event, each automatic [retry](https://docs.didit.me/integration/webhooks#retry-policy) and each resend are separate entries. Entries carry the HTTP status and response time but not the payload: fetch one delivery to read its headers and body. `count` is exact up to 100 and reads 100 above that, so follow `next` until it is `null`. Delivery records are available for about 30 days. A scoped API key needs `webhooks: read` and `decisions: read`; a key limited to some workflows or to approved sessions cannot use this endpoint.
+   *
+   * `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`
+   *
+   * @param destinationUuid UUID of the destination (the `uuid` returned by `GET /v3/webhook/destinations/`).
+   */
+  listDeliveries(
+    destinationUuid: string,
+    params: WebhooksDestinationsListDeliveriesParams = {},
+    options?: RequestOptions,
+  ): PagePromise<WebhooksDestinationsListDeliveriesResponse, WebhookDestinationDelivery> {
+    return this._client.requestPage(
+      WEBHOOKS_DESTINATIONS_LIST_DELIVERIES,
+      [destinationUuid],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Resend webhook destination delivery
+   *
+   * Send a past delivery again, for example after your endpoint was down. Didit takes the stored payload, sets a fresh `timestamp`, signs it again with the destination's current `secret_shared_key` (`X-Signature`, `X-Signature-V2`, `X-Signature-Simple` and `X-Timestamp`) and posts it to the delivery's `request_url`, even if the destination's URL has changed since or the destination is disabled. `event_id` and the rest of the payload are unchanged, so deduplicate on `event_id`. The call waits up to 5 seconds for your endpoint and returns the new delivery with `200` whatever your endpoint answered: read `response_status`. A resend is not retried automatically, every call sends again and creates a new delivery, and the request has no body. A scoped API key needs `webhooks: write` and `decisions: read`; a key limited to some workflows or to approved sessions cannot use this endpoint.
+   *
+   * `POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/`
+   *
+   * @param destinationUuid UUID of the destination the delivery was sent to.
+   * @param deliveryUuid UUID of the delivery to resend: the `uuid` of an entry returned by `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`.
+   */
+  resendDelivery(
+    destinationUuid: string,
+    deliveryUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<WebhookDestinationDeliveryDetail> {
+    return this._client.request(
+      WEBHOOKS_DESTINATIONS_RESEND_DELIVERY,
+      [destinationUuid, deliveryUuid],
+      undefined,
+      options,
+    );
+  }
+
+  /**
    * Get webhook destination
    *
-   * Retrieve one webhook destination with its `secret_shared_key` signing secret and delivery health summary. API-key callers always receive the secret in full; Console users without `read:webhooks` see an empty string.
+   * Retrieve one webhook destination with its `secret_shared_key` signing secret, its health (`health_status`, `failing_streak`, `failing_since`, `last_success_at`) and a delivery `summary` for the last 30 days. API-key callers always receive the secret in full; Console users without `read:webhooks` see an empty string.
    *
    * `GET /v3/webhook/destinations/{destination_uuid}/`
    *
@@ -109,9 +234,54 @@ export class WebhooksDestinations extends APIResource {
   }
 
   /**
+   * Get webhook destination analytics
+   *
+   * Delivery totals, failure rate and response times for one webhook destination, over the whole range (`summary`) and per UTC day (`points`). Every attempt counts as a delivery: the first send of an event, each automatic [retry](https://docs.didit.me/integration/webhooks#retry-policy) and each resend. A delivery is failed when its recorded HTTP status is 400 or above, so timeouts (recorded as `504`) and connection failures (`503`) count as failed; a delivery still queued counts in `total_deliveries` only. Delivery records are available for about 30 days. A scoped API key needs `webhooks: read`.
+   *
+   * `GET /v3/webhook/destinations/{destination_uuid}/analytics/`
+   *
+   * @param destinationUuid UUID of the destination (the `uuid` returned by `GET /v3/webhook/destinations/`).
+   */
+  retrieveAnalytics(
+    destinationUuid: string,
+    params: WebhooksDestinationsRetrieveAnalyticsParams = {},
+    options?: RequestOptions,
+  ): APIPromise<WebhooksDestinationsRetrieveAnalyticsResponse> {
+    return this._client.request(
+      WEBHOOKS_DESTINATIONS_RETRIEVE_ANALYTICS,
+      [destinationUuid],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Get webhook destination delivery
+   *
+   * Retrieve one delivery attempt to a webhook destination with the exact request headers and JSON body Didit sent, the HTTP status your endpoint returned and the response time. `request_header` and `request_body` are JSON text: parse them to read the signature headers and the payload, for example to check your [signature verification](https://docs.didit.me/integration/webhooks#signature-verification) against the destination's `secret_shared_key`. A delivery never contains the signing secret, and Didit does not record your endpoint's response body. A scoped API key needs `webhooks: read` and `decisions: read`; a key limited to some workflows or to approved sessions cannot use this endpoint.
+   *
+   * `GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/`
+   *
+   * @param destinationUuid UUID of the destination the delivery was sent to.
+   * @param deliveryUuid UUID of the delivery: the `uuid` of an entry returned by `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`.
+   */
+  retrieveDelivery(
+    destinationUuid: string,
+    deliveryUuid: string,
+    options?: RequestOptions,
+  ): APIPromise<WebhookDestinationDeliveryDetail> {
+    return this._client.request(
+      WEBHOOKS_DESTINATIONS_RETRIEVE_DELIVERY,
+      [destinationUuid, deliveryUuid],
+      undefined,
+      options,
+    );
+  }
+
+  /**
    * Update webhook destination
    *
-   * Update a webhook destination. **`subscribed_events` is REPLACED wholesale, not merged** - fetch first, append, resend. Secret is not rotated.
+   * Update a webhook destination. **`subscribed_events` is REPLACED wholesale, not merged**: fetch first, append, resend. Secret is not rotated. A `uuid` in the body is ignored: the path names the destination.
    *
    * `PATCH /v3/webhook/destinations/{destination_uuid}/`
    *
@@ -129,4 +299,29 @@ export class WebhooksDestinations extends APIResource {
 /** `webhooks` */
 export class Webhooks extends WebhookHelpers {
   readonly destinations: WebhooksDestinations = new WebhooksDestinations(this._client);
+
+  /**
+   * Get webhook configuration
+   *
+   * Return the application's webhook settings in one call: every [webhook destination](https://docs.didit.me/management-api/webhook/list-destinations) with its signing secret, the event types a destination can subscribe to, the application-level (legacy) webhook URL, version and secret, the data and biometric-template retention policy, and the Digital ID wallet return hosts. Didit delivers webhooks to destinations, each signed with its own `secret_shared_key`; the top-level `webhook_url`, `webhook_version` and `secret_shared_key` are used only while no destination is enabled, and then only for `status.updated` and `data.updated`. The response contains signing secrets, so keep it out of logs and client-side code. A scoped API key needs `webhooks: read`.
+   *
+   * `GET /v3/webhook/`
+   */
+  retrieveConfig(options?: RequestOptions): APIPromise<WebhookConfig> {
+    return this._client.request(WEBHOOKS_RETRIEVE_CONFIG, [], undefined, options);
+  }
+
+  /**
+   * Update webhook configuration
+   *
+   * Partially update application-level settings: the legacy webhook URL, version and secret, the data and biometric-template retention policy, and the Digital ID wallet return hosts. Send only the fields to change; the response is the full configuration, the same shape as `GET /v3/webhook/`. Destinations are not managed here: create, update and delete them with the `/v3/webhook/destinations/` endpoints, and do not send an `endpoints` field to this endpoint. A `data_retention_months` change also applies to existing sessions, and sessions it deletes cannot be restored; read [Data retention](https://docs.didit.me/console/data-retention) first. A scoped API key needs `webhooks: write`.
+   *
+   * `PATCH /v3/webhook/`
+   */
+  updateConfig(
+    params: WebhooksUpdateConfigParams = {},
+    options?: RequestOptions,
+  ): APIPromise<WebhookConfig> {
+    return this._client.request(WEBHOOKS_UPDATE_CONFIG, [], params, options);
+  }
 }

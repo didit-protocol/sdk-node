@@ -5,23 +5,24 @@ import type { OperationSpec } from "../core/operation.js";
 import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { UserDetailItem, UserListItem } from "../types/components.js";
+import type {
+  AMLMonitoringJob,
+  AMLMonitoringToggleResult,
+  EntityNetworkMembershipList,
+  OngoingMonitoringJob,
+  OngoingMonitoringToggleResult,
+  UserDetailItem,
+  UserListItem,
+} from "../types/components.js";
 import type {
   UsersBatchDeleteParams,
   UsersBatchDeleteResponse,
   UsersCreateParams,
-  UsersListNetworksResponse,
+  UsersCreateResponse,
   UsersListParams,
   UsersListResponse,
-  UsersRetrieveOngoingMonitoringJobResponse,
   UsersSetAmlMonitoringParams,
-  UsersSetAmlMonitoringResponse202,
-  UsersSetAmlMonitoringResponseVariant1,
-  UsersSetAmlMonitoringResponseVariant2,
   UsersSetOngoingMonitoringParams,
-  UsersSetOngoingMonitoringResponse202,
-  UsersSetOngoingMonitoringResponseVariant1,
-  UsersSetOngoingMonitoringResponseVariant2,
   UsersUpdateParams,
   UsersUpdateStatusParams,
   UsersUploadFaceParams,
@@ -37,7 +38,17 @@ const USERS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/users/create/",
   body: "json",
-  dates: "UserDetailItem",
+  dates: {
+    p: {
+      last_session_at: 1,
+      first_session_at: 1,
+      last_activity_at: 1,
+      tags: { i: { p: { tag: { p: { created_at: 1, updated_at: 1 } }, created_at: 1 } } },
+      created_at: 1,
+      comments: { i: { p: { created_at: 1 } } },
+      updated_at: 1,
+    },
+  },
 };
 const USERS_GENERATE_PDF: OperationSpec = {
   method: "GET",
@@ -55,7 +66,7 @@ const USERS_LIST_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
 };
 const USERS_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -71,7 +82,7 @@ const USERS_SET_AML_MONITORING: OperationSpec = {
   method: "POST",
   path: "/v3/users/aml-monitoring/",
   body: "json",
-  dates: { p: { created_at: 1, completed_at: 1 } },
+  dates: "AMLMonitoringToggleResult",
 };
 const USERS_SET_ONGOING_MONITORING: OperationSpec = {
   method: "PATCH",
@@ -104,7 +115,7 @@ export class Users extends APIResource {
   /**
    * Batch delete users
    *
-   * **Permanently delete** users - the user records are removed permanently. For everyday blocking prefer [Update User Status](#patch-/v3/users/-vendor_data-/update-status/) with `BLOCKED`. Select users with `vendor_data_list`, with `didit_internal_id_list`, or with both at once; or pass `delete_all: true`. The Console's `filter_*` batch params are rejected with a `400` rather than ignored, so a narrowed intent can never turn into a full wipe.
+   * **Permanently delete** users: the user records are removed permanently. For everyday blocking prefer [Update User Status](#patch-/v3/users/-vendor_data-/update-status/) with `BLOCKED`. Select users with `vendor_data_list`, with `didit_internal_id_list`, or with both at once; or pass `delete_all: true`. This endpoint never narrows `delete_all` with filters. The Console's People filters are refused with a `400` (see the `400` response), so a narrowed intent does not turn into a full wipe. Two exceptions: `filter_has_approved_sessions` and `filter_has_declined_sessions` are not refused and not applied, so with `delete_all: true` they still delete every user; do not send them.
    *
    * **Biometric templates:** every image-free biometric template retained for these users after session deletion (see `/v3/biometric-templates/`) is purged before the user is deleted, so the person stops matching in duplicate detection and Face Search. If a template cannot be purged because a biometric store is unavailable, the call returns `503`, no user in the request is deleted, and repeating the request finishes the job.
    *
@@ -120,11 +131,17 @@ export class Users extends APIResource {
   /**
    * Create user
    *
-   * Pre-create a [user](/entities/users) by `vendor_data` *without* a verification session. `vendor_data` must be unique among non-deleted users for the application (exact match; conflicts return 400). Not idempotent.
+   * Create a [user](/entities/users) by `vendor_data`, before or without a verification session. `vendor_data` must be unique among the application's users (a duplicate returns `400`). Not idempotent.
+   *
+   * **Contact details:** `email` and `phone_number` are stored in `metadata.contact`, and `country` in `metadata.address`. When you send `first_name` or `last_name` without `full_name`, Didit joins them into `full_name`.
+   *
+   * **Verification link:** with `send_verification_link: true`, Didit also creates a verification session for the person on `workflow_id` and emails them the link at `email`. The session runs the same checks as [Create Session](/sessions-api/create-session), such as the blocklist and your credit balance. The person and the session are created together or not at all: if any check fails, nothing is written and no email is sent. The response's `verification_link` describes the session, and is `null` when you don't ask for a link.
+   *
+   * **API key access:** a scoped API key needs `users` write. With `send_verification_link: true` it also needs `sessions` write, or the call answers `403` before anything is written. Full-access keys are unaffected. See [API keys](/console/api-keys).
    *
    * `POST /v3/users/create/`
    */
-  create(params: UsersCreateParams, options?: RequestOptions): APIPromise<UserDetailItem> {
+  create(params: UsersCreateParams, options?: RequestOptions): APIPromise<UsersCreateResponse> {
     return this._client.request(USERS_CREATE, [], params, options);
   }
 
@@ -183,7 +200,7 @@ export class Users extends APIResource {
   listNetworks(
     vendorUserUuid: string,
     options?: RequestOptions,
-  ): APIPromise<UsersListNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(USERS_LIST_NETWORKS, [vendorUserUuid], undefined, options);
   }
 
@@ -212,7 +229,7 @@ export class Users extends APIResource {
   retrieveOngoingMonitoringJob(
     jobId: string,
     options?: RequestOptions,
-  ): APIPromise<UsersRetrieveOngoingMonitoringJobResponse> {
+  ): APIPromise<OngoingMonitoringJob> {
     return this._client.request(USERS_RETRIEVE_ONGOING_MONITORING_JOB, [jobId], undefined, options);
   }
 
@@ -228,11 +245,7 @@ export class Users extends APIResource {
   setAmlMonitoring(
     params: UsersSetAmlMonitoringParams,
     options?: RequestOptions,
-  ): APIPromise<
-    | UsersSetAmlMonitoringResponseVariant1
-    | UsersSetAmlMonitoringResponseVariant2
-    | UsersSetAmlMonitoringResponse202
-  > {
+  ): APIPromise<AMLMonitoringToggleResult | AMLMonitoringJob> {
     return this._client.request(USERS_SET_AML_MONITORING, [], params, options);
   }
 
@@ -246,18 +259,14 @@ export class Users extends APIResource {
   setOngoingMonitoring(
     params: UsersSetOngoingMonitoringParams,
     options?: RequestOptions,
-  ): APIPromise<
-    | UsersSetOngoingMonitoringResponseVariant1
-    | UsersSetOngoingMonitoringResponseVariant2
-    | UsersSetOngoingMonitoringResponse202
-  > {
+  ): APIPromise<OngoingMonitoringToggleResult | OngoingMonitoringJob> {
     return this._client.request(USERS_SET_ONGOING_MONITORING, [], params, options);
   }
 
   /**
    * Update user
    *
-   * Partial update of a user: `display_name`, `full_name`, `date_of_birth`, `status`, `metadata`, `approved_emails`/`approved_phones`/`issuing_states`. `metadata` fully replaces. **Note:** unlike [Update User Status](#patch-/v3/users/-vendor_data-/update-status/), changing `status` here does NOT record a status-change activity and does NOT sync the system blocklist - use the dedicated update-status endpoint for `BLOCKED`/unblock flows.
+   * Partial update of a user: `display_name`, `full_name`, `date_of_birth`, `status`, `metadata`, `approved_emails`/`approved_phones`/`issuing_states`. `metadata` fully replaces. Changing `status` here works like [Update User Status](#patch-/v3/users/-vendor_data-/update-status/): it records a `STATUS_CHANGED` activity with the optional `reason`, and `BLOCKED` adds the `vendor_data` to the system blocklist (moving away from `BLOCKED` removes that entry). Changes to `display_name`, `full_name`, `date_of_birth` or `metadata` are recorded as a `PROFILE_UPDATED` activity.
    *
    * `PATCH /v3/users/{vendor_data}/`
    *
@@ -274,7 +283,7 @@ export class Users extends APIResource {
   /**
    * Update user status
    *
-   * Flip only the lifecycle `status` of a user - `ACTIVE`/`FLAGGED`/`BLOCKED` (NOT session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded as a `STATUS_CHANGED` activity on the user.
+   * Flip only the lifecycle `status` of a user: `ACTIVE`, `FLAGGED` or `BLOCKED` (not session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded as a `STATUS_CHANGED` activity on the user, with the optional `reason` as its `comment`. Sending the current status changes nothing and records no `reason`. The `user.status.updated` webhook does not carry `reason`.
    *
    * `PATCH /v3/users/{vendor_data}/update-status/`
    *

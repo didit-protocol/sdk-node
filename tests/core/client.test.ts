@@ -205,7 +205,7 @@ describe("headers", () => {
       { defaultHeaders: { "X-Api-Key": "other-key", Authorization: "Bearer default" } },
       (request) => ({
         json:
-          request.origin === DEFAULT_BASE_URL
+          request.origin === DEFAULT_BASE_URL || request.path.includes("/organizations/")
             ? { count: 0, next: null, previous: null, results: [] }
             : [],
       }),
@@ -257,7 +257,9 @@ describe("headers", () => {
   });
 
   it("sends the account token, not the API key, to the account API", async () => {
-    const { didit, calls } = client({ accountToken: "acct" }, () => ({ json: [] }));
+    const { didit, calls } = client({ accountToken: "acct" }, () => ({
+      json: { count: 0, next: null, previous: null, results: [] },
+    }));
     await didit.account.organizations.list();
     expect(calls[0]!.origin).toBe("https://apx.didit.me");
     expect(calls[0]!.headers.get("authorization")).toBe("Bearer acct");

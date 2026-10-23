@@ -4,13 +4,13 @@ import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { BusinessSessionsListNetworksResponse } from "../types/business-sessions.js";
+import type { EntityNetworkMembershipList } from "../types/components.js";
 
 const BUSINESS_SESSIONS_LIST_NETWORKS: OperationSpec = {
   method: "GET",
   path: "/v3/organization/{organization_id}/application/{application_id}/business-sessions/{business_session_id}/networks/",
   scope: "application",
-  dates: { p: { results: { i: "EntityNetworkMembership" } } },
+  dates: "EntityNetworkMembershipList",
 };
 
 /** `business_sessions` */
@@ -27,7 +27,7 @@ export class BusinessSessions extends APIResource {
   listNetworks(
     businessSessionId: string,
     options?: RequestOptions,
-  ): APIPromise<BusinessSessionsListNetworksResponse> {
+  ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(
       BUSINESS_SESSIONS_LIST_NETWORKS,
       [businessSessionId],

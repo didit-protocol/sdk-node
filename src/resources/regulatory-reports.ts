@@ -5,11 +5,10 @@ import type { OperationSpec } from "../core/operation.js";
 import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { RegulatoryReportDetail } from "../types/components.js";
+import type { RegulatoryReportDetail, RegulatoryReportList } from "../types/components.js";
 import type {
   RegulatoryReportsCreateParams,
   RegulatoryReportsListParams,
-  RegulatoryReportsListResponse,
   RegulatoryReportsRetrieveDownloadUrlParams,
   RegulatoryReportsRetrieveDownloadUrlResponse,
   RegulatoryReportsUpdateParams,
@@ -40,7 +39,7 @@ const REGULATORY_REPORTS_LIST: OperationSpec = {
   path: "/v3/organization/{organization_id}/application/{application_id}/regulatory-reports/",
   scope: "application",
   query: ["limit", "offset", "status", "report_type", "case"],
-  dates: { p: { results: { i: "RegulatoryReportDetail" } } },
+  dates: "RegulatoryReportList",
 };
 const REGULATORY_REPORTS_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -119,7 +118,7 @@ export class RegulatoryReports extends APIResource {
   list(
     params: RegulatoryReportsListParams = {},
     options?: RequestOptions,
-  ): PagePromise<RegulatoryReportsListResponse, RegulatoryReportDetail> {
+  ): PagePromise<RegulatoryReportList, RegulatoryReportDetail> {
     return this._client.requestPage(REGULATORY_REPORTS_LIST, [], params, options);
   }
 
