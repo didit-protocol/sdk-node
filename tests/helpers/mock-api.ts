@@ -155,7 +155,7 @@ function loadSpecs(): NonNullable<typeof specs> {
   if (!specs) {
     const read = (name: string): JsonObject =>
       JSON.parse(readFileSync(join(ROOT, "openapi", name), "utf8"));
-    let deprecated: JsonObject = {};
+    let deprecated: JsonObject;
     try {
       deprecated = read("deprecated-operations.json");
     } catch {
