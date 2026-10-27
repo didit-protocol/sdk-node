@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 349 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -413,6 +413,12 @@ Every method of `@didit-protocol/sdk-node`: 349 methods, generated from `openapi
 | `didit.phone.checkCode(params: PhoneCheckCodeParams)`   | `POST /v3/phone/check/` | `PhoneVerificationCheckResponse` |       |
 | `didit.phone.sendCode(params: PhoneSendCodeParams)`     | `POST /v3/phone/send/`  | `PhoneVerificationSendResponse`  |       |
 
+## `didit.pricing`
+
+| Method                             | HTTP                                              | Returns                   | Notes |
+| ---------------------------------- | ------------------------------------------------- | ------------------------- | ----- |
+| `didit.pricing.bankVerification()` | `GET /v3/organization/bank-verification-pricing/` | `BankVerificationPricing` |       |
+
 ## `didit.proofOfAddress`
 
 | Method                                                            | HTTP            | Returns                        | Notes  |
@@ -489,12 +495,21 @@ Every method of `@didit-protocol/sdk-node`: 349 methods, generated from `openapi
 
 ## `didit.sessions.imports`
 
-| Method                                                                                    | HTTP                                         | Returns                      | Notes  |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------- | ------ |
-| `didit.sessions.imports.create(params?: SessionsImportsCreateParams)`                     | `POST /v3/session/imports/`                  | `SessionImportJob`           | upload |
-| `didit.sessions.imports.listErrors(importId, params?: SessionsImportsListErrorsParams)`   | `GET /v3/session/imports/{importId}/errors/` | page of `SessionImportError` |        |
-| `didit.sessions.imports.retrieve(importId)`                                               | `GET /v3/session/imports/{importId}/`        | `SessionImportJob`           |        |
-| `didit.sessions.imports.retrieveTemplate(params?: SessionsImportsRetrieveTemplateParams)` | `GET /v3/session/imports/template/`          | `Blob`                       |        |
+| Method                                                                                    | HTTP                                          | Returns                                 | Notes  |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------- | ------ |
+| `didit.sessions.imports.cancel(importId)`                                                 | `POST /v3/session/imports/{importId}/cancel/` | `SessionImportJob`                      |        |
+| `didit.sessions.imports.checkProvider(params: SessionsImportsCheckProviderParams)`        | `POST /v3/session/imports/providers/check/`   | `SessionsImportsCheckProviderResponse`  |        |
+| `didit.sessions.imports.create(params?: SessionsImportsCreateParams)`                     | `POST /v3/session/imports/`                   | `SessionImportJob`                      | upload |
+| `didit.sessions.imports.listActiveJobs()`                                                 | `GET /v3/import-jobs/active/`                 | `SessionsImportsListActiveJobsResponse` |        |
+| `didit.sessions.imports.listErrors(importId, params?: SessionsImportsListErrorsParams)`   | `GET /v3/session/imports/{importId}/errors/`  | page of `SessionImportError`            |        |
+| `didit.sessions.imports.listJobs(params?: SessionsImportsListJobsParams)`                 | `GET /v3/import-jobs/`                        | `SessionsImportsListJobsResponse`       |        |
+| `didit.sessions.imports.listProviders()`                                                  | `GET /v3/session/imports/providers/`          | `SessionsImportsListProvidersResponse`  |        |
+| `didit.sessions.imports.pause(importId)`                                                  | `POST /v3/session/imports/{importId}/pause/`  | `SessionImportJob`                      |        |
+| `didit.sessions.imports.resume(importId)`                                                 | `POST /v3/session/imports/{importId}/resume/` | `SessionImportJob`                      |        |
+| `didit.sessions.imports.retrieve(importId)`                                               | `GET /v3/session/imports/{importId}/`         | `SessionImportJob`                      |        |
+| `didit.sessions.imports.retrieveTemplate(params?: SessionsImportsRetrieveTemplateParams)` | `GET /v3/session/imports/template/`           | `Blob`                                  |        |
+| `didit.sessions.imports.retry(importId, params?: SessionsImportsRetryParams)`             | `POST /v3/session/imports/{importId}/retry/`  | `SessionImportJob`                      | upload |
+| `didit.sessions.imports.start(importId, params?: SessionsImportsStartParams)`             | `POST /v3/session/imports/{importId}/start/`  | `SessionImportJob`                      |        |
 
 ## `didit.sessions.reviews`
 

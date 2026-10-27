@@ -50,6 +50,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: {
       connection: { p: { connected_at: 1, consent_expires_at: 1, last_refreshed_at: 1 } },
       ownership: { p: { evaluated_at: 1 } },
+      continuation: { p: { continued_at: 1 } },
       evidence_purged_at: 1,
       created_at: 1,
       updated_at: 1,
@@ -169,6 +170,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   FraudCheckResponse: { p: { created_at: 1, completed_at: 1 } },
   IPRiskResponse: { p: { created_at: 1 } },
   IdVerificationVerifyResponse: { p: { created_at: 1 } },
+  ImportJobSummary: { p: { resumes_at: 1, created_at: 1, started_at: 1, completed_at: 1 } },
   InvestigatorBlock: { p: { prepared_at: 1, decision: "InvestigatorDecision" } },
   InvestigatorDecision: {
     p: {
@@ -376,13 +378,25 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   SessionDeletionJob: { p: { created_at: 1, completed_at: 1 } },
   SessionEvent: { p: { created_at: 1 } },
   SessionImportError: { p: { created_at: 1 } },
-  SessionImportJob: { p: { created_at: 1, updated_at: 1, started_at: 1, completed_at: 1 } },
+  SessionImportJob: {
+    p: {
+      created_at: 1,
+      updated_at: 1,
+      started_at: 1,
+      completed_at: 1,
+      credentials_expires_at: 1,
+      resumes_at: 1,
+      lawful_basis_confirmed_at: 1,
+    },
+  },
   SessionWebhookDelivery: { p: { created_at: 1 } },
   SessionsBatchDeleteResponse: {
     p: { results: { i: { p: { biometric_template_expires_at: 1 } } } },
   },
   SessionsDeleteResponse: { p: { biometric_template_expires_at: 1 } },
+  SessionsImportsListActiveJobsResponse: { p: { results: { i: "ImportJobSummary" } } },
   SessionsImportsListErrorsResponse: { p: { results: { i: "SessionImportError" } } },
+  SessionsImportsListJobsResponse: { p: { results: { i: "ImportJobSummary" } } },
   SessionsListAmlScreeningHistoryResponse: { p: { results: { i: "AMLScreeningRun" } } },
   SessionsListEventsResponse: { p: { results: { i: "SessionEvent" } } },
   SessionsListFeatureOverridesResponse: {
