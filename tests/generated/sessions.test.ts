@@ -229,6 +229,46 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("POST /v3/session/import-shared/"));
   });
 
+  it("sessions.imports.cancel: POST /v3/session/imports/{importId}/cancel/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/imports/{importId}/cancel/"),
+    });
+    const result = await client.sessions.imports.cancel("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/cancel/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/cancel/"));
+  });
+
+  it("sessions.imports.check_provider: POST /v3/session/imports/providers/check/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/imports/providers/check/"),
+    });
+    const result = await client.sessions.imports.checkProvider({
+      provider: "sumsub",
+      credentials: {},
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/providers/check/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ provider: "sumsub", credentials: {} });
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/providers/check/"));
+  });
+
   it("sessions.imports.create: POST /v3/session/imports/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -246,6 +286,24 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("POST /v3/session/imports/"));
+  });
+
+  it("sessions.imports.list_active_jobs: GET /v3/import-jobs/active/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/import-jobs/active/"),
+    });
+    const result = await client.sessions.imports.listActiveJobs();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/import-jobs/active/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/import-jobs/active/"));
   });
 
   it("sessions.imports.list_errors: GET /v3/session/imports/{importId}/errors/", async () => {
@@ -268,6 +326,78 @@ describe("sessions", () => {
       responseExample("GET /v3/session/imports/{importId}/errors/", "page"),
     );
     expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("sessions.imports.list_jobs: GET /v3/import-jobs/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/import-jobs/"),
+    });
+    const result = await client.sessions.imports.listJobs();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/import-jobs/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/import-jobs/"));
+  });
+
+  it("sessions.imports.list_providers: GET /v3/session/imports/providers/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/imports/providers/"),
+    });
+    const result = await client.sessions.imports.listProviders();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/providers/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/session/imports/providers/"));
+  });
+
+  it("sessions.imports.pause: POST /v3/session/imports/{importId}/pause/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/imports/{importId}/pause/"),
+    });
+    const result = await client.sessions.imports.pause("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/pause/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/pause/"));
+  });
+
+  it("sessions.imports.resume: POST /v3/session/imports/{importId}/resume/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/imports/{importId}/resume/"),
+    });
+    const result = await client.sessions.imports.resume("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/resume/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/resume/"));
   });
 
   it("sessions.imports.retrieve: GET /v3/session/imports/{importId}/", async () => {
@@ -303,6 +433,45 @@ describe("sessions", () => {
     expect(result).toBeInstanceOf(Blob);
     expect(result.type).toBe("text/csv");
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.imports.retry: POST /v3/session/imports/{importId}/retry/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/session/imports/{importId}/retry/"),
+    });
+    const result = await client.sessions.imports.retry("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/retry/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(request.form).toEqual({});
+    expect(Object.keys(request.files).sort()).toEqual([]);
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/retry/"));
+  });
+
+  it("sessions.imports.start: POST /v3/session/imports/{importId}/start/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/imports/{importId}/start/"),
+    });
+    const result = await client.sessions.imports.start("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/start/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/start/"));
   });
 
   it("sessions.list: GET /v3/sessions/", async () => {

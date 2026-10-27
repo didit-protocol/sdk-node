@@ -1048,6 +1048,14 @@ export interface BankAccountCheckPersonHolder {
   full_name: string;
 }
 
+/** Account check: the person types their account number and Didit checks it with the bank. Priced per country. */
+export interface BankAccountCheckPricing {
+  /** `true` only where Didit serves the account check in this country in production. */
+  available: boolean;
+  /** List price of one account check the bank answers. `null` when not available. Decimal string with 4 decimals, in USD. */
+  price_usd: string | null;
+}
+
 export interface BankAccountCheckResponse {
   /** The ID of this check. */
   request_id: string;
@@ -1063,7 +1071,65 @@ export interface BankAccountCheckResponse {
   created_at: Date;
 }
 
-/** One Bank Verification step's result, for User and Business Verification. `method` says how the account was verified. See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
+/** Bank sign-in: the person signs in to their bank. Priced by market, the same for every bank in it. */
+export interface BankSignInPricing {
+  /** `true` only where Didit serves bank sign-in in this country in production. */
+  available: boolean;
+  /** The market whose price applies. `null` when not available. */
+  market: string | null;
+  /** List price of one bank sign-in. `null` when not available. Decimal string with 4 decimals, in USD. */
+  price_usd: string | null;
+  /** Add-ons priced in this country, each a decimal string with 4 decimals in USD, added to the bank sign-in price. Only the add-ons the country offers are listed; empty when bank sign-in is not available. */
+  add_ons: BankSignInPricingAddOns;
+}
+
+/** Add-ons priced in this country, each a decimal string with 4 decimals in USD, added to the bank sign-in price. Only the add-ons the country offers are listed; empty when bank sign-in is not available. */
+export interface BankSignInPricingAddOns {
+  /** Account balance add-on. */
+  balance?: string;
+  /** Transactions add-on. */
+  transactions?: string;
+}
+
+/** How the bank statement upload is priced. */
+export interface BankStatementUploadPricing {
+  /** Price of a statement upload after a charged bank attempt. Decimal string with 4 decimals, in USD. */
+  price_usd: string;
+  /** `true` when the upload is included at no extra charge after a charged bank attempt in the same session. */
+  included_after_charged_bank_attempt: boolean;
+  /** `true` when a statement upload can run on its own, with no bank attempt first. `false` in production; sandbox sessions can test it without billing. */
+  standalone_available: boolean;
+}
+
+/** Public Bank Verification list prices: the statement upload, the own provider key fee and each country's methods. */
+export interface BankVerificationPricing {
+  /** Currency of every price in the response. */
+  currency: "USD" | (string & {});
+  /** How the bank statement upload is priced. */
+  statement_upload: BankStatementUploadPricing;
+  /** Fee for each billable ownership check on a route that uses your own provider contract instead of Didit's, charged whatever the result. A cancelled, timed out or abandoned connection is not billed. Decimal string with 4 decimals, in USD. */
+  own_provider_fee_usd: string;
+  /** Every country, keyed by ISO 3166-1 alpha-3 code. */
+  countries: Record<string, BankVerificationPricingCountry>;
+}
+
+/** One country's Bank Verification methods and their list prices. */
+export interface BankVerificationPricingCountry {
+  /** Country name in English. */
+  name: string;
+  /** The two Bank Verification methods in a country. */
+  methods: BankVerificationPricingMethods;
+}
+
+/** The two Bank Verification methods in a country. */
+export interface BankVerificationPricingMethods {
+  /** Bank sign-in: the person signs in to their bank. Priced by market, the same for every bank in it. */
+  open_banking: BankSignInPricing;
+  /** Account check: the person types their account number and Didit checks it with the bank. Priced per country. */
+  account_lookup: BankAccountCheckPricing;
+}
+
+/** One Bank Verification step's result, for User and Business Verification. `method` says how the account was verified, and `none` that the person continued without a bank before any attempt was evaluated. `continued_without_bank` says the person continued without a bank, also after an evaluated attempt. See [Bank verification methods](/core-technology/bank-verification/verification-methods) and [When the person cannot verify their bank](/core-technology/bank-verification/fallbacks). */
 export interface BankVerificationResult {
   /** Version of this result shape. `1` today. */
   schema_version?: number;
@@ -1075,8 +1141,15 @@ export interface BankVerificationResult {
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
   /** The first verdict the step reached, before any later change such as a manual review. */
   original_status?: string | null;
-  /** How the account was verified: `open_banking` (bank sign-in: the person signed in at their bank), `account_lookup` (account check: the person typed the account details and the bank confirmed the name), `microdeposits` or `statement` (a statement upload). `null` until an account is evaluated. Workflow rules read the same value as `bank.method`. */
-  method?: "open_banking" | "account_lookup" | "microdeposits" | "statement" | (string & {}) | null;
+  /** How the account was verified: `open_banking` (bank sign-in: the person signed in at their bank), `account_lookup` (account check: the person typed the account details and the bank confirmed the name), `microdeposits` or `statement` (a statement upload). `none` when the person continued without a bank before any attempt was evaluated, so no account was verified. After an evaluated attempt, it stays the method of that attempt. `null` until an account is evaluated, and when the workflow narrows the data it returns. Workflow rules read the same value as `bank.method`. */
+  method?:
+    | "open_banking"
+    | "account_lookup"
+    | "microdeposits"
+    | "statement"
+    | "none"
+    | (string & {})
+    | null;
   /** The key of the route that ran the connection. Read `method`, not this key, to tell how the account was verified. */
   provider?: string | null;
   /** `native`: Didit's own route, billed to your Didit balance. `byok`: a marketplace provider you connected with your own credentials. */
@@ -1098,13 +1171,17 @@ export interface BankVerificationResult {
   signals?: Record<string, unknown> | null;
   /** Whether the step ended without a match after the person left at their bank. */
   connection_abandoned?: boolean | null;
-  /** Whether the person's bank or country could not be reached on this step. */
+  /** Whether the person's bank or country could not be reached on this step. Also `true` when the person continued without a bank because no method could verify their country or bank. */
   not_covered?: boolean | null;
+  /** Whether the person left the step with **Continue without your bank**. `continuation` then says why. `method` is `none` when no attempt was evaluated before they continued. After an evaluated attempt, such as a holder that does not match, `method` stays the method of that attempt and its verdict and reason codes stand. Returned even when the workflow narrows the data it returns. */
+  continued_without_bank?: boolean;
+  /** How the person continued without a bank. `null` when they did not. When the workflow narrows the data it returns, `reason` is still returned and every other key is `null`. */
+  continuation?: BankVerificationResultContinuation | null;
   /** When the bank evidence was deleted under `bank_evidence_retention_days`. `null` otherwise. */
   evidence_purged_at?: Date | null;
   /** Informational codes, for example `holder_declared`. A warning never changes the status on its own. */
   warnings?: string[];
-  /** Why the verdict came out the way it did, for example `OWNER_NAME_PARTIAL`. Several may apply. */
+  /** Why the verdict came out the way it did, for example `OWNER_NAME_PARTIAL`. Several may apply. `NOT_COVERED`: the person continued without a bank because no method could verify their country or bank. `SKIPPED`: the person chose to continue without a bank while a way to verify was there. Neither is added when an evaluated attempt already decided the step. */
   reason_codes?: string[];
   created_at?: Date;
   updated_at?: Date;
@@ -1136,7 +1213,7 @@ export interface BankVerificationResultBilling {
   billed?: boolean;
   /** The marketplace platform fee charged, for `byok`. */
   marketplace_fee?: string | null;
-  /** The usage line the charge was booked on. */
+  /** The usage line the charge was booked on: `bank_verification` for a bank sign-in or an account check, `bank_statement_upload` for a statement upload with no charged bank attempt before it, and `bank_byok_fee` for the marketplace fee on your own provider. `null` when nothing was billed. */
   usage_type?: string | null;
 }
 
@@ -1170,6 +1247,23 @@ export interface BankVerificationResultConnection {
   attempts?: number;
   /** Why the connection is not simply `connected`, for example `USER_CANCELLED`, `INSTITUTION_DOWN`, `ACCOUNT_NOT_FOUND`, `REFERENCE_IDENTITY_MISSING` or `VERIFICATION_COMPLETED`. */
   reason_code?: string | null;
+}
+
+/** How the person continued without a bank. `null` when they did not. When the workflow narrows the data it returns, `reason` is still returned and every other key is `null`. */
+export interface BankVerificationResultContinuation {
+  /** Why, as Didit worked it out when the person continued: `no_route` (no bank sign-in or account check serves their country), `institution_unsupported` (the bank they picked cannot be used on this step), `attempts_exhausted` (every attempt was already spent and none was in progress), or `person_choice` (a way to verify was there and they chose to continue, also when their bank could not be reached right now). `no_route` and `institution_unsupported` follow `bank_unsupported_action`, `attempts_exhausted` follows `bank_attempts_exhausted_action`, and `person_choice` follows `bank_skipped_action`, unless an evaluated attempt already decided the step. */
+  reason?:
+    "no_route" | "institution_unsupported" | "attempts_exhausted" | "person_choice" | (string & {});
+  /** The country the person was verifying in, ISO 3166-1 alpha-3. `null` when they continued before picking one. */
+  country?: string | null;
+  /** The other ways to verify that country offered the person when they continued, in the order it offered them: `statement` (a statement upload), then `microdeposits`. Empty when it offered none. */
+  offered?: ("statement" | "microdeposits" | (string & {}))[] | null;
+  /** For `institution_unsupported`, the ID of the bank the person could not use: the bank they picked, or the bank their last attempt ended on. Didit takes it from its own list of banks, never from the person's device, so a bank that list does not have is `null`. `null` for every other reason. */
+  institution_id?: string | null;
+  /** For `institution_unsupported`, the name of that bank, from the same list as `institution_id`. `null` when that list does not have the bank, and for every other reason. */
+  institution_name?: string | null;
+  /** When the person continued. */
+  continued_at?: Date | null;
 }
 
 /** The financial data the step read. Only bank sign-in reads it. */
@@ -3439,6 +3533,100 @@ export interface IPRiskResponseIp {
   country_mismatch?: boolean | null;
   /** Free-form network-threat evidence from the enrichment source (e.g., `is_proxy`, `is_tor`). Empty object when no enrichment data is available. Treat as diagnostic detail, not a stable contract. */
   threat: Record<string, unknown>;
+}
+
+/** One import job of any kind, in the shape the console's Import jobs drawer reads. */
+export interface ImportJobSummary {
+  id?: string;
+  kind?: "sessions" | "businesses" | "users" | "status_rules" | "transactions" | (string & {});
+  source?: "file" | "api" | "provider" | (string & {});
+  provider?: string | null;
+  provider_name?: string | null;
+  filename?: string | null;
+  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. */
+  state?:
+    | "ready"
+    | "queued"
+    | "running"
+    | "paused"
+    | "completed"
+    | "errors"
+    | "failed"
+    | "cancelled"
+    | (string & {});
+  status?: string;
+  is_dry_run?: boolean;
+  credential_hint?: string | null;
+  resumes_at?: Date | null;
+  last_error?: string | null;
+  started_by?: ImportJobSummaryStartedBy;
+  progress?: ImportJobSummaryProgress;
+  face_templates?: ImportJobSummaryFaceTemplates | null;
+  eta_seconds?: number | null;
+  created_at?: Date;
+  started_at?: Date | null;
+  completed_at?: Date | null;
+}
+
+export interface ImportJobSummaryFaceTemplates {
+  enabled?: boolean;
+  built?: number;
+  duplicates?: number;
+  blocklisted?: number;
+}
+
+export interface ImportJobSummaryProgress {
+  total?: number;
+  processed?: number;
+  imported?: number;
+  updated?: number;
+  already_in_didit?: number;
+  failed?: number;
+  not_finished?: number;
+  same_person?: number;
+}
+
+export interface ImportJobSummaryStartedBy {
+  name?: string | null;
+  email?: string | null;
+}
+
+export interface ImportProvider {
+  key?:
+    | "sumsub"
+    | "jumio"
+    | "veriff"
+    | "onfido"
+    | "persona"
+    | "metamap"
+    | "socure"
+    | "idnow"
+    | "shufti"
+    | "idenfy"
+    | "ondato"
+    | "trulioo"
+    | "au10tix"
+    | "complycube"
+    | "other"
+    | (string & {});
+  name?: string;
+  /** `api_list`: Didit lists records with the key. `api_ids`: upload the record IDs from an export. `export_file`: upload an export in Didit's format. */
+  mode?: "api_list" | "api_ids" | "export_file" | (string & {});
+  record_noun?: string;
+  credential_fields?: ImportProviderCredentialFields[];
+  regions?: string[];
+  required_permissions?: string[];
+  docs_url?: string | null;
+  status_mapping?: Record<
+    string,
+    "Approved" | "Declined" | "In Review" | "Expired" | "Not Finished" | "Abandoned" | (string & {})
+  >;
+}
+
+export interface ImportProviderCredentialFields {
+  name?: string;
+  label?: string;
+  secret?: boolean;
 }
 
 export interface InvestigatorBatchAcceptResponse {
@@ -5733,7 +5921,7 @@ export interface SessionDecision {
   document_ai_documents?: SessionDecisionDocumentAiDocuments[] | null;
   /** **Array of questionnaire response reports** - always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
   questionnaire_responses?: SessionDecisionQuestionnaireResponses[] | null;
-  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `microdeposits` or `statement` fallback. See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
+  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `statement` or `microdeposits` fallback, and `none` when the person continued without a bank before any attempt was evaluated (`continued_without_bank`). See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
   bank_verifications?: BankVerificationResult[] | null;
   /** Electronic Signature results, one item per signer and signature step, for User and Business Verification. Present only when the workflow has an Electronic Signature step; an empty array until a signer reaches it. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature). */
   signatures?: SignatureResult[];
@@ -8222,7 +8410,14 @@ export interface SessionImportJob {
   /** Import job id. Use this value to poll progress and fetch row errors. */
   uuid: string;
   status:
-    "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "PAUSED" | "CANCELLED" | (string & {});
+    | "PENDING"
+    | "PROCESSING"
+    | "COMPLETED"
+    | "FAILED"
+    | "PAUSED"
+    | "CANCELLED"
+    | "READY"
+    | (string & {});
   import_type:
     "user_verification" | "business_verification" | "status_rules" | "transactions" | (string & {});
   source_format: "csv" | "ndjson" | (string & {});
@@ -8240,6 +8435,39 @@ export interface SessionImportJob {
   updated_at?: Date;
   started_at?: Date | null;
   completed_at?: Date | null;
+  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. */
+  state?:
+    | "ready"
+    | "queued"
+    | "running"
+    | "paused"
+    | "completed"
+    | "errors"
+    | "failed"
+    | "cancelled"
+    | (string & {});
+  source?: "file" | "api" | "provider" | (string & {});
+  /** Migration source; empty for a file or API import. */
+  provider?: string;
+  provider_options?: Record<string, unknown>;
+  /** The first characters of the key the migration holds. The key itself is never returned. */
+  credential_hint?: string;
+  credentials_expires_at?: Date | null;
+  /** When a job paused by the provider's rate limit resumes by itself. */
+  resumes_at?: Date | null;
+  status_mapping?: Record<string, string>;
+  is_dry_run?: boolean;
+  /** What a dry run found: `total`, `by_status`, `already_in_didit`, `same_person`, `not_finished`, `failed`, `unmapped_statuses`. */
+  dry_run_summary?: Record<string, unknown>;
+  face_templates_enabled?: boolean;
+  lawful_basis_confirmed_at?: Date | null;
+  not_finished_count?: number;
+  same_person_count?: number;
+  face_templates_count?: number;
+  face_duplicates_count?: number;
+  face_blocklist_hits_count?: number;
+  created_by_name?: string | null;
+  created_by_email?: string | null;
 }
 
 export interface SessionSignDocument {
@@ -11156,6 +11384,14 @@ export interface WorkflowDetail {
   kyb_role_settings?: Record<string, unknown>[];
   created_at?: Date;
   updated_at?: Date;
+  /** Whether a simple KYC or KYB workflow runs Bank verification. It runs after the contact steps and before database validation, AML and IP analysis. Set in the console. */
+  is_bank_verification_enabled?: boolean;
+  /** Bank verification settings of a simple workflow, with the same keys a `BANK_VERIFICATION` node takes (for example `bank_countries` and `bank_method_order`). Every key is optional and an absent key keeps its default, so `{}` means all defaults. See [Bank verification settings](/management-api/workflows/feature-configs#bank-verification). */
+  bank_verification_config?: Record<string, unknown>;
+  /** Whether a simple KYC workflow runs Location verification. It runs after the contact steps and before Bank verification. Never on KYB workflows. Set in the console. */
+  is_geolocation_enabled?: boolean;
+  /** Location verification settings of a simple workflow, with the same keys a `GEOLOCATION` node takes (for example `is_geolocation_geofencing_enabled` and `geolocation_max_attempts`). Every key is optional and an absent key keeps its default, so `{}` means all defaults. */
+  geolocation_config?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

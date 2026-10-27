@@ -5,6 +5,8 @@ import type {
   AMLScreeningRun,
   BusinessSessionListItem,
   FeatureStatusOverride,
+  ImportJobSummary,
+  ImportProvider,
   ReviewItem,
   SessionEvent,
   SessionImportError,
@@ -396,6 +398,43 @@ export interface SessionsImportSharedParams {
   vendor_data?: string | null;
 }
 
+export interface SessionsImportsCheckProviderParams {
+  /** Migration source, from `GET /v3/session/imports/providers/`. Required when `source` is `provider`. */
+  provider:
+    | "sumsub"
+    | "jumio"
+    | "veriff"
+    | "onfido"
+    | "persona"
+    | "metamap"
+    | "socure"
+    | "idnow"
+    | "shufti"
+    | "idenfy"
+    | "ondato"
+    | "trulioo"
+    | "au10tix"
+    | "complycube"
+    | "other"
+    | (string & {});
+  /** The provider's read-only key, with the field names `credential_fields` lists. Encrypted at rest, never returned, and erased when the import ends. Send it as a JSON string in multipart. */
+  credentials: Record<string, string>;
+  options?: SessionsImportsCheckProviderParamsOptions;
+  /** For `api_ids` providers: the first record ID of your export. */
+  record_ids?: string[];
+}
+
+export interface SessionsImportsCheckProviderParamsOptions {
+  /** The provider region, one of its `regions` (Onfido: `eu`, `us`, `ca`). */
+  region?: string;
+}
+
+export interface SessionsImportsCheckProviderResponse {
+  ok?: boolean;
+  provider?: string;
+  credential_hint?: string | null;
+}
+
 export interface SessionsImportsCreateParams {
   /** What to import: historical User Verification sessions, historical Business Verification sessions, workflow custom status rules, or historical transaction monitoring records. */
   import_type?:
@@ -406,8 +445,52 @@ export interface SessionsImportsCreateParams {
   source_format?: "csv" | "ndjson" | (string & {});
   /** Alternative to file upload. Must be an HTTPS URL resolving to a public address (private/loopback networks are rejected). Mutually exclusive with `file`. */
   source_file_url?: string;
+  /** `provider` makes this a migration from another identity verification provider. Omit for a file import. */
+  source?: "file" | "provider" | (string & {});
+  /** Migration source, from `GET /v3/session/imports/providers/`. Required when `source` is `provider`. */
+  provider?:
+    | "sumsub"
+    | "jumio"
+    | "veriff"
+    | "onfido"
+    | "persona"
+    | "metamap"
+    | "socure"
+    | "idnow"
+    | "shufti"
+    | "idenfy"
+    | "ondato"
+    | "trulioo"
+    | "au10tix"
+    | "complycube"
+    | "other"
+    | (string & {});
+  /** The provider's read-only key, with the field names `credential_fields` lists. Encrypted at rest, never returned, and erased when the import ends. Send it as a JSON string in multipart. */
+  credentials?: Record<string, string>;
+  options?: SessionsImportsCreateParamsOptions;
+  /** Edits to the provider's default status mapping: source status to Didit status. `Not Finished` and `Abandoned` are skipped and counted, never imported. */
+  status_mapping?: Record<
+    string,
+    "Approved" | "Declined" | "In Review" | "Expired" | "Not Finished" | "Abandoned" | (string & {})
+  >;
+  /** Count what the migration would import (by status, already in Didit, same person, not finished) and write nothing. The job ends `READY`; start it with `POST /v3/session/imports/{importId}/start/`. */
+  dry_run?: boolean;
+  /** Build face templates from the imported selfies and search them against the application's faces and blocklist. Matches are flagged for review only. Requires `lawful_basis_confirmed`. */
+  face_templates?: boolean;
+  /** Confirms you have a lawful basis to share these selfies with Didit as processor. */
+  lawful_basis_confirmed?: boolean;
   /** Canonical CSV or NDJSON file. Use NDJSON for large imports. Maximum upload size 25 MB (use `source_file_url` for bigger files). Mutually exclusive with `source_file_url`. */
   file?: Uploadable;
+}
+
+export interface SessionsImportsCreateParamsOptions {
+  /** The provider region, one of its `regions` (Onfido: `eu`, `us`, `ca`). */
+  region?: string;
+}
+
+export interface SessionsImportsListActiveJobsResponse {
+  results?: ImportJobSummary[];
+  running?: number;
 }
 
 export interface SessionsImportsListErrorsParams {
@@ -427,9 +510,51 @@ export interface SessionsImportsListErrorsResponse {
   results?: SessionImportError[];
 }
 
+export interface SessionsImportsListJobsParams {
+  scope?: "all" | "sessions" | "users" | "businesses" | (string & {});
+  limit?: number;
+}
+
+export interface SessionsImportsListJobsResponse {
+  results?: ImportJobSummary[];
+  counts?: SessionsImportsListJobsResponseCounts;
+}
+
+export interface SessionsImportsListJobsResponseCounts {
+  all?: number;
+  running_and_waiting?: number;
+  needs_attention?: number;
+  done?: number;
+}
+
+export interface SessionsImportsListProvidersResponse {
+  providers?: ImportProvider[];
+  mapping_targets?: string[];
+  skipped_statuses?: string[];
+}
+
 export interface SessionsImportsRetrieveTemplateParams {
   import_type?:
     "user_verification" | "business_verification" | "status_rules" | "transactions" | (string & {});
+}
+
+export interface SessionsImportsRetryParams {
+  /** The provider's read-only key, with the field names `credential_fields` lists. Encrypted at rest, never returned, and erased when the import ends. Send it as a JSON string in multipart. */
+  credentials?: Record<string, string>;
+  /** The record IDs or export file again, for `api_ids` and `export_file` providers. */
+  file?: Uploadable;
+}
+
+export interface SessionsImportsStartParams {
+  /** Edits to the provider's default status mapping: source status to Didit status. `Not Finished` and `Abandoned` are skipped and counted, never imported. */
+  status_mapping?: Record<
+    string,
+    "Approved" | "Declined" | "In Review" | "Expired" | "Not Finished" | "Abandoned" | (string & {})
+  >;
+  /** Build face templates from the imported selfies and search them against the application's faces and blocklist. Matches are flagged for review only. Requires `lawful_basis_confirmed`. */
+  face_templates?: boolean;
+  /** Confirms you have a lawful basis to share these selfies with Didit as processor. */
+  lawful_basis_confirmed?: boolean;
 }
 
 export interface SessionsListAmlScreeningHistoryParams {

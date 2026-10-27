@@ -34,10 +34,18 @@ import type {
   SessionsDeleteResponse,
   SessionsExportAmlScreeningHistoryParams,
   SessionsImportSharedParams,
+  SessionsImportsCheckProviderParams,
+  SessionsImportsCheckProviderResponse,
   SessionsImportsCreateParams,
+  SessionsImportsListActiveJobsResponse,
   SessionsImportsListErrorsParams,
   SessionsImportsListErrorsResponse,
+  SessionsImportsListJobsParams,
+  SessionsImportsListJobsResponse,
+  SessionsImportsListProvidersResponse,
   SessionsImportsRetrieveTemplateParams,
+  SessionsImportsRetryParams,
+  SessionsImportsStartParams,
   SessionsListAmlScreeningHistoryParams,
   SessionsListAmlScreeningHistoryResponse,
   SessionsListEventsParams,
@@ -80,6 +88,16 @@ import type {
   SessionsUpdateStatusResponse,
 } from "../types/sessions.js";
 
+const SESSIONS_IMPORTS_CANCEL: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/cancel/",
+  dates: "SessionImportJob",
+};
+const SESSIONS_IMPORTS_CHECK_PROVIDER: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/providers/check/",
+  body: "json",
+};
 const SESSIONS_IMPORTS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/session/imports/",
@@ -87,11 +105,36 @@ const SESSIONS_IMPORTS_CREATE: OperationSpec = {
   files: ["file"],
   dates: "SessionImportJob",
 };
+const SESSIONS_IMPORTS_LIST_ACTIVE_JOBS: OperationSpec = {
+  method: "GET",
+  path: "/v3/import-jobs/active/",
+  dates: { p: { results: { i: "ImportJobSummary" } } },
+};
 const SESSIONS_IMPORTS_LIST_ERRORS: OperationSpec = {
   method: "GET",
   path: "/v3/session/imports/{importId}/errors/",
   query: ["limit", "offset"],
   dates: { p: { results: { i: "SessionImportError" } } },
+};
+const SESSIONS_IMPORTS_LIST_JOBS: OperationSpec = {
+  method: "GET",
+  path: "/v3/import-jobs/",
+  query: ["scope", "limit"],
+  dates: { p: { results: { i: "ImportJobSummary" } } },
+};
+const SESSIONS_IMPORTS_LIST_PROVIDERS: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/imports/providers/",
+};
+const SESSIONS_IMPORTS_PAUSE: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/pause/",
+  dates: "SessionImportJob",
+};
+const SESSIONS_IMPORTS_RESUME: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/resume/",
+  dates: "SessionImportJob",
 };
 const SESSIONS_IMPORTS_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -104,6 +147,19 @@ const SESSIONS_IMPORTS_RETRIEVE_TEMPLATE: OperationSpec = {
   query: ["import_type"],
   response: "binary",
   accept: "text/csv",
+};
+const SESSIONS_IMPORTS_RETRY: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/retry/",
+  body: "multipart",
+  files: ["file"],
+  dates: "SessionImportJob",
+};
+const SESSIONS_IMPORTS_START: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/start/",
+  body: "json",
+  dates: "SessionImportJob",
 };
 const SESSIONS_REVIEWS_CREATE: OperationSpec = {
   method: "POST",
@@ -348,9 +404,36 @@ const SESSIONS_UPDATE_STATUS: OperationSpec = {
 /** `sessions.imports` */
 export class SessionsImports extends APIResource {
   /**
+   * Cancel an import job
+   *
+   * Cancel an import. What was imported stays; the uploaded file and the key are erased.
+   *
+   * `POST /v3/session/imports/{importId}/cancel/`
+   *
+   * @param importId importId
+   */
+  cancel(importId: string, options?: RequestOptions): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_CANCEL, [importId], undefined, options);
+  }
+
+  /**
+   * Check a provider key
+   *
+   * Read the provider with your key before creating a migration. Nothing is stored.
+   *
+   * `POST /v3/session/imports/providers/check/`
+   */
+  checkProvider(
+    params: SessionsImportsCheckProviderParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsImportsCheckProviderResponse> {
+    return this._client.request(SESSIONS_IMPORTS_CHECK_PROVIDER, [], params, options);
+  }
+
+  /**
    * Create a verification import job
    *
-   * Create an asynchronous import job for historical User Verification sessions, Business Verification sessions, transaction monitoring records, or workflow custom status rules. Use this to migrate from providers such as Sumsub, MetaMap, Veriff, Onfido, Persona, Trulioo, Jumio, Incode, iDenfy, or any other provider after transforming the export into Didit's canonical CSV/NDJSON format. Imports are disabled by default and must be enabled per organization by Didit.
+   * Create an asynchronous import job for historical User Verification sessions, Business Verification sessions, transaction monitoring records, or workflow custom status rules. Set `source=provider` to migrate from another provider: Didit reads Sumsub, Onfido, Persona and ComplyCube with your read-only key, reads Veriff, iDenfy and MetaMap records by the IDs you upload in `file`, and imports an export file in Didit's format for the other providers. Record IDs are namespaced by provider (`sumsub:<id>`) so a re-run skips everything already in Didit. Imports are disabled by default and must be enabled per organization by Didit.
    *
    * `POST /v3/session/imports/`
    */
@@ -359,6 +442,17 @@ export class SessionsImports extends APIResource {
     options?: RequestOptions,
   ): APIPromise<SessionImportJob> {
     return this._client.request(SESSIONS_IMPORTS_CREATE, [], params, options);
+  }
+
+  /**
+   * List active import jobs
+   *
+   * What is running or waiting, plus what just ended, for a progress indicator.
+   *
+   * `GET /v3/import-jobs/active/`
+   */
+  listActiveJobs(options?: RequestOptions): APIPromise<SessionsImportsListActiveJobsResponse> {
+    return this._client.request(SESSIONS_IMPORTS_LIST_ACTIVE_JOBS, [], undefined, options);
   }
 
   /**
@@ -376,6 +470,57 @@ export class SessionsImports extends APIResource {
     options?: RequestOptions,
   ): PagePromise<SessionsImportsListErrorsResponse, SessionImportError> {
     return this._client.requestPage(SESSIONS_IMPORTS_LIST_ERRORS, [importId], params, options);
+  }
+
+  /**
+   * List import jobs
+   *
+   * Every import of the application in one shape: verification imports and migrations, people and businesses.
+   *
+   * `GET /v3/import-jobs/`
+   */
+  listJobs(
+    params: SessionsImportsListJobsParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsImportsListJobsResponse> {
+    return this._client.request(SESSIONS_IMPORTS_LIST_JOBS, [], params, options);
+  }
+
+  /**
+   * List migration providers
+   *
+   * The 15 providers you can migrate verifications from: what each needs to connect, whether its API can list records, the permissions its key needs and its default status mapping.
+   *
+   * `GET /v3/session/imports/providers/`
+   */
+  listProviders(options?: RequestOptions): APIPromise<SessionsImportsListProvidersResponse> {
+    return this._client.request(SESSIONS_IMPORTS_LIST_PROVIDERS, [], undefined, options);
+  }
+
+  /**
+   * Pause an import job
+   *
+   * Pause a queued or running import.
+   *
+   * `POST /v3/session/imports/{importId}/pause/`
+   *
+   * @param importId importId
+   */
+  pause(importId: string, options?: RequestOptions): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_PAUSE, [importId], undefined, options);
+  }
+
+  /**
+   * Resume an import job
+   *
+   * Resume an import you paused. A job paused by the provider's rate limit resumes by itself.
+   *
+   * `POST /v3/session/imports/{importId}/resume/`
+   *
+   * @param importId importId
+   */
+  resume(importId: string, options?: RequestOptions): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_RESUME, [importId], undefined, options);
   }
 
   /**
@@ -403,6 +548,40 @@ export class SessionsImports extends APIResource {
     options?: RequestOptions,
   ): APIPromise<Blob> {
     return this._client.request(SESSIONS_IMPORTS_RETRIEVE_TEMPLATE, [], params, options);
+  }
+
+  /**
+   * Retry a migration
+   *
+   * Run a migration that ended again as a new job, with a new key (the old one was erased). It keeps the provider, workflow, region, status mapping and face templates choice; everything already in Didit is skipped.
+   *
+   * `POST /v3/session/imports/{importId}/retry/`
+   *
+   * @param importId importId
+   */
+  retry(
+    importId: string,
+    params: SessionsImportsRetryParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_RETRY, [importId], params, options);
+  }
+
+  /**
+   * Start a dry run
+   *
+   * Start a migration whose dry run finished (`READY`): the same job imports for real, with the status mapping and face templates choice as sent now.
+   *
+   * `POST /v3/session/imports/{importId}/start/`
+   *
+   * @param importId importId
+   */
+  start(
+    importId: string,
+    params: SessionsImportsStartParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_START, [importId], params, options);
   }
 }
 
