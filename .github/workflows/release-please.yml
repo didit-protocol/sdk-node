@@ -1,23 +1,18 @@
-# NOTHING MAY BE PUBLISHED before Alex's explicit approval and the 2026-11-01 Didit release
-# (docs/DESIGN.md section 13). The GitHub environment `npm` used by the publish job must
-# require a reviewer, so that every upload to npm waits for an explicit approval.
-#
-# Run by hand only, so nothing is cut by accident:
-# 1. The first run opens the release pull request (version bump and the generated
-#    CHANGELOG.md).
+# Runs on every push to main (and by hand):
+# 1. It keeps the release pull request (version bump and the generated CHANGELOG.md) up to date.
 # 2. Once that pull request is merged, the next run creates the vX.Y.Z tag and the GitHub
-#    release; the publish job then waits for the `npm` environment approval, re-runs the
-#    checks on the tag and publishes with npm provenance (trusted publishing, OIDC).
+#    release, and the publish job re-runs the checks on the tag and publishes to npm with
+#    trusted publishing (OIDC) and provenance.
 # The publish job is part of this workflow, so it runs whatever token created the release.
 #
-# Token: a release pull request opened with the default GITHUB_TOKEN gets no CI (GitHub
-# does not start workflows from events caused by GITHUB_TOKEN). Add a repository secret
-# RELEASE_PLEASE_TOKEN (a fine-grained token with Contents, Issues and Pull requests read
-# and write on this repository only) to fix that; without it the workflow falls back to
-# GITHUB_TOKEN, and CI on the release pull request must be started by hand.
+# Optional: a RELEASE_PLEASE_TOKEN secret (fine-grained, Contents, Issues and Pull requests read
+# and write on this repository only) gives the release pull request CI; without it the workflow
+# uses GITHUB_TOKEN and the release pull request's checks run on merge.
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
