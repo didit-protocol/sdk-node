@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/didit-protocol/sdk-node/compare/v1.0.0...v1.0.1) (2026-10-29)
+
+
+### Miscellaneous Chores
+
+* release 1.0.1 ([c8b40f9](https://github.com/didit-protocol/sdk-node/commit/c8b40f9fdc2189b17bb9cab83817d4adeb8c54ed))
+
 ## [1.0.0](https://github.com/didit-protocol/sdk-node/compare/v0.1.0...v1.0.0) (2026-10-29)
 
 
