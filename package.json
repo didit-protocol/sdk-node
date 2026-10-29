@@ -1,6 +1,6 @@
 {
   "name": "@didit-protocol/sdk-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The official Didit TypeScript and JavaScript library: identity verification (KYC), KYB, AML screening, liveness, transaction monitoring, Travel Rule and customer authentication from your backend.",
   "keywords": [
     "didit",
