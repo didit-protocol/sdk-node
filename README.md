@@ -3,8 +3,6 @@
 The official Didit TypeScript and JavaScript library.
 Identity verification (KYC), business verification (KYB), AML screening, biometrics, transaction monitoring, Travel Rule and customer authentication, from your backend.
 
-> In development. Not released yet: the first release is planned with the 2026-11-01 Didit release.
-
 - Every server endpoint of the [Didit API](https://docs.didit.me), with full types, generated from the OpenAPI contract.
 - Webhook verification with typed events, and Didit Authentication token verification.
 - No runtime dependencies. Runs on Node.js 18 or later, Bun, Deno and edge runtimes with `fetch` and Web Crypto (Cloudflare Workers, Vercel Edge).
