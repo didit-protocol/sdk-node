@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      # Must require a reviewer (Settings > Environments > npm > Required reviewers).
+      # Holds the npm trusted-publishing binding; no required reviewers (merging the release PR is the approval).
       name: npm
       url: https://www.npmjs.com/package/@didit-protocol/sdk-node
     permissions:
