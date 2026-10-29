@@ -5,14 +5,14 @@ export interface BillingRetrieveBalanceResponse {
   balance: string;
   /** When `true`, Didit will automatically charge the saved payment method to add credits once the balance crosses `auto_refill_threshold`. Configured from Console → Billing. */
   auto_refill_enabled: boolean;
-  /** USD amount that will be charged on each auto-refill. `null` when auto-refill is disabled or unset. */
+  /** USD amount that will be charged and added to the balance on each auto-refill, at face value. Set from \$50 to \$10,000 in Console → Billing. `null` when auto-refill is disabled or unset. */
   auto_refill_amount?: string | null;
   /** Trigger threshold in USD. Auto-refill fires when `balance` falls below this value. `null` when auto-refill is disabled or unset. */
   auto_refill_threshold?: string | null;
 }
 
 export interface BillingTopUpParams {
-  /** Amount to charge, in USD. **Must be at least 50.** Tax is added automatically at checkout based on the customer's billing address. */
+  /** Amount to charge, in USD. **Must be from 50 to 10,000.** The balance receives the same amount, with no discount or bonus. Tax is added automatically at checkout based on the customer's billing address. */
   amount_in_dollars: number;
   /** URL the hosted checkout redirects the customer to after a successful payment. Currently defaults to `https://console.didit.me`. Pass a working URL explicitly; the default host is unavailable. Append the literal placeholder `{CHECKOUT_SESSION_ID}` if you want the hosted checkout to substitute the session ID. */
   success_url?: string;

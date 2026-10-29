@@ -12,6 +12,22 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("transactions", () => {
+  it("transactions.batch_delete: DELETE /v3/organization/{organization_id}/application/{application_id}/transactions/delete/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.transactions.batchDelete({
+      transaction_uuids: ["00000000-0000-4000-8000-000000000001"],
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/organization/org-123/application/app-456/transactions/delete/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.json).toEqual({ transaction_uuids: ["00000000-0000-4000-8000-000000000001"] });
+  });
+
   it("transactions.create: POST /v3/transactions/", async () => {
     const { client, calls } = mockClient({
       status: 201,

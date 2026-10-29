@@ -608,6 +608,49 @@ export interface AMLScreeningWarnings {
   node_id?: string;
 }
 
+export interface AddressValidationResponse {
+  /** Identifier of this request; quote it to support. No session is created. */
+  request_id: string;
+  /** The result of one Address Validation: whether the address exists, and its normalised form. It confirms the address only; it never links the address to a person. */
+  address_validation: AddressValidationResult;
+  created_at: Date;
+}
+
+/** The result of one Address Validation: whether the address exists, and its normalised form. It confirms the address only; it never links the address to a person. */
+export interface AddressValidationResult {
+  /** `verified`: the address was confirmed down to the building (or the flat or PO box). `partially_verified`: it was confirmed only to the street, or to the most precise level the postal reference data holds for that place. `not_verified`: only the region or the city matched, or nothing did. `unavailable`: the validation could not run (for example the reference service did not answer); it is not charged and never affects a verification. */
+  status: "verified" | "partially_verified" | "not_verified" | "unavailable" | (string & {});
+  /** The most precise level the address was matched to. `null` when nothing matched or `status` is `unavailable`. */
+  verification_level:
+    | "administrative_area"
+    | "locality"
+    | "thoroughfare"
+    | "premise"
+    | "delivery_point"
+    | (string & {})
+    | null;
+  /** The normalised address. `null` when `status` is `unavailable`. */
+  address: AddressValidationResultAddress | null;
+  /** The normalised address on one line. */
+  formatted_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/** The normalised address. `null` when `status` is `unavailable`. */
+export interface AddressValidationResultAddress {
+  /** First delivery line, written the way the country writes it. */
+  address_line_1?: string | null;
+  /** Second delivery line (a flat, building or neighbourhood), when the address has one. */
+  address_line_2?: string | null;
+  city?: string | null;
+  /** State, province or region. */
+  region?: string | null;
+  postal_code?: string | null;
+  /** ISO 3166-1 alpha-2 country code. */
+  country?: string | null;
+}
+
 /** Full application record. `uuid`, `client_id`, and `api_key` never change after creation. */
 export interface Application {
   /** Application UUID. Use as `{app_id}` in subsequent calls. */
@@ -616,7 +659,7 @@ export interface Application {
   name?: string;
   /** Public client identifier, safe to embed in OAuth-style flows. */
   client_id?: string;
-  /** Long-lived secret (also called `client_secret`). Use as the `x-api-key` header for every call to `https://verification.didit.me/v3/...` (sessions, workflows, AML, etc.). Treat as a credential; never expose client-side. New keys start with `sk_live_` (live application) or `sk_test_` (sandbox application), followed by 43 URL-safe characters (letters, digits, `-` and `_`). Keys created before this format have no prefix and keep working unchanged. */
+  /** Long-lived secret (also called `client_secret`). Use as the `x-api-key` header for every call to `https://verification.didit.me/v3/...` (sessions, workflows, AML, etc.). Treat as a credential; never expose client-side. New keys start with `sk_live_` (live application) or `sk_test_` (sandbox application), followed by 43 URL-safe characters (letters, digits, `-` and `_`). Keys created before this format have no prefix and keep working unchanged. For 72 hours after you recovered your account, list, retrieve and update return an empty string here instead of the key. */
   api_key?: string;
   /** Website or app URL associated with this application. */
   website_url?: string | null;
@@ -3964,8 +4007,9 @@ export interface KYBRegistryIndustry {
 
 /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
 export interface KYBRegistryOwnership {
-  /** `delivered` when the registry published ownership; `unavailable` when it did not (see `unavailable_reason`); `pending` while the registry is still fetching it; `not_requested` for the Basic tier. */
-  status: "not_requested" | "pending" | "delivered" | "unavailable" | (string & {}) | null;
+  /** `delivered` when the registry published ownership; `not_held` when the ownership registry answered and does not list the company at all (see `unavailable_reason`); `unavailable` when it did not serve the ownership data for any other reason (see `unavailable_reason`); `pending` while the registry is still fetching it; `not_requested` for the Basic tier. */
+  status:
+    "not_requested" | "pending" | "delivered" | "not_held" | "unavailable" | (string & {}) | null;
   /** The tier the workflow ordered. */
   tier_requested: "basic" | "shareholders" | "ubo" | (string & {}) | null;
   /** The tier the registry delivered (and that is billed). A UBO request answered with direct shareholders only is `shareholders`. */
@@ -4582,9 +4626,9 @@ export interface NetworkDetailResponse {
   notes_count?: number;
   /** The organization's cross-organization sharing mode. Only `global` compares networks across organizations; `private` and `off` keep them to the organization's own history. */
   sharing_mode?: "off" | "private" | "global" | (string & {});
-  /** Whether cross-organization signals apply to this organization. They need both the Identity Enterprise plan and the `global` sharing mode. */
+  /** Whether cross-organization signals apply to this organization. They need both the Enterprise plan and the `global` sharing mode. */
   cross_org_available?: boolean;
-  /** Why cross-organization signals do not apply, checked in this order. `plan`: the organization's Identity plan does not include the cross-organization fraud network (it needs Identity Enterprise), whatever the sharing mode. `sharing_mode`: the plan includes it, but the sharing mode is `private` or `off`. Null when `cross_org_available` is `true`. */
+  /** Why cross-organization signals do not apply, checked in this order. `plan`: the organization's plan does not include the cross-organization fraud network (it needs the Enterprise plan), whatever the sharing mode. `sharing_mode`: the plan includes it, but the sharing mode is `private` or `off`. Null when `cross_org_available` is `true`. */
   cross_org_unavailable_reason?: "plan" | "sharing_mode" | (string & {}) | null;
   /** Your application's tags on the network, oldest first. Each application sees only its own tags. `fraud_tags` is separate and unchanged: the tags the network's members carry. */
   tags?: NetworkTag[];
@@ -5984,8 +6028,77 @@ export interface SessionDecision {
   environment?: "live" | "sandbox" | (string & {});
   /** Returned only with `include=resubmissions`, for user and business sessions. One entry per resubmission request, oldest first. Each entry carries the results the resubmitted steps returned before the request, so earlier submissions stay readable. Deleting the session deletes every submission. */
   resubmissions?: SessionDecisionResubmissions[];
+  /** Whether the session required explicit biometric consent before a face capture, why, and the evidence of the answer. User Verification (KYC) sessions only; the same object is in the `decision` of session webhooks. `null` when the session was never evaluated, for example a workflow without a face capture. Fields with no recorded value are `null`. A native SDK below 4.10.0, or one that does not report its version, cannot show the consent step: its face captures run as before, and a session that required consent then reports `status: "pending"` with `reason: "BIOMETRIC_CONSENT_UNSUPPORTED_SDK"`. See [Biometric consent](/getting-started/biometric-consent). */
+  biometric_consent?: SessionDecisionBiometricConsent | null;
   /** The item's latest Investigator review, or null when it never had one. Carried by the V3 session and business session decision (and so by `status.updated` webhooks). */
   investigator?: InvestigatorBlock | null;
+}
+
+/** Whether the session required explicit biometric consent before a face capture, why, and the evidence of the answer. User Verification (KYC) sessions only; the same object is in the `decision` of session webhooks. `null` when the session was never evaluated, for example a workflow without a face capture. Fields with no recorded value are `null`. A native SDK below 4.10.0, or one that does not report its version, cannot show the consent step: its face captures run as before, and a session that required consent then reports `status: "pending"` with `reason: "BIOMETRIC_CONSENT_UNSUPPORTED_SDK"`. See [Biometric consent](/getting-started/biometric-consent). */
+export interface SessionDecisionBiometricConsent {
+  /** Whether the session must collect explicit biometric consent. Never goes back to `false`. */
+  required?: boolean;
+  /** Why consent is required, or how it was satisfied. `declared_state`: you declared a covered state (`user_state`, or a US address in `expected_details`). `ip_state`: the person's IP is in a covered state (Illinois, Texas, Colorado). `ip_unknown`: the evidence places the person in the US but the state cannot be told (the IP is in the US with no state, or cannot be located while your details or the document place the person in the US). `document_issuer`: the identity document was issued by a covered state. `forced`: the application's mode is Always. `customer_collected`: you sent `biometric_consent` when creating the session. `null` while not required. */
+  trigger?:
+    | "declared_state"
+    | "ip_state"
+    | "ip_unknown"
+    | "document_issuer"
+    | "forced"
+    | "customer_collected"
+    | (string & {})
+    | null;
+  /** `not_required`; `pending` (required and not given: the person has not answered yet, or `reason` says why it was not collected); `given`; `declined` (a decline was recorded and the session ended as `Declined`; no Didit screen offers a decline today). */
+  status?: "not_required" | "pending" | "given" | "declined" | (string & {});
+  /** When consent was given. For `customer_collected`, the `given_at` you sent. */
+  given_at?: Date | null;
+  /** When a decline was recorded. */
+  declined_at?: Date | null;
+  /** Version id of the consent text the person answered, or the one you sent. */
+  text_version?: string | null;
+  /** SHA-256 (hex) of the exact consent text shown, in the language it was shown in. */
+  text_hash?: string | null;
+  /** Language the consent text was shown in. */
+  locale?: string | null;
+  /** The biometric data policy the consent step linked to. */
+  policy_url?: string | null;
+  /** Workflow step the session was on when the person answered, for example `LIVENESS`. */
+  step?: string | null;
+  /** Workflow graph node the session was on when the person answered. */
+  node_id?: string | null;
+  /** IP the answer came from. */
+  ip_address?: string | null;
+  /** ISO 3166-1 alpha-2 country of the answer's IP. */
+  ip_country_code?: string | null;
+  /** ISO 3166-2 subdivision of the answer's IP, for example `US-IL`. */
+  ip_state?: string | null;
+  /** City of the answer's IP. */
+  ip_city?: string | null;
+  /** User agent of the answer's request. */
+  user_agent?: string | null;
+  /** The person's IP the requirement was last evaluated from. Can differ from `ip_address` when the person answered on another device. */
+  detected_ip_address?: string | null;
+  /** ISO 3166-1 alpha-2 country of the detected IP. */
+  detected_country_code?: string | null;
+  /** ISO 3166-2 subdivision of the detected IP. */
+  detected_state?: string | null;
+  /** City of the detected IP. */
+  detected_city?: string | null;
+  /** ISO 3166-2 subdivision you declared: `user_state`, or the state of a US address in `expected_details`. */
+  declared_state?: string | null;
+  /** ISO 3166-2 subdivision that issued the identity document, read at ID capture. */
+  document_state?: string | null;
+  /** US states (USPS codes, for example `IL`) whose biometric law covers the person. `US` when the evidence places the person in the US but no state is known. Empty when none applies. */
+  jurisdictions?: string[];
+  /** The shortest biometric retention limit, in months, among `jurisdictions`. `null` when none applies. */
+  retention_months?: number | null;
+  /** `BIOMETRIC_CONSENT_UNSUPPORTED_SDK`: consent was required and a native SDK below 4.10.0, or one that did not report its version, captured a face without the consent step; `status` stays `pending`, or `given` if the person later agreed in the hosted flow. `BIOMETRIC_CONSENT_DECLINED`: a decline was recorded (it replaces the SDK reason). `null` otherwise, and always `null` when the session did not require consent. */
+  reason?:
+    "BIOMETRIC_CONSENT_UNSUPPORTED_SDK" | "BIOMETRIC_CONSENT_DECLINED" | (string & {}) | null;
+  /** `BIOMETRIC_CONSENT_DECLINED` when a recorded decline ended the session, otherwise `null`. */
+  decline_reason?: "BIOMETRIC_CONSENT_DECLINED" | (string & {}) | null;
+  /** When the decline deleted the session's face images, videos and face templates. `null` unless a decline was recorded. */
+  face_data_deleted_at?: Date | null;
 }
 
 /** Contact details supplied when the session was created (used for notification emails, prefilled phone/email verification, and communication language). `null` when neither an email nor a phone number was provided. */
@@ -6558,6 +6671,8 @@ export interface SessionDecisionIdVerifications {
   matches?: SessionDecisionIdVerificationsMatches[];
   /** Document-liveness scores per fraud type, reported whether or not a warning fired, so an approved document can still be audited. `null` when the check did not run. */
   document_liveness?: SessionDecisionIdVerificationsDocumentLiveness | null;
+  /** Address Validation of the address printed on this document: whether it exists and its normalised form, as the document read it (a later correction of `address` does not run it again). Present when this ID verification step enabled the Address Validation add-on; `null` otherwise. */
+  address_validation?: AddressValidationResult | null;
 }
 
 /** Quality metrics for the back document image. Same structure as front_image_quality_score. */
@@ -7889,6 +8004,8 @@ export interface SessionDecisionPoaVerifications {
   warnings?: SessionDecisionPoaVerificationsWarnings[];
   /** QR codes and barcodes detected across every processed page of the document. Empty when none are found. A located but undecodable QR code has `parsed_payload: null`. */
   detected_codes?: DocumentAIDetectedCode[];
+  /** Address Validation of the address on this proof of address: whether it exists and its normalised form, as the document read it (a later correction of `poa_address` does not run it again). Present when this Proof of Address step enabled the Address Validation add-on and the upload passed the document checks; `null` otherwise. */
+  address_validation?: AddressValidationResult | null;
 }
 
 /** File-forensics metadata extracted from the uploaded POA document. Always contains the keys below (values are `null` when not applicable, e.g. EXIF dates for PDFs). `null` when no metadata could be extracted. */
@@ -8194,7 +8311,7 @@ export interface SessionDecisionRegistryChecksCompany {
   registry_tier?: string | null;
   /** The tier the registry delivered and that is billed. Also in `ownership.tier_delivered`. */
   registry_tier_delivered?: string | null;
-  /** `not_requested`, `pending`, `delivered` or `unavailable`. Also in `ownership.status`. */
+  /** `not_requested`, `pending`, `delivered`, `not_held` or `unavailable`. Also in `ownership.status`. */
   registry_ownership_status?: string | null;
 }
 
@@ -10036,9 +10153,195 @@ export interface TravelRuleNameMatch {
   mismatched_names?: string[];
 }
 
+/** This application's own participant on one network. */
+export interface TravelRuleNetworkParticipant {
+  network?: "gtr" | "trust" | "verifyvasp" | "sygna" | (string & {});
+  rail?: "GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | (string & {});
+  mode?: "platform" | "own" | (string & {});
+  /** not_requested: never requested, or the network refused the first request (see last_error); questionnaire_pending: waiting for the due-diligence questionnaire to be approved; submitted_to_network: handed to the network's onboarding; active: the network gave this application its own participant code; suspended / rejected: Didit suspended or rejected it. */
+  status?:
+    | "not_requested"
+    | "questionnaire_pending"
+    | "submitted_to_network"
+    | "active"
+    | "suspended"
+    | "rejected"
+    | (string & {});
+  participant_code?: string;
+  requested_at?: Date | null;
+  submitted_at?: Date | null;
+  activated_at?: Date | null;
+  suspended_at?: Date | null;
+  /** The network's answer when it refused the registration; empty otherwise. */
+  last_error?: string;
+  /** Every status change, oldest first. */
+  history?: TravelRuleNetworkParticipantHistory[];
+}
+
+export interface TravelRuleNetworkParticipantHistory {
+  at?: Date;
+  from?: string;
+  to?: string;
+  /** Review note or the network's answer, when there is one. */
+  note?: string;
+}
+
+/** This application's own participant on the network, or null when it has none. */
+export interface TravelRuleNetworkParticipantSummary {
+  /** platform: carried by Didit's membership; own: onboarded under the application's own membership. */
+  mode?: "platform" | "own" | (string & {});
+  /** not_requested: never requested, or the network refused the first request (see last_error); questionnaire_pending: waiting for the due-diligence questionnaire to be approved; submitted_to_network: handed to the network's onboarding; active: the network gave this application its own participant code; suspended / rejected: Didit suspended or rejected it. */
+  status?:
+    | "not_requested"
+    | "questionnaire_pending"
+    | "submitted_to_network"
+    | "active"
+    | "suspended"
+    | "rejected"
+    | (string & {});
+  /** The code the network gave this application (for GTR, its VASP code). Outbound messages carry this code, never Didit's own. */
+  participant_code?: string;
+  requested_at?: Date | null;
+  activated_at?: Date | null;
+  /** The network's answer when it refused the registration; empty otherwise. */
+  last_error?: string;
+}
+
+export interface TravelRuleNetworkQuestionnaire {
+  /** Answers can be saved while draft or changes_requested; submitted, approved and rejected are Didit's to move. */
+  status?: "draft" | "submitted" | "changes_requested" | "approved" | "rejected" | (string & {});
+  /** Didit's network due-diligence questionnaire. Saves are partial: a save keeps every answer it does not name. Submitting requires every field except lei and data_protection_contact_email, and the three attestations true. */
+  answers?: TravelRuleNetworkQuestionnaireAnswers;
+  submitted_at?: Date | null;
+  reviewed_at?: Date | null;
+  /** Didit's note on its last decision, for example what to change. */
+  review_note?: string;
+  /** Every status change, oldest first. */
+  history?: TravelRuleNetworkQuestionnaireHistory[];
+  updated_at?: Date | null;
+}
+
+/** Didit's network due-diligence questionnaire. Saves are partial: a save keeps every answer it does not name. Submitting requires every field except lei and data_protection_contact_email, and the three attestations true. */
+export interface TravelRuleNetworkQuestionnaireAnswers {
+  legal_name?: string;
+  registration_number?: string;
+  /** ISO 3166-1 alpha-2 country code. */
+  incorporation_country?: string;
+  registered_address?: string;
+  website?: string;
+  /** Optional. A valid ISO 17442 LEI when given. */
+  lei?: string;
+  /** Every licence or registration the VASP holds. */
+  licences?: TravelRuleNetworkQuestionnaireAnswersLicences[];
+  operating_jurisdictions?: string[];
+  compliance_officer_name?: string;
+  compliance_officer_email?: string;
+  /** Must be true to submit. */
+  aml_ctf_policy_attested?: boolean;
+  /** Must be true to submit. */
+  sanctions_screening_attested?: boolean;
+  /** Must be true to submit. */
+  data_protection_attested?: boolean;
+  /** Optional. */
+  data_protection_contact_email?: string;
+  expected_monthly_transfers?: number;
+  /** Expected monthly volume in USD, up to 2 decimal places. Returned as a string. */
+  expected_monthly_volume_usd?: string;
+  /** Asset tickers, stored upper-case, sorted and de-duplicated. */
+  assets?: string[];
+}
+
+export interface TravelRuleNetworkQuestionnaireAnswersLicences {
+  regulator: string;
+  /** ISO 3166-1 alpha-2 country code. */
+  jurisdiction: string;
+  licence_type: string;
+  licence_number: string;
+}
+
+export interface TravelRuleNetworkQuestionnaireHistory {
+  at?: Date;
+  from?: string;
+  to?: string;
+  /** Review note or the network's answer, when there is one. */
+  note?: string;
+}
+
+/** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+export interface TravelRuleNetworkState {
+  rail?: "GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | (string & {});
+  /** own: the application's connected membership is used; didit: Didit's membership carries the application as its own active participant; off: platform routing disabled in disabled_networks with no own membership; unavailable: nothing can send on this network yet (see state and reason). */
+  mode?: "own" | "didit" | "off" | "unavailable" | (string & {});
+  /** own_membership: your connected membership sends; live_through_didit: your own participant on Didit's membership sends; off: you switched platform routing off; didit_onboarding: Didit's own membership of this network is not live yet, so it cannot carry anyone; questionnaire_needed / questionnaire_in_review: the due-diligence questionnaire must be submitted or is with Didit; request_access: the questionnaire is approved, request the network; request_sent: your participant is being onboarded; unavailable: see reason; error: see reason. */
+  state?:
+    | "own_membership"
+    | "live_through_didit"
+    | "off"
+    | "didit_onboarding"
+    | "questionnaire_needed"
+    | "questionnaire_in_review"
+    | "request_access"
+    | "request_sent"
+    | "unavailable"
+    | "error"
+    | (string & {});
+  /** Machine-readable detail of state. own_membership_only: Didit does not carry applications on this network (TRUST), connect your own membership; sandbox_application: sandbox transfers never reach a network; provisioning_failed: the network refused the registration, the participant's last_error says why and requesting the network again retries. */
+  reason?:
+    | "own_membership_connected"
+    | "platform_network_switched_off"
+    | "own_membership_only"
+    | "sandbox_application"
+    | "didit_membership_not_live"
+    | "participant_suspended"
+    | "participant_rejected"
+    | "questionnaire_not_submitted"
+    | "questionnaire_submitted"
+    | "questionnaire_changes_requested"
+    | "questionnaire_rejected"
+    | "participant_not_requested"
+    | "participant_active"
+    | "participant_key_missing"
+    | "participant_key_unresolved"
+    | "provisioning_failed"
+    | "questionnaire_pending"
+    | "submitted_to_network"
+    | (string & {});
+  /** Whether Didit's own membership of this network is configured; not a live health check. */
+  platform_available?: boolean;
+  /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
+  connected?: boolean;
+  /** This application's own participant on the network, or null when it has none. */
+  participant?: TravelRuleNetworkParticipantSummary | null;
+  /** Directory VASPs reachable on this network. */
+  vasps_reachable?: number;
+  /** This application's transfers carried on this network in the last 30 days. */
+  routed_30d?: number;
+}
+
+export interface TravelRuleNetworksOverview {
+  /** Whether network access through Didit's membership is open. While false, questionnaire saves, submissions and network requests answer 403. */
+  platform_networks_enabled?: boolean;
+  questionnaire?: TravelRuleNetworkQuestionnaire;
+  participants?: TravelRuleNetworkParticipant[];
+  /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
+  networks?: TravelRuleNetworksOverviewNetworks;
+}
+
+/** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
+export interface TravelRuleNetworksOverviewNetworks {
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  gtr?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  trust?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  verifyvasp?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  sygna?: TravelRuleNetworkState;
+}
+
 /** One thing that moves a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer on. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
 export interface TravelRuleNextAction {
-  /** `select_counterparty_vasp`: the end user picks the destination VASP in the wallet-ownership widget. `declare_self_hosted`: the end user declares the wallet self-hosted in the widget. `add_vasp_hint`: tell Didit who the counterparty is, with a VASP name, LEI or travel address (for example a `travel_address` on the destination wallet's address-book entry), then resend. `update_compliance_email` and `resend` are `action` values of `PATCH /v3/transactions/{transaction_id}/travel-rule/`: give the counterparty's compliance email again, and re-run routing. */
+  /** `select_counterparty_vasp`: the end user picks the destination VASP in the wallet-ownership widget, or you PATCH `action=beneficiary_vasp`. `declare_self_hosted`: the end user declares the wallet self-hosted in the widget. `add_vasp_hint`: tell Didit who the counterparty is, with a VASP name, LEI or travel address (for example a `travel_address` on the destination wallet's address-book entry), then resend. `update_compliance_email` and `resend` are `action` values of `PATCH /v3/transactions/{transaction_id}/travel-rule/`: give the counterparty's compliance email again, and re-run routing. */
   action:
     | "select_counterparty_vasp"
     | "declare_self_hosted"
@@ -10101,7 +10404,7 @@ export interface TravelRuleSettingsDetail {
   travel_address?: string;
   /** Networks opted out of platform membership. Does not disable your connected own memberships or provision unavailable networks. */
   disabled_networks?: ("GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | (string & {}))[];
-  /** Effective membership configuration for each network. No network, including GTR, is included by default. This is not a live health or delivery check. */
+  /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
   networks?: TravelRuleSettingsDetailNetworks;
   /** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. */
   didit_network?: TravelRuleSettingsDetailDiditNetwork;
@@ -10126,52 +10429,16 @@ export interface TravelRuleSettingsDetailDiditNetwork {
   compliance_email_confirmed?: boolean;
 }
 
-/** Effective membership configuration for each network. No network, including GTR, is included by default. This is not a live health or delivery check. */
+/** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
 export interface TravelRuleSettingsDetailNetworks {
-  gtr?: TravelRuleSettingsDetailNetworksGtr;
-  trust?: TravelRuleSettingsDetailNetworksTrust;
-  verifyvasp?: TravelRuleSettingsDetailNetworksVerifyvasp;
-  sygna?: TravelRuleSettingsDetailNetworksSygna;
-}
-
-export interface TravelRuleSettingsDetailNetworksGtr {
-  rail?: "GTR" | (string & {});
-  /** own: connected customer membership takes precedence; didit: configured platform membership allowed; off: platform routing disabled with no own membership; unavailable: neither membership available. */
-  mode?: "own" | "didit" | "off" | "unavailable" | (string & {});
-  /** Whether platform membership is configured; not a live health check. */
-  platform_available?: boolean;
-  /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
-  connected?: boolean;
-}
-
-export interface TravelRuleSettingsDetailNetworksSygna {
-  rail?: "SYGNA" | (string & {});
-  /** own: connected customer membership takes precedence; didit: configured platform membership allowed; off: platform routing disabled with no own membership; unavailable: neither membership available. */
-  mode?: "own" | "didit" | "off" | "unavailable" | (string & {});
-  /** Whether platform membership is configured; not a live health check. */
-  platform_available?: boolean;
-  /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
-  connected?: boolean;
-}
-
-export interface TravelRuleSettingsDetailNetworksTrust {
-  rail?: "TRUST" | (string & {});
-  /** own: connected customer membership takes precedence; didit: configured platform membership allowed; off: platform routing disabled with no own membership; unavailable: neither membership available. */
-  mode?: "own" | "didit" | "off" | "unavailable" | (string & {});
-  /** Whether platform membership is configured; not a live health check. */
-  platform_available?: boolean;
-  /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
-  connected?: boolean;
-}
-
-export interface TravelRuleSettingsDetailNetworksVerifyvasp {
-  rail?: "VERIFYVASP" | (string & {});
-  /** own: connected customer membership takes precedence; didit: configured platform membership allowed; off: platform routing disabled with no own membership; unavailable: neither membership available. */
-  mode?: "own" | "didit" | "off" | "unavailable" | (string & {});
-  /** Whether platform membership is configured; not a live health check. */
-  platform_available?: boolean;
-  /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
-  connected?: boolean;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  gtr?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  trust?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  verifyvasp?: TravelRuleNetworkState;
+  /** How Travel Rule messages on one network would be sent for this application, and why they cannot be. Configuration status, not a live health or delivery check. */
+  sygna?: TravelRuleNetworkState;
 }
 
 export interface TravelRuleTestVaspInboundResponse {
@@ -10370,6 +10637,55 @@ export interface TravelRuleUtxoEntry {
   txid?: string;
   /** Optional. The output index an input spends. */
   vout?: number | null;
+}
+
+/** Why a wallet-ownership proof, or its last attempt, fell short of VERIFIED. Empty when nothing failed. A PENDING proof can carry one: the last attempt failed and the end user can try again. DEPOSIT_MISMATCH, DEPOSIT_STALE, TXID_REUSED and REVIEW_REJECTED close the proof as REJECTED. SIGNATURE_INVALID: the signature does not match the wallet and challenge. SIGNATURE_UNSUPPORTED_SCHEME: the wallet signed in a format Didit does not verify. DEPOSIT_NOT_FOUND, DEPOSIT_UNCONFIRMED, DEPOSIT_LOOKUP_FAILED: the test deposit is not readable or not confirmed yet; Didit keeps checking it until the test window closes. DEPOSIT_MISMATCH: the transaction does not send the expected amount from the wallet to the deposit address. DEPOSIT_STALE: the transaction predates the challenge. TXID_REUSED: the transaction already proved another wallet. CHAIN_UNSUPPORTED: the method is not available on this chain. WINDOW_EXPIRED: the test window closed. OWNERSHIP_CHANGED: the wallet's holder changed, or the wallet was deleted from your address book, after the widget session was minted. METHOD_SWITCHED: the end user picked another method before finishing this one. REVIEW_REJECTED: your reviewer rejected the screenshot. ABANDONED: the widget session lapsed before the end user finished. */
+export type TravelRuleWalletProofFailureReason =
+  | ""
+  | "SIGNATURE_INVALID"
+  | "SIGNATURE_UNSUPPORTED_SCHEME"
+  | "DEPOSIT_NOT_FOUND"
+  | "DEPOSIT_UNCONFIRMED"
+  | "DEPOSIT_LOOKUP_FAILED"
+  | "DEPOSIT_MISMATCH"
+  | "DEPOSIT_STALE"
+  | "TXID_REUSED"
+  | "CHAIN_UNSUPPORTED"
+  | "WINDOW_EXPIRED"
+  | "OWNERSHIP_CHANGED"
+  | "METHOD_SWITCHED"
+  | "REVIEW_REJECTED"
+  | "ABANDONED"
+  | (string & {});
+
+export interface TravelRuleWalletProofReview {
+  proof_id?: string;
+  method?: "SCREENSHOT" | (string & {});
+  status?: "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED" | (string & {});
+  wallet_address?: string;
+  /** Canonical chain identifier, e.g. ETH, BTC, SOL, TRX. */
+  chain?: string;
+  holder_name?: string;
+  /** Whether the address book entry is ownership-verified, by this proof or another one. */
+  is_ownership_verified?: boolean;
+  /** The transaction whose Travel Rule transfer the widget session was minted for. Null for a session minted without a transaction_id. */
+  transaction_id?: string | null;
+  file_name?: string | null;
+  content_type?: string | null;
+  /** Time-limited link to the uploaded screenshot. List the queue again for a fresh link. */
+  screenshot_url?: string | null;
+  /** How many files the end user uploaded for this proof. */
+  attempts?: number;
+  /** REVIEW_REJECTED after a rejection, OWNERSHIP_CHANGED when the wallet changed holder or was deleted before a decision. Empty otherwise. */
+  failure_reason?: TravelRuleWalletProofFailureReason;
+  /** When the end user picked the screenshot method. */
+  method_chosen_at?: Date | null;
+  decided_at?: Date | null;
+  /** Who closed the proof: review:<user identifier> for a console reviewer, review for an API-key decision, widget or sweeper when Didit closed it automatically. Empty while PENDING. */
+  decided_by?: string;
+  /** The note sent with the decision. Empty when none. */
+  review_note?: string;
+  created_at?: Date;
 }
 
 export interface TravelRuleWidgetSessionResponse {
@@ -10954,7 +11270,7 @@ export interface WalletAddressEntry {
   uuid?: string;
   /** The wallet address; `""` for an entry imported by its hash only. Unique per application, chain and memo, comparing the address without regard to case. After you delete an entry, you can register the same address again. */
   address?: string;
-  /** Chain token for the address, for example `ETH` or `BTC`. When Didit routes or registers a transfer, it matches address book entries on the wallet address and, when the transfer carries a chain, on this value too, ignoring case. A transfer's chain is `beneficiary_data.chain`, filled from the transaction's crypto chain or currency symbol (for example `ETH`) when you do not send it, or the `chain` of an after-deposit registration, so use the same token everywhere. An entry with an empty chain matches any chain. A Lightning payee (a node id or a Lightning Address) registered on bitcoin is stored lowercased on `LIGHTNING`, where Lightning transfers are matched. */
+  /** Chain token for the address, for example `ETH` or `BTC`. When Didit routes or registers a transfer, it matches address book entries on the wallet address and, when the transfer carries a chain, on this value too, ignoring case. A transfer's chain is `beneficiary_data.chain`, filled from the transaction's crypto chain or currency symbol (for example `ETH`) when you do not send it, or the `chain` of an after-deposit registration, so use the same token everywhere. An entry with an empty chain matches any chain. A Lightning payee (a node id or a Lightning Address) registered on bitcoin is stored lowercased on `LIGHTNING`, where Lightning transfers are matched. Known chains are stored under one canonical identifier whatever spelling you send: "ethereum", "Ethereum" and "ERC20" are all stored as ETH, "BNB Smart Chain" and "BEP20" as BNB, "tron" as TRX. An unknown chain name is kept as given. */
   chain?: string;
   /** Your internal identifier for the holder. */
   holder_vendor_data?: string;
@@ -11207,6 +11523,8 @@ export interface WebhookConfig {
   face_retention_policy: "delete_with_session" | "retain_until_user_deleted" | (string & {});
   /** Retention period, in days, of biometric templates under `retain_until_user_deleted`. Required when that policy is set. */
   face_retention_days: number | null;
+  /** When the hosted flow and the native SDKs ask the person for explicit biometric consent before a face capture. `auto` (default) asks only where a trigger applies: a declared state, the person's IP, or the identity document's issuer is in Illinois, Texas or Colorado, or the person looks to be in the US without a known state. `always` asks every person whose workflow captures a face. `never` never shows the step, and you collect consent yourself before the selfie. Each change is recorded in the audit log. See [Biometric consent](https://docs.didit.me/getting-started/biometric-consent). */
+  biometric_consent_mode?: "auto" | "always" | "never" | (string & {});
   /** Every event type a destination can subscribe to, with a display label. */
   available_events: WebhookConfigAvailableEvents[];
   /** Hostnames (exact match, HTTPS only) a standalone Digital ID wallet verification may send the user back to with its `return_url`. Your white-label domain is always allowed as well. See [Register your return destination](https://docs.didit.me/standalone-apis/digital-id-wallets#register-your-return-destination). */
@@ -11384,13 +11702,13 @@ export interface WorkflowDetail {
   kyb_role_settings?: Record<string, unknown>[];
   created_at?: Date;
   updated_at?: Date;
-  /** Whether a simple KYC or KYB workflow runs Bank verification. It runs after the contact steps and before database validation, AML and IP analysis. Set in the console. */
+  /** Whether a simple KYC or KYB workflow runs Bank verification. It runs after the contact steps (and Location verification) and before database validation, AML and IP analysis. Bank verification is not generally available yet: turning it on is refused wherever it is not enabled. */
   is_bank_verification_enabled?: boolean;
-  /** Bank verification settings of a simple workflow, with the same keys a `BANK_VERIFICATION` node takes (for example `bank_countries` and `bank_method_order`). Every key is optional and an absent key keeps its default, so `{}` means all defaults. See [Bank verification settings](/management-api/workflows/feature-configs#bank-verification). */
+  /** Bank verification settings of a simple workflow, with the same keys a `BANK_VERIFICATION` node takes (for example `bank_countries` and `bank_method_order`). Unknown keys are dropped. Every key is optional and an absent key keeps its default, so `{}` means all defaults. See [Bank verification settings](/management-api/workflows/feature-configs#bank-verification). */
   bank_verification_config?: Record<string, unknown>;
-  /** Whether a simple KYC workflow runs Location verification. It runs after the contact steps and before Bank verification. Never on KYB workflows. Set in the console. */
+  /** Whether a simple KYC workflow runs Location verification. It runs after the contact steps and before Bank verification and database validation. Business (KYB) workflows cannot run it. */
   is_geolocation_enabled?: boolean;
-  /** Location verification settings of a simple workflow, with the same keys a `GEOLOCATION` node takes (for example `is_geolocation_geofencing_enabled` and `geolocation_max_attempts`). Every key is optional and an absent key keeps its default, so `{}` means all defaults. */
+  /** Location verification settings of a simple workflow, with the same keys a `GEOLOCATION` node takes (for example `is_geolocation_geofencing_enabled` and `geolocation_max_attempts`). Unknown keys are dropped. Every key is optional and an absent key keeps its default, so `{}` means all defaults. */
   geolocation_config?: Record<string, unknown>;
   [key: string]: unknown;
 }

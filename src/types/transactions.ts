@@ -14,6 +14,20 @@ import type {
   TravelRuleUtxo,
 } from "./components.js";
 
+export interface TransactionsBatchDeleteParamsAllTransactions {
+  /** Delete every transaction in the application. `transaction_uuids` is ignored. */
+  delete_all: boolean;
+  /** Ignored when `delete_all` is true. */
+  transaction_uuids?: string[];
+}
+
+export interface TransactionsBatchDeleteParamsSelectedTransactions {
+  /** Didit transaction UUIDs to delete. Required unless `delete_all` is true. */
+  transaction_uuids: string[];
+  /** Leave out or send `false` when you select transactions with `transaction_uuids`. */
+  delete_all?: boolean;
+}
+
 export interface TransactionsCreateParams {
   /** Your unique identifier for this transaction (max 128 characters). */
   transaction_id: string;
@@ -565,17 +579,24 @@ export interface TransactionsTravelRuleTriggerTestVaspInboundParams {
   reference?: string;
 }
 
-/** Provide exactly one of: payment_txn_id (finish), action=cancel, action=resend, action=update_compliance_email with compliance_email, or action=update_originator_wallet with wallet_address. */
+/** Provide exactly one of: payment_txn_id (finish), action=cancel, action=resend, action=update_compliance_email with compliance_email, action=update_originator_wallet with wallet_address, or action=beneficiary_vasp with beneficiary_vasp. */
 export interface TransactionsTravelRuleUpdateTransferParams {
   /** The on-chain transaction hash. Requires the transfer to be an outbound transfer in COMPLETED status. */
   payment_txn_id?: string;
-  /** "cancel" cancels a non-terminal transfer. "resend" re-runs routing for an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA. "update_compliance_email" replaces the compliance email the request goes to, on an outbound transfer in one of those three statuses; send "resend" afterwards. "update_originator_wallet" records the wallet the funds actually left from (`wallet_address`, `memo`). */
+  /** "cancel" cancels a non-terminal transfer. "resend" re-runs routing for an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA. "update_compliance_email" replaces the compliance email the request goes to, on an outbound transfer in one of those three statuses; send "resend" afterwards. "update_originator_wallet" records the wallet the funds actually left from (`wallet_address`, `memo`). "beneficiary_vasp" names the counterparty VASP yourself (requires `beneficiary_vasp`) for an outbound transfer in one of those statuses: it is routed to that VASP and sent again. */
   action?:
-    "cancel" | "resend" | "update_compliance_email" | "update_originator_wallet" | (string & {});
+    | "cancel"
+    | "resend"
+    | "update_compliance_email"
+    | "update_originator_wallet"
+    | "beneficiary_vasp"
+    | (string & {});
   /** Required with `action: update_compliance_email`. Kept as this transfer's `beneficiary_data.counterparty_vasp_email`: it belongs to this transfer only and joins no directory entry and no contact list. */
   compliance_email?: string;
   /** With `action: update_originator_wallet`: the wallet the funds left from. When the transfer's UTXO inputs are known it must be one of them. */
   wallet_address?: string;
   /** With `action: update_originator_wallet`: the wallet's memo or tag on a memo network. Optional. */
   memo?: string;
+  /** Required with action=beneficiary_vasp: the `id` of a directory VASP, from `GET /v3/travel-rule/vasps/`. Your choice outranks every automatic discovery step, which never overrides it. */
+  beneficiary_vasp?: string;
 }

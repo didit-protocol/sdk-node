@@ -13,8 +13,12 @@ import type {
   TravelRuleCounterpartyScreeningResult,
   TravelRuleCounterpartyScreeningStatus,
   TravelRuleInboundResponse,
+  TravelRuleNetworkParticipant,
+  TravelRuleNetworkQuestionnaire,
+  TravelRuleNetworksOverview,
   TravelRuleSettingsDetail,
   TravelRuleTransferRow,
+  TravelRuleWalletProofReview,
   TravelRuleWidgetSessionResponse,
   TravelRuleWorkspace,
   TravelRuleWorkspaceDomainCodeResponse,
@@ -30,6 +34,7 @@ import type {
   TravelRuleCreateWidgetSessionParams,
   TravelRuleListVaspsParams,
   TravelRuleListVaspsResponse,
+  TravelRuleNetworksUpdateQuestionnaireParams,
   TravelRuleRegisterInboundParams,
   TravelRuleScreenVaspParams,
   TravelRuleSendComplianceEmailConfirmationResponse,
@@ -43,6 +48,9 @@ import type {
   TravelRuleWalletAddressesListParams,
   TravelRuleWalletAddressesListResponse,
   TravelRuleWalletAddressesUpdateParams,
+  TravelRuleWalletProofsDecideParams,
+  TravelRuleWalletProofsListParams,
+  TravelRuleWalletProofsListResponse,
   TravelRuleWorkspaceClaimParams,
   TravelRuleWorkspaceConfirmDomainParams,
   TravelRuleWorkspaceEnableBillingParams,
@@ -64,6 +72,32 @@ const TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST: OperationSpec = {
   path: "/v3/travel-rule/counterparty-contacts/",
   query: ["counterparty", "limit", "offset"],
   dates: { p: { results: { i: "TravelRuleCounterpartyContact" } } },
+};
+const TRAVEL_RULE_NETWORKS_REQUEST_ACCESS: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/networks/{network}/request/",
+  dates: "TravelRuleNetworkParticipant",
+};
+const TRAVEL_RULE_NETWORKS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/networks/",
+  dates: "TravelRuleNetworksOverview",
+};
+const TRAVEL_RULE_NETWORKS_RETRIEVE_QUESTIONNAIRE: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/networks/questionnaire/",
+  dates: "TravelRuleNetworkQuestionnaire",
+};
+const TRAVEL_RULE_NETWORKS_SUBMIT_QUESTIONNAIRE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/networks/questionnaire/submit/",
+  dates: "TravelRuleNetworkQuestionnaire",
+};
+const TRAVEL_RULE_NETWORKS_UPDATE_QUESTIONNAIRE: OperationSpec = {
+  method: "PUT",
+  path: "/v3/travel-rule/networks/questionnaire/",
+  body: "json",
+  dates: "TravelRuleNetworkQuestionnaire",
 };
 const TRAVEL_RULE_TRANSFERS_LIST: OperationSpec = {
   method: "GET",
@@ -109,6 +143,18 @@ const TRAVEL_RULE_WALLET_ADDRESSES_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/travel-rule/wallet-addresses/{entry_uuid}/",
   body: "json",
+};
+const TRAVEL_RULE_WALLET_PROOFS_DECIDE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/wallet-proofs/{proof_uuid}/decision/",
+  body: "json",
+  dates: "TravelRuleWalletProofReview",
+};
+const TRAVEL_RULE_WALLET_PROOFS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/wallet-proofs/",
+  query: ["status", "limit", "offset"],
+  dates: { p: { results: { i: "TravelRuleWalletProofReview" } } },
 };
 const TRAVEL_RULE_WORKSPACE_CLAIM: OperationSpec = {
   method: "POST",
@@ -183,6 +229,7 @@ const TRAVEL_RULE_REGISTER_INBOUND: OperationSpec = {
 const TRAVEL_RULE_RETRIEVE_SETTINGS: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/settings/",
+  dates: "TravelRuleSettingsDetail",
 };
 const TRAVEL_RULE_RETRIEVE_VASP: OperationSpec = {
   method: "GET",
@@ -219,6 +266,7 @@ const TRAVEL_RULE_UPDATE_SETTINGS: OperationSpec = {
   method: "PUT",
   path: "/v3/travel-rule/settings/",
   body: "json",
+  dates: "TravelRuleSettingsDetail",
 };
 const TRAVEL_RULE_UPDATE_VASP_DECISION: OperationSpec = {
   method: "PUT",
@@ -273,6 +321,77 @@ export class TravelRuleCounterpartyContacts extends APIResource {
     options?: RequestOptions,
   ): PagePromise<TravelRuleCounterpartyContactsListResponse, TravelRuleCounterpartyContact> {
     return this._client.requestPage(TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST, [], params, options);
+  }
+}
+
+/** `travel_rule.networks` */
+export class TravelRuleNetworks extends APIResource {
+  /**
+   * Request a Travel Rule network
+   *
+   * Ask for this application's own participant on a network Didit's membership carries (GTR or Sygna). Without an approved questionnaire the participant waits for it (questionnaire_pending); with one it goes to the network's onboarding (submitted_to_network) and becomes active once the network gives it a code. Idempotent: a pending, onboarding or live participant is returned unchanged. If the network refused the registration (last_error is set), requesting again retries. TRUST and VerifyVASP are reachable only through your own membership: TRUST admits members per VASP, and a VerifyVASP Enclave serves one VASP id.
+   *
+   * `POST /v3/travel-rule/networks/{network}/request/`
+   *
+   * @param network The network to join through Didit's membership.
+   */
+  requestAccess(
+    network: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleNetworkParticipant> {
+    return this._client.request(TRAVEL_RULE_NETWORKS_REQUEST_ACCESS, [network], undefined, options);
+  }
+
+  /**
+   * Get Travel Rule networks
+   *
+   * Read, for this application, every network's true state: whether it sends through your own membership or through Didit's, and why it cannot yet. Also returns the due-diligence questionnaire and your participants. Reading creates nothing.
+   *
+   * `GET /v3/travel-rule/networks/`
+   */
+  retrieve(options?: RequestOptions): APIPromise<TravelRuleNetworksOverview> {
+    return this._client.request(TRAVEL_RULE_NETWORKS_RETRIEVE, [], undefined, options);
+  }
+
+  /**
+   * Get the network questionnaire
+   *
+   * Read Didit's network due-diligence questionnaire for this application, its status and Didit's review note. An application that never saved one reads an empty draft.
+   *
+   * `GET /v3/travel-rule/networks/questionnaire/`
+   */
+  retrieveQuestionnaire(options?: RequestOptions): APIPromise<TravelRuleNetworkQuestionnaire> {
+    return this._client.request(
+      TRAVEL_RULE_NETWORKS_RETRIEVE_QUESTIONNAIRE,
+      [],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * Submit the network questionnaire
+   *
+   * Send the saved questionnaire to Didit's review. The saved answers must be complete: every field except lei and data_protection_contact_email, with the three attestations true. Didit approves it, asks for changes (edit and submit again) or rejects it. Networks you requested while it was pending are handed to their onboarding when it is approved.
+   *
+   * `POST /v3/travel-rule/networks/questionnaire/submit/`
+   */
+  submitQuestionnaire(options?: RequestOptions): APIPromise<TravelRuleNetworkQuestionnaire> {
+    return this._client.request(TRAVEL_RULE_NETWORKS_SUBMIT_QUESTIONNAIRE, [], undefined, options);
+  }
+
+  /**
+   * Save network questionnaire answers
+   *
+   * Save answers to the questionnaire while it is draft or changes_requested. Saves are partial: answers you do not send are kept.
+   *
+   * `PUT /v3/travel-rule/networks/questionnaire/`
+   */
+  updateQuestionnaire(
+    params: TravelRuleNetworksUpdateQuestionnaireParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleNetworkQuestionnaire> {
+    return this._client.request(TRAVEL_RULE_NETWORKS_UPDATE_QUESTIONNAIRE, [], params, options);
   }
 }
 
@@ -373,6 +492,40 @@ export class TravelRuleWalletAddresses extends APIResource {
   }
 }
 
+/** `travel_rule.wallet_proofs` */
+export class TravelRuleWalletProofs extends APIResource {
+  /**
+   * Approve or reject a screenshot wallet proof
+   *
+   * Decide a screenshot proof from your review queue. approve verifies the proof and the address book entry and applies the ownership to the transfer the widget session was minted for, exactly as a verified signature does. A screenshot never confirms a transfer that another Didit customer sent over the INTERNAL rail: that takes a signed message or a test deposit. reject closes the proof as REJECTED with failure_reason REVIEW_REJECTED; the end user can start a new proof from the widget. The note is kept with the proof.
+   *
+   * `POST /v3/travel-rule/wallet-proofs/{proof_uuid}/decision/`
+   *
+   * @param proofUuid proof_id from the review queue.
+   */
+  decide(
+    proofUuid: string,
+    params: TravelRuleWalletProofsDecideParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleWalletProofReview> {
+    return this._client.request(TRAVEL_RULE_WALLET_PROOFS_DECIDE, [proofUuid], params, options);
+  }
+
+  /**
+   * List screenshot wallet proofs to review
+   *
+   * Your review queue for screenshot wallet-ownership proofs. A screenshot is the one proof Didit cannot check itself: once the end user uploads it from the widget it waits PENDING until you approve or reject it with POST /v3/travel-rule/wallet-proofs/{proof_uuid}/decision/. Oldest first, so the queue is worked from the proof that has waited longest. Only uploaded screenshots appear, never a proof whose end user has not uploaded a file yet, and never one on a wallet you deleted from your address book (Didit closes those as OWNERSHIP_CHANGED).
+   *
+   * `GET /v3/travel-rule/wallet-proofs/`
+   */
+  list(
+    params: TravelRuleWalletProofsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleWalletProofsListResponse, TravelRuleWalletProofReview> {
+    return this._client.requestPage(TRAVEL_RULE_WALLET_PROOFS_LIST, [], params, options);
+  }
+}
+
 /** `travel_rule.workspace` */
 export class TravelRuleWorkspaceResource extends APIResource {
   /**
@@ -455,8 +608,10 @@ export class TravelRuleWorkspaceResource extends APIResource {
 export class TravelRule extends APIResource {
   readonly counterpartyContacts: TravelRuleCounterpartyContacts =
     new TravelRuleCounterpartyContacts(this._client);
+  readonly networks: TravelRuleNetworks = new TravelRuleNetworks(this._client);
   readonly transfers: TravelRuleTransfers = new TravelRuleTransfers(this._client);
   readonly walletAddresses: TravelRuleWalletAddresses = new TravelRuleWalletAddresses(this._client);
+  readonly walletProofs: TravelRuleWalletProofs = new TravelRuleWalletProofs(this._client);
   readonly workspace: TravelRuleWorkspaceResource = new TravelRuleWorkspaceResource(this._client);
 
   /**

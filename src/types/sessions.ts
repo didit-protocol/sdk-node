@@ -142,6 +142,8 @@ export interface SessionsCreateParams {
   callback_method?: "initiator" | "completer" | "both" | (string & {});
   /** Arbitrary JSON stored with the session and echoed back in the response and webhooks. Any JSON value is accepted (object, string, number, array), but a JSON object of key/value pairs is recommended. Not shown to the end user. Use it to pass your own correlation ids, A/B variants, or business context. */
   metadata?: unknown;
+  /** Tags added to the session when it is created, by name. Up to 10, each up to 50 characters. Names are case-insensitive and stored in upper case. A name that does not exist yet in the application is created as a new tag. The tags show on the session in the console, where you can filter by them. */
+  tags?: string[];
   /** Language code (ISO 639-1) for the verification process interface. Controls the language displayed to the end user during verification. If not provided, the browser's language will be automatically detected and used. Check all the supported languages [here](/integration/supported-languages). */
   language?:
     | "en"
@@ -209,6 +211,18 @@ export interface SessionsCreateParams {
   sandbox_scenario?: string;
   /** Electronic Signature input for this session. `documents` are the documents to sign, for a workflow whose Electronic Signature step takes documents from the session (`signature_documents_source` `session` or `both`): up to 20 documents and 50 MB in total. `field_values` fills the fields whose `prefill` is `api.<key>`, on workflow and session documents alike. Creating a session again for the same `workflow_id` and `vendor_data` returns the pending session; if that call sends `sign`, its documents, fields and values must be identical to the first ones, and anything different returns `400` with `{"sign": "signature_document_changed"}`. See [Electronic signature documents](/sessions-api/create-session#electronic-signature-documents). */
   sign?: SessionsCreateParamsSign;
+  /** Where the person lives, when you know it: an ISO 3166-2 subdivision code (`US-IL`, `ES-M`) or a US state code or name (`IL`, `Illinois`). A state whose law requires explicit biometric consent (Illinois, Texas, Colorado) makes the verification flow ask for it before capturing a face, with trigger `declared_state`. An unrecognized value returns `400`. See [Biometric consent](/getting-started/biometric-consent). */
+  user_state?: string;
+  /** Explicit biometric consent you already collected from the person. It satisfies the requirement, so the verification flow does not ask again, and the decision records it as `status: "given"` with trigger `customer_collected`. An answer the person already gave in the flow is never replaced. See [Biometric consent](/getting-started/biometric-consent). */
+  biometric_consent?: SessionsCreateParamsBiometricConsent;
+}
+
+/** Explicit biometric consent you already collected from the person. It satisfies the requirement, so the verification flow does not ask again, and the decision records it as `status: "given"` with trigger `customer_collected`. An answer the person already gave in the flow is never replaced. See [Biometric consent](/getting-started/biometric-consent). */
+export interface SessionsCreateParamsBiometricConsent {
+  /** When the person gave explicit biometric consent (ISO 8601). Cannot be in the future. */
+  given_at: string | Date;
+  /** Version id of the consent text the person accepted, in your own records. */
+  text_version: string;
 }
 
 /** User contact information that can be used for notifications, prefilling verification forms, and phone verification. This includes email address, preferred language for communications, and phone number. */
@@ -332,6 +346,8 @@ export interface SessionsCreateResponse {
   vendor_data: string | null;
   /** Arbitrary JSON payload you stored with the session at creation time. Echoed back verbatim - whatever JSON value you sent (object, string, number, array) is returned as-is, though a JSON object is recommended. Not shown to the end user. Always present in responses; `null` when not provided at creation time. */
   metadata: unknown;
+  /** The tags on the session, by name. */
+  tags?: string[];
   /** Current status of the session. Newly created sessions return `Not Started`. If a non-finished session already existed for the same `vendor_data` on the workflow's latest published version, the returned status reflects that existing session. */
   status:
     | "Not Started"
@@ -618,7 +634,7 @@ export interface SessionsListParams {
   status?: string;
   /** Exact-match filter on the `vendor_data` you sent at session creation (your own user/business identifier). For partial matches use `search` instead. */
   vendor_data?: string;
-  /** Smart free-text search. A full UUID matches `session_id`; numeric input matches session-number prefix, document/personal numbers, phone prefix, or `vendor_data`; input containing `@` matches email prefixes; other text matches names (accent-insensitive) and `vendor_data`. Free text containing digits additionally matches document/personal-number search fields and session-number prefixes. */
+  /** A complete displayed reference such as `S-0001` (user) or `B-0001` (business) matches only that session number and kind; leading zeros and letter case do not affect matching. Smart free-text search. A full UUID matches `session_id`; numeric input matches session-number prefix, document/personal numbers, phone prefix, or `vendor_data`; input containing `@` matches email prefixes; other text matches names (accent-insensitive) and `vendor_data`. Free text containing digits additionally matches document/personal-number search fields and session-number prefixes. */
   search?: string;
   /** Comma-separated workflow UUIDs (find them on the Workflows page in the Console). Malformed UUIDs in the list are ignored; if none are valid the result is empty. */
   workflow_id?: string;

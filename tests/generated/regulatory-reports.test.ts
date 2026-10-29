@@ -56,7 +56,8 @@ describe("regulatory_reports", () => {
     expect(request.query).toEqual({});
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
-    expect(request.bodyText).toBe("");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
   });
 
   it("regulatory_reports.finalize: POST /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/finalize/", async () => {
