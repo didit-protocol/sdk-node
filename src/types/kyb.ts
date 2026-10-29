@@ -166,9 +166,9 @@ export interface KybListShareholdersResponse202KybRegistry {
   is_editable?: boolean;
   /** Same as the top-level `registry_tier_delivered`. */
   registry_tier_delivered?: "basic" | "shareholders" | "ubo" | (string & {}) | null;
-  /** `delivered` when the ownership data came back, `unavailable` when an ownership tier was requested but the registry had none for this company (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
+  /** `delivered` when the ownership data came back, `not_held` when the ownership registry answered and does not list this company (see `registry_data.ownership_error`), `unavailable` when an ownership tier was requested but the registry had none for this company or could not be asked (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
   registry_ownership_status?:
-    "not_requested" | "delivered" | "unavailable" | "pending" | (string & {}) | null;
+    "not_requested" | "delivered" | "not_held" | "unavailable" | "pending" | (string & {}) | null;
   /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
@@ -374,9 +374,9 @@ export interface KybListShareholdersResponseKybRegistry {
   is_editable?: boolean;
   /** Same as the top-level `registry_tier_delivered`. */
   registry_tier_delivered?: "basic" | "shareholders" | "ubo" | (string & {}) | null;
-  /** `delivered` when the ownership data came back, `unavailable` when an ownership tier was requested but the registry had none for this company (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
+  /** `delivered` when the ownership data came back, `not_held` when the ownership registry answered and does not list this company (see `registry_data.ownership_error`), `unavailable` when an ownership tier was requested but the registry had none for this company or could not be asked (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
   registry_ownership_status?:
-    "not_requested" | "delivered" | "unavailable" | "pending" | (string & {}) | null;
+    "not_requested" | "delivered" | "not_held" | "unavailable" | "pending" | (string & {}) | null;
   /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
@@ -625,9 +625,9 @@ export interface KybListUbosResponse202KybRegistry {
   is_editable?: boolean;
   /** Same as the top-level `registry_tier_delivered`. */
   registry_tier_delivered?: "basic" | "shareholders" | "ubo" | (string & {}) | null;
-  /** `delivered` when the ownership data came back, `unavailable` when an ownership tier was requested but the registry had none for this company (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
+  /** `delivered` when the ownership data came back, `not_held` when the ownership registry answered and does not list this company (see `registry_data.ownership_error`), `unavailable` when an ownership tier was requested but the registry had none for this company or could not be asked (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
   registry_ownership_status?:
-    "not_requested" | "delivered" | "unavailable" | "pending" | (string & {}) | null;
+    "not_requested" | "delivered" | "not_held" | "unavailable" | "pending" | (string & {}) | null;
   /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
@@ -833,9 +833,9 @@ export interface KybListUbosResponseKybRegistry {
   is_editable?: boolean;
   /** Same as the top-level `registry_tier_delivered`. */
   registry_tier_delivered?: "basic" | "shareholders" | "ubo" | (string & {}) | null;
-  /** `delivered` when the ownership data came back, `unavailable` when an ownership tier was requested but the registry had none for this company (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
+  /** `delivered` when the ownership data came back, `not_held` when the ownership registry answered and does not list this company (see `registry_data.ownership_error`), `unavailable` when an ownership tier was requested but the registry had none for this company or could not be asked (see `registry_data.ownership_error`), `pending` when the ownership section has not been retrieved from the registry yet and Didit is still completing it, `not_requested` on the Lite tier. */
   registry_ownership_status?:
-    "not_requested" | "delivered" | "unavailable" | "pending" | (string & {}) | null;
+    "not_requested" | "delivered" | "not_held" | "unavailable" | "pending" | (string & {}) | null;
   /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
@@ -1098,8 +1098,9 @@ export interface KybSelectResponseKybRegistry {
   is_editable?: boolean;
   /** Same as the top-level `registry_tier_delivered`. */
   registry_tier_delivered?: "basic" | "shareholders" | "ubo" | (string & {});
-  /** `delivered` when the ownership data came back, `unavailable` when an ownership tier was requested but the registry had none for this company (see `registry_data.ownership_error`), `not_requested` on the Lite tier. */
-  registry_ownership_status?: "not_requested" | "delivered" | "unavailable" | (string & {}) | null;
+  /** `delivered` when the ownership data came back, `not_held` when the ownership registry answered and does not list this company (see `registry_data.ownership_error`), `unavailable` when an ownership tier was requested but the registry had none for this company or could not be asked (see `registry_data.ownership_error`), `not_requested` on the Lite tier. */
+  registry_ownership_status?:
+    "not_requested" | "delivered" | "not_held" | "unavailable" | (string & {}) | null;
   /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */

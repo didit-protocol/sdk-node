@@ -853,6 +853,8 @@ export class Sessions extends APIResource {
    *
    * This endpoint accepts API keys only. Business Console user Bearer tokens are rejected with `403` (unlike the single-session delete, which accepts both).
    *
+   * **Filed regulatory reports:** if the selected data is in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each report with `uuid`, `report_number`, `report_type` and `case_uuid`. Delete the reports, then repeat the request.
+   *
    * `POST /v3/sessions/delete/`
    */
   batchDelete(
@@ -961,6 +963,8 @@ export class Sessions extends APIResource {
    * **Rate limit:** shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints; exceeding it returns `429`.
    *
    * To bulk-delete KYC sessions by their numeric `session_number`, use `POST /v3/sessions/delete/` instead.
+   *
+   * **Filed regulatory reports:** if the selected data is in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each report with `uuid`, `report_number`, `report_type` and `case_uuid`. Delete the reports, then repeat the request.
    *
    * `DELETE /v3/session/{sessionId}/delete/`
    *

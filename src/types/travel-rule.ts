@@ -7,6 +7,7 @@ import type {
   TravelRuleMatchingRules,
   TravelRuleTransferRow,
   TravelRuleUtxo,
+  TravelRuleWalletProofReview,
   VaspDirectoryEntry,
   WalletAddressEntry,
 } from "./components.js";
@@ -38,7 +39,7 @@ export interface TravelRuleCounterpartyContactsListResponse {
 export interface TravelRuleCreateWidgetSessionParams {
   /** The wallet address to verify. Optional; when empty, the address must be supplied when a proof is started. */
   wallet_address?: string;
-  /** Chain token for the address, for example `ETH`, `BTC` or `SOL`. Use the same token as in your wallet address book. Message signing and the Satoshi test are offered only for a supported chain. */
+  /** Chain token for the address, for example `ETH`, `BTC` or `SOL`. Use the same token as in your wallet address book. Message signing and the Satoshi test are offered only for a supported chain. The address book entry the proof verifies stores it under its canonical identifier (ETH, BTC, SOL, TRX). */
   chain?: string;
   /** Name of the wallet holder, used for the beneficiary name match. */
   holder_name?: string;
@@ -78,6 +79,44 @@ export interface TravelRuleListVaspsResponse {
   next?: string | null;
   previous?: string | null;
   results?: VaspDirectoryEntry[];
+}
+
+/** Didit's network due-diligence questionnaire. Saves are partial: a save keeps every answer it does not name. Submitting requires every field except lei and data_protection_contact_email, and the three attestations true. */
+export interface TravelRuleNetworksUpdateQuestionnaireParams {
+  legal_name?: string;
+  registration_number?: string;
+  /** ISO 3166-1 alpha-2 country code. */
+  incorporation_country?: string;
+  registered_address?: string;
+  website?: string;
+  /** Optional. A valid ISO 17442 LEI when given. */
+  lei?: string;
+  /** Every licence or registration the VASP holds. */
+  licences?: TravelRuleNetworksUpdateQuestionnaireParamsLicences[];
+  operating_jurisdictions?: string[];
+  compliance_officer_name?: string;
+  compliance_officer_email?: string;
+  /** Must be true to submit. */
+  aml_ctf_policy_attested?: boolean;
+  /** Must be true to submit. */
+  sanctions_screening_attested?: boolean;
+  /** Must be true to submit. */
+  data_protection_attested?: boolean;
+  /** Optional. */
+  data_protection_contact_email?: string;
+  expected_monthly_transfers?: number;
+  /** Expected monthly volume in USD, up to 2 decimal places. Returned as a string. */
+  expected_monthly_volume_usd?: string;
+  /** Asset tickers, stored upper-case, sorted and de-duplicated. */
+  assets?: string[];
+}
+
+export interface TravelRuleNetworksUpdateQuestionnaireParamsLicences {
+  regulator: string;
+  /** ISO 3166-1 alpha-2 country code. */
+  jurisdiction: string;
+  licence_type: string;
+  licence_number: string;
 }
 
 export interface TravelRuleRegisterInboundParams {
@@ -210,7 +249,7 @@ export interface TravelRuleWalletAddressesBulkImportParams {
 export interface TravelRuleWalletAddressesCreateParams {
   /** The wallet address. An XRP X-address is stored as its classic address and its tag, so it matches transfers that name either form. */
   address: string;
-  /** Chain token for the address, for example `ETH` or `BTC`. When Didit routes or registers a transfer, it matches address book entries on the wallet address and, when the transfer carries a chain, on this value too, ignoring case. A transfer's chain is `beneficiary_data.chain`, filled from the transaction's crypto chain or currency symbol (for example `ETH`) when you do not send it, or the `chain` of an after-deposit registration, so use the same token everywhere. An entry with an empty chain matches any chain. */
+  /** Chain token for the address, for example `ETH` or `BTC`. When Didit routes or registers a transfer, it matches address book entries on the wallet address and, when the transfer carries a chain, on this value too, ignoring case. A transfer's chain is `beneficiary_data.chain`, filled from the transaction's crypto chain or currency symbol (for example `ETH`) when you do not send it, or the `chain` of an after-deposit registration, so use the same token everywhere. An entry with an empty chain matches any chain. Known chains are stored under one canonical identifier whatever spelling you send: "ethereum", "Ethereum" and "ERC20" are all stored as ETH, "BNB Smart Chain" and "BEP20" as BNB, "tron" as TRX. An unknown chain name is kept as given. */
   chain?: string;
   holder_vendor_data?: string;
   holder_name?: string;
@@ -241,6 +280,26 @@ export interface TravelRuleWalletAddressesUpdateParams {
   holder_vendor_data?: string;
   entity_type?: string;
   travel_address?: string;
+}
+
+export interface TravelRuleWalletProofsDecideParams {
+  decision: "approve" | "reject" | (string & {});
+  /** Optional. Kept with the proof and returned as review_note. */
+  note?: string;
+}
+
+export interface TravelRuleWalletProofsListParams {
+  /** Which proofs to list. Defaults to PENDING, the ones still to decide. */
+  status?: "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED" | (string & {});
+  limit?: number;
+  offset?: number;
+}
+
+export interface TravelRuleWalletProofsListResponse {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: TravelRuleWalletProofReview[];
 }
 
 export interface TravelRuleWorkspaceClaimParams {

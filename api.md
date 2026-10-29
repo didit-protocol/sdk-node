@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 368 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -27,6 +27,12 @@ Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi
 | Method                                                                      | HTTP                     | Returns                | Notes                |
 | --------------------------------------------------------------------------- | ------------------------ | ---------------------- | -------------------- |
 | `didit.account.organizations.list(params?: AccountOrganizationsListParams)` | `GET /organizations/me/` | page of `Organization` | needs `accountToken` |
+
+## `didit.addressValidation`
+
+| Method                                                                      | HTTP                           | Returns                     | Notes |
+| --------------------------------------------------------------------------- | ------------------------------ | --------------------------- | ----- |
+| `didit.addressValidation.validate(params: AddressValidationValidateParams)` | `POST /v3/address-validation/` | `AddressValidationResponse` |       |
 
 ## `didit.ageEstimation`
 
@@ -440,7 +446,7 @@ Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi
 | Method                                                                                                         | HTTP                                                                                                                 | Returns                                        | Notes              |
 | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------ |
 | `didit.regulatoryReports.create(params: RegulatoryReportsCreateParams)`                                        | `POST /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/`                           | `RegulatoryReportDetail`                       | application scoped |
-| `didit.regulatoryReports.delete(reportUuid)`                                                                   | `DELETE /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/`           | nothing                                        | application scoped |
+| `didit.regulatoryReports.delete(reportUuid, params?: RegulatoryReportsDeleteParams)`                           | `DELETE /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/`           | nothing                                        | application scoped |
 | `didit.regulatoryReports.finalize(reportUuid)`                                                                 | `POST /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/finalize/`    | `RegulatoryReportDetail`                       | application scoped |
 | `didit.regulatoryReports.list(params?: RegulatoryReportsListParams)`                                           | `GET /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/`                            | page of `RegulatoryReportDetail`               | application scoped |
 | `didit.regulatoryReports.retrieve(reportUuid)`                                                                 | `GET /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/`              | `RegulatoryReportDetail`                       | application scoped |
@@ -537,16 +543,17 @@ Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi
 
 ## `didit.transactions`
 
-| Method                                                                                  | HTTP                                                                                                                                             | Returns                                   | Notes              |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
-| `didit.transactions.create(params: TransactionsCreateParams)`                           | `POST /v3/transactions/`                                                                                                                         | `TransactionDetail`                       |                    |
-| `didit.transactions.createSdkToken(params: TransactionsCreateSdkTokenParams)`           | `POST /v3/transactions/sdk-token/`                                                                                                               | `TransactionsCreateSdkTokenResponse`      |                    |
-| `didit.transactions.generatePdf(transactionUuid)`                                       | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/`                                       | `Blob`                                    | application scoped |
-| `didit.transactions.list(params?: TransactionsListParams)`                              | `GET /v3/transactions/`                                                                                                                          | page of `TransactionsListResponseResults` |                    |
-| `didit.transactions.listNetworks(transactionUuid)`                                      | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/networks/`                                  | `EntityNetworkMembershipList`             | application scoped |
-| `didit.transactions.listPartyNetworks(transactionUuid, transactionPartyUuid)`           | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/` | `EntityNetworkMembershipList`             | application scoped |
-| `didit.transactions.listRelated(transactionId, params?: TransactionsListRelatedParams)` | `GET /v3/transactions/{transaction_id}/related/`                                                                                                 | page of `TransactionSummary`              |                    |
-| `didit.transactions.retrieve(transactionId)`                                            | `GET /v3/transactions/{transaction_id}/`                                                                                                         | `TransactionDetail`                       |                    |
+| Method                                                                                                                                      | HTTP                                                                                                                                             | Returns                                   | Notes              |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ------------------ |
+| `didit.transactions.batchDelete(params: TransactionsBatchDeleteParamsSelectedTransactions \| TransactionsBatchDeleteParamsAllTransactions)` | `DELETE /v3/organization/{organization_id}/application/{application_id}/transactions/delete/`                                                    | nothing                                   | application scoped |
+| `didit.transactions.create(params: TransactionsCreateParams)`                                                                               | `POST /v3/transactions/`                                                                                                                         | `TransactionDetail`                       |                    |
+| `didit.transactions.createSdkToken(params: TransactionsCreateSdkTokenParams)`                                                               | `POST /v3/transactions/sdk-token/`                                                                                                               | `TransactionsCreateSdkTokenResponse`      |                    |
+| `didit.transactions.generatePdf(transactionUuid)`                                                                                           | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/pdf/`                                       | `Blob`                                    | application scoped |
+| `didit.transactions.list(params?: TransactionsListParams)`                                                                                  | `GET /v3/transactions/`                                                                                                                          | page of `TransactionsListResponseResults` |                    |
+| `didit.transactions.listNetworks(transactionUuid)`                                                                                          | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/networks/`                                  | `EntityNetworkMembershipList`             | application scoped |
+| `didit.transactions.listPartyNetworks(transactionUuid, transactionPartyUuid)`                                                               | `GET /v3/organization/{organization_id}/application/{application_id}/transactions/{transaction_uuid}/parties/{transaction_party_uuid}/networks/` | `EntityNetworkMembershipList`             | application scoped |
+| `didit.transactions.listRelated(transactionId, params?: TransactionsListRelatedParams)`                                                     | `GET /v3/transactions/{transaction_id}/related/`                                                                                                 | page of `TransactionSummary`              |                    |
+| `didit.transactions.retrieve(transactionId)`                                                                                                | `GET /v3/transactions/{transaction_id}/`                                                                                                         | `TransactionDetail`                       |                    |
 
 ## `didit.transactions.notes`
 
@@ -606,6 +613,16 @@ Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi
 | `didit.travelRule.counterpartyContacts.delete(contactUuid)`                                        | `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/` | nothing                                 |       |
 | `didit.travelRule.counterpartyContacts.list(params?: TravelRuleCounterpartyContactsListParams)`    | `GET /v3/travel-rule/counterparty-contacts/`                   | page of `TravelRuleCounterpartyContact` |       |
 
+## `didit.travelRule.networks`
+
+| Method                                                                                                | HTTP                                                  | Returns                          | Notes |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------- | ----- |
+| `didit.travelRule.networks.requestAccess(network)`                                                    | `POST /v3/travel-rule/networks/{network}/request/`    | `TravelRuleNetworkParticipant`   |       |
+| `didit.travelRule.networks.retrieve()`                                                                | `GET /v3/travel-rule/networks/`                       | `TravelRuleNetworksOverview`     |       |
+| `didit.travelRule.networks.retrieveQuestionnaire()`                                                   | `GET /v3/travel-rule/networks/questionnaire/`         | `TravelRuleNetworkQuestionnaire` |       |
+| `didit.travelRule.networks.submitQuestionnaire()`                                                     | `POST /v3/travel-rule/networks/questionnaire/submit/` | `TravelRuleNetworkQuestionnaire` |       |
+| `didit.travelRule.networks.updateQuestionnaire(params?: TravelRuleNetworksUpdateQuestionnaireParams)` | `PUT /v3/travel-rule/networks/questionnaire/`         | `TravelRuleNetworkQuestionnaire` |       |
+
 ## `didit.travelRule.transfers`
 
 | Method                                                                    | HTTP                             | Returns                         | Notes |
@@ -621,6 +638,13 @@ Every method of `@didit-protocol/sdk-node`: 359 methods, generated from `openapi
 | `didit.travelRule.walletAddresses.delete(entryUuid)`                                                 | `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/` | nothing                      |        |
 | `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                | `GET /v3/travel-rule/wallet-addresses/`                 | page of `WalletAddressEntry` |        |
 | `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)` | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`  | `WalletAddressEntryUpdate`   |        |
+
+## `didit.travelRule.walletProofs`
+
+| Method                                                                                        | HTTP                                                        | Returns                               | Notes |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------- | ----- |
+| `didit.travelRule.walletProofs.decide(proofUuid, params: TravelRuleWalletProofsDecideParams)` | `POST /v3/travel-rule/wallet-proofs/{proof_uuid}/decision/` | `TravelRuleWalletProofReview`         |       |
+| `didit.travelRule.walletProofs.list(params?: TravelRuleWalletProofsListParams)`               | `GET /v3/travel-rule/wallet-proofs/`                        | page of `TravelRuleWalletProofReview` |       |
 
 ## `didit.travelRule.workspace`
 

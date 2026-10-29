@@ -11,7 +11,7 @@ export interface IdVerificationVerifyParams {
   back_image?: Uploadable;
   /** Password to decrypt `back_image` when it is an encrypted PDF. */
   back_image_password?: string;
-  /** Screens both images for presentation fraud: screen replays (`SCREEN_CAPTURE_DETECTED`), printed copies (`PRINTED_COPY_DETECTED`), and portrait manipulation (`PORTRAIT_MANIPULATION_DETECTED`). Any of these auto-declines. Enabled by default; set to `false` to skip fraud screening and reduce latency. */
+  /** Screens both images for presentation fraud: screen replays (`SCREEN_CAPTURE_DETECTED`), printed copies (`PRINTED_COPY_DETECTED`), and portrait manipulation (`PORTRAIT_MANIPULATION_DETECTED`). Any of these auto-declines. Enabled by default; set to `false` to skip fraud screening and reduce latency. When enabled and the provider returns no usable score, the response is `In Review` with a `DOCUMENT_LIVENESS_NOT_COMPUTED` warning rather than `Approved`. */
   perform_document_liveness?: boolean;
   /** Accepted and validated (1–120) but **currently not applied** by this endpoint - it never produces a `MINIMUM_AGE_NOT_MET` warning from this field. Enforce age rules from the returned `date_of_birth`/`age`, or use a verification-session workflow with age restrictions. */
   minimum_age?: number | null;
@@ -48,8 +48,8 @@ export interface IdVerificationVerifyResponse {
 }
 
 export interface IdVerificationVerifyResponseIdVerification {
-  /** `Approved` when no warning resolves to a decline; `Declined` otherwise - the `warnings` list explains why. */
-  status?: "Approved" | "Declined" | (string & {});
+  /** `Approved` when no warning resolves to a decline and the requested document-liveness check produced a usable result; `In Review` when that requested check produced no usable result (`DOCUMENT_LIVENESS_NOT_COMPUTED`); `Declined` when a warning resolves to a decline - the `warnings` list explains why. */
+  status?: "Approved" | "Declined" | "In Review" | (string & {});
   /** Detected document type display name: `Identity Card`, `Passport`, `Driver's License`, `Residence Permit`, `Health Insurance Card`, or `Tax Card`. `null` when the document could not be classified. */
   document_type?: string | null;
   /** Finer-grained subtype when available (e.g. `ID_CARD_GENERIC`, `EPASSPORT`). */
@@ -103,7 +103,7 @@ export interface IdVerificationVerifyResponseIdVerification {
   mrz?: IdVerificationVerifyResponseIdVerificationMrz;
   /** Structured, geocoded breakdown of `address`. `null` when the document carries no address or it could not be parsed. */
   parsed_address?: IdVerificationVerifyResponseIdVerificationParsedAddress | null;
-  /** Empty on a clean approval. Every entry explains one detected risk; entries with `log_type: "error"` set `status` to `Declined`. */
+  /** Empty on a clean approval. Every entry explains one detected risk; entries with `log_type: "error"` set `status` to `Declined`, and `DOCUMENT_LIVENESS_NOT_COMPUTED` (`log_type: "warning"`) sets it to `In Review`. */
   warnings?: IdVerificationVerifyResponseIdVerificationWarnings[];
   /** Barcodes decoded from the document (PDF417, QR, …). Empty when the document has none or none could be read. */
   barcodes?: IdVerificationVerifyResponseIdVerificationBarcodes[];
@@ -224,13 +224,13 @@ export interface IdVerificationVerifyResponseIdVerificationParsedAddressDocument
 }
 
 export interface IdVerificationVerifyResponseIdVerificationWarnings {
-  /** Machine-readable risk code. Always-decline risks: `DOCUMENT_EXPIRED`, `MINIMUM_AGE_NOT_MET`, `PORTRAIT_IMAGE_NOT_DETECTED`, `SCREEN_CAPTURE_DETECTED`, `PRINTED_COPY_DETECTED`, `PORTRAIT_MANIPULATION_DETECTED`, `PUBLIC_DOCUMENT_IMAGE_DETECTED`, `INVALID_DATE`, `COULD_NOT_RECOGNIZE_DOCUMENT` (400-only, never a warning), `DOCUMENT_NUMBER_NOT_DETECTED`, `COULD_NOT_DETECT_DOCUMENT_TYPE`, `NAME_NOT_DETECTED`, `DATE_OF_BIRTH_NOT_DETECTED`. Governed by request options: `MRZ_NOT_DETECTED` / `MRZ_VALIDATION_FAILED` (`invalid_mrz_action`), `DATA_INCONSISTENT` / `MRZ_AND_DATA_EXTRACTED_FROM_OCR_NOT_SAME` / `DOCUMENT_NAME_DIFFERENT_FROM_OTHER_APPROVED_DOCUMENTS` (`inconsistent_data_action`), `EXPIRATION_DATE_NOT_DETECTED` (`expiration_date_not_detected_action`). Other risks (e.g. `POSSIBLE_DUPLICATED_USER`) are informational. */
+  /** Machine-readable risk code. Always-decline risks: `DOCUMENT_EXPIRED`, `MINIMUM_AGE_NOT_MET`, `PORTRAIT_IMAGE_NOT_DETECTED`, `SCREEN_CAPTURE_DETECTED`, `PRINTED_COPY_DETECTED`, `PORTRAIT_MANIPULATION_DETECTED`, `PUBLIC_DOCUMENT_IMAGE_DETECTED`, `INVALID_DATE`, `COULD_NOT_RECOGNIZE_DOCUMENT` (400-only, never a warning), `DOCUMENT_NUMBER_NOT_DETECTED`, `COULD_NOT_DETECT_DOCUMENT_TYPE`, `NAME_NOT_DETECTED`, `DATE_OF_BIRTH_NOT_DETECTED`. Governed by request options: `MRZ_NOT_DETECTED` / `MRZ_VALIDATION_FAILED` (`invalid_mrz_action`), `DATA_INCONSISTENT` / `MRZ_AND_DATA_EXTRACTED_FROM_OCR_NOT_SAME` / `DOCUMENT_NAME_DIFFERENT_FROM_OTHER_APPROVED_DOCUMENTS` (`inconsistent_data_action`), `EXPIRATION_DATE_NOT_DETECTED` (`expiration_date_not_detected_action`). Other risks (e.g. `POSSIBLE_DUPLICATED_USER`) are informational. `DOCUMENT_LIVENESS_NOT_COMPUTED` is raised when `perform_document_liveness=true` but the forgery check returned no usable score; it sets `status` to `In Review`. */
   risk?: string;
   /** Feature that raised the warning. Always `ID_VERIFICATION` on this endpoint. */
   feature?: "ID_VERIFICATION" | (string & {});
   /** Extra context for some risks (e.g. `POSSIBLE_DUPLICATED_USER` includes `duplicated_session_id`); `null` for most. */
   additional_data?: Record<string, unknown> | null;
-  /** Severity. `error` warnings drive `status` to `Declined`; `information` entries are advisory and never decline on their own. (`warning` is not produced by this endpoint - its options only accept `DECLINE` or `NO_ACTION`.) */
+  /** Severity. `error` warnings drive `status` to `Declined`; `warning` (only `DOCUMENT_LIVENESS_NOT_COMPUTED`, when the requested forgery check produced no usable score) drives `status` to `In Review`; `information` entries are advisory and never change the status. */
   log_type?: "error" | "warning" | "information" | (string & {});
   /** Human-readable one-line summary of the risk. */
   short_description?: string;

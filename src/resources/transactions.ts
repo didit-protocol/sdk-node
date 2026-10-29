@@ -19,6 +19,8 @@ import type {
   TravelRuleTransferDetail,
 } from "../types/components.js";
 import type {
+  TransactionsBatchDeleteParamsAllTransactions,
+  TransactionsBatchDeleteParamsSelectedTransactions,
   TransactionsCreateParams,
   TransactionsCreateSdkTokenParams,
   TransactionsCreateSdkTokenResponse,
@@ -133,6 +135,13 @@ const TRANSACTIONS_TRAVEL_RULE_UPDATE_TRANSFER: OperationSpec = {
   path: "/v3/transactions/{transaction_id}/travel-rule/",
   body: "json",
   dates: "TravelRuleTransferDetail",
+};
+const TRANSACTIONS_BATCH_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/organization/{organization_id}/application/{application_id}/transactions/delete/",
+  scope: "application",
+  body: "whole",
+  response: "none",
 };
 const TRANSACTIONS_CREATE: OperationSpec = {
   method: "POST",
@@ -448,7 +457,7 @@ export class TransactionsTravelRule extends APIResource {
   /**
    * Finish, cancel, resend, or update the originator wallet of a Travel Rule transfer
    *
-   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way.
+   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way. `{"action": "beneficiary_vasp", "beneficiary_vasp": "<directory VASP id>"}` names the counterparty yourself when discovery could not, on an outbound transfer in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE or NOT_ENOUGH_COUNTERPARTY_DATA: the transfer is routed to that VASP and sent again.
    *
    * `PATCH /v3/transactions/{transaction_id}/travel-rule/`
    *
@@ -473,6 +482,26 @@ export class Transactions extends APIResource {
   readonly notes: TransactionsNotes = new TransactionsNotes(this._client);
   readonly rules: TransactionsRules = new TransactionsRules(this._client);
   readonly travelRule: TransactionsTravelRule = new TransactionsTravelRule(this._client);
+
+  /**
+   * Batch delete transactions
+   *
+   * Delete one or more transactions permanently. Select them with `transaction_uuids`, or delete every transaction in the application with `delete_all: true`.
+   *
+   * A deleted transaction goes with the records that are only its own: its parties, tags, notes, payment method links, documents and every stored version of their files, rule runs, alerts, provider results, network snapshot and Travel Rule data. Cases, people and companies stay; their link to the deleted transaction is cleared. Draft regulatory reports stop listing it and are rebuilt without it. Deletion is permanent and irreversible; there is no undo endpoint.
+   *
+   * If any selected transaction is listed in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each transaction and the reports that list it. Delete those reports, then repeat the request.
+   *
+   * `DELETE /v3/organization/{organization_id}/application/{application_id}/transactions/delete/`
+   */
+  batchDelete(
+    params:
+      | TransactionsBatchDeleteParamsSelectedTransactions
+      | TransactionsBatchDeleteParamsAllTransactions,
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    return this._client.request(TRANSACTIONS_BATCH_DELETE, [], params, options);
+  }
 
   /**
    * Create transaction

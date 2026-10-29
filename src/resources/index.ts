@@ -4,6 +4,7 @@ import { APIClient } from "../core/api-client.js";
 import type { DatePlan } from "../core/dates.js";
 import { DATE_PLANS } from "./date-plans.js";
 import { Account } from "./account.js";
+import { AddressValidation } from "./address-validation.js";
 import { AgeEstimation } from "./age-estimation.js";
 import { Aml } from "./aml.js";
 import { AmlMonitoring } from "./aml-monitoring.js";
@@ -49,6 +50,7 @@ import { Workflows } from "./workflows.js";
 export abstract class DiditResources extends APIClient {
   protected override readonly datePlans: Readonly<Record<string, DatePlan>> = DATE_PLANS;
   readonly account: Account = new Account(this);
+  readonly addressValidation: AddressValidation = new AddressValidation(this);
   readonly ageEstimation: AgeEstimation = new AgeEstimation(this);
   readonly aml: Aml = new Aml(this);
   readonly amlMonitoring: AmlMonitoring = new AmlMonitoring(this);
@@ -92,6 +94,7 @@ export abstract class DiditResources extends APIClient {
 }
 
 export { Account, AccountApplications, AccountOrganizations } from "./account.js";
+export { AddressValidation } from "./address-validation.js";
 export { AgeEstimation } from "./age-estimation.js";
 export { Aml } from "./aml.js";
 export { AmlMonitoring } from "./aml-monitoring.js";
@@ -151,8 +154,10 @@ export {
 export {
   TravelRule,
   TravelRuleCounterpartyContacts,
+  TravelRuleNetworks,
   TravelRuleTransfers,
   TravelRuleWalletAddresses,
+  TravelRuleWalletProofs,
   TravelRuleWorkspaceResource,
 } from "./travel-rule.js";
 export { Users } from "./users.js";

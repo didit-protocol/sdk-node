@@ -35,6 +35,11 @@ export interface RegulatoryReportsCreateParamsNarrative {
   how?: string;
 }
 
+export interface RegulatoryReportsDeleteParams {
+  /** Set to true to confirm that a finalized report and its generated files are deleted permanently. */
+  confirm_delete?: boolean;
+}
+
 export interface RegulatoryReportsListParams {
   /** Page size. */
   limit?: number;

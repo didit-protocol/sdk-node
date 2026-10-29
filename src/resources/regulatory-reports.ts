@@ -8,6 +8,7 @@ import { APIResource } from "../core/resource.js";
 import type { RegulatoryReportDetail, RegulatoryReportList } from "../types/components.js";
 import type {
   RegulatoryReportsCreateParams,
+  RegulatoryReportsDeleteParams,
   RegulatoryReportsListParams,
   RegulatoryReportsRetrieveDownloadUrlParams,
   RegulatoryReportsRetrieveDownloadUrlResponse,
@@ -26,6 +27,7 @@ const REGULATORY_REPORTS_DELETE: OperationSpec = {
   method: "DELETE",
   path: "/v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/",
   scope: "application",
+  body: "json",
   response: "none",
 };
 const REGULATORY_REPORTS_FINALIZE: OperationSpec = {
@@ -85,14 +87,20 @@ export class RegulatoryReports extends APIResource {
   /**
    * Delete report
    *
-   * Delete a draft or validated report. Finalized reports cannot be deleted (409).
+   * Delete a regulatory report permanently. The report, its copied narrative and reasons, its transaction links, and its generated goAML XML and PDF are erased, including every stored version of those files. The report disappears from lists and download URLs stop working. Other records, including the case, transactions, people and companies, are not deleted. There is no undo.
+   *
+   * A draft or validated report can be deleted without a request body. Deleting a finalized report requires `confirm_delete: true` in the request body. If the report is missing, the request returns `404`; if a finalized report is sent without confirmation, it returns `400` and nothing is deleted.
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/regulatory-reports/{report_uuid}/`
    *
    * @param reportUuid Report UUID.
    */
-  delete(reportUuid: string, options?: RequestOptions): APIPromise<void> {
-    return this._client.request(REGULATORY_REPORTS_DELETE, [reportUuid], undefined, options);
+  delete(
+    reportUuid: string,
+    params: RegulatoryReportsDeleteParams = {},
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    return this._client.request(REGULATORY_REPORTS_DELETE, [reportUuid], params, options);
   }
 
   /**

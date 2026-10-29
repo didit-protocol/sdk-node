@@ -38,6 +38,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   AMLScreeningRun: {
     p: { completed_at: 1, started_at: 1, dataset_freshness: "AMLDatasetFreshness" },
   },
+  AddressValidationResponse: { p: { created_at: 1 } },
   AgeEstimationEstimateResponse: { p: { created_at: 1 } },
   AmlMonitoringRetrieveJobResponse: { p: { created_at: 1, completed_at: 1 } },
   AmlRetrieveDatasetFreshnessResponse: { p: { dataset_freshness: "AMLDatasetFreshness" } },
@@ -372,6 +373,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       },
       document_verifications: { i: { p: { items: { i: { p: { created_at: 1 } } } } } },
       resubmissions: { i: { p: { created_at: 1 } } },
+      biometric_consent: { p: { given_at: 1, declined_at: 1, face_data_deleted_at: 1 } },
       investigator: "InvestigatorBlock",
     },
   },
@@ -500,6 +502,46 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { fulfilled_at: 1, attachment: "TravelRuleMessageAttachment", created_at: 1 },
   },
   TravelRuleMessageAttachment: { p: { created_at: 1 } },
+  TravelRuleNetworkParticipant: {
+    p: {
+      requested_at: 1,
+      submitted_at: 1,
+      activated_at: 1,
+      suspended_at: 1,
+      history: { i: { p: { at: 1 } } },
+    },
+  },
+  TravelRuleNetworkParticipantSummary: { p: { requested_at: 1, activated_at: 1 } },
+  TravelRuleNetworkQuestionnaire: {
+    p: { submitted_at: 1, reviewed_at: 1, history: { i: { p: { at: 1 } } }, updated_at: 1 },
+  },
+  TravelRuleNetworkState: { p: { participant: "TravelRuleNetworkParticipantSummary" } },
+  TravelRuleNetworksOverview: {
+    p: {
+      questionnaire: "TravelRuleNetworkQuestionnaire",
+      participants: { i: "TravelRuleNetworkParticipant" },
+      networks: {
+        p: {
+          gtr: "TravelRuleNetworkState",
+          trust: "TravelRuleNetworkState",
+          verifyvasp: "TravelRuleNetworkState",
+          sygna: "TravelRuleNetworkState",
+        },
+      },
+    },
+  },
+  TravelRuleSettingsDetail: {
+    p: {
+      networks: {
+        p: {
+          gtr: "TravelRuleNetworkState",
+          trust: "TravelRuleNetworkState",
+          verifyvasp: "TravelRuleNetworkState",
+          sygna: "TravelRuleNetworkState",
+        },
+      },
+    },
+  },
   TravelRuleTestVaspInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
   TravelRuleTransferDetail: {
     p: {
@@ -515,6 +557,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleTransferRow: { p: { txn_date: 1, deadline_at: 1, created_at: 1 } },
   TravelRuleTransfersListResponse: { p: { results: { i: "TravelRuleTransferRow" } } },
   TravelRuleWalletAddressesListResponse: { p: { results: { i: "WalletAddressEntry" } } },
+  TravelRuleWalletProofReview: { p: { method_chosen_at: 1, decided_at: 1, created_at: 1 } },
+  TravelRuleWalletProofsListResponse: { p: { results: { i: "TravelRuleWalletProofReview" } } },
   TravelRuleWidgetSessionResponse: { p: { expires_at: 1 } },
   TravelRuleWorkspace: {
     p: {
@@ -522,6 +566,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       claim: { p: { claimed_at: 1, reviewed_at: 1 } },
       domain: { p: { verified_at: 1 } },
       billing_enabled_at: 1,
+      settings: "TravelRuleSettingsDetail",
     },
   },
   UserDetailItem: {
