@@ -8,12 +8,16 @@ import { describe, expect, it } from "vitest";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 const api = readFileSync(new URL("../api.md", import.meta.url), "utf8");
+const design = readFileSync(new URL("../docs/DESIGN.md", import.meta.url), "utf8");
 
 /** The count in "Every method of ...: N methods, generated from openapi/". */
 const declared = /Every method of `@didit-protocol\/sdk-node`: (\d+) methods/.exec(api)?.[1];
 
 /** One row per method in the api.md tables. */
 const rows = api.split("\n").filter((line) => line.startsWith("| `didit."));
+
+/** One section per resource in api.md. */
+const sections = api.split("\n").filter((line) => line.startsWith("## `didit."));
 
 describe("API reference", () => {
   it("declares the number of methods it lists", () => {
@@ -31,5 +35,17 @@ describe("API reference", () => {
     // If one is added, it has to be right.
     const claimed = /(\d+) methods/.exec(readme)?.[1];
     if (claimed !== undefined) expect(Number(claimed)).toBe(rows.length);
+  });
+});
+
+describe("Design document", () => {
+  it("states the server operation and resource counts the reference has", () => {
+    // DESIGN.md's resource-tree paragraph is the one place a reader is told how
+    // large the contract is. A spec sync changes both numbers, so they are
+    // checked against the generated reference instead of being trusted.
+    const claimed = /(\d+) server operations in (\d+) resources/.exec(design);
+    expect(claimed).not.toBeNull();
+    expect(Number(claimed?.[1])).toBe(rows.length);
+    expect(Number(claimed?.[2])).toBe(sections.length);
   });
 });
