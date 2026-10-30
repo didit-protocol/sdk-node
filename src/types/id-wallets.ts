@@ -13,7 +13,6 @@ import type {
   DigitalIdWalletApiEudiWalletVerificationStartCountryEnum,
   DigitalIdWalletApiFranceconnectWalletVerificationStartCountryEnum,
   DigitalIdWalletApiFtnWalletVerificationStartCountryEnum,
-  DigitalIdWalletApiGoogleWalletWalletVerificationStartCountryEnum,
   DigitalIdWalletApiGovbrWalletVerificationStartCountryEnum,
   DigitalIdWalletApiIdcardEeWalletVerificationStartCountryEnum,
   DigitalIdWalletApiIdinWalletVerificationStartCountryEnum,
@@ -356,28 +355,6 @@ export interface IdWalletsStartFtnParams {
   device?: DigitalIdWalletApiDeviceEnum;
 }
 
-/** Start a Google Wallet verification (USA, GBR, BRA, SGP, TWN). */
-export interface IdWalletsStartGoogleWalletParams {
-  /** Your own reference for this verification (e.g. your user id). Returned in results and webhooks. */
-  vendor_data?: string | null;
-  /** Optional JSON object stored with the verification and returned in results and webhooks. */
-  metadata?: Record<string, unknown> | null;
-  /** Sandbox applications only: the simulated outcome - 'wallet_cancelled', 'wallet_timeout' or 'wallet_provider_error'; any other scenario (or none) verifies. Rejected on live applications. The full catalog is available at GET /v1/sandbox/scenarios/. */
-  sandbox_scenario?: string;
-  /**
-   * ISO 3166-1 alpha-3 country of the Google Wallet identity.
-   *
-   * * `USA` - USA
-   * * `GBR` - GBR
-   * * `BRA` - BRA
-   * * `SGP` - SGP
-   * * `TWN` - TWN
-   */
-  country: DigitalIdWalletApiGoogleWalletWalletVerificationStartCountryEnum;
-  /** Where your page or app will ask the wallet: the https origin of your page (its host must be in the application's allowed_return_hosts, or be its white-label domain), e.g. https://app.example.com, or android:apk-key-hash:<base64 SHA-256 of your app's signing certificate, no padding>. The wallet refuses the request anywhere else. */
-  origin: string;
-}
-
 /** Start a gov.br verification (BRA). */
 export interface IdWalletsStartGovbrParams {
   /** Your own reference for this verification (e.g. your user id). Returned in results and webhooks. */
@@ -695,10 +672,4 @@ export interface IdWalletsStartVippsParams {
    * * `cross_device` - cross_device
    */
   device?: DigitalIdWalletApiDeviceEnum;
-}
-
-/** What the wallet answered your page or app, for a ``request_digital_credential`` verification. */
-export interface IdWalletsSubmitVerificationResponseParams {
-  /** Exactly what the wallet returned: {protocol, data} of the DigitalCredential from navigator.credentials.get, or the parsed credentialJson of Android's DigitalCredential. Encrypted to Didit; do not alter it. */
-  response: Record<string, unknown>;
 }

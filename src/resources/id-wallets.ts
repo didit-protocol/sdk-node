@@ -21,7 +21,6 @@ import type {
   IdWalletsStartFranceconnectParams,
   IdWalletsStartFrejaidParams,
   IdWalletsStartFtnParams,
-  IdWalletsStartGoogleWalletParams,
   IdWalletsStartGovbrParams,
   IdWalletsStartGovukWalletParams,
   IdWalletsStartIdcardEeParams,
@@ -35,7 +34,6 @@ import type {
   IdWalletsStartSmartIdParams,
   IdWalletsStartUaePassParams,
   IdWalletsStartVippsParams,
-  IdWalletsSubmitVerificationResponseParams,
 } from "../types/id-wallets.js";
 
 const ID_WALLETS_CANCEL_VERIFICATION: OperationSpec = {
@@ -126,12 +124,6 @@ const ID_WALLETS_START_FTN: OperationSpec = {
   body: "json",
   dates: "DigitalIdWalletApiWalletVerificationResponse",
 };
-const ID_WALLETS_START_GOOGLE_WALLET: OperationSpec = {
-  method: "POST",
-  path: "/v3/id-verification/wallets/google-wallet/",
-  body: "json",
-  dates: "DigitalIdWalletApiWalletVerificationResponse",
-};
 const ID_WALLETS_START_GOVBR: OperationSpec = {
   method: "POST",
   path: "/v3/id-verification/wallets/govbr/",
@@ -207,12 +199,6 @@ const ID_WALLETS_START_UAE_PASS: OperationSpec = {
 const ID_WALLETS_START_VIPPS: OperationSpec = {
   method: "POST",
   path: "/v3/id-verification/wallets/vipps/",
-  body: "json",
-  dates: "DigitalIdWalletApiWalletVerificationResponse",
-};
-const ID_WALLETS_SUBMIT_VERIFICATION_RESPONSE: OperationSpec = {
-  method: "POST",
-  path: "/v3/id-verification/wallets/verifications/{request_id}/response/",
   body: "json",
   dates: "DigitalIdWalletApiWalletVerificationResponse",
 };
@@ -471,22 +457,6 @@ export class IdWallets extends APIResource {
   }
 
   /**
-   * Start Google Wallet verification
-   *
-   * Start a Google Wallet sign-in (Google Wallet (ID pass) and US state issuers (mobile driving licence); USA, GBR, BRA, SGP, TWN) without any workflow. Billed once, only when the identity is verified. The response carries next_action.type=request_digital_credential with a request Didit signed for your application, usable only from origin. In a user gesture there, pass next_action.digital_credentials.request to navigator.credentials.get({digital: ...}) (or to Android Credential Manager as GetDigitalCredentialOption requestJson), then POST what the wallet returns to /v3/id-verification/wallets/verifications/{request_id}/response/. The browser offers its own QR code when the wallet is on another device. Sandbox applications get a deterministic simulation (simulated: true) that never contacts the provider.
-   *
-   * `POST /v3/id-verification/wallets/google-wallet/`
-   *
-   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
-   */
-  startGoogleWallet(
-    params: IdWalletsStartGoogleWalletParams,
-    options?: RequestOptions,
-  ): APIPromise<DigitalIdWalletApiWalletVerificationResponse> {
-    return this._client.request(ID_WALLETS_START_GOOGLE_WALLET, [], params, options);
-  }
-
-  /**
    * Start gov.br verification
    *
    * Start a gov.br sign-in (Governo Federal do Brasil; BRA) without any workflow. Billed once, only when the identity is verified. The response carries next_action.type=redirect with the URL to send the user's browser to; the user returns to return_url with request_id and result appended. Read the outcome with GET /v3/id-verification/wallets/verifications/{request_id}/ or from the webhook, never from the URL. Sandbox applications get a deterministic simulation (simulated: true) that never contacts the provider.
@@ -692,27 +662,5 @@ export class IdWallets extends APIResource {
     options?: RequestOptions,
   ): APIPromise<DigitalIdWalletApiWalletVerificationResponse> {
     return this._client.request(ID_WALLETS_START_VIPPS, [], params, options);
-  }
-
-  /**
-   * Submit a wallet response
-   *
-   * Digital Credentials API wallets (Google Wallet): send what the wallet returned to your page or app for a verification whose next_action is request_digital_credential. Didit decrypts it, checks the issuer's signature against the trusted issuer roots, every returned value against its signed digest, and the device signature over your origin and this request, then decides the verification: verified (billed once) or declined with the error code. Single use: a second submit returns the decided verification.
-   *
-   * `POST /v3/id-verification/wallets/verifications/{request_id}/response/`
-   *
-   * @param requestId The request_id the start endpoint returned.
-   */
-  submitVerificationResponse(
-    requestId: string,
-    params: IdWalletsSubmitVerificationResponseParams,
-    options?: RequestOptions,
-  ): APIPromise<DigitalIdWalletApiWalletVerificationResponse> {
-    return this._client.request(
-      ID_WALLETS_SUBMIT_VERIFICATION_RESPONSE,
-      [requestId],
-      params,
-      options,
-    );
   }
 }
