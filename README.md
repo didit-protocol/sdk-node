@@ -110,7 +110,7 @@ await didit.sessions.create(
 
 Resources and methods follow the API: `didit.<resource>.<method>(...)`, with nested resources such as `didit.sessions.imports` or `didit.cases.notes`.
 Path parameters are positional; everything else goes in one params object whose fields keep the API's names (snake_case).
-[api.md](api.md) lists all 257 methods with their HTTP routes and types.
+[api.md](api.md) lists every method with its HTTP route and types, generated from `openapi/`.
 
 ```ts
 import { fileFromPath } from "@didit-protocol/sdk-node";
