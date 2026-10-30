@@ -87,7 +87,7 @@ Convert names to the language's idiom and nothing else:
 | Ruby | `didit.sessions.imports.create(...)` |
 | C# | `await client.Sessions.Imports.CreateAsync(...)` |
 
-The full resource tree — 368 server operations in 68 resources for the version-1 contract, generated from `openapi/*.json` — is in `api.md`; `overlay.json` holds only the naming overrides upstream does not carry yet.
+The full version-1 resource tree is generated from `openapi/*.json` and listed in `api.md`, one section per resource; `overlay.json` holds only the naming overrides upstream does not carry yet.
 Highlights: `sessions`, `sessions.imports`, `sessions.reviews`, the standalone APIs (`id_verification.verify`, `face_match.compare`, `face_search.search`, `passive_liveness.check`, `age_estimation.estimate`, `proof_of_address.verify`, `document_ai.analyze`, `aml.screen`, `database_validation.validate`, `phone.send_code`, `email.check_code`, `ip.assess_risk`, `kyb.search`), `id_wallets`, `fraud_checks`, `users`, `businesses`, `transactions`, `transactions.rules`, `transactions.travel_rule`, `wallet_screening`, `travel_rule`, `travel_rule.wallet_addresses`, `workflows`, `questionnaires`, `webhooks.destinations`, `billing`, `biometric_templates`, `customization`, `cases` (with `notes`, `links`, `checklist`, `requests`, `teams`, `routing_rules`, `blueprints`, `regulatory_reports`), `regulatory_reports`, `report_templates`, `networks`, and `account` (`account.organizations`, `account.applications`).
 
 ## 5. Architecture

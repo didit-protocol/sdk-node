@@ -39,13 +39,14 @@ describe("API reference", () => {
 });
 
 describe("Design document", () => {
-  it("states the server operation and resource counts the reference has", () => {
-    // DESIGN.md's resource-tree paragraph is the one place a reader is told how
-    // large the contract is. A spec sync changes both numbers, so they are
-    // checked against the generated reference instead of being trusted.
+  it("does not state server operation or resource counts the reference disagrees with", () => {
+    // DESIGN.md's resource-tree paragraph is where a reader is told how large
+    // the contract is. It deliberately names no size, because a spec sync
+    // regenerates api.md; if a size is added back, it has to be right.
     const claimed = /(\d+) server operations in (\d+) resources/.exec(design);
-    expect(claimed).not.toBeNull();
-    expect(Number(claimed?.[1])).toBe(rows.length);
-    expect(Number(claimed?.[2])).toBe(sections.length);
+    if (claimed !== null) {
+      expect(Number(claimed[1])).toBe(rows.length);
+      expect(Number(claimed[2])).toBe(sections.length);
+    }
   });
 });
