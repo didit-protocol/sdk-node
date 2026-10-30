@@ -13,7 +13,7 @@ const api = readFileSync(new URL("../api.md", import.meta.url), "utf8");
 const declared = /Every method of `@didit-protocol\/sdk-node`: (\d+) methods/.exec(api)?.[1];
 
 /** One row per method in the api.md tables. */
-const rows = api.split("\n").filter((line) => /^\| `didit\./.test(line));
+const rows = api.split("\n").filter((line) => line.startsWith("| `didit."));
 
 describe("API reference", () => {
   it("declares the number of methods it lists", () => {
