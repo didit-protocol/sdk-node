@@ -2613,6 +2613,16 @@ export type DigitalIdWalletApiFranceconnectWalletVerificationStartCountryEnum =
 /** * `FIN` - FIN */
 export type DigitalIdWalletApiFtnWalletVerificationStartCountryEnum = "FIN" | (string & {});
 
+/**
+ * * `USA` - USA
+ * * `GBR` - GBR
+ * * `BRA` - BRA
+ * * `SGP` - SGP
+ * * `TWN` - TWN
+ */
+export type DigitalIdWalletApiGoogleWalletWalletVerificationStartCountryEnum =
+  "USA" | "GBR" | "BRA" | "SGP" | "TWN" | (string & {});
+
 /** * `BRA` - BRA */
 export type DigitalIdWalletApiGovbrWalletVerificationStartCountryEnum = "BRA" | (string & {});
 
@@ -2625,8 +2635,10 @@ export type DigitalIdWalletApiIdinWalletVerificationStartCountryEnum = "NLD" | (
 /**
  * * `redirect` - redirect
  * * `in_app` - in_app
+ * * `digital_credentials` - digital_credentials
  */
-export type DigitalIdWalletApiInteractionEnum = "redirect" | "in_app" | (string & {});
+export type DigitalIdWalletApiInteractionEnum =
+  "redirect" | "in_app" | "digital_credentials" | (string & {});
 
 /**
  * * `BEL` - BEL
@@ -2680,6 +2692,7 @@ export interface DigitalIdWalletApiWalletCatalogEntry {
   /**
    * * `redirect` - redirect
    * * `in_app` - in_app
+   * * `digital_credentials` - digital_credentials
    */
   interaction: DigitalIdWalletApiInteractionEnum;
   required_fields: string[];
@@ -2689,6 +2702,13 @@ export interface DigitalIdWalletApiWalletCatalogEntry {
 
 export interface DigitalIdWalletApiWalletCatalogResponse {
   wallets: DigitalIdWalletApiWalletCatalogEntry[];
+}
+
+export interface DigitalIdWalletApiWalletDigitalCredentialsRequest {
+  /** openid4vp-v1-signed. */
+  protocol: string;
+  /** Pass as is: navigator.credentials.get({digital: request}) in the browser, or JSON.stringify(request) as GetDigitalCredentialOption's requestJson on Android. Signed by Didit for your application. */
+  request: Record<string, unknown>;
 }
 
 export interface DigitalIdWalletApiWalletIdentity {
@@ -2704,14 +2724,17 @@ export interface DigitalIdWalletApiWalletIdentity {
 
 export interface DigitalIdWalletApiWalletNextAction {
   /**
-   * redirect: send the user's browser to url. confirm_in_app: show verification_code to the user, who checks it matches the code in their wallet app and confirms there; then poll.
+   * redirect: send the user's browser to url. confirm_in_app: show verification_code to the user, who checks it matches the code in their wallet app and confirms there; then poll. request_digital_credential: in a user gesture on the origin you started with, ask the wallet with digital_credentials.request, then send what it returns to POST .../verifications/{request_id}/response/.
    *
    * * `redirect` - redirect
    * * `confirm_in_app` - confirm_in_app
+   * * `request_digital_credential` - request_digital_credential
    */
   type: DigitalIdWalletApiWalletNextActionTypeEnum;
   /** redirect only: where the user signs in with the wallet. */
   url?: string;
+  /** request_digital_credential only: the request to hand to the wallet. */
+  digital_credentials?: DigitalIdWalletApiWalletDigitalCredentialsRequest;
   /** confirm_in_app only: the 4-digit comparison code the wallet app shows too. */
   verification_code?: string;
   /** confirm_in_app only: how often to call POST .../verifications/{request_id}/poll/ for prompt feedback. Didit also polls pending sign-ins in the background, so the webhook reports the outcome even when you do not poll. */
@@ -2721,9 +2744,10 @@ export interface DigitalIdWalletApiWalletNextAction {
 /**
  * * `redirect` - redirect
  * * `confirm_in_app` - confirm_in_app
+ * * `request_digital_credential` - request_digital_credential
  */
 export type DigitalIdWalletApiWalletNextActionTypeEnum =
-  "redirect" | "confirm_in_app" | (string & {});
+  "redirect" | "confirm_in_app" | "request_digital_credential" | (string & {});
 
 /** One standalone wallet verification, as every wallet endpoint answers it. */
 export interface DigitalIdWalletApiWalletVerificationResponse {
