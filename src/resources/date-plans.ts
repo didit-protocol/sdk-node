@@ -57,6 +57,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       updated_at: 1,
     },
   },
+  BiometricRetention: { p: { deletes_at: 1 } },
   BiometricTemplatesListResponse: {
     p: { results: { i: { p: { retained_at: 1, expires_at: 1, purged_at: 1 } } } },
   },
@@ -169,6 +170,10 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   FeatureStatusOverride: { p: { requested_at: 1, applied_at: 1, cancelled_at: 1 } },
   FraudCheckResponse: { p: { created_at: 1, completed_at: 1 } },
+  GeolocationAttempt: {
+    p: { measured_at: 1, consent: { p: { accepted_at: 1 } }, received_at: 1, created_at: 1 },
+  },
+  GeolocationCheck: { p: { measured_at: 1, consent: { p: { accepted_at: 1 } } } },
   IPRiskResponse: { p: { created_at: 1 } },
   IdVerificationVerifyResponse: { p: { created_at: 1 } },
   ImportJobSummary: { p: { resumes_at: 1, created_at: 1, started_at: 1, completed_at: 1 } },
@@ -190,32 +195,67 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   InvestigatorSettings: { p: { stage_changed_at: 1 } },
   KybListShareholdersResponse: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
   KybListShareholdersResponse202: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
   KybListUbosResponse: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
   KybListUbosResponse202: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
   KybSearchResponse: { p: { created_at: 1 } },
   KybSelectResponse: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
@@ -301,6 +341,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   RoutingPublicationPolicyRevision: { p: { published_at: 1 } },
   SessionDecision: {
     p: {
+      status_override: { p: { overridden_at: 1 } },
+      decision_trace: { p: { decided_at: 1 } },
       id_verifications: {
         i: {
           p: {
@@ -349,13 +391,25 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       signatures: { i: "SignatureResult" },
       aml_screenings: { i: "AMLScreening" },
       ip_analyses: { i: { p: { matches: { i: { p: { verification_date: 1 } } } } } },
+      geolocation_checks: { i: "GeolocationCheck" },
+      geolocation_attempts: { i: "GeolocationAttempt" },
       reviews: { i: { p: { created_at: 1 } } },
+      assignee: { p: { assigned_at: 1 } },
+      waiting_since: 1,
+      sla_due_at: 1,
       created_at: 1,
       expires_at: 1,
       registry_checks: {
         i: {
           p: {
-            company: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+            company: {
+              p: {
+                vat_checked_at: 1,
+                confirmed_by_user_at: 1,
+                last_console_edit_at: 1,
+                registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+              },
+            },
           },
         },
       },
@@ -375,10 +429,13 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       resubmissions: { i: { p: { created_at: 1 } } },
       biometric_consent: { p: { given_at: 1, declined_at: 1, face_data_deleted_at: 1 } },
       investigator: "InvestigatorBlock",
+      biometric_retention: "BiometricRetention",
+      full_session_video_recorded_at: 1,
     },
   },
   SessionDeletionJob: { p: { created_at: 1, completed_at: 1 } },
   SessionEvent: { p: { created_at: 1 } },
+  SessionFilesExport: { p: { expires_at: 1, created_at: 1, completed_at: 1 } },
   SessionImportError: { p: { created_at: 1 } },
   SessionImportJob: {
     p: {
@@ -395,6 +452,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   SessionsBatchDeleteResponse: {
     p: { results: { i: { p: { biometric_template_expires_at: 1 } } } },
   },
+  SessionsCreateKybPartyDraftResponse: { p: { created_at: 1, updated_at: 1 } },
   SessionsDeleteResponse: { p: { biometric_template_expires_at: 1 } },
   SessionsImportsListActiveJobsResponse: { p: { results: { i: "ImportJobSummary" } } },
   SessionsImportsListErrorsResponse: { p: { results: { i: "SessionImportError" } } },
@@ -404,7 +462,23 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   SessionsListFeatureOverridesResponse: {
     p: { flow_finished_at: 1, overrides: { i: "FeatureStatusOverride" } },
   },
-  SessionsListResponse: { p: { results: { i: { p: { created_at: 1 } } } } },
+  SessionsListKybPartyDraftsResponse: {
+    p: { parties: { i: { p: { created_at: 1, updated_at: 1 } } } },
+  },
+  SessionsListResponse: {
+    p: {
+      results: {
+        i: {
+          p: {
+            created_at: 1,
+            assignee: { p: { assigned_at: 1 } },
+            waiting_since: 1,
+            sla_due_at: 1,
+          },
+        },
+      },
+    },
+  },
   SessionsReviewsCreateResponse: { p: { created_at: 1 } },
   SessionsReviewsListResponse: { p: { results: { i: "ReviewItem" } } },
   SessionsSignaturesValidateResponse: { p: { signatures: { i: "SignatureResult" } } },
@@ -412,6 +486,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   SessionsUpdateKybCompanyDataResponse: {
     p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 },
   },
+  SessionsUpdateKybPartyDraftResponse: { p: { created_at: 1, updated_at: 1 } },
   SignatureFieldResult: { p: { filled_at: 1 } },
   SignatureResult: {
     p: {
@@ -498,6 +573,9 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleDiscoveryStep: { p: { at: 1 } },
   TravelRuleInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
   TravelRuleListVaspsResponse: { p: { results: { i: "VaspDirectoryEntry" } } },
+  TravelRuleManualMatchResponse: {
+    p: { deposit: "TravelRuleTransferRow", message: "TravelRuleTransferRow" },
+  },
   TravelRuleMessage: {
     p: { fulfilled_at: 1, attachment: "TravelRuleMessageAttachment", created_at: 1 },
   },
@@ -556,6 +634,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   TravelRuleTransferRow: { p: { txn_date: 1, deadline_at: 1, created_at: 1 } },
   TravelRuleTransfersListResponse: { p: { results: { i: "TravelRuleTransferRow" } } },
+  TravelRuleUnmatchedDepositsListResponse: { p: { results: { i: "TravelRuleTransferRow" } } },
   TravelRuleWalletAddressesListResponse: { p: { results: { i: "WalletAddressEntry" } } },
   TravelRuleWalletProofReview: { p: { method_chosen_at: 1, decided_at: 1, created_at: 1 } },
   TravelRuleWalletProofsListResponse: { p: { results: { i: "TravelRuleWalletProofReview" } } },
@@ -583,7 +662,9 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   UserListItem: {
     p: { last_session_at: 1, first_session_at: 1, last_activity_at: 1, created_at: 1 },
   },
-  UserSessionListItem: { p: { created_at: 1 } },
+  UserSessionListItem: {
+    p: { created_at: 1, assignee: { p: { assigned_at: 1 } }, waiting_since: 1, sla_due_at: 1 },
+  },
   UsersCreateResponse: {
     p: {
       last_session_at: 1,

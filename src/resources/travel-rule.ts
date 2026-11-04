@@ -13,6 +13,7 @@ import type {
   TravelRuleCounterpartyScreeningResult,
   TravelRuleCounterpartyScreeningStatus,
   TravelRuleInboundResponse,
+  TravelRuleManualMatchResponse,
   TravelRuleNetworkParticipant,
   TravelRuleNetworkQuestionnaire,
   TravelRuleNetworksOverview,
@@ -41,6 +42,9 @@ import type {
   TravelRuleSendVaspQuestionnaireParams,
   TravelRuleTransfersListParams,
   TravelRuleTransfersListResponse,
+  TravelRuleUnmatchedDepositsListParams,
+  TravelRuleUnmatchedDepositsListResponse,
+  TravelRuleUnmatchedDepositsMatchParams,
   TravelRuleUpdateSettingsParams,
   TravelRuleUpdateVaspDecisionParams,
   TravelRuleWalletAddressesBulkImportParams,
@@ -115,6 +119,29 @@ const TRAVEL_RULE_TRANSFERS_LIST: OperationSpec = {
     "offset",
   ],
   dates: { p: { results: { i: "TravelRuleTransferRow" } } },
+};
+const TRAVEL_RULE_UNMATCHED_DEPOSITS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/unmatched/",
+  query: [
+    "direction",
+    "status",
+    "rail",
+    "kind",
+    "currency",
+    "start_date",
+    "end_date",
+    "counterparty",
+    "limit",
+    "offset",
+  ],
+  dates: { p: { results: { i: "TravelRuleTransferRow" } } },
+};
+const TRAVEL_RULE_UNMATCHED_DEPOSITS_MATCH: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/unmatched/{transaction_uuid}/match/",
+  body: "json",
+  dates: "TravelRuleManualMatchResponse",
 };
 const TRAVEL_RULE_WALLET_ADDRESSES_BULK_IMPORT: OperationSpec = {
   method: "POST",
@@ -412,6 +439,45 @@ export class TravelRuleTransfers extends APIResource {
   }
 }
 
+/** `travel_rule.unmatched_deposits` */
+export class TravelRuleUnmatchedDeposits extends APIResource {
+  /**
+   * List unmatched Travel Rule deposits
+   *
+   * Inbound deposits that are still waiting for the originating VASP's Travel Rule data: their transfer is `AWAITING_COUNTERPARTY`, `NOT_ENOUGH_COUNTERPARTY_DATA` or `COUNTERPARTY_VASP_NOT_FOUND`, no received message is paired with them, and nobody matched them by hand. The rows and the filters are the same as in `GET /v3/travel-rule/transfers/`, newest first, paginated with `limit` (default 50) and `offset`. Pair a deposit with the message the originating VASP sent with `POST /v3/travel-rule/unmatched/{transaction_uuid}/match/`.
+   *
+   * `GET /v3/travel-rule/unmatched/`
+   */
+  list(
+    params: TravelRuleUnmatchedDepositsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleUnmatchedDepositsListResponse, TravelRuleTransferRow> {
+    return this._client.requestPage(TRAVEL_RULE_UNMATCHED_DEPOSITS_LIST, [], params, options);
+  }
+
+  /**
+   * Match a Travel Rule deposit to a received message
+   *
+   * Pair an inbound deposit that is still waiting for originator data with the Travel Rule message the originating VASP sent for it. The deposit takes the message's originator data, counterparty VASP and rail, and both transfers record the match on their timelines. `transaction_uuid` is the deposit's `transaction_id` from `GET /v3/travel-rule/unmatched/`. `transaction_id` in the body is the received message's `transaction_id`, from a row of `GET /v3/travel-rule/transfers/?kind=message`; the transfer's own `id` is not found. The message must be for the same asset as the deposit. A deposit or message deleted from the Console answers `404`; one that has already moved on (matched, or no longer waiting) answers `409`.
+   *
+   * `POST /v3/travel-rule/unmatched/{transaction_uuid}/match/`
+   *
+   * @param transactionUuid The `transaction_id` of the unmatched deposit.
+   */
+  match(
+    transactionUuid: string,
+    params: TravelRuleUnmatchedDepositsMatchParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleManualMatchResponse> {
+    return this._client.request(
+      TRAVEL_RULE_UNMATCHED_DEPOSITS_MATCH,
+      [transactionUuid],
+      params,
+      options,
+    );
+  }
+}
+
 /** `travel_rule.wallet_addresses` */
 export class TravelRuleWalletAddresses extends APIResource {
   /**
@@ -610,6 +676,9 @@ export class TravelRule extends APIResource {
     new TravelRuleCounterpartyContacts(this._client);
   readonly networks: TravelRuleNetworks = new TravelRuleNetworks(this._client);
   readonly transfers: TravelRuleTransfers = new TravelRuleTransfers(this._client);
+  readonly unmatchedDeposits: TravelRuleUnmatchedDeposits = new TravelRuleUnmatchedDeposits(
+    this._client,
+  );
   readonly walletAddresses: TravelRuleWalletAddresses = new TravelRuleWalletAddresses(this._client);
   readonly walletProofs: TravelRuleWalletProofs = new TravelRuleWalletProofs(this._client);
   readonly workspace: TravelRuleWorkspaceResource = new TravelRuleWorkspaceResource(this._client);

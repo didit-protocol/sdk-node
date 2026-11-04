@@ -333,6 +333,28 @@ describe("id_wallets", () => {
     expectMatchesExample(result, responseExample("POST /v3/id-verification/wallets/ftn/"));
   });
 
+  it("id_wallets.start_google_wallet: POST /v3/id-verification/wallets/google-wallet/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/id-verification/wallets/google-wallet/"),
+    });
+    const result = await client.idWallets.startGoogleWallet({ country: "USA", origin: "value" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/id-verification/wallets/google-wallet/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ country: "USA", origin: "value" });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/id-verification/wallets/google-wallet/"),
+    );
+  });
+
   it("id_wallets.start_govbr: POST /v3/id-verification/wallets/govbr/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -590,5 +612,31 @@ describe("id_wallets", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({ return_url: "https://example.com/" });
     expectMatchesExample(result, responseExample("POST /v3/id-verification/wallets/vipps/"));
+  });
+
+  it("id_wallets.submit_verification_response: POST /v3/id-verification/wallets/verifications/{request_id}/response/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/id-verification/wallets/verifications/{request_id}/response/",
+      ),
+    });
+    const result = await client.idWallets.submitVerificationResponse("request-id-1", {
+      response: {},
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/id-verification/wallets/verifications/request-id-1/response/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ response: {} });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/id-verification/wallets/verifications/{request_id}/response/"),
+    );
   });
 });

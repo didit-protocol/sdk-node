@@ -7,6 +7,8 @@ import type {
   FeatureStatusOverride,
   ImportJobSummary,
   ImportProvider,
+  KYBKeyPeopleParty,
+  KYBRegistryData,
   ReviewItem,
   SessionEvent,
   SessionImportError,
@@ -119,6 +121,7 @@ export interface SessionsBulkUpdateAmlHitStatusParams {
 }
 
 export interface SessionsBulkUpdateAmlHitStatusParamsHitUpdates {
+  /** The `id` of the hit in the AML check's `hits` array (`hit_...`). A hit id returned in the earlier format is still accepted. */
   hit_id: string;
   review_status:
     "Unreviewed" | "Confirmed Match" | "False Positive" | "Inconclusive" | (string & {});
@@ -127,8 +130,153 @@ export interface SessionsBulkUpdateAmlHitStatusParamsHitUpdates {
 export interface SessionsBulkUpdateAmlHitStatusResponse {
   /** `Updated {n} hit(s) successfully`, where `n` is the number of entries in `hit_updates`. */
   message: string;
-  /** The `hit_id` of every entry in `hit_updates`, in request order, including hits whose status did not change. */
+  /** The `id` of the hit each entry in `hit_updates` names, as the session decision returns it, in request order, including hits whose status did not change. */
   updated_hits: string[];
+}
+
+export interface SessionsCreateKybPartyDraftParams {
+  /** Whether the party is an individual or a company. */
+  entity_type: "person" | "company" | (string & {});
+  /** Full name of a person. Send it, or `first_name` and `last_name`. */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  /** Role the party holds. Interchangeable with `roles`; when both are sent they are merged. */
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  /** Every role the party holds. A person needs at least one role (here or in `role`). */
+  roles?: (
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {})
+  )[];
+  /** Job title of a person. */
+  position?: string;
+  date_of_birth?: string | null;
+  /** Name of a company party. Required when `entity_type` is `company`. */
+  company_name?: string;
+  /** Registration number of a company party. */
+  registration_number?: string;
+  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  email?: string;
+  /** Share of the company the party owns. */
+  ownership_percent?: number | null;
+  /** Nationality of a person, or country of incorporation of a company. Required for every party. */
+  nationality: string;
+  phone_number?: string;
+  /** Workflow-defined extra fields. */
+  custom_fields?: Record<string, unknown>;
+  /** Ask to skip this party's verification. Honoured only when the party's role allows skipping in the workflow's Key People settings. */
+  skip_verification?: boolean;
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsCreateKybPartyDraftResponse {
+  draft_id: string;
+  created_at: Date;
+  updated_at: Date;
+  party: SessionsCreateKybPartyDraftResponseParty;
+}
+
+export interface SessionsCreateKybPartyDraftResponseParty {
+  /** Whether the party is an individual or a company. */
+  entity_type: "person" | "company" | (string & {});
+  /** Full name of a person. Send it, or `first_name` and `last_name`. */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  /** Role the party holds. Interchangeable with `roles`; when both are sent they are merged. */
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  /** Every role the party holds. A person needs at least one role (here or in `role`). */
+  roles?: (
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {})
+  )[];
+  /** Job title of a person. */
+  position?: string;
+  date_of_birth?: string | null;
+  /** Name of a company party. Required when `entity_type` is `company`. */
+  company_name?: string;
+  /** Registration number of a company party. */
+  registration_number?: string;
+  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  email?: string;
+  /** Share of the company the party owns. */
+  ownership_percent?: number | null;
+  /** Nationality of a person, or country of incorporation of a company. Required for every party. */
+  nationality: string;
+  phone_number?: string;
+  /** Workflow-defined extra fields. */
+  custom_fields?: Record<string, unknown>;
+  /** Ask to skip this party's verification. Honoured only when the party's role allows skipping in the workflow's Key People settings. */
+  skip_verification?: boolean;
 }
 
 export interface SessionsCreateParams {
@@ -136,6 +284,8 @@ export interface SessionsCreateParams {
   workflow_id: string;
   /** A unique identifier for the user being verified, such as a UUID, email, or internal user ID. This field is used for: (1) **User grouping** - sessions with the same vendor_data are linked to the same user profile in the Users tab. (2) **Cross-session duplicate detection** - when checking for duplicated faces, documents, phone numbers, emails, IP addresses, or device fingerprints, sessions with the same vendor_data are treated as the same user and excluded from matches. Without vendor_data, every session is treated as a unique user and all potential duplicates are surfaced. We strongly recommend always providing a vendor_data to reduce noise in duplicate detection. */
   vendor_data?: string;
+  /** Optional duplicate-detection realm inside your organization. Duplicate face checks compare this session only with other sessions that carry the same segment, so separate account bases (personal and business accounts, or one per B2B sub-client) do not flag a person who legitimately holds one account in each. Omit it to use the single default realm, which is what every session uses today. Blocklist and allowlist matching ignore this field. */
+  multi_account_segment?: string;
   /** URL to redirect the user to after verification completes. Didit automatically appends `verificationSessionId` and `status` (Approved, Declined, In Review) as query parameters. Custom URL schemes (e.g. `myapp://`) are supported for mobile callbacks. If omitted, the workflow's default `callback_url` is used. When the application has allowed domains (`allowed_domains` on `PATCH /v3/webhook/`), an `http` or `https` callback must be on one of those origins (same scheme, host and port), otherwise the request fails with 400 on `callback`: `callback must be on one of the application's allowed domains: https://app.example.com`. Custom URL schemes are always accepted. */
   callback?: string;
   /** Determines which device should handle the redirect to the provided callback URL. Use `initiator` to redirect only the device that started the flow, `completer` for the device that finishes it, or `both` to allow either device to trigger the callback. If you ever notice the callback not triggering reliably, we recommend setting this value to `both`. */
@@ -209,7 +359,7 @@ export interface SessionsCreateParams {
   portrait_image?: string;
   /** Sandbox-only scenario slug. Only accepted when the API key belongs to a sandbox-mode application; rejected on live applications. When set, the create flow expands the scenario's bundled magic values onto the session's input fields (contact_details, expected_details) so the mocked providers reproduce the scenario's outcome through the real workflow pipeline. See the scenario catalog at GET /v1/sandbox/scenarios/ or [Sandbox & Test Data](/integration/sandbox-testing). You can also arm (or re-arm) a scenario after create via POST /v3/session/{sessionId}/sandbox/arm/, as long as the session is still `Not Started`. For non-doc lookup, use `lookup_partial_match`, `lookup_no_match`, or `lookup_provider_error` to test the configured attempt budget and fallback. For identity wallets, use `wallet_cancelled`, `wallet_timeout`, or `wallet_provider_error`; `approve` simulates a verified wallet. All catalog wallets can be tested in sandbox, including schemes unavailable on live applications. Simulated attempts are not charged. */
   sandbox_scenario?: string;
-  /** Electronic Signature input for this session. `documents` are the documents to sign, for a workflow whose Electronic Signature step takes documents from the session (`signature_documents_source` `session` or `both`): up to 20 documents and 50 MB in total. `field_values` fills the fields whose `prefill` is `api.<key>`, on workflow and session documents alike. Creating a session again for the same `workflow_id` and `vendor_data` returns the pending session; if that call sends `sign`, its documents, fields and values must be identical to the first ones, and anything different returns `400` with `{"sign": "signature_document_changed"}`. See [Electronic signature documents](/sessions-api/create-session#electronic-signature-documents). */
+  /** E-signature input for this session. `documents` are the documents to sign, for a workflow whose E-signature step takes documents from the session (`signature_documents_source` `session` or `both`): up to 20 documents and 50 MB in total. `field_values` fills the fields whose `prefill` is `api.<key>`, on workflow and session documents alike. Creating a session again for the same `workflow_id` and `vendor_data` returns the pending session; if that call sends `sign`, its documents, fields and values must be identical to the first ones, and anything different returns `400` with `{"sign": "signature_document_changed"}`. See [E-signature documents](/sessions-api/create-session#e-signature-documents). */
   sign?: SessionsCreateParamsSign;
   /** Where the person lives, when you know it: an ISO 3166-2 subdivision code (`US-IL`, `ES-M`) or a US state code or name (`IL`, `Illinois`). A state whose law requires explicit biometric consent (Illinois, Texas, Colorado) makes the verification flow ask for it before capturing a face, with trigger `declared_state`. An unrecognized value returns `400`. See [Biometric consent](/getting-started/biometric-consent). */
   user_state?: string;
@@ -326,7 +476,7 @@ export interface SessionsCreateParamsExpectedDetails {
   registration_number?: string;
 }
 
-/** Electronic Signature input for this session. `documents` are the documents to sign, for a workflow whose Electronic Signature step takes documents from the session (`signature_documents_source` `session` or `both`): up to 20 documents and 50 MB in total. `field_values` fills the fields whose `prefill` is `api.<key>`, on workflow and session documents alike. Creating a session again for the same `workflow_id` and `vendor_data` returns the pending session; if that call sends `sign`, its documents, fields and values must be identical to the first ones, and anything different returns `400` with `{"sign": "signature_document_changed"}`. See [Electronic signature documents](/sessions-api/create-session#electronic-signature-documents). */
+/** E-signature input for this session. `documents` are the documents to sign, for a workflow whose E-signature step takes documents from the session (`signature_documents_source` `session` or `both`): up to 20 documents and 50 MB in total. `field_values` fills the fields whose `prefill` is `api.<key>`, on workflow and session documents alike. Creating a session again for the same `workflow_id` and `vendor_data` returns the pending session; if that call sends `sign`, its documents, fields and values must be identical to the first ones, and anything different returns `400` with `{"sign": "signature_document_changed"}`. See [E-signature documents](/sessions-api/create-session#e-signature-documents). */
 export interface SessionsCreateParamsSign {
   documents?: SessionSignDocument[];
   /** Values keyed by the `<key>` of each `api.<key>` pre-fill source: strings of 1 to 500 characters for `text` and `data` fields, booleans for a `checkbox`. `400` with `field_value_unknown` for a key no field uses, `field_value_missing` for a required field without its value, and `field_value_invalid` for a value that fails its field's validation. */
@@ -369,6 +519,11 @@ export interface SessionsCreateResponse {
   workflow_version: number;
 }
 
+export interface SessionsDeleteKybPartyDraftParams {
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
 export interface SessionsDeleteParams {
   /** Override the application's `face_retention_policy` for this deletion. `true` keeps one image-free face biometric template anchored to the session's User after the session is deleted; `false` deletes the face embedding with the session; omit or `null` to follow the application policy. Ignored for KYB sessions and for sessions without a face embedding. */
   retain_face_embeddings?: boolean | null;
@@ -401,6 +556,8 @@ export interface SessionsDeleteResponse {
 export interface SessionsExportAmlScreeningHistoryParams {
   /** Workflow graph node ID of the AML check. Needed only when the session ran more than one AML step; without it the most recent AML check is used. An unknown node returns `404`. */
   node_id?: string;
+  /** A UTC calendar month as `YYYY-MM`. Only screenings completed in that month are returned; without it every month is returned. A malformed month returns `400`. */
+  month?: string;
 }
 
 export interface SessionsImportSharedParams {
@@ -576,6 +733,8 @@ export interface SessionsImportsStartParams {
 export interface SessionsListAmlScreeningHistoryParams {
   /** Workflow graph node ID of the AML check. Needed only when the session ran more than one AML step; without it the most recent AML check is used. An unknown node returns `404`. */
   node_id?: string;
+  /** A UTC calendar month as `YYYY-MM`. Only screenings completed in that month are returned; without it every month is returned. A malformed month returns `400`. */
+  month?: string;
   /** Maximum number of screening runs per page. Defaults to 50. A value below 1 or a non-numeric value falls back to 50; a value above 1,000,000 returns `400`. */
   limit?: number;
   /** Number of results to skip before the first returned one. Defaults to 0; a negative or non-numeric value falls back to 0, a value above 1,000,000 returns `400`. Prefer following the `next` and `previous` URLs. */
@@ -623,6 +782,156 @@ export interface SessionsListFeatureOverridesResponse {
   overrides: FeatureStatusOverride[];
 }
 
+export interface SessionsListKybExtractedPartiesParams {
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsListKybExtractedPartiesResponse {
+  /** The shareholders and directors the uploaded documents name, merged per person. Nobody is labelled a UBO here: that is decided when the parties are submitted. */
+  parties: SessionsListKybExtractedPartiesResponseParties[];
+  /** Number of uploaded documents the list was read from. */
+  document_count: number;
+  node_id?: string | null;
+}
+
+export interface SessionsListKybExtractedPartiesResponseParties {
+  name?: string;
+  entity_type?: "person" | "company" | (string & {});
+  first_name?: string | null;
+  last_name?: string | null;
+  appointment_date?: string | null;
+  designation?: string | null;
+  roles?: SessionsListKybExtractedPartiesResponsePartiesRoles[];
+  /** The uploaded documents that named this party. */
+  documents?: SessionsListKybExtractedPartiesResponsePartiesDocuments[];
+}
+
+export interface SessionsListKybExtractedPartiesResponsePartiesDocuments {
+  document_uuid?: string;
+  document_type?: string | null;
+  document_subtype?: string | null;
+  original_filename?: string | null;
+  status?: string | null;
+}
+
+export interface SessionsListKybExtractedPartiesResponsePartiesRoles {
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  ownership_percent?: SessionsListKybExtractedPartiesResponsePartiesRolesOwnershipPercent;
+}
+
+export interface SessionsListKybExtractedPartiesResponsePartiesRolesOwnershipPercent {
+  /** The ownership figure exactly as the document states it, such as `25-50%`, `>50%` or `NO EXHIBE`. */
+  text?: string | null;
+  /** Lower number read out of `text`; null when it states none. */
+  min?: number | null;
+  /** Upper number read out of `text`; null when it states none. */
+  max?: number | null;
+}
+
+export interface SessionsListKybPartyDraftsParams {
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsListKybPartyDraftsResponse {
+  parties?: SessionsListKybPartyDraftsResponseParties[];
+  node_id?: string | null;
+}
+
+export interface SessionsListKybPartyDraftsResponseParties {
+  draft_id: string;
+  created_at: Date;
+  updated_at: Date;
+  party: SessionsListKybPartyDraftsResponsePartiesParty;
+}
+
+export interface SessionsListKybPartyDraftsResponsePartiesParty {
+  /** Whether the party is an individual or a company. */
+  entity_type: "person" | "company" | (string & {});
+  /** Full name of a person. Send it, or `first_name` and `last_name`. */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  /** Role the party holds. Interchangeable with `roles`; when both are sent they are merged. */
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  /** Every role the party holds. A person needs at least one role (here or in `role`). */
+  roles?: (
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {})
+  )[];
+  /** Job title of a person. */
+  position?: string;
+  date_of_birth?: string | null;
+  /** Name of a company party. Required when `entity_type` is `company`. */
+  company_name?: string;
+  /** Registration number of a company party. */
+  registration_number?: string;
+  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  email?: string;
+  /** Share of the company the party owns. */
+  ownership_percent?: number | null;
+  /** Nationality of a person, or country of incorporation of a company. Required for every party. */
+  nationality: string;
+  phone_number?: string;
+  /** Workflow-defined extra fields. */
+  custom_fields?: Record<string, unknown>;
+  /** Ask to skip this party's verification. Honoured only when the party's role allows skipping in the workflow's Key People settings. */
+  skip_verification?: boolean;
+}
+
 export interface SessionsListParams {
   /** Which kind of sessions to list: `user` (KYC only, default), `business` (KYB only), or `all` (both, concatenated - see the description for merged-pagination semantics). Matching is case-insensitive (`BUSINESS` works); any value other than a case variant of `user`/`business`/`all` returns `400`. */
   session_kind?: "user" | "business" | "all" | (string & {});
@@ -642,6 +951,12 @@ export interface SessionsListParams {
   date_from?: string;
   /** Only sessions created up to this date (UTC), format `YYYY-MM-DD`. For KYC rows the entire day is included; for KYB rows the comparison is `created_at <= date_to` (midnight), so use the next day's date to include a full day of KYB sessions. */
   date_to?: string;
+  /** Comma-separated tag ids (`tags` of your application). Returns the sessions that carry any of them. Ids that are not valid UUIDs are ignored, and when none is valid the list is empty. */
+  tags?: string;
+  /** ISO 8601 datetime. Returns the sessions whose status last changed at or after it. It filters on the time of the last status change, not on creation time. */
+  decided_from?: string | Date;
+  /** ISO 8601 datetime. Returns the sessions whose status last changed before it. Combine with `decided_from` for a half-open window. */
+  decided_to?: string | Date;
   /** Comma-separated country filter. For KYC rows: ISO 3166-1 alpha-3 codes of the ID document's issuing state (e.g. `ESP,USA`), which may differ from nationality. For KYB rows: the registry company's country code. */
   country?: string;
   /** Comma-separated ID-document type codes verified in the session (KYC rows only): `P` (Passport), `ID` (Identity Card), `DL` (Driver's License), `RP` (Residence Permit), `SSC` (Social Security Card), `HIC` (Health Insurance Card), `WP` (Work Permit), `TC` (Tax Card), `VISA`, `PSC` (Public Service Card), `BC` (Birth Certificate), `OTHER`. Note the response field `document_type` contains the display name, not the code. */
@@ -683,7 +998,7 @@ export interface SessionsListParams {
 }
 
 export interface SessionsListResponse {
-  /** Number of sessions matching the filters. Exact for KYC rows; for KYB rows it is capped at 100 (use `next` to know whether more pages exist). For `session_kind=all` it is the sum of both kinds. */
+  /** Number of sessions matching the filters: exact up to 100 and capped at 100 beyond that, so do not use it as a total. Use `next` to know whether more pages exist. For `session_kind=all` it is the sum of both kinds, each capped at 100. */
   count: number;
   /** Absolute URL of the next page, or `null` on the last page. */
   next: string | null;
@@ -717,6 +1032,8 @@ export interface SessionsPreviewDecisionEmailResponse {
   subject: string;
   /** The email's HTML exactly as it is sent, with its logo embedded as a data URL. Render it in a sandboxed frame, never directly in your application DOM. */
   html: string;
+  /** The email's words as plain text, as the person's Messages thread keeps them, for a compact preview (the HTML stays the email the person receives). */
+  text: string;
   /** The language the email is written in. English (`en`) when the `email_language` you asked for is not offered. */
   language: string;
   /** Whether confirming the change with `send_email: true` sends this email. `false` when `not_sent_reason` is set. */
@@ -771,6 +1088,7 @@ export interface SessionsPreviewResubmissionParamsNodesToResubmit {
     | "KYB_REGISTRY"
     | "KYB_KEY_PEOPLE"
     | "KYB"
+    | "GEOLOCATION"
     | (string & {});
 }
 
@@ -791,6 +1109,8 @@ export interface SessionsPreviewResubmissionResponse {
   subject: string;
   /** The email's HTML exactly as it is sent, with its logo embedded as a data URL. Render it in a sandboxed frame, never directly in your application DOM. */
   html: string;
+  /** The email's words as plain text, as the person's Messages thread keeps them, for a compact preview (the HTML stays the email the person receives). */
+  text: string;
   /** The language the email is written in. English (`en`) when the `email_language` you asked for is not offered. */
   language: string;
   /** Whether confirming the change with `send_email: true` sends this email. `false` when `not_sent_reason` is set. */
@@ -833,6 +1153,7 @@ export interface SessionsPreviewResubmissionResponseNodesToResubmit {
     | "KYB_REGISTRY"
     | "KYB_KEY_PEOPLE"
     | "KYB"
+    | "GEOLOCATION"
     | (string & {});
 }
 
@@ -949,8 +1270,29 @@ export interface SessionsSimulateParams {
   send_webhooks?: boolean;
 }
 
+export interface SessionsSubmitKybPartiesParams {
+  /** Locale used to translate the response of the step the session advances to. */
+  locale?: string;
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsSubmitKybPartiesResponse {
+  valid?: boolean;
+  /** Step the session is on. */
+  next_step?: string | null;
+  /** Status of the business session. */
+  status?: string;
+  /** `true` when this call declared the parties and advanced the session. */
+  advanced?: boolean;
+  /** `true` when the parties had been declared by an earlier call. */
+  already_submitted?: boolean;
+  kyb_key_people_status?: string;
+  parties?: KYBKeyPeopleParty[];
+}
+
 export interface SessionsUpdateAmlHitStatusParams {
-  /** The `id` of the hit in the AML check's `hits` array. */
+  /** The `id` of the hit in the AML check's `hits` array (`hit_...`). A hit id returned in the earlier format is still accepted. */
   hit_id: string;
   /** The new review status for the hit. */
   review_status:
@@ -964,7 +1306,7 @@ export interface SessionsUpdateAmlHitStatusParams {
 export interface SessionsUpdateAmlHitStatusResponse {
   /** Always `Hit status updated successfully`. */
   message: string;
-  /** The updated hit, with surrounding whitespace removed. */
+  /** The `id` of the updated hit, as the session decision returns it, also when the request named the hit by an id in the earlier format. */
   hit_id: string;
   /** The review status now stored on the hit. */
   review_status:
@@ -1352,8 +1694,8 @@ export interface SessionsUpdateKybCompanyDataResponse {
   industries?: Record<string, unknown>[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw registry payload snapshot. Every key you PATCH is merged into this map (dates serialized as ISO strings), so the "extracted from registry" view reflects operator corrections. */
-  registry_data?: Record<string, unknown> | null;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** What the end user typed during the hosted registry-confirmation step. Never modified by this endpoint. */
   user_provided_data?: Record<string, unknown> | null;
   /** When the end user confirmed the company data in the hosted flow. */
@@ -1362,6 +1704,152 @@ export interface SessionsUpdateKybCompanyDataResponse {
   last_console_edit_at?: Date | null;
   /** `true` while the end user can still edit the registry-sourced data in the hosted flow (registry-sourced and not yet confirmed). */
   is_editable?: boolean;
+}
+
+/** Any subset of the party fields. The edit is merged into the stored draft and the merged party is validated as a whole, so a draft that could be submitted before an edit can still be submitted after it. */
+export interface SessionsUpdateKybPartyDraftParams {
+  /** Whether the party is an individual or a company. */
+  entity_type?: "person" | "company" | (string & {});
+  /** Full name of a person. Send it, or `first_name` and `last_name`. */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  /** Role the party holds. Interchangeable with `roles`; when both are sent they are merged. */
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  /** Every role the party holds. A person needs at least one role (here or in `role`). */
+  roles?: (
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {})
+  )[];
+  /** Job title of a person. */
+  position?: string;
+  date_of_birth?: string | null;
+  /** Name of a company party. Required when `entity_type` is `company`. */
+  company_name?: string;
+  /** Registration number of a company party. */
+  registration_number?: string;
+  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  email?: string;
+  /** Share of the company the party owns. */
+  ownership_percent?: number | null;
+  /** Nationality of a person, or country of incorporation of a company. Required for every party. */
+  nationality?: string;
+  phone_number?: string;
+  /** Workflow-defined extra fields. */
+  custom_fields?: Record<string, unknown>;
+  /** Ask to skip this party's verification. Honoured only when the party's role allows skipping in the workflow's Key People settings. */
+  skip_verification?: boolean;
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsUpdateKybPartyDraftResponse {
+  draft_id: string;
+  created_at: Date;
+  updated_at: Date;
+  party: SessionsUpdateKybPartyDraftResponseParty;
+}
+
+export interface SessionsUpdateKybPartyDraftResponseParty {
+  /** Whether the party is an individual or a company. */
+  entity_type: "person" | "company" | (string & {});
+  /** Full name of a person. Send it, or `first_name` and `last_name`. */
+  full_name?: string;
+  first_name?: string;
+  last_name?: string;
+  /** Role the party holds. Interchangeable with `roles`; when both are sent they are merged. */
+  role?:
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {});
+  /** Every role the party holds. A person needs at least one role (here or in `role`). */
+  roles?: (
+    | "director"
+    | "non_executive_director"
+    | "secretary"
+    | "chairman"
+    | "ubo"
+    | "shareholder"
+    | "representative"
+    | "founder"
+    | "legal_advisor"
+    | "authorized_signatory"
+    | "trustee"
+    | "beneficiary"
+    | "settlor"
+    | "protector"
+    | "company_officer"
+    | "investor"
+    | "other"
+    | (string & {})
+  )[];
+  /** Job title of a person. */
+  position?: string;
+  date_of_birth?: string | null;
+  /** Name of a company party. Required when `entity_type` is `company`. */
+  company_name?: string;
+  /** Registration number of a company party. */
+  registration_number?: string;
+  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  email?: string;
+  /** Share of the company the party owns. */
+  ownership_percent?: number | null;
+  /** Nationality of a person, or country of incorporation of a company. Required for every party. */
+  nationality: string;
+  phone_number?: string;
+  /** Workflow-defined extra fields. */
+  custom_fields?: Record<string, unknown>;
+  /** Ask to skip this party's verification. Honoured only when the party's role allows skipping in the workflow's Key People settings. */
+  skip_verification?: boolean;
 }
 
 export interface SessionsUpdateKybPartyParams {
@@ -1526,10 +2014,40 @@ export interface SessionsUpdateStatusParamsNodesToResubmit {
     | "KYB_REGISTRY"
     | "KYB_KEY_PEOPLE"
     | "KYB"
+    | "GEOLOCATION"
     | (string & {});
 }
 
 export interface SessionsUpdateStatusResponse {
   /** UUID of the updated session. */
   session_id?: string;
+}
+
+export interface SessionsUploadKybDocumentsParams {
+  /** Files to upload: JPG, JPEG, PNG, TIFF, WEBP, PDF or ZIP archives of them. PDFs up to 50 MB, photos up to 6 MB before compression. */
+  documents: Uploadable[];
+  /** One entry per file in `documents`, in the same order: the password of a protected PDF, empty for any other file. */
+  document_passwords?: string[];
+  /** Required document group this upload answers. */
+  document_group?:
+    | "LEGAL_PRESENCE"
+    | "COMPANY_DETAILS"
+    | "OWNERSHIP_STRUCTURE"
+    | "REPRESENTATIVES_AUTHORIZATION"
+    | (string & {});
+  /** Locale used to translate the response of the next step. */
+  locale?: string;
+  /** Workflow node of the KYB step. Only needed when the workflow has more than one KYB node; by default Didit uses the session's own node. */
+  node_id?: string;
+}
+
+export interface SessionsUploadKybDocumentsResponse {
+  valid?: boolean;
+  /** Step the session is on after the upload. */
+  next_step?: string | null;
+  /** Status of the company check. */
+  kyb_status?: string;
+  /** Result per uploaded document and the uploads left. */
+  document_answer?: Record<string, unknown>;
+  [key: string]: unknown;
 }

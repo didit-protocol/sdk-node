@@ -22,3 +22,8 @@ export interface AnalyticsRetrieveParams {
   /** Transaction widgets only: comma-separated action types (case-insensitive). */
   action_type?: string;
 }
+
+export interface AnalyticsRetrieveTodayParams {
+  /** IANA time zone whose midnight starts today, for example `Europe/Madrid` or `America/Mexico_City`. Omit it for UTC. */
+  tz?: string;
+}

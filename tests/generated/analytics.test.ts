@@ -53,4 +53,29 @@ describe("analytics", () => {
       ),
     );
   });
+
+  it("analytics.retrieve_today: GET /v3/organization/{organization_id}/application/{application_id}/analytics/today/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "GET /v3/organization/{organization_id}/application/{application_id}/analytics/today/",
+      ),
+    });
+    const result = await client.analytics.retrieveToday({ tz: "Europe/Madrid" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/organization/org-123/application/app-456/analytics/today/");
+    expect(request.query).toEqual({ tz: "Europe/Madrid" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample(
+        "GET /v3/organization/{organization_id}/application/{application_id}/analytics/today/",
+      ),
+    );
+  });
 });

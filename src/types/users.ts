@@ -10,6 +10,10 @@ export interface UsersBatchDeleteParams {
   didit_internal_id_list?: string[];
   /** If `true`, deletes every user in the application. */
   delete_all?: boolean;
+  /** Your explicit choice to keep one image-free biometric template of each deleted person for duplicate detection, for `face_retention_days`. Everything else about the person is deleted. Omit it, or send `false`, to delete the templates with the users. When `true`, `face_retention_days` is required. */
+  retain_face_embeddings?: boolean;
+  /** Number of days the image-free biometric template is kept when `retain_face_embeddings` is `true`. Required with it, and rejected without it with a `400` on `face_retention_days`. */
+  face_retention_days?: number;
 }
 
 export interface UsersBatchDeleteResponse {

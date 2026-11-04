@@ -46,7 +46,7 @@ export class Email extends APIResource {
    *
    * **Authentication.** Send your application's API key in `x-api-key`. Missing or invalid credentials return `403` - this API never returns `401`.
    *
-   * **Rate limit.** Shared write budget of 300 requests per minute per API key across all POST/PATCH/DELETE endpoints.
+   * **Rate limit.** Shared write budget of 300 requests per minute per API key across POST/PATCH/DELETE endpoints (transaction creates and event ingestion have a separate budget of 600).
    *
    * **Social footprint.** Set `enable_social` to `true` to add a `email_social` block: the online platforms this address is registered on, with per-category counts and any profile details available. `profiles_registered: 0` means the platforms were checked and the address was found on none of them - a valid, billable answer. The block is absent when the add-on was not requested or the check could not be completed, and it is not billed in that case. Billing adds one `email_social` unit per request on top of this endpoint's own price.
    *

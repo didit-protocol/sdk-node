@@ -19,7 +19,6 @@ describe("wallet_screening", () => {
     });
     const result = await client.walletScreening.screen({
       wallet_address: "0x94f1b9b64e2932f6a2db338f616844400cd58e8a",
-      blockchain: "BTC",
     });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -30,10 +29,7 @@ describe("wallet_screening", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({
-      wallet_address: "0x94f1b9b64e2932f6a2db338f616844400cd58e8a",
-      blockchain: "BTC",
-    });
+    expect(request.json).toEqual({ wallet_address: "0x94f1b9b64e2932f6a2db338f616844400cd58e8a" });
     expectMatchesExample(result, responseExample("POST /v3/wallet-screening/"));
   });
 

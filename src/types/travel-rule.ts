@@ -195,6 +195,41 @@ export interface TravelRuleTransfersListResponse {
   results?: TravelRuleTransferRow[];
 }
 
+export interface TravelRuleUnmatchedDepositsListParams {
+  /** INBOUND, OUTBOUND, or both comma-separated. Case-sensitive. */
+  direction?: string;
+  /** One or more transfer statuses, comma-separated. */
+  status?: string;
+  /** One or more of INTERNAL, TRP, GTR, TRUST, VERIFYVASP, SYGNA, EMAIL, TEST_VASP, comma-separated. */
+  rail?: string;
+  /** withdrawal, deposit or message, comma-separated. */
+  kind?: string;
+  /** The transaction's currency, case-insensitive. */
+  currency?: string;
+  /** Transfers created on or after this day (UTC), YYYY-MM-DD. */
+  start_date?: string;
+  /** Transfers created on or before this day (UTC), YYYY-MM-DD. */
+  end_date?: string;
+  /** The `id` of a directory entry or Didit network member from GET /v3/travel-rule/vasps/: your transfers with that counterparty. A value that is not a valid id answers 400. */
+  counterparty?: string;
+  /** Page size, default 50. */
+  limit?: number;
+  /** Rows to skip. */
+  offset?: number;
+}
+
+export interface TravelRuleUnmatchedDepositsListResponse {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: TravelRuleTransferRow[];
+}
+
+export interface TravelRuleUnmatchedDepositsMatchParams {
+  /** The `transaction_id` of the received Travel Rule message (a row with `kind: message`). */
+  transaction_id: string;
+}
+
 /** All fields optional; PUT applies a partial update. */
 export interface TravelRuleUpdateSettingsParams {
   is_enabled?: boolean;

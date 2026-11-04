@@ -263,7 +263,7 @@ export interface AMLScreening {
 }
 
 export interface AMLScreeningHits {
-  /** Unique identifier of the match */
+  /** Didit's stable identifier for the hit: `hit_` followed by 24 hexadecimal characters. The same matched entity keeps the same `id` when the subject is screened again. Pass it as `hit_id` to the AML hit review endpoints. */
   id?: string;
   /** Source URL for the match */
   url?: string;
@@ -279,7 +279,7 @@ export interface AMLScreeningHits {
   target?: boolean | null;
   /** Caption or title of the match */
   caption?: string;
-  /** List of dataset categories where the match was found. Indicates whether the entity appeared in PEP lists (with level), sanctions databases, adverse media, warnings/regulatory enforcement, or other compliance datasets. */
+  /** List of dataset categories where the match was found. Indicates whether the entity appeared in PEP lists (with level), sanctions databases, adverse media, warnings/regulatory enforcement, or other compliance datasets. `Other Lists` when the entity's source states none of these categories. */
   datasets?: (
     | "PEP"
     | "PEP Level 1"
@@ -293,6 +293,7 @@ export interface AMLScreeningHits {
     | "SIP"
     | "SIE"
     | "Insolvency"
+    | "Other Lists"
     | (string & {})
   )[];
   /** Additional features of the match */
@@ -546,6 +547,8 @@ export interface AMLScreeningHitsWarningMatchesAdditionalDataDataCaseDetails {
 export interface AMLScreeningRun {
   /** Identifier of this screening run. */
   uuid: string;
+  /** The monitoring run this screening belongs to. Every verification screened in the same run shares it. */
+  run_id: string;
   /** When this subject's re-screen finished. Results are ordered by it, newest first. */
   completed_at: Date;
   /** When the monitoring batch this re-screen belongs to started. */
@@ -569,6 +572,10 @@ export interface AMLScreeningRun {
   score: number | null;
   /** Number of hits this run left the check in. */
   total_hits: number | null;
+  /** Number of hits this run found that the check did not have before it. `0` when nothing new was found; `null` when the run failed or was recorded before this count existed. */
+  new_hits: number | null;
+  /** Number of entities this run screened for the verification: `1` when the subject was screened, `0` when the run failed. */
+  entities_screened: number;
   /** Dataset freshness behind this run, or `null` when no dates were available. */
   dataset_freshness: AMLDatasetFreshness | null;
 }
@@ -598,6 +605,8 @@ export interface AMLScreeningWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -894,6 +903,35 @@ export interface ApplicationAnalyticsSummary {
   verification_time_time_series: ApplicationAnalyticsVerificationTimePoint[];
   resubmission_time_series: ApplicationAnalyticsResubmissionPoint[];
   original_status_time_series: ApplicationAnalyticsOriginalStatusPoint[];
+}
+
+/** Today's verifications by local hour against the same weekday last week. */
+export interface ApplicationAnalyticsToday {
+  /** The IANA time zone the day and its hours are in. */
+  time_zone: string;
+  /** Today in that time zone. */
+  date: string;
+  /** The local hour it is now. */
+  current_hour: number;
+  /** The comparison day: the same weekday one week before. */
+  previous_date: string;
+  /** Verifications created today, per local hour from 00:00. The hours still to come are 0. */
+  hours: number[];
+  /** Verifications created on the comparison day, per local hour from 00:00. */
+  previous_hours: number[];
+  /** Verifications created today so far. */
+  total: number;
+  /** Verifications created on the comparison day up to the same local time. */
+  previous_total_so_far: number;
+  /** Of today's verifications, how many are approved, waiting in review and declined now. The rest are not finished yet. */
+  outcomes: ApplicationAnalyticsTodayOutcomes;
+}
+
+/** Of today's verifications, how many are approved, waiting in review and declined now. The rest are not finished yet. */
+export interface ApplicationAnalyticsTodayOutcomes {
+  approved: number;
+  in_review: number;
+  declined: number;
 }
 
 export interface ApplicationAnalyticsVerificationTimePoint {
@@ -1376,6 +1414,14 @@ export interface BankVerificationResultRoute {
   provider_connection_id?: string | null;
   /** The data the connection asked for, for example `ownership` or `balances`. */
   requested_scopes?: string[];
+}
+
+/** When the live biometric data of this session is deleted. */
+export interface BiometricRetention {
+  /** Codes of the US states whose biometric rules set a deletion limit for this person (`US` when the state is unknown). Empty when none applies. */
+  jurisdictions: string[];
+  /** The date the live biometric data (face images and templates) of this session is deleted, from your application's retention setting and, where one applies, the legal limit for the person's jurisdiction. `null` when no date applies yet. */
+  deletes_at: Date | null;
 }
 
 /** One blocklisted face, identity document, phone number or email address of a verification session. Fields that do not apply to the item's `type` are `null`. */
@@ -2613,6 +2659,16 @@ export type DigitalIdWalletApiFranceconnectWalletVerificationStartCountryEnum =
 /** * `FIN` - FIN */
 export type DigitalIdWalletApiFtnWalletVerificationStartCountryEnum = "FIN" | (string & {});
 
+/**
+ * * `USA` - USA
+ * * `GBR` - GBR
+ * * `BRA` - BRA
+ * * `SGP` - SGP
+ * * `TWN` - TWN
+ */
+export type DigitalIdWalletApiGoogleWalletWalletVerificationStartCountryEnum =
+  "USA" | "GBR" | "BRA" | "SGP" | "TWN" | (string & {});
+
 /** * `BRA` - BRA */
 export type DigitalIdWalletApiGovbrWalletVerificationStartCountryEnum = "BRA" | (string & {});
 
@@ -2625,8 +2681,10 @@ export type DigitalIdWalletApiIdinWalletVerificationStartCountryEnum = "NLD" | (
 /**
  * * `redirect` - redirect
  * * `in_app` - in_app
+ * * `digital_credentials` - digital_credentials
  */
-export type DigitalIdWalletApiInteractionEnum = "redirect" | "in_app" | (string & {});
+export type DigitalIdWalletApiInteractionEnum =
+  "redirect" | "in_app" | "digital_credentials" | (string & {});
 
 /**
  * * `BEL` - BEL
@@ -2680,6 +2738,7 @@ export interface DigitalIdWalletApiWalletCatalogEntry {
   /**
    * * `redirect` - redirect
    * * `in_app` - in_app
+   * * `digital_credentials` - digital_credentials
    */
   interaction: DigitalIdWalletApiInteractionEnum;
   required_fields: string[];
@@ -2689,6 +2748,13 @@ export interface DigitalIdWalletApiWalletCatalogEntry {
 
 export interface DigitalIdWalletApiWalletCatalogResponse {
   wallets: DigitalIdWalletApiWalletCatalogEntry[];
+}
+
+export interface DigitalIdWalletApiWalletDigitalCredentialsRequest {
+  /** openid4vp-v1-signed. */
+  protocol: string;
+  /** Pass as is: navigator.credentials.get({digital: request}) in the browser, or JSON.stringify(request) as GetDigitalCredentialOption's requestJson on Android. Signed by Didit for your application. */
+  request: Record<string, unknown>;
 }
 
 export interface DigitalIdWalletApiWalletIdentity {
@@ -2704,14 +2770,17 @@ export interface DigitalIdWalletApiWalletIdentity {
 
 export interface DigitalIdWalletApiWalletNextAction {
   /**
-   * redirect: send the user's browser to url. confirm_in_app: show verification_code to the user, who checks it matches the code in their wallet app and confirms there; then poll.
+   * redirect: send the user's browser to url. confirm_in_app: show verification_code to the user, who checks it matches the code in their wallet app and confirms there; then poll. request_digital_credential: in a user gesture on the origin you started with, ask the wallet with digital_credentials.request, then send what it returns to POST .../verifications/{request_id}/response/.
    *
    * * `redirect` - redirect
    * * `confirm_in_app` - confirm_in_app
+   * * `request_digital_credential` - request_digital_credential
    */
   type: DigitalIdWalletApiWalletNextActionTypeEnum;
   /** redirect only: where the user signs in with the wallet. */
   url?: string;
+  /** request_digital_credential only: the request to hand to the wallet. */
+  digital_credentials?: DigitalIdWalletApiWalletDigitalCredentialsRequest;
   /** confirm_in_app only: the 4-digit comparison code the wallet app shows too. */
   verification_code?: string;
   /** confirm_in_app only: how often to call POST .../verifications/{request_id}/poll/ for prompt feedback. Didit also polls pending sign-ins in the background, so the webhook reports the outcome even when you do not poll. */
@@ -2721,9 +2790,10 @@ export interface DigitalIdWalletApiWalletNextAction {
 /**
  * * `redirect` - redirect
  * * `confirm_in_app` - confirm_in_app
+ * * `request_digital_credential` - request_digital_credential
  */
 export type DigitalIdWalletApiWalletNextActionTypeEnum =
-  "redirect" | "confirm_in_app" | (string & {});
+  "redirect" | "confirm_in_app" | "request_digital_credential" | (string & {});
 
 /** One standalone wallet verification, as every wallet endpoint answers it. */
 export interface DigitalIdWalletApiWalletVerificationResponse {
@@ -2819,8 +2889,21 @@ export interface EmailIntelligence {
   is_breached?: boolean | null;
   /** Number of known breaches containing the address. */
   no_of_breaches?: number | null;
-  /** Machine-readable codes explaining the score. Values can grow over time, so do not reject unknown codes. */
-  reason_codes?: string[];
+  /** Signals that explain the score, each with a stable Didit code, a direction, a message and an impact level. New codes can appear over time, so do not reject unknown codes. */
+  reason_codes?: EmailIntelligenceReasonCodes[];
+}
+
+export interface EmailIntelligenceReasonCodes {
+  /** Stable Didit identifier of the signal, for example `IR-5AC67A32`. Opaque: group and filter on it, do not parse it. */
+  code?: string;
+  /** For a risk flag (for example `voip`, `leaked`, `disposable`, `spam_trap`), its value: a boolean, a level or a date. Null for a scored reason code. */
+  value?: unknown;
+  /** Whether the signal raised the risk or added trust. */
+  direction?: "risk" | "trust" | (string & {});
+  /** Human-readable explanation of the signal, in English. */
+  message?: string;
+  /** How strongly the signal moved the score, for example `low`, `medium` or `high`. */
+  impact_level?: string | null;
 }
 
 /** Another session of your application that used the same email address with a different `vendor_data`. */
@@ -2993,6 +3076,8 @@ export interface EmailVerificationCheckResponseEmail {
   matches?: EmailVerificationCheckResponseEmailMatches[];
   /** Social footprint of the email address: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the email address was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
   email_social?: EmailSocialFootprint | null;
+  /** Email intelligence signals. Present only when `enable_enrichment` was `true` on the check. */
+  email_intelligence?: EmailIntelligence;
 }
 
 export interface EmailVerificationCheckResponseEmailBreaches {
@@ -3515,6 +3600,313 @@ export type FraudTypeEnum =
   | "external_id"
   | (string & {});
 
+/** One attempt of a Location verification step: the same keys as `geolocation_checks[]` except `warnings`, plus when Didit received it. */
+export interface GeolocationAttempt {
+  /** Workflow node that produced this result, so a workflow with two Location verification steps stays readable. */
+  node_id?: string | null;
+  /** Feature-level status of this Location verification step, resolved from its warnings. Independent of the session `status`. */
+  status?:
+    "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
+  /** What happened on this attempt. */
+  outcome?:
+    | "verified"
+    | "low_accuracy"
+    | "accuracy_undetermined"
+    | "stale"
+    | "approximate"
+    | "denied"
+    | "restricted"
+    | "unavailable"
+    | "timeout"
+    | "mock_detected"
+    | "outside_geofence"
+    | "in_blocked_area"
+    | "anonymizer_detected"
+    | "skipped"
+    | "replay_rejected"
+    | "unsupported_client"
+    | (string & {})
+    | null;
+  /** What the operating system or browser granted. `not_requested` means the step uses the connection's IP location only, so the person is never asked for a permission. */
+  permission?:
+    | "granted_precise"
+    | "granted_approximate"
+    | "denied"
+    | "restricted"
+    | "unavailable"
+    | "timeout"
+    | "dismissed"
+    | "not_requested"
+    | (string & {})
+    | null;
+  /** WGS84 latitude of the fix. `null` when there is no fix. */
+  latitude?: number | null;
+  /** WGS84 longitude of the fix. `null` when there is no fix. */
+  longitude?: number | null;
+  /** Radius of uncertainty in metres, at the confidence level in `accuracy_confidence`. */
+  accuracy_m?: number | null;
+  /** Confidence level the platform attaches to `accuracy_m`: `p95` (browsers), `p68` (Android) or `unspecified` (iOS). */
+  accuracy_confidence?: "p95" | "p68" | "unspecified" | (string & {}) | null;
+  /** When the device took the fix, by its own clock. */
+  measured_at?: Date | null;
+  /** Seconds between the device taking the fix and Didit receiving it. */
+  age_seconds?: number | null;
+  /** Where the fix came from, when the platform says. `ip` means the position is the connection's IP location. */
+  source?:
+    | "gps"
+    | "fused"
+    | "network"
+    | "wifi"
+    | "cell"
+    | "browser"
+    | "unknown"
+    | "ip"
+    | (string & {})
+    | null;
+  /** The client that produced the fix. */
+  platform?: "web" | "ios" | "android" | "react_native" | "flutter" | (string & {}) | null;
+  /** Version of the SDK that produced the fix. */
+  sdk_version?: string | null;
+  /** `true` when the device says the fix came from a mock location provider or simulation software. `null` when the platform does not report it (browsers cannot tell); `null` is not `false`. */
+  is_mock?: boolean | null;
+  /** iOS only: `true` when the fix came from an external accessory. `null` elsewhere. */
+  produced_by_accessory?: boolean | null;
+  /** Whether device attestation backs the fix. `unsupported` is what browsers report, because the web has no attestation mechanism; it is not a failure. */
+  integrity?:
+    "attested" | "not_attested" | "failed" | "unsupported" | "not_determined" | (string & {});
+  /** ISO 3166-1 alpha-2 country the fix is in. */
+  country_code?: string | null;
+  /** ISO 3166-2 subdivision the fix is in. */
+  region_code?: string | null;
+  /** Nearest populated place, a label for reviewers. */
+  city?: string | null;
+  /** Result of the country and area rules of the step. */
+  geofence?: GeolocationAttemptGeofence;
+  /** `true` when `geofence.result` is `inside`, `false` when `outside`, `null` otherwise. */
+  inside_geofence?: boolean | null;
+  /** Which position the area result was judged from: the `device` fix, or the connection's `ip` location. */
+  geofence_basis?: "device" | "ip" | (string & {}) | null;
+  /** Ids of the configured allowed areas the position is inside. */
+  inside_areas?: string[];
+  /** Ids of the configured blocked areas the position is in. */
+  blocked_areas?: string[];
+  /** Where the step takes the position from, as configured: the device checked against the IP location, the device only, or the IP location only. */
+  position_source?: "device_and_ip" | "device_only" | "ip_only" | (string & {}) | null;
+  /** What the connection and device look like, each `true`, `false` or `null` when the source cannot tell. */
+  anonymizers?: GeolocationAttemptAnonymizers | null;
+  /** Distance to the session's IP location after both uncertainty radii are subtracted; `0` when they overlap. */
+  ip_distance_km?: number | null;
+  /** Combined radius that was subtracted: the IP location's radius plus this fix's accuracy. */
+  ip_distance_uncertainty_km?: number | null;
+  /** Whether `ip_distance_km` is within the distance configured on the step. `null` when either side is unknown. */
+  ip_consistent?: boolean | null;
+  /** Distance to the geocoded address on the ID document or proof of address. `null` when no address is on file. */
+  document_distance_km?: number | null;
+  /** Whether the step's travel tolerance excused the distance from the address. `null` when tolerance is off. */
+  travel_excused?: boolean | null;
+  /** On the final attempt: this check plus the same person's earlier mismatches in a row. */
+  consecutive_mismatches?: number | null;
+  /** Number of this attempt within the node, starting at 1. */
+  attempts?: number;
+  /** The consent the person gave before the system prompt, recorded with the wording version and language they saw. */
+  consent?: GeolocationAttemptConsent | null;
+  /** When Didit received the attempt. */
+  received_at?: Date | null;
+  created_at?: Date;
+}
+
+/** What the connection and device look like, each `true`, `false` or `null` when the source cannot tell. */
+export interface GeolocationAttemptAnonymizers {
+  vpn?: boolean | null;
+  proxy?: boolean | null;
+  tor?: boolean | null;
+  spoofing?: boolean | null;
+  emulator?: boolean | null;
+}
+
+/** The consent the person gave before the system prompt, recorded with the wording version and language they saw. */
+export interface GeolocationAttemptConsent {
+  accepted_at?: Date;
+  version?: string | null;
+  locale?: string | null;
+}
+
+/** Result of the country and area rules of the step. */
+export interface GeolocationAttemptGeofence {
+  /** Whether the step applies any country or area rule. */
+  enabled?: boolean;
+  /** Where the position sits relative to the rules. `undetermined` means the accuracy circle straddles the border or the position resolved to no country; it is not evidence of being outside. */
+  result?: "inside" | "outside" | "undetermined" | (string & {}) | null;
+}
+
+/** One Location verification result, the accepted attempt of one workflow node. Measurement, uncertainty and authenticity are separate keys, so a precise unattested fix reads differently from an imprecise attested one. */
+export interface GeolocationCheck {
+  /** Workflow node that produced this result, so a workflow with two Location verification steps stays readable. */
+  node_id?: string | null;
+  /** Feature-level status of this Location verification step, resolved from its warnings. Independent of the session `status`. */
+  status?:
+    "Not Finished" | "Approved" | "Declined" | "In Review" | "Resub Requested" | (string & {});
+  /** What happened on this attempt. */
+  outcome?:
+    | "verified"
+    | "low_accuracy"
+    | "accuracy_undetermined"
+    | "stale"
+    | "approximate"
+    | "denied"
+    | "restricted"
+    | "unavailable"
+    | "timeout"
+    | "mock_detected"
+    | "outside_geofence"
+    | "in_blocked_area"
+    | "anonymizer_detected"
+    | "skipped"
+    | "replay_rejected"
+    | "unsupported_client"
+    | (string & {})
+    | null;
+  /** What the operating system or browser granted. `not_requested` means the step uses the connection's IP location only, so the person is never asked for a permission. */
+  permission?:
+    | "granted_precise"
+    | "granted_approximate"
+    | "denied"
+    | "restricted"
+    | "unavailable"
+    | "timeout"
+    | "dismissed"
+    | "not_requested"
+    | (string & {})
+    | null;
+  /** WGS84 latitude of the fix. `null` when there is no fix. */
+  latitude?: number | null;
+  /** WGS84 longitude of the fix. `null` when there is no fix. */
+  longitude?: number | null;
+  /** Radius of uncertainty in metres, at the confidence level in `accuracy_confidence`. */
+  accuracy_m?: number | null;
+  /** Confidence level the platform attaches to `accuracy_m`: `p95` (browsers), `p68` (Android) or `unspecified` (iOS). */
+  accuracy_confidence?: "p95" | "p68" | "unspecified" | (string & {}) | null;
+  /** When the device took the fix, by its own clock. */
+  measured_at?: Date | null;
+  /** Seconds between the device taking the fix and Didit receiving it. */
+  age_seconds?: number | null;
+  /** Where the fix came from, when the platform says. `ip` means the position is the connection's IP location. */
+  source?:
+    | "gps"
+    | "fused"
+    | "network"
+    | "wifi"
+    | "cell"
+    | "browser"
+    | "unknown"
+    | "ip"
+    | (string & {})
+    | null;
+  /** The client that produced the fix. */
+  platform?: "web" | "ios" | "android" | "react_native" | "flutter" | (string & {}) | null;
+  /** Version of the SDK that produced the fix. */
+  sdk_version?: string | null;
+  /** `true` when the device says the fix came from a mock location provider or simulation software. `null` when the platform does not report it (browsers cannot tell); `null` is not `false`. */
+  is_mock?: boolean | null;
+  /** iOS only: `true` when the fix came from an external accessory. `null` elsewhere. */
+  produced_by_accessory?: boolean | null;
+  /** Whether device attestation backs the fix. `unsupported` is what browsers report, because the web has no attestation mechanism; it is not a failure. */
+  integrity?:
+    "attested" | "not_attested" | "failed" | "unsupported" | "not_determined" | (string & {});
+  /** ISO 3166-1 alpha-2 country the fix is in. */
+  country_code?: string | null;
+  /** ISO 3166-2 subdivision the fix is in. */
+  region_code?: string | null;
+  /** Nearest populated place, a label for reviewers. */
+  city?: string | null;
+  /** Result of the country and area rules of the step. */
+  geofence?: GeolocationCheckGeofence;
+  /** `true` when `geofence.result` is `inside`, `false` when `outside`, `null` otherwise. */
+  inside_geofence?: boolean | null;
+  /** Which position the area result was judged from: the `device` fix, or the connection's `ip` location. */
+  geofence_basis?: "device" | "ip" | (string & {}) | null;
+  /** Ids of the configured allowed areas the position is inside. */
+  inside_areas?: string[];
+  /** Ids of the configured blocked areas the position is in. */
+  blocked_areas?: string[];
+  /** Where the step takes the position from, as configured: the device checked against the IP location, the device only, or the IP location only. */
+  position_source?: "device_and_ip" | "device_only" | "ip_only" | (string & {}) | null;
+  /** What the connection and device look like, each `true`, `false` or `null` when the source cannot tell. */
+  anonymizers?: GeolocationCheckAnonymizers | null;
+  /** Distance to the session's IP location after both uncertainty radii are subtracted; `0` when they overlap. */
+  ip_distance_km?: number | null;
+  /** Combined radius that was subtracted: the IP location's radius plus this fix's accuracy. */
+  ip_distance_uncertainty_km?: number | null;
+  /** Whether `ip_distance_km` is within the distance configured on the step. `null` when either side is unknown. */
+  ip_consistent?: boolean | null;
+  /** Distance to the geocoded address on the ID document or proof of address. `null` when no address is on file. */
+  document_distance_km?: number | null;
+  /** Whether the step's travel tolerance excused the distance from the address. `null` when tolerance is off. */
+  travel_excused?: boolean | null;
+  /** On the final attempt: this check plus the same person's earlier mismatches in a row. */
+  consecutive_mismatches?: number | null;
+  /** Number of this attempt within the node, starting at 1. */
+  attempts?: number;
+  /** The consent the person gave before the system prompt, recorded with the wording version and language they saw. */
+  consent?: GeolocationCheckConsent | null;
+  /** Warnings this Location verification step raised, with `feature` set to `GEOLOCATION`. Warning codes start with `LOCATION_`. */
+  warnings?: GeolocationCheckWarnings[];
+}
+
+/** What the connection and device look like, each `true`, `false` or `null` when the source cannot tell. */
+export interface GeolocationCheckAnonymizers {
+  vpn?: boolean | null;
+  proxy?: boolean | null;
+  tor?: boolean | null;
+  spoofing?: boolean | null;
+  emulator?: boolean | null;
+}
+
+/** The consent the person gave before the system prompt, recorded with the wording version and language they saw. */
+export interface GeolocationCheckConsent {
+  accepted_at?: Date;
+  version?: string | null;
+  locale?: string | null;
+}
+
+/** Result of the country and area rules of the step. */
+export interface GeolocationCheckGeofence {
+  /** Whether the step applies any country or area rule. */
+  enabled?: boolean;
+  /** Where the position sits relative to the rules. `undetermined` means the accuracy circle straddles the border or the position resolved to no country; it is not evidence of being outside. */
+  result?: "inside" | "outside" | "undetermined" | (string & {}) | null;
+}
+
+export interface GeolocationCheckWarnings {
+  /** The feature that generated this warning. The value identifies the feature block the warning belongs to. Each module's warnings array typically uses the value matching its module (e.g. `PHONE` inside `phone_verifications[].warnings`), but the enum above is authoritative across all feature warnings on the decision payload. */
+  feature?:
+    | "ID_VERIFICATION"
+    | "NFC"
+    | "LIVENESS"
+    | "FACEMATCH"
+    | "PROOF_OF_ADDRESS"
+    | "PHONE"
+    | "EMAIL"
+    | "AML"
+    | "LOCATION"
+    | "DATABASE_VALIDATION"
+    | "QUESTIONNAIRE"
+    | "DOCUMENT_AI"
+    | "KYB_REGISTRY"
+    | "KYB_DOCUMENTS"
+    | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
+    | (string & {});
+  risk?: string;
+  additional_data?: Record<string, unknown> | null;
+  log_type?: string;
+  short_description?: string;
+  long_description?: string;
+  /** The workflow graph node ID that generated this warning */
+  node_id?: string;
+}
+
 export interface IPRiskResponse {
   /** Id of the API session created for this request. Store it with `vendor_data` if you need to correlate the result with later webhooks or console activity. */
   request_id: string;
@@ -3973,6 +4365,52 @@ export interface KYBKeyPeoplePartyVerificationWorkflowFeatures {
   status: string;
 }
 
+/** The cap table the registry proved, as it stood when the ownership tier was delivered: direct `shareholders` and `beneficial_owners`. Null when the registry proved no ownership. It never carries the registry source's own rows; read `company.beneficial_owners` and `company.ownership` for the current record. */
+export interface KYBOwnershipStructure {
+  shareholders: KYBOwnershipStructureOwner[];
+  beneficial_owners: KYBOwnershipStructureOwner[];
+}
+
+/** One owner of the ownership snapshot: the same registry identity and stake as `company.beneficial_owners[]`, and its canonical `shareholding`. */
+export interface KYBOwnershipStructureOwner {
+  /** Owner name as the registry states it. */
+  name: string | null;
+  /** Given name, for a natural person, when the registry states it. */
+  first_name: string | null;
+  /** Family name, for a natural person, when the registry states it. */
+  last_name: string | null;
+  /** Date of birth (ISO 8601) when the registry publishes it. */
+  date_of_birth: string | null;
+  /** Country of birth when the registry publishes it. */
+  country_of_birth: string | null;
+  /** Company name, for a corporate owner. */
+  company_name: string | null;
+  /** Registration number, for a corporate owner. */
+  registration_number: string | null;
+  /** Whether the owner is a natural person or a company. */
+  entity_type: "person" | "company" | (string & {}) | null;
+  /** Nationality when the registry states it. */
+  nationality: string | null;
+  /** The owner's title or role as the registry prints it. */
+  designation: string | null;
+  /** `shareholder` for a direct holder, `ubo` for a beneficial owner. */
+  roles: string[];
+  /** Lower bound of the stake, in percent (equal to the upper bound for an exact stake). */
+  ownership_min_shares: string | null;
+  /** Upper bound of the stake, in percent. */
+  ownership_max_shares: string | null;
+  /** Lower bound of the voting rights, in percent. */
+  voting_min_shares: string | null;
+  /** Upper bound of the voting rights, in percent. */
+  voting_max_shares: string | null;
+  /** Date the holding or appointment started (ISO 8601). */
+  appointment_date: string | null;
+  /** False for a former owner. */
+  is_active: boolean | null;
+  /** What an owner holds, in the same shape for every country and registry source. Null when the registry states no holding. A band (for example a UK PSC's 25-50%) is not a stake: `percentage` is null and the band stays in `ownership_min_shares` / `ownership_max_shares`. */
+  shareholding: KYBRegistryShareholding | null;
+}
+
 /** An address the registry states, in the same shape for every country and registry source. Every key is always present; a part the registry does not publish is null. */
 export interface KYBRegistryAddress {
   /** Address type in lower case: `registered` for the registered office; other types as the registry names them (for example `postal`, `office`). `null` when the registry does not say what the address is. */
@@ -3993,6 +4431,98 @@ export interface KYBRegistryAddress {
   description: string | null;
 }
 
+/** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+export interface KYBRegistryData {
+  /** Company name as corrected in the console. */
+  company_name?: string;
+  /** Registration number as the registry or a console correction states it. */
+  registration_number?: string;
+  /** Country of the registration as the registry or a console correction states it. */
+  country_code?: string;
+  /** Region or state of the registration. */
+  region?: string;
+  /** Incorporation date (ISO 8601). */
+  incorporation_date?: string;
+  /** Registration date (ISO 8601) when the registry states one apart from the incorporation date. */
+  registration_date?: string;
+  /** Dissolution date (ISO 8601) when the registry states one. */
+  dissolution_date?: string;
+  /** Tax identification number. */
+  tax_number?: string;
+  /** VAT number. */
+  vat_number?: string;
+  /** Legal address as corrected in the console. */
+  legal_address?: string;
+  /** Registered address as the registry states it. */
+  registered_address?: string;
+  /** Legal form. */
+  company_type?: string;
+  /** Company status at the registry. */
+  registry_status?: string;
+  /** Verification status. */
+  verification_status?: string;
+  /** Other names the company trades or traded under. */
+  alternative_names?: string;
+  /** Activity description. */
+  nature_of_business?: string;
+  /** Registered capital as printed. */
+  registered_capital?: string;
+  /** Registered capital amount, as a decimal string. */
+  registered_capital_amount?: string;
+  /** Registered capital currency (ISO 4217). */
+  registered_capital_currency?: string;
+  /** Website. */
+  website?: string;
+  /** Contact email. */
+  email?: string;
+  /** Contact phone. */
+  phone?: string;
+  /** Legal Entity Identifier (LEI). */
+  legal_entity_identifier?: string;
+  /** Place of registration. */
+  location_of_registration?: string;
+  /** Governance scheme when the registry exposes it. */
+  control_scheme?: string;
+  /** Why a requested ownership tier was not delivered, in the same codes as `ownership.unavailable_reason`. `no_owners_on_record` (the registry answered and names no owner) and `ownership_section_unavailable` (the registry did not return the ownership section) are different findings. */
+  ownership_error?:
+    | "no_owners_on_record"
+    | "no_natural_person_owner"
+    | "ownership_section_unavailable"
+    | "company_not_found"
+    | "ambiguous_company_match"
+    | "missing_registration_number"
+    | "entity_type_not_covered"
+    | "provider_unavailable"
+    | "other"
+    | (string & {});
+  /** Sections the registry did not return, keyed by section (`officers`, `shareholders`, `group_structure`). A section listed here was never delivered: an empty list next to it says nothing about the company. */
+  section_errors?: Record<string, KYBRegistrySectionError>;
+  /** How the UBO tier walked the ownership chain above the company. */
+  ubo_resolution?: KYBRegistryUboResolution;
+  /** Blank Lite profile fields another of the country's registry sources filled. The source is not named. */
+  lite_enrichment?: KYBRegistryLiteEnrichment;
+  /** The register's own fields for the company, keyed as the register names them, as plain values (legacy records). Only fields reviewed as registry facts are included. */
+  registry_metadata?: Record<string, string | number | boolean>;
+  /** The official registers the record was read from (legacy records). Other sources are not named. */
+  registry_sources?: KYBRegistrySource[];
+  /** Names the company was registered under before (legacy records). */
+  previous_names?: string[];
+  /** Parent companies the registry names (legacy records). */
+  parent_companies?: string[];
+  /** How many filings the registry offers for the company (legacy records). */
+  documents_available?: number;
+}
+
+/** A company of the corporate group, by its registry identity. */
+export interface KYBRegistryGroupCompany {
+  /** Company name. */
+  name: string | null;
+  /** Country of registration. */
+  country_code: string | null;
+  /** Registration number. */
+  registration_number: string | null;
+}
+
 /** An activity the registry classifies the company under, in the same shape for every country and registry source. */
 export interface KYBRegistryIndustry {
   /** Activity code as the registry prints it (for example `73110`). */
@@ -4003,6 +4533,14 @@ export interface KYBRegistryIndustry {
   scheme: string | null;
   /** True for the company's main activity. Exactly one entry is primary when the list is not empty. */
   is_primary: boolean;
+}
+
+/** Blank Lite profile fields another of the country's registry sources filled. The source is not named. */
+export interface KYBRegistryLiteEnrichment {
+  /** The company fields that were filled. */
+  fields: string[];
+  /** How many officers or owners were added. */
+  people_added: number;
 }
 
 /** The outcome of the ownership (Shareholders / UBO) tier, in the same shape for every country and registry source. */
@@ -4074,6 +4612,12 @@ export interface KYBRegistrySearchResultsPagination {
   per_page?: number;
 }
 
+/** A section the registry did not return. */
+export interface KYBRegistrySectionError {
+  /** The status the registry answered for the section. */
+  status_code: number | null;
+}
+
 /** What an owner holds, in the same shape for every country and registry source. Null when the registry states no holding. A band (for example a UK PSC's 25-50%) is not a stake: `percentage` is null and the band stays in `ownership_min_shares` / `ownership_max_shares`. */
 export interface KYBRegistryShareholding {
   /** Share class or type as the registry names it. */
@@ -4088,6 +4632,31 @@ export interface KYBRegistryShareholding {
   total_value: number | null;
   /** Exact stake in percent, to four decimal places. */
   percentage: number | null;
+}
+
+/** An official register the record was read from. Only official government registers, regulators and the official identifier system are named; any other source is left out. */
+export interface KYBRegistrySource {
+  /** Register name, for example `UK Companies House`. */
+  name: string;
+  /** Always `official`. */
+  source_type: "official" | (string & {});
+}
+
+/** How the UBO tier walked the ownership chain above the company. */
+export interface KYBRegistryUboResolution {
+  /** Corporate parents from the ultimate parent down to the company. */
+  parent_chain: KYBRegistryGroupCompany[];
+  /** Companies directly below the company in its corporate group. */
+  subsidiaries: KYBRegistryGroupCompany[];
+  /** Parts of the chain the registry could not resolve (the same entries as `ownership.unresolved`). */
+  unresolved: KYBRegistryUboResolutionUnresolved[];
+}
+
+export interface KYBRegistryUboResolutionUnresolved {
+  /** Why, for example `no_group_structure_on_record`, `selected_company_not_in_group_structure` or `section_error`. */
+  reason: string;
+  /** The section concerned, for example `group_structure`. */
+  section: string | null;
 }
 
 export interface LoginResponse {
@@ -5300,8 +5869,21 @@ export interface PhoneIntelligence {
   is_recently_ported?: boolean | null;
   /** Line classification reported by the lookup (e.g., `mobile`). */
   carrier_type?: string | null;
-  /** Machine-readable codes explaining the score. Values can grow over time, so do not reject unknown codes. */
-  reason_codes?: string[];
+  /** Signals that explain the score, each with a stable Didit code, a direction, a message and an impact level. New codes can appear over time, so do not reject unknown codes. */
+  reason_codes?: PhoneIntelligenceReasonCodes[];
+}
+
+export interface PhoneIntelligenceReasonCodes {
+  /** Stable Didit identifier of the signal, for example `IR-5AC67A32`. Opaque: group and filter on it, do not parse it. */
+  code?: string;
+  /** For a risk flag (for example `voip`, `leaked`, `disposable`, `spam_trap`), its value: a boolean, a level or a date. Null for a scored reason code. */
+  value?: unknown;
+  /** Whether the signal raised the risk or added trust. */
+  direction?: "risk" | "trust" | (string & {});
+  /** Human-readable explanation of the signal, in English. */
+  message?: string;
+  /** How strongly the signal moved the score, for example `low`, `medium` or `high`. */
+  impact_level?: string | null;
 }
 
 /** Another session of your application that used the same phone number with a different `vendor_data`. */
@@ -5479,6 +6061,8 @@ export interface PhoneVerificationCheckResponsePhone {
   matches?: PhoneVerificationCheckResponsePhoneMatches[];
   /** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
   phone_social?: PhoneSocialFootprint | null;
+  /** Phone intelligence signals. Present only when `enable_enrichment` was `true` on the check. */
+  phone_intelligence?: PhoneIntelligence;
 }
 
 /** Current network serving the number, from the carrier lookup run at finalization. */
@@ -5905,6 +6489,8 @@ export interface SessionDecision {
   session_kind?: "user" | "business" | (string & {});
   /** For a session cloned with `POST /v3/session/import-shared/`: the `session_id` of the original session in the source application. `null` for every other session. Omitted when `include=events` is passed. */
   shared_from_session?: string | null;
+  /** `session_number` of the source session when this session was imported from another application of your organization. `null` otherwise. */
+  shared_from_session_number?: number | null;
   /** The number of the session. */
   session_number?: number | null;
   /** The URL of the session. */
@@ -5922,9 +6508,15 @@ export interface SessionDecision {
     | "Kyc Expired"
     | "Abandoned"
     | (string & {});
+  /** Present when a reviewer set `status` by hand. `null` when the status is the automatic one. Use it to tell a manual approval from an automatic one. */
+  status_override?: SessionDecisionStatusOverride | null;
+  /** How the status was reached: who set it and which warnings did. */
+  decision_trace?: SessionDecisionDecisionTrace;
+  /** A summary of other records linked to the session. `null` when there is nothing to show, and for workflows that declare an age assurance standard. */
+  linked_records?: SessionDecisionLinkedRecords | null;
   /** Stable identifier of the workflow group that produced this session. Workflows are versioned - this value identifies the workflow itself, not the specific version. */
   workflow_id?: string | null;
-  /** List of verification features configured for this session, as display names: `ID_VERIFICATION`, `NFC`, `LIVENESS`, `FACE_MATCH`, `POA`, `PHONE`, `EMAIL_VERIFICATION`, `AML`, `IP_ANALYSIS`, `DATABASE_VALIDATION`, `QUESTIONNAIRE`, `AGE_ESTIMATION`, `FACE_SEARCH` (Business Verification sessions use the KYB feature set: `KYB_REGISTRY`, `KYB_DOCUMENTS`, `KYB_KEY_PEOPLE`, `AML`, `PHONE`, `EMAIL_VERIFICATION`, `IP_ANALYSIS`, `QUESTIONNAIRE`). With `include=events` each entry becomes an object `{feature, node_id}` instead of a plain string, and the email feature is renamed: it appears as `EMAIL` in events mode instead of the `EMAIL_VERIFICATION` used here. */
+  /** List of verification features configured for this session, as display names: `ID_VERIFICATION`, `NFC`, `LIVENESS`, `FACE_MATCH`, `POA`, `PHONE`, `EMAIL_VERIFICATION`, `AML`, `IP_ANALYSIS`, `DATABASE_VALIDATION`, `QUESTIONNAIRE`, `AGE_ESTIMATION`, `FACE_SEARCH`, `GEOLOCATION` (Location verification) (Business Verification sessions use the KYB feature set: `KYB_REGISTRY`, `KYB_DOCUMENTS`, `KYB_KEY_PEOPLE`, `AML`, `PHONE`, `EMAIL_VERIFICATION`, `IP_ANALYSIS`, `QUESTIONNAIRE`). With `include=events` each entry becomes an object `{feature, node_id}` instead of a plain string, and the email feature is renamed: it appears as `EMAIL` in events mode instead of the `EMAIL_VERIFICATION` used here. */
   features?: string[];
   /** The vendor data of the session. */
   vendor_data?: string | null;
@@ -5965,14 +6557,18 @@ export interface SessionDecision {
   document_ai_documents?: SessionDecisionDocumentAiDocuments[] | null;
   /** **Array of questionnaire response reports** - always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
   questionnaire_responses?: SessionDecisionQuestionnaireResponses[] | null;
-  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `statement` or `microdeposits` fallback, and `none` when the person continued without a bank before any attempt was evaluated (`continued_without_bank`). See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
+  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `statement` or `microdeposits` fallback, and `none` when the person continued without a bank before any attempt was evaluated (`continued_without_bank`). See [Bank verification methods](/core-technology/bank-verification/verification-methods). Bank Verification is not enabled in production yet, so this stays `null` on production sessions until it is. */
   bank_verifications?: BankVerificationResult[] | null;
-  /** Electronic Signature results, one item per signer and signature step, for User and Business Verification. Present only when the workflow has an Electronic Signature step; an empty array until a signer reaches it. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature). */
+  /** E-signature results, one item per signer and signature step, for User and Business Verification. Present only when the workflow has an E-signature step; an empty array until a signer reaches it. See the [E-signature report](/core-technology/electronic-signature/report-electronic-signature). */
   signatures?: SignatureResult[];
   /** **Array of AML screening reports** - always a JSON array, never a singular `aml` object. `null` until at least one AML step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `total_hits`, `entity_type`, `hits[]`, `score`, `screened_data`, `is_ongoing_monitoring_enabled`, and `warnings[]`. */
   aml_screenings?: AMLScreening[] | null;
   /** **Array of Device & IP Analysis reports** - always a JSON array, never a singular `ip_analysis` object. `null` until at least one IP-analysis step has produced data. Each item is the full report, including `node_id`, feature-level `status`, IP and geolocation data, device fingerprint, and `warnings[]`. Entries with duplicate `(node_id, ip_address, device_fingerprint)` are deduplicated server-side. */
   ip_analyses?: SessionDecisionIpAnalyses[] | null;
+  /** **Array of Location verification results**, one per Location verification step: that step's accepted attempt. `null` until a Location verification step has produced data. Earlier attempts of the same step are in `geolocation_attempts`. */
+  geolocation_checks?: GeolocationCheck[] | null;
+  /** Every attempt of every Location verification step of this session, oldest first. Attempts that a resubmission replaced are left out. A workflow that withholds `geolocation_checks` through its response attributes withholds this list too. */
+  geolocation_attempts?: GeolocationAttempt[] | null;
   /**
    * **Array of Database Validation reports** - always a JSON array, never a singular `database_validation` object. `null` until at least one DB validation step has produced data. Each item is the full report, including `node_id`, feature-level `status`, `screened_data`, the per-service `validations[]` (each with its registry `source_data`), and `warnings[]`. The `screened_data` and `source_data` fields vary by country:
    *
@@ -6013,7 +6609,15 @@ export interface SessionDecision {
    * **VEN (Venezuela)**: screened_data: {document_number, first_name, last_name}. source_data: {identification_number, first_name, last_name, full_name, gender, date_of_birth, document_type}
    */
   database_validations?: SessionDecisionDatabaseValidations[] | null;
+  /** Why a configured database validation produced no result, as `{code, message}` plus context fields. Present only when `database_validations` is `null` for a workflow that has the step, so you can tell "the registry agreed" from "nothing ran". `null` otherwise. */
+  database_validation_not_performed_reason?: SessionDecisionDatabaseValidationNotPerformedReason | null;
   reviews?: SessionDecisionReviews[];
+  /** The Console reviewer the session is assigned to, or `null` when nobody holds it. */
+  assignee?: SessionDecisionAssignee | null;
+  /** When the session started waiting for review. `null` unless the session is `In Review` and your application sets a review deadline. */
+  waiting_since?: Date | null;
+  /** When the review is due. `null` unless the session is `In Review` and your application sets a review deadline. */
+  sla_due_at?: Date | null;
   /** Timestamp at which the session was created (ISO 8601, UTC). */
   created_at?: Date;
   /** Timestamp at which this session is scheduled to expire. Set on User Verification (KYC) sessions when an expiration was configured at creation time (or once `Approved` status triggers KYC expiry computation). `null` for sessions without a configured expiration, and for kinds that do not use expiry (e.g. Business Verification (KYB) sessions that never received an `expires_at`). */
@@ -6026,12 +6630,28 @@ export interface SessionDecision {
   document_verifications?: SessionDecisionDocumentVerifications[] | null;
   /** Whether the session was created by a live application (`live`) or a sandbox application (`sandbox`). Sandbox sessions are free, fully simulated, and never bill credits. */
   environment?: "live" | "sandbox" | (string & {});
+  /** The sandbox scenario the session was created with. `null` for live sessions and for sandbox sessions created without one. */
+  sandbox_scenario?: string | null;
   /** Returned only with `include=resubmissions`, for user and business sessions. One entry per resubmission request, oldest first. Each entry carries the results the resubmitted steps returned before the request, so earlier submissions stay readable. Deleting the session deletes every submission. */
   resubmissions?: SessionDecisionResubmissions[];
   /** Whether the session required explicit biometric consent before a face capture, why, and the evidence of the answer. User Verification (KYC) sessions only; the same object is in the `decision` of session webhooks. `null` when the session was never evaluated, for example a workflow without a face capture. Fields with no recorded value are `null`. A native SDK below 4.10.0, or one that does not report its version, cannot show the consent step: its face captures run as before, and a session that required consent then reports `status: "pending"` with `reason: "BIOMETRIC_CONSENT_UNSUPPORTED_SDK"`. See [Biometric consent](/getting-started/biometric-consent). */
   biometric_consent?: SessionDecisionBiometricConsent | null;
   /** The item's latest Investigator review, or null when it never had one. Carried by the V3 session and business session decision (and so by `status.updated` webhooks). */
   investigator?: InvestigatorBlock | null;
+  /** When the live biometric data of this session is deleted. */
+  biometric_retention?: BiometricRetention;
+  /** The result of a Fraud Check API call. `null` for every other session. */
+  fraud_check?: Record<string, unknown> | null;
+  /** Expiring URL of the full-session recording. Returned only when your organization records full-session video. */
+  full_session_video?: string | null;
+  /** When the full-session recording was made. Returned only when your organization records full-session video. */
+  full_session_video_recorded_at?: Date | null;
+}
+
+/** The Console reviewer the session is assigned to, or `null` when nobody holds it. */
+export interface SessionDecisionAssignee {
+  email?: string;
+  assigned_at?: Date | null;
 }
 
 /** Whether the session required explicit biometric consent before a face capture, why, and the evidence of the answer. User Verification (KYC) sessions only; the same object is in the `decision` of session webhooks. `null` when the session was never evaluated, for example a workflow without a face capture. Fields with no recorded value are `null`. A native SDK below 4.10.0, or one that does not report its version, cannot show the consent step: its face captures run as before, and a session that required consent then reports `status: "pending"` with `reason: "BIOMETRIC_CONSENT_UNSUPPORTED_SDK"`. See [Biometric consent](/getting-started/biometric-consent). */
@@ -6111,6 +6731,15 @@ export interface SessionDecisionContactDetails {
   send_notification_emails?: boolean;
   /** Phone number of the user in E.164 format if available (e.g., +14155552671). `null` when only an email was supplied at session creation. Note: This field returns the original phone number provided during session creation. If the number was invalid, it may not be in E.164 format. */
   phone?: string | null;
+}
+
+/** Why a configured database validation produced no result, as `{code, message}` plus context fields. Present only when `database_validations` is `null` for a workflow that has the step, so you can tell "the registry agreed" from "nothing ran". `null` otherwise. */
+export interface SessionDecisionDatabaseValidationNotPerformedReason {
+  /** Stable machine-readable reason. */
+  code?: string;
+  /** Human-readable explanation. */
+  message?: string;
+  [key: string]: unknown;
 }
 
 export interface SessionDecisionDatabaseValidations {
@@ -6202,6 +6831,8 @@ export interface SessionDecisionDatabaseValidationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -6210,6 +6841,42 @@ export interface SessionDecisionDatabaseValidationsWarnings {
   long_description?: string;
   /** The workflow graph node ID that generated this warning */
   node_id?: string;
+}
+
+/** How the status was reached: who set it and which warnings did. */
+export interface SessionDecisionDecisionTrace {
+  /** The session status. */
+  status?: string;
+  /** Who set the status. `null` while the session is not decided. */
+  decided_by?: "manual" | "automatic" | "investigator" | (string & {}) | null;
+  decided_at?: Date | null;
+  /** What the platform's own checks conclude, which differs from `status` after a manual decision. */
+  automatic_status?: string | null;
+  /** The workflow status node that ended the session, when one did. */
+  terminal_node_id?: string | null;
+  /** The reviewer behind a manual decision. */
+  actor?: SessionDecisionDecisionTraceActor | null;
+  /** Warnings per `log_type` (`error`, `warning`, `information`) and `total`. */
+  warning_counts?: Record<string, number>;
+  /** The warnings that set a `Declined` or `In Review` status. */
+  status_warnings?: SessionDecisionDecisionTraceStatusWarnings[];
+}
+
+/** The reviewer behind a manual decision. */
+export interface SessionDecisionDecisionTraceActor {
+  user?: string | null;
+  actor_type?: string | null;
+}
+
+export interface SessionDecisionDecisionTraceStatusWarnings {
+  risk?: string;
+  feature?: string | null;
+  node_id?: string | null;
+  log_type?: string | null;
+  check_status?: string | null;
+  /** The payload list the warning came from, for example `id_verifications`. */
+  source?: string;
+  short_description?: string | null;
 }
 
 /** Document AI results grouped by workflow node. */
@@ -6415,6 +7082,10 @@ export interface SessionDecisionEmailVerifications {
   lifecycle?: SessionDecisionEmailVerificationsLifecycle[];
   /** Matches found for this email address. Each match has a `source`: `session` (another verification session in your application matched on the same email, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the email is on an org-managed allow/block list - see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
   matches?: SessionDecisionEmailVerificationsMatches[];
+  /** Email intelligence signals. Present only when the email intelligence add-on ran for this address. */
+  email_intelligence?: EmailIntelligence;
+  /** Social footprint of the address. Present only when the social footprint add-on ran for this address. */
+  email_social?: EmailSocialFootprint | null;
 }
 
 export interface SessionDecisionEmailVerificationsBreaches {
@@ -6482,6 +7153,8 @@ export interface SessionDecisionEmailVerificationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -6543,6 +7216,36 @@ export interface SessionDecisionFaceMatches {
   target_image?: string;
   /** Face match verification warnings */
   warnings?: SessionDecisionFaceMatchesWarnings[];
+  /** Whether the eyes, mouth and face are covered in the captured image. Returned by `GET /v3/session/{sessionId}/decision/` only; it is not part of webhook payloads. `null` when no coverage reading exists. */
+  face_coverage?: SessionDecisionFaceMatchesFaceCoverage | null;
+}
+
+/** Whether the eyes, mouth and face are covered in the captured image. Returned by `GET /v3/session/{sessionId}/decision/` only; it is not part of webhook payloads. `null` when no coverage reading exists. */
+export interface SessionDecisionFaceMatchesFaceCoverage {
+  eyes?: SessionDecisionFaceMatchesFaceCoverageEyes;
+  mouth?: SessionDecisionFaceMatchesFaceCoverageMouth;
+  face?: SessionDecisionFaceMatchesFaceCoverageFace;
+}
+
+export interface SessionDecisionFaceMatchesFaceCoverageEyes {
+  covered?: boolean | null;
+  /** `false` means the reading is shadow evidence only and no warning acts on it. */
+  calibrated?: boolean | null;
+  visibility_score?: number | null;
+}
+
+export interface SessionDecisionFaceMatchesFaceCoverageFace {
+  covered?: boolean | null;
+  /** `false` means the reading is shadow evidence only and no warning acts on it. */
+  calibrated?: boolean | null;
+  visibility_score?: number | null;
+}
+
+export interface SessionDecisionFaceMatchesFaceCoverageMouth {
+  covered?: boolean | null;
+  /** `false` means the reading is shadow evidence only and no warning acts on it. */
+  calibrated?: boolean | null;
+  visibility_score?: number | null;
 }
 
 export interface SessionDecisionFaceMatchesWarnings {
@@ -6563,6 +7266,8 @@ export interface SessionDecisionFaceMatchesWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -6673,6 +7378,12 @@ export interface SessionDecisionIdVerifications {
   document_liveness?: SessionDecisionIdVerificationsDocumentLiveness | null;
   /** Address Validation of the address printed on this document: whether it exists and its normalised form, as the document read it (a later correction of `address` does not run it again). Present when this ID verification step enabled the Address Validation add-on; `null` otherwise. */
   address_validation?: AddressValidationResult | null;
+  /** Region or state of the document's issuing country where the document identifies one. */
+  region?: string | null;
+  /** Snapshot of the data extracted from the document that the person was shown to review, kept next to the confirmed values so you can compare what was read with what the person confirmed. `null` when the person was not asked to review. */
+  extracted_data?: Record<string, unknown> | null;
+  /** Data read from the document's barcodes. Empty when the document has none or none was read. */
+  barcodes?: Record<string, unknown>[];
 }
 
 /** Quality metrics for the back document image. Same structure as front_image_quality_score. */
@@ -7056,6 +7767,8 @@ export interface SessionDecisionIdVerificationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   /** Additional contextual data about the warning */
@@ -7121,6 +7834,20 @@ export interface SessionDecisionIpAnalyses {
   warnings?: SessionDecisionIpAnalysesWarnings[];
   /** Cross-session matches found for this entry's IP address or device identity. Every match is another verification session in your application (`source` is always `session`) that shares the same value, always belonging to a different vendor user / `vendor_data` than the current session, capped at 5 per collector (`device_fingerprint` sums two independently capped collectors, so up to 10 entries are possible). Every item carries `match_source`, `confidence`, `match_mode`, `device_info` and `location_info`; the keys `recovery_similarity`, `tls_ja4_corroborated` and `recovery_gate_reason` are present only when `match_source` is `recovered_high`. */
   matches?: SessionDecisionIpAnalysesMatches[];
+  browser_version?: string | null;
+  os_version?: string | null;
+  /** The browser's user agent string. */
+  user_agent?: string | null;
+  /** The `Accept-Language` header the browser sent. */
+  accept_language?: string | null;
+  /** Identifier of the browsing session the verification ran in. */
+  session_identifier?: string | null;
+  /** Age of that browsing session in milliseconds when the step ran. */
+  session_age_ms?: number | null;
+  /** Accuracy radius, in metres, of the coordinates the device reported. */
+  coords_accuracy?: number | null;
+  /** Raw device signals collected for the step. */
+  raw_device_data?: Record<string, unknown> | null;
 }
 
 /** Location extracted from the ID document address plus distances (km) to the IP geolocation and the POA document address. `location` is `null` when no document address could be geocoded. */
@@ -7243,6 +7970,8 @@ export interface SessionDecisionIpAnalysesWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -7605,6 +8334,47 @@ export interface SessionDecisionKeyPeopleChecksUboKycSummary {
   pending?: number;
 }
 
+/** A summary of other records linked to the session. `null` when there is nothing to show, and for workflows that declare an age assurance standard. */
+export interface SessionDecisionLinkedRecords {
+  /** Other people whose face matched one of this session's face searches. */
+  same_face?: SessionDecisionLinkedRecordsSameFace | null;
+  earlier_verifications?: SessionDecisionLinkedRecordsEarlierVerifications | null;
+  networks?: SessionDecisionLinkedRecordsNetworks | null;
+}
+
+export interface SessionDecisionLinkedRecordsEarlierVerifications {
+  count?: number;
+  vendor_user_id?: string | null;
+}
+
+export interface SessionDecisionLinkedRecordsNetworks {
+  count?: number;
+  open?: number;
+  dismissed?: number;
+  items?: SessionDecisionLinkedRecordsNetworksItems[];
+}
+
+export interface SessionDecisionLinkedRecordsNetworksItems {
+  network_id?: string;
+  display_number?: number | null;
+  name?: string;
+  status?: string;
+  risk_score?: number | null;
+}
+
+/** Other people whose face matched one of this session's face searches. */
+export interface SessionDecisionLinkedRecordsSameFace {
+  count?: number;
+  best_match?: SessionDecisionLinkedRecordsSameFaceBestMatch | null;
+}
+
+export interface SessionDecisionLinkedRecordsSameFaceBestMatch {
+  session_id?: string | null;
+  session_number?: number | null;
+  vendor_user_id?: string | null;
+  similarity_percentage?: number | null;
+}
+
 /** One liveness report - the full report for a single liveness pass. */
 export interface SessionDecisionLivenessChecks {
   /** Workflow graph node id of the liveness step that produced this report. */
@@ -7686,6 +8456,8 @@ export interface SessionDecisionLivenessChecksWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -7847,6 +8619,8 @@ export interface SessionDecisionNfcVerificationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -7889,6 +8663,10 @@ export interface SessionDecisionPhoneVerifications {
   warnings?: SessionDecisionPhoneVerificationsWarnings[];
   /** Matches found for this phone number. Each match has a `source`: `session` (another verification session in your application matched on the same number, returned with `session_id`/`session_number`/`vendor_data`/`verification_date`) or `list_entry` (the number is on an org-managed allow/block list - see `/management-api/lists/overview`). Cross-session matches use different `vendor_data` and are capped at 5. */
   matches?: SessionDecisionPhoneVerificationsMatches[];
+  /** Phone intelligence signals. Present only when the phone intelligence add-on ran for this number. */
+  phone_intelligence?: PhoneIntelligence;
+  /** Social footprint of the number. Present only when the social footprint add-on ran for this number. */
+  phone_social?: PhoneSocialFootprint | null;
 }
 
 export interface SessionDecisionPhoneVerificationsCarrier {
@@ -7946,6 +8724,8 @@ export interface SessionDecisionPhoneVerificationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -8122,6 +8902,8 @@ export interface SessionDecisionPoaVerificationsWarnings {
     | "KYB_REGISTRY"
     | "KYB_DOCUMENTS"
     | "KYB_KEY_PEOPLE"
+    | "GEOLOCATION"
+    | "SIGNATURE"
     | (string & {});
   risk?: string;
   additional_data?: Record<string, unknown> | null;
@@ -8217,8 +8999,8 @@ export interface SessionDecisionRegistryChecks {
   data_resolved?: boolean;
   /** Full registry payload for the company (registry record merged with any user-provided or console-edited data). */
   company?: SessionDecisionRegistryChecksCompany;
-  /** Raw ownership snapshot kept for reviewers; its shape differs by registry source and is not a stable contract. Read `company.beneficial_owners` and `company.ownership` instead. */
-  ownership_structure?: Record<string, unknown>;
+  /** The cap table the registry proved, as it stood when the ownership tier was delivered: direct `shareholders` and `beneficial_owners`. Null when the registry proved no ownership. It never carries the registry source's own rows; read `company.beneficial_owners` and `company.ownership` for the current record. */
+  ownership_structure?: KYBOwnershipStructure | null;
   warnings?: Record<string, unknown>[];
 }
 
@@ -8298,8 +9080,8 @@ export interface SessionDecisionRegistryChecksCompany {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Data confirmed or edited by the end user. */
   user_provided_data?: Record<string, unknown>;
   confirmed_by_user_at?: Date | null;
@@ -8313,6 +9095,8 @@ export interface SessionDecisionRegistryChecksCompany {
   registry_tier_delivered?: string | null;
   /** `not_requested`, `pending`, `delivered`, `not_held` or `unavailable`. Also in `ownership.status`. */
   registry_ownership_status?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: SessionDecisionRegistryChecksCompanyRegistryMonitoring | null;
 }
 
 export interface SessionDecisionRegistryChecksCompanyBeneficialOwners {
@@ -8373,6 +9157,21 @@ export interface SessionDecisionRegistryChecksCompanyOfficers {
   date_of_birth_month?: number | null;
 }
 
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface SessionDecisionRegistryChecksCompanyRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
+}
+
 export interface SessionDecisionResubmissions {
   /** 1 for the first resubmission of the session, 2 for the second, and so on. */
   number?: number;
@@ -8408,6 +9207,13 @@ export interface SessionDecisionReviews {
   new_status?: string;
   comment?: string;
   created_at?: Date;
+}
+
+/** Present when a reviewer set `status` by hand. `null` when the status is the automatic one. Use it to tell a manual approval from an automatic one. */
+export interface SessionDecisionStatusOverride {
+  overridden_at?: Date | null;
+  /** The status the platform's own checks conclude. */
+  automatic_status?: string | null;
 }
 
 /** A bulk session deletion running in the background: progress and counts per outcome, never which sessions it deleted. */
@@ -8512,6 +9318,30 @@ export interface SessionEvent {
   file_url: string | null;
   /** When the event happened, as a Unix timestamp in milliseconds. Results are ordered by it. */
   sent_at: number;
+}
+
+/** One ZIP with every file of a session, in original quality. */
+export interface SessionFilesExport {
+  /** ID of the export. Pass it to `GET /v3/session/{sessionId}/files-export/{exportId}/`. */
+  export_id: string;
+  /** The session the files are from. */
+  session_id: string;
+  /** `PENDING` and `PROCESSING` while the ZIP is prepared, `READY` once it can be downloaded, `FAILED` when it could not be prepared (request a new export), `EXPIRED` once the ZIP was deleted. */
+  status: "PENDING" | "PROCESSING" | "READY" | "FAILED" | "EXPIRED" | (string & {});
+  /** Files in the ZIP. Set only while `status` is `READY`. */
+  file_count: number | null;
+  /** Size of the ZIP in bytes. Set only while `status` is `READY`. */
+  size_bytes: number | null;
+  /** Signed URL of the ZIP, valid for a short time. Set only while `status` is `READY`; read the export again for a new one. */
+  download_url: string | null;
+  /** When the ZIP is deleted, 24 hours after it was ready. Set only while `status` is `READY`. */
+  expires_at: Date | null;
+  /** Why the export failed, when `status` is `FAILED`. */
+  error: string | null;
+  /** When the export was requested. */
+  created_at: Date;
+  /** When the ZIP was ready or the export failed. */
+  completed_at: Date | null;
 }
 
 export interface SessionImportError {
@@ -8746,7 +9576,7 @@ export interface SignatureFieldValidation {
   message?: string | null;
 }
 
-/** One signer's result for one Electronic Signature step. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature). */
+/** One signer's result for one E-signature step. See the [E-signature report](/core-technology/electronic-signature/report-electronic-signature). */
 export interface SignatureResult {
   /** Pass it as `signature_id` to download this signer's evidence or validate their signature. */
   id?: string;
@@ -8756,17 +9586,19 @@ export interface SignatureResult {
   status?: "intro" | "review" | "code" | "signing" | "signed" | "declined" | (string & {});
   /** The step's outcome. A warning sets it through its rule; custom status rules apply after. */
   verdict?: "Not Finished" | "Approved" | "In Review" | "Declined" | (string & {});
-  /** `aes`. `qes` (Qualified Electronic Signature, QES) is coming soon. */
-  level?: "aes" | "qes" | (string & {});
-  format?: "pades" | (string & {});
-  /** `PAdES-B-LT` once signed. */
+  /** `simple` (default) or `aes`. `qes` (Qualified Electronic Signature, QES) is an add-on that is not available yet. */
+  level?: "simple" | "aes" | "qes" | (string & {});
+  /** `pdf` for a Simple signature, `pades` for Advanced (AES). */
+  format?: "pdf" | "pades" | (string & {});
+  /** `PAdES-B-LT` once an Advanced (AES) signature is signed, otherwise null. */
   profile?: string | null;
   signer?: SignatureResultSigner;
+  /** The verified identity the signature relies on. Empty for a Simple signature with no verified identity. */
   identity_used?: SignatureResultIdentityUsed;
-  /** The certificate the documents were signed with. `null` until signed. */
+  /** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
   certificate?: SignatureResultCertificate | null;
   confirmation?: SignatureResultConfirmation;
-  /** The trusted timestamp in the signature. `null` until signed. */
+  /** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
   timestamp?: SignatureResultTimestamp | null;
   documents?: SignatureResultDocuments[];
   /** The signature and initials the signer adopted for signature and initials fields. `null` until the signer adopts one. */
@@ -8775,7 +9607,7 @@ export interface SignatureResult {
   electronic_signature_consent_at?: Date | null;
   /** Path of the evidence PDF, once signed. See [Download the signature evidence](/sessions-api/electronic-signature/download-evidence). */
   evidence_file?: string | null;
-  /** Warnings raised for this signer. See [Electronic Signature warnings](/core-technology/electronic-signature/warnings-electronic-signature). */
+  /** Warnings raised for this signer. See [E-signature warnings](/core-technology/electronic-signature/warnings-electronic-signature). */
   warnings?: SignatureResultWarnings[];
   /** The last cryptographic check of the signed documents. `null` until the documents are signed. If Didit can't confirm the outcome of signing, it's `{"valid": null, "reason": "signature_provider_outcome_unknown", "checked_at": ...}` and `status` stays `signing`: treat it as not signed. */
   validation?: SignatureResultValidation | null;
@@ -8802,7 +9634,7 @@ export interface SignatureResultAdoptedSignature {
   adopted_at?: Date;
 }
 
-/** The certificate the documents were signed with. `null` until signed. */
+/** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
 export interface SignatureResultCertificate {
   issuer?: string;
   issued_to?: string;
@@ -8813,7 +9645,8 @@ export interface SignatureResultCertificate {
 }
 
 export interface SignatureResultConfirmation {
-  channel?: "email" | "sms" | (string & {});
+  /** `null` for a Simple signature, which has no code. */
+  channel?: "email" | "sms" | (string & {}) | null;
   /** The masked contact the code went to. */
   destination?: string | null;
   confirmed_at?: Date | null;
@@ -8869,6 +9702,7 @@ export interface SignatureResultDocumentsConversion {
   converter?: string;
 }
 
+/** The verified identity the signature relies on. Empty for a Simple signature with no verified identity. */
 export interface SignatureResultIdentityUsed {
   session_id?: string;
   kyc_id?: string | null;
@@ -8878,7 +9712,7 @@ export interface SignatureResultIdentityUsed {
 }
 
 export interface SignatureResultSigner {
-  /** Verified name. */
+  /** The signer's name. Verified (from the approved ID verification or the session) except at the Simple level without a verified session name, where it is the name the signer typed and is not verified. */
   name?: string | null;
   capacity?: "self" | "company" | (string & {});
   company?: string | null;
@@ -8890,7 +9724,7 @@ export interface SignatureResultSigner {
   identity_session_id?: string;
 }
 
-/** The trusted timestamp in the signature. `null` until signed. */
+/** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
 export interface SignatureResultTimestamp {
   time?: Date;
   /** Always `false` for AES. */
@@ -8920,13 +9754,13 @@ export interface SignatureResultValidationDocuments {
   revoked?: boolean;
   /** EU Trusted List check. For AES: `{"status": "not_applicable", "reason": "aes_not_qualified"}`. */
   trusted_list?: SignatureResultValidationDocumentsTrustedList;
-  /** The certificate the documents were signed with. `null` until signed. */
+  /** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
   certificate?: SignatureResultValidationDocumentsCertificate | null;
-  /** The trusted timestamp in the signature. `null` until signed. */
+  /** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
   timestamp?: SignatureResultValidationDocumentsTimestamp | null;
 }
 
-/** The certificate the documents were signed with. `null` until signed. */
+/** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
 export interface SignatureResultValidationDocumentsCertificate {
   issuer?: string;
   issued_to?: string;
@@ -8936,7 +9770,7 @@ export interface SignatureResultValidationDocumentsCertificate {
   valid_until?: Date;
 }
 
-/** The trusted timestamp in the signature. `null` until signed. */
+/** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
 export interface SignatureResultValidationDocumentsTimestamp {
   time?: Date;
   /** Always `false` for AES. */
@@ -9042,7 +9876,7 @@ export interface SimpleWorkflowFeature {
     | "KYB_KEY_PEOPLE"
     | "SIGNATURE"
     | (string & {});
-  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [Electronic Signature settings](/management-api/workflows/feature-configs#electronic-signature): `signature_level` accepts `aes` only for now, and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
+  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed) and `aes` for now, and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
   config?: Record<string, unknown>;
   /** Optional internal label for this workflow node. */
   label?: string;
@@ -9141,7 +9975,7 @@ export interface TransactionDetail {
   documents?: TransactionDetailDocuments[];
   /** Activity log entries (creation, notes, manual reviews, status changes). */
   activities?: TransactionDetailActivities[];
-  /** Alerts raised by rules and providers. */
+  /** Always empty today. An open alert is a transaction with status `IN_REVIEW` or `AWAITING_USER`. */
   alerts?: TransactionDetailAlerts[];
   /** Per-rule execution results - which rule fired, with what score impact. */
   rule_runs?: TransactionDetailRuleRuns[];
@@ -9480,7 +10314,7 @@ export interface TransactionRuleAggregation {
   value: number;
   /** Look-back window ending at the transaction's txn_date: <N>m (MINUTES, not months), <N>h (hours) or <N>d (days), e.g. 30m, 24h, 7d, 30d. */
   window?: string;
-  /** Narrows which historical transactions are aggregated. Keys are field paths from the condition field catalog; a value of "__current__" resolves to the same field's value on the transaction being evaluated (e.g. {"subject_vendor_data": "__current__"} scopes the window to the same subject), and a list value means membership. Filters compare by equality or membership ONLY - there is no lt/gte filter, so a range such as "historical transactions under 10,000" cannot be expressed here. Put the range on the metric instead (metric max with operator lt keeps every transaction in the window below the threshold). */
+  /** Narrows which historical transactions are aggregated. Keys are field paths from the condition field catalog; a value of "__current__" resolves to the same field's value on the transaction being evaluated (e.g. {"subject_vendor_data": "__current__"} scopes the window to the same subject), and a list value means membership. Records without the grouped value are never grouped together: when the transaction being evaluated has no value for a "__current__" field (no counterparty, no device fingerprint), the aggregation does not match, whatever its operator. Filters compare by equality or membership ONLY - there is no lt/gte filter, so a range such as "historical transactions under 10,000" cannot be expressed here. Put the range on the metric instead (metric max with operator lt keeps every transaction in the window below the threshold). */
   filters?: Record<string, unknown>;
 }
 
@@ -9520,7 +10354,7 @@ export interface TransactionRuleCondition {
     | "is_empty"
     | "is_null"
     | (string & {});
-  /** Comparison value. Its shape depends on the operator and value_type; omit for the presence-check operators. */
+  /** Comparison value. Its shape depends on the operator and value_type; omit it for the presence-check operators. Every other operator needs a value that is not `null` or an empty list, otherwise the rule is refused with `400`. `contains_any` needs a list of strings, and `contains`, `not_contains` and `regex` need a single string. */
   value?: unknown;
   /** Optional value interpretation. `list`: value is a List UUID and the list's entries become the comparison value. `field`: value is another field path, compared field-to-field. `relative_date`: value is a relative-date object, e.g. {"direction": "past", "unit": "days", "amount": 30}. */
   value_type?: "list" | "field" | "relative_date" | (string & {});
@@ -10057,6 +10891,13 @@ export interface TravelRuleInboundResponse {
   created?: boolean;
   /** Full transfer object returned by the ownership-confirmation and finish/cancel endpoints. While an inbound transfer's wallet ownership is unconfirmed, the counterparty's `originator_data` and `beneficiary_data` come back masked (the first letter of each word is kept; the wallet, chain and VASP routing stay readable) and `data_masked` is true. */
   travel_rule?: TravelRuleTransferDetail;
+}
+
+export interface TravelRuleManualMatchResponse {
+  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets and memos only, never the originator or beneficiary person data. */
+  deposit: TravelRuleTransferRow;
+  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets and memos only, never the originator or beneficiary person data. */
+  message: TravelRuleTransferRow;
 }
 
 /** How strictly each field of the counterparty's data is compared with what you hold, per entity type. A field you leave out keeps its default. `NONE` skips the comparison, `STRICT` needs exactly the same words, `CONTAINS` accepts one value whose words all appear in the other, `DEFAULT` is the standard subset match, and `FUZZY` accepts close spellings (and, for dates of birth, a swapped day and month). */
@@ -10956,6 +11797,16 @@ export interface UserSessionListItem {
   email_address: UserSessionListItemEmailAddress | null;
   /** Compact per-feature extras. Only features that produced data appear as keys; `null` when no feature produced extras. Fields excluded by the workflow's response-attributes configuration are omitted. */
   additional_details: UserSessionListItemAdditionalDetails | null;
+  /** The Console reviewer the session is assigned to, or `null` when nobody holds it. */
+  assignee?: UserSessionListItemAssignee | null;
+  /** When the session started waiting for review. `null` unless the session is `In Review`. */
+  waiting_since?: Date | null;
+  /** When the review is due, from the review deadline set for your application in the Console. `null` unless the session is `In Review` and a deadline is set. */
+  sla_due_at?: Date | null;
+  /** Up to a few of the session's most important warnings, for a quick triage view. The full list is in the decision. */
+  top_warnings?: UserSessionListItemTopWarnings[];
+  /** Number of warnings on the session. */
+  warnings_count?: number;
 }
 
 /** Compact per-feature extras. Only features that produced data appear as keys; `null` when no feature produced extras. Fields excluded by the workflow's response-attributes configuration are omitted. */
@@ -11044,6 +11895,12 @@ export interface UserSessionListItemAdditionalDetailsPoa {
   name_on_document?: string;
 }
 
+/** The Console reviewer the session is assigned to, or `null` when nobody holds it. */
+export interface UserSessionListItemAssignee {
+  email?: string;
+  assigned_at?: Date | null;
+}
+
 /** Email associated with the session: the verified email when email verification ran, otherwise the contact email provided at session creation. `null` when neither exists. */
 export interface UserSessionListItemEmailAddress {
   email: string;
@@ -11066,6 +11923,7 @@ export interface UserSessionListItemFeatures {
     | "IP_ANALYSIS"
     | "AGE_ESTIMATION"
     | "DATABASE_VALIDATION"
+    | "GEOLOCATION"
     | (string & {});
   /** Status of this feature. `Not Finished` until the step completes. */
   status:
@@ -11078,6 +11936,16 @@ export interface UserSessionListItemPhoneNumber {
   number: string;
   /** `true` only when the phone-verification feature approved this number. */
   is_verified: boolean;
+}
+
+export interface UserSessionListItemTopWarnings {
+  /** Warning code, for example `FACE_MATCH_LOW_SIMILARITY`. */
+  risk?: string;
+  /** The feature that raised it. */
+  feature?: string;
+  /** `error` or `warning`; `null` for a legacy entry. */
+  log_type?: string | null;
+  short_description?: string;
 }
 
 /** A VASP of the directory or a member of the Didit network, with the routes your application has to it. A customer is a member of the Didit network only while its application is live, its Travel Rule is on, its profile is discoverable, has a legal name and a confirmed compliance email, and Didit has not marked the application as a test, demo or internal one. Each row also carries the shared due-diligence assessment (dd_score, risk_level, responsiveness, essential_checks) and your application's own decision, entity screening and questionnaires, which no other customer sees. */
@@ -11531,6 +12399,8 @@ export interface WebhookConfig {
   allowed_return_hosts: string[];
   /** Every webhook destination of the application, oldest first, each with its signing secret. Read only here: manage destinations with the `/v3/webhook/destinations/` endpoints. */
   endpoints: WebhookConfigDestination[];
+  /** Origins (for example `https://app.example.com`; `http` only for `localhost`) the hosted verification flow may be embedded in and may send the user back to with a session callback. Server-to-server calls are not affected. An empty list means no restriction. Didit stores each origin in lower case without a default port. An invalid entry fails with `400` on `allowed_domains`. */
+  allowed_domains?: string[];
 }
 
 export interface WebhookConfigAvailableEvents {
@@ -11617,6 +12487,7 @@ export type WebhookEventType =
   | "transaction.status.updated"
   | "travel_rule.status.updated"
   | "workflow.compliance_changed"
+  | "transaction_rule_suggestions.created"
   | "auth.signup"
   | "auth.login"
   | "auth.login_failed"
@@ -11702,6 +12573,8 @@ export interface WorkflowDetail {
   kyb_role_settings?: Record<string, unknown>[];
   created_at?: Date;
   updated_at?: Date;
+  /** Which E-signature levels can sign right now. Check it before you set `signature_level`. Returned on `kyc`, `kyb` and graph workflows. */
+  signature_availability?: WorkflowDetailSignatureAvailability;
   /** Whether a simple KYC or KYB workflow runs Bank verification. It runs after the contact steps (and Location verification) and before database validation, AML and IP analysis. Bank verification is not generally available yet: turning it on is refused wherever it is not enabled. */
   is_bank_verification_enabled?: boolean;
   /** Bank verification settings of a simple workflow, with the same keys a `BANK_VERIFICATION` node takes (for example `bank_countries` and `bank_method_order`). Unknown keys are dropped. Every key is optional and an absent key keeps its default, so `{}` means all defaults. See [Bank verification settings](/management-api/workflows/feature-configs#bank-verification). */
@@ -11711,6 +12584,16 @@ export interface WorkflowDetail {
   /** Location verification settings of a simple workflow, with the same keys a `GEOLOCATION` node takes (for example `is_geolocation_geofencing_enabled` and `geolocation_max_attempts`). Unknown keys are dropped. Every key is optional and an absent key keeps its default, so `{}` means all defaults. */
   geolocation_config?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+/** Which E-signature levels can sign right now. Check it before you set `signature_level`. Returned on `kyc`, `kyb` and graph workflows. */
+export interface WorkflowDetailSignatureAvailability {
+  /** Simple is always available. */
+  simple?: boolean;
+  /** Whether Advanced (AES) can sign now. While it is `false`, saving a new step at `signature_level: "aes"` is refused with `aes_not_available`. */
+  aes?: boolean;
+  /** Whether Qualified (QES) can sign now. It is `false` until a qualified provider is connected. */
+  qes?: boolean;
 }
 
 /** One workflow version in the list view. */

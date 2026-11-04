@@ -313,4 +313,6 @@ export interface WebhooksUpdateConfigParams {
   biometric_consent_mode?: "auto" | "always" | "never" | (string & {});
   /** Replaces the whole list of Digital ID wallet return hosts. Bare hostnames only, such as `shop.example.com`: no scheme, port, path or wildcard. Values are lowercased and duplicates are dropped. Send `[]` to clear the list. */
   allowed_return_hosts?: string[];
+  /** Replaces the whole list of allowed origins. Origins (for example `https://app.example.com`; `http` only for `localhost`) the hosted verification flow may be embedded in and may send the user back to with a session callback. Server-to-server calls are not affected. An empty list means no restriction. Didit stores each origin in lower case without a default port. An invalid entry fails with `400` on `allowed_domains`. Send `[]` to remove the restriction. */
+  allowed_domains?: string[];
 }

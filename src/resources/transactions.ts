@@ -165,7 +165,7 @@ const TRANSACTIONS_GENERATE_PDF: OperationSpec = {
 const TRANSACTIONS_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/transactions/",
-  query: ["limit", "offset", "travel_rule_status"],
+  query: ["limit", "offset", "travel_rule_status", "assignee"],
   dates: {
     p: {
       results: { i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionTravelRule" } } },
