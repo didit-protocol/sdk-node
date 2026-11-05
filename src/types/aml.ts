@@ -75,7 +75,7 @@ export interface AmlScreenResponseAml {
 
 /** One screening hit. `match_score` (0–100) measures identity confidence - hits below `aml_match_score_threshold` are tagged `review_status: "False Positive"` and excluded from the risk assessment; hits at or above it are `"Unreviewed"` possible matches. `risk_score` (0–100) measures how risky the matched entity is and drives the top-level `aml.score`. */
 export interface AmlScreenResponseAmlHits {
-  /** Stable identifier of the matched entity in the screening datasets. */
+  /** Didit's stable identifier for the hit: `hit_` followed by 24 hexadecimal characters. The same matched entity keeps the same `id` when the subject is screened again. Pass it as `hit_id` to the AML hit review endpoints. */
   id?: string | null;
   /** Source URL for the matched entity, when available. */
   url?: string | null;
@@ -90,8 +90,25 @@ export interface AmlScreenResponseAmlHits {
   target?: boolean | null;
   /** Display name of the matched entity. */
   caption?: string | null;
-  /** Datasets the entity appears in (e.g. `PEP`, `PEP Level 1`, sanctions list names). */
-  datasets?: string[] | null;
+  /** Risk categories the entity is listed under: `PEP` (with its level, `PEP Level 1` to `PEP Level 4`), `Sanctions`, `Adverse Media`, `Warnings and Regulatory Enforcement`, `Fitness and Probity`, `SIP`, `SIE` or `Insolvency`. `Other Lists` when the entity's source states none of these categories. */
+  datasets?:
+    | (
+        | "PEP"
+        | "PEP Level 1"
+        | "PEP Level 2"
+        | "PEP Level 3"
+        | "PEP Level 4"
+        | "Sanctions"
+        | "Adverse Media"
+        | "Warnings and Regulatory Enforcement"
+        | "Fitness and Probity"
+        | "SIP"
+        | "SIE"
+        | "Insolvency"
+        | "Other Lists"
+        | (string & {})
+      )[]
+    | null;
   features?: Record<string, unknown> | null;
   /** Entity profile: `name`, `alias`, `notes`, `gender`, `birthDate`, `birthPlace`, `nationality`, `position`, and other biographical arrays (each nullable). */
   properties?: Record<string, unknown> | null;

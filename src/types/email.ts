@@ -28,6 +28,14 @@ export interface EmailCheckCodeParams {
   breached_email_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** What to do when the domain belongs to a disposable/temporary-mail provider (`email.is_disposable`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `email.warnings`. */
   disposable_email_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** When `true`, also run email intelligence on the address: a risk score and its breach history. Billed as one `email_intelligence_api` unit per request ($0.05 at list price) in addition to this endpoint's own price. The request returns `403` when your balance cannot cover it. */
+  enable_enrichment?: boolean;
+  /** Action when the email intelligence risk score is above the threshold. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  email_intelligence_score_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Action when the address appears in a recent known data breach. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  recent_email_breach_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Action when the address appears in many known data breaches. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  frequent_email_breach_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** When true, also look up the social footprint of the address - the email, social, professional, e-commerce and entertainment platforms it is registered on. Billed as one `email_social` unit per request in addition to this endpoint's own price. */
   enable_social?: boolean;
   /** Action when the social footprint check finds the address registered on none of the platforms it covers. Only NO_ACTION and DECLINE are accepted on this endpoint; REVIEW is available on the workflow configuration key of the same name. */

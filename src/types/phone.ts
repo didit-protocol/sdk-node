@@ -28,6 +28,16 @@ export interface PhoneCheckCodeParams {
   disposable_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** What to do when the carrier lookup reports a virtual line type - `voip`, `isp`, or `vpn` (`phone.is_virtual`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
   voip_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** When `true`, also run phone intelligence on the number: a risk score, the line type, whether it was recently ported and a trust index. Billed as one `phone_intelligence_api` unit per request ($0.05 at list price) in addition to this endpoint's own price. The request returns `403` when your balance cannot cover it. */
+  enable_enrichment?: boolean;
+  /** Action when the phone intelligence risk score is above the threshold. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  phone_intelligence_score_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Action when the number is a high-risk line type. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  phone_type_risk_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Action when the number was ported to another carrier recently. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  recent_port_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Action when the phone intelligence trust index is at or below the threshold. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the signal without declining. Only takes effect when `enable_enrichment` is `true`. */
+  low_phone_trust_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** When true, also look up the social footprint of the number - the messaging, social, e-commerce and professional platforms it is registered on. Billed as one `phone_social` unit per request in addition to this endpoint's own price. */
   enable_social?: boolean;
   /** Action when the social footprint check finds the number registered on none of the platforms it covers. Only NO_ACTION and DECLINE are accepted on this endpoint; REVIEW is available on the workflow configuration key of the same name. */

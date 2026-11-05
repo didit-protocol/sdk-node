@@ -156,6 +156,7 @@ export {
   TravelRuleCounterpartyContacts,
   TravelRuleNetworks,
   TravelRuleTransfers,
+  TravelRuleUnmatchedDeposits,
   TravelRuleWalletAddresses,
   TravelRuleWalletProofs,
   TravelRuleWorkspaceResource,

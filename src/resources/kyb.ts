@@ -23,7 +23,14 @@ const KYB_LIST_SHAREHOLDERS: OperationSpec = {
   body: "json",
   dates: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
@@ -34,7 +41,14 @@ const KYB_LIST_UBOS: OperationSpec = {
   body: "json",
   dates: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
@@ -51,7 +65,14 @@ const KYB_SELECT: OperationSpec = {
   body: "json",
   dates: {
     p: {
-      kyb_registry: { p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 } },
+      kyb_registry: {
+        p: {
+          vat_checked_at: 1,
+          confirmed_by_user_at: 1,
+          last_console_edit_at: 1,
+          registry_monitoring: { p: { enrolled_at: 1, cancelled_at: 1, last_event_at: 1 } },
+        },
+      },
       created_at: 1,
     },
   },
@@ -64,7 +85,7 @@ export class Kyb extends APIResource {
    *
    * Retrieve the Lite profile **plus the direct shareholders** (natural persons and corporate entities, with their ownership bands) of one candidate returned by `POST /v3/kyb/search/`.
    *
-   * **Pairing with search.** Pass the candidate's `kyb_response_id` exactly as returned by a search of the same application. The search runs on the Lite registry chain; when the country's ownership data lives at another registry Didit re-finds the company there by registration number, at no extra cost.
+   * **Pairing with search.** Pass the candidate's `kyb_response_id` exactly as returned by a search of the same application. Search at the tier you intend to buy (`tier` on `POST /v3/kyb/search/`), because the search runs on the registry chain that serves that tier and an empty Lite search is not proof that the registry does not hold the company. When the country's ownership data lives at another registry, Didit re-finds the company there by registration number, at no extra cost.
    *
    * **Billing.** Billed at the country's Shareholders price - see [KYB registry pricing](/getting-started/kyb-registry-pricing). When the registry holds no shareholder record for the company (or the country offers no ownership data at all) the Lite profile is delivered and billed instead: read `registry_tier_delivered` and `registry_ownership_status`. The balance is checked against the Shareholders price before any registry call (`403` when short).
    *
@@ -86,7 +107,7 @@ export class Kyb extends APIResource {
    *
    * Retrieve the Lite profile, the direct shareholders **and the ultimate beneficial owners** resolved through the ownership chain (`registry_data.ubo_resolution` carries the corporate parent chain) of one candidate returned by `POST /v3/kyb/search/`.
    *
-   * **Pairing with search.** Pass the candidate's `kyb_response_id` exactly as returned by a search of the same application. The search runs on the Lite registry chain; when the country's ownership data lives at another registry Didit re-finds the company there by registration number, at no extra cost.
+   * **Pairing with search.** Pass the candidate's `kyb_response_id` exactly as returned by a search of the same application. Search at the tier you intend to buy (`tier` on `POST /v3/kyb/search/`), because the search runs on the registry chain that serves that tier and an empty Lite search is not proof that the registry does not hold the company. When the country's ownership data lives at another registry, Didit re-finds the company there by registration number, at no extra cost.
    *
    * **Billing.** Billed at the country's UBO price - see [KYB registry pricing](/getting-started/kyb-registry-pricing). The tier delivered is the highest the country and the registry can serve: Shareholders when the resolved report names no natural person as a beneficial owner, Lite when there is no ownership record at all; `registry_tier_delivered` names what was billed. The balance is checked against the UBO price before any registry call (`403` when short).
    *

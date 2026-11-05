@@ -11,6 +11,8 @@ export interface BankAccountCheckParams {
   holder: BankAccountCheckHolder;
   /** Your own reference for this check, returned unchanged. */
   vendor_data?: string | null;
+  /** Set to `true` when the account holder has explicitly consented to this check. Required in the countries whose account check needs that consent: without it the check is refused with a `400` whose `field` is `consent` and whose `reason` is `required`, and nothing is billed. Elsewhere it is optional, and Didit records it with the check's charge when you send it. */
+  consent?: boolean;
 }
 
 /** The account the way its country writes it: an `iban`, or an `account_number` with the bank or branch code the country needs (`sort_code`, `routing_number`, `transit_institution`, `bsb`, `ifsc`, `bank_code` or `bic`). Mexico takes a `clabe` and Argentina a `cbu_cvu`, which already name the bank. A business account adds a `registration_id` where the country asks for one. Spaces, dashes and dots are ignored. Keys the country's check does not use are ignored; a key it needs and does not get is a `400` that names it. */

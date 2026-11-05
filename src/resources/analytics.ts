@@ -4,9 +4,10 @@ import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { AnalyticsRetrieveParams } from "../types/analytics.js";
+import type { AnalyticsRetrieveParams, AnalyticsRetrieveTodayParams } from "../types/analytics.js";
 import type {
   ApplicationAnalyticsSummary,
+  ApplicationAnalyticsToday,
   ApplicationAnalyticsWidgetResponse,
 } from "../types/components.js";
 
@@ -27,6 +28,12 @@ const ANALYTICS_RETRIEVE: OperationSpec = {
     "action_type",
   ],
 };
+const ANALYTICS_RETRIEVE_TODAY: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/{organization_id}/application/{application_id}/analytics/today/",
+  scope: "application",
+  query: ["tz"],
+};
 
 /** `analytics` */
 export class Analytics extends APIResource {
@@ -46,5 +53,21 @@ export class Analytics extends APIResource {
     options?: RequestOptions,
   ): APIPromise<ApplicationAnalyticsSummary | ApplicationAnalyticsWidgetResponse> {
     return this._client.request(ANALYTICS_RETRIEVE, [], params, options);
+  }
+
+  /**
+   * Get today's verifications by hour
+   *
+   * Today's user verification (KYC) sessions, from local midnight in `tz`, counted per local hour they were created in, next to the same hours of the same weekday one week before, and split by the outcome each one holds now: approved, in review or declined. This is the volume card of the Business Console's Home.
+   *
+   * `total` is today so far. `previous_total_so_far` counts the comparison day only up to the same local time, so a change between them compares the same part of both days. The hours still to come today are `0`. A day on which the clocks change has 23 or 25 hours: the missing hour stays `0` and the repeated hour holds both.
+   *
+   * `GET /v3/organization/{organization_id}/application/{application_id}/analytics/today/`
+   */
+  retrieveToday(
+    params: AnalyticsRetrieveTodayParams = {},
+    options?: RequestOptions,
+  ): APIPromise<ApplicationAnalyticsToday> {
+    return this._client.request(ANALYTICS_RETRIEVE_TODAY, [], params, options);
   }
 }

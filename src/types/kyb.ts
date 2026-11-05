@@ -2,6 +2,7 @@
 
 import type {
   KYBRegistryAddress,
+  KYBRegistryData,
   KYBRegistryIndustry,
   KYBRegistryOwnership,
   KYBRegistrySearchResults,
@@ -9,7 +10,7 @@ import type {
 } from "./components.js";
 
 export interface KybListShareholdersParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral: use it shortly after the search that produced it. Handles can be long, so store and send the value exactly as returned, without trimming or assuming a length. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -154,8 +155,8 @@ export interface KybListShareholdersResponse202KybRegistry {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Always `null` on this endpoint (used by the hosted KYB flow when end users edit registry data). */
   user_provided_data?: Record<string, unknown> | null;
   /** Always `null` on this endpoint. */
@@ -173,6 +174,8 @@ export interface KybListShareholdersResponse202KybRegistry {
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
   registry_tier?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: KybListShareholdersResponse202KybRegistryRegistryMonitoring | null;
 }
 
 export interface KybListShareholdersResponse202KybRegistryBeneficialOwners {
@@ -257,6 +260,21 @@ export interface KybListShareholdersResponse202KybRegistryOfficers {
   date_of_birth_year?: number | null;
   /** Registry-reported birth month. Null when only the year is known. */
   date_of_birth_month?: number | null;
+}
+
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface KybListShareholdersResponse202KybRegistryRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
 }
 
 /** Full registry company profile. */
@@ -362,8 +380,8 @@ export interface KybListShareholdersResponseKybRegistry {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Always `null` on this endpoint (used by the hosted KYB flow when end users edit registry data). */
   user_provided_data?: Record<string, unknown> | null;
   /** Always `null` on this endpoint. */
@@ -381,6 +399,8 @@ export interface KybListShareholdersResponseKybRegistry {
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
   registry_tier?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: KybListShareholdersResponseKybRegistryRegistryMonitoring | null;
 }
 
 export interface KybListShareholdersResponseKybRegistryBeneficialOwners {
@@ -467,8 +487,23 @@ export interface KybListShareholdersResponseKybRegistryOfficers {
   date_of_birth_month?: number | null;
 }
 
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface KybListShareholdersResponseKybRegistryRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
+}
+
 export interface KybListUbosParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral: use it shortly after the search that produced it. Handles can be long, so store and send the value exactly as returned, without trimming or assuming a length. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -613,8 +648,8 @@ export interface KybListUbosResponse202KybRegistry {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Always `null` on this endpoint (used by the hosted KYB flow when end users edit registry data). */
   user_provided_data?: Record<string, unknown> | null;
   /** Always `null` on this endpoint. */
@@ -632,6 +667,8 @@ export interface KybListUbosResponse202KybRegistry {
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
   registry_tier?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: KybListUbosResponse202KybRegistryRegistryMonitoring | null;
 }
 
 export interface KybListUbosResponse202KybRegistryBeneficialOwners {
@@ -716,6 +753,21 @@ export interface KybListUbosResponse202KybRegistryOfficers {
   date_of_birth_year?: number | null;
   /** Registry-reported birth month. Null when only the year is known. */
   date_of_birth_month?: number | null;
+}
+
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface KybListUbosResponse202KybRegistryRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
 }
 
 /** Full registry company profile. */
@@ -821,8 +873,8 @@ export interface KybListUbosResponseKybRegistry {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Always `null` on this endpoint (used by the hosted KYB flow when end users edit registry data). */
   user_provided_data?: Record<string, unknown> | null;
   /** Always `null` on this endpoint. */
@@ -840,6 +892,8 @@ export interface KybListUbosResponseKybRegistry {
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
   registry_tier?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: KybListUbosResponseKybRegistryRegistryMonitoring | null;
 }
 
 export interface KybListUbosResponseKybRegistryBeneficialOwners {
@@ -926,6 +980,21 @@ export interface KybListUbosResponseKybRegistryOfficers {
   date_of_birth_month?: number | null;
 }
 
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface KybListUbosResponseKybRegistryRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
+}
+
 export interface KybSearchParams {
   /** ISO 3166-1 alpha-2 code of the country whose company registry to search. For example, `GB`. Where company registries operate at state or province level, append the ISO 3166-2 subdivision code as `XX-YY`: `US-CA` searches the California registry. United States searches always require the subdivision - a bare `US` is rejected. Case-insensitive; normalized to upper case. */
   country_code: string;
@@ -957,7 +1026,7 @@ export interface KybSearchResponse {
 }
 
 export interface KybSelectParams {
-  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral - use it shortly after the search that produced it. */
+  /** Candidate handle from `POST /v3/kyb/search/` (`kyb_registry.companies[].kyb_response_id`). Ephemeral: use it shortly after the search that produced it. Handles can be long, so store and send the value exactly as returned, without trimming or assuming a length. */
   kyb_response_id: string;
   /** Your identifier for this company; echoed back and stored with the business session. */
   vendor_data?: string;
@@ -1086,8 +1155,8 @@ export interface KybSelectResponseKybRegistry {
   industries?: KYBRegistryIndustry[] | null;
   /** Registry filing dates, when available. Annual returns and general meetings use last_annual_return_date and last_agm_date; they are distinct from financial accounts. */
   accounts?: Record<string, unknown> | null;
-  /** Raw record returned by the registry source, kept for reviewers. Its shape differs by country and source and is not a stable contract: read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) instead. */
-  registry_data?: Record<string, unknown>;
+  /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
+  registry_data?: KYBRegistryData | null;
   /** Always `null` on this endpoint (used by the hosted KYB flow when end users edit registry data). */
   user_provided_data?: Record<string, unknown> | null;
   /** Always `null` on this endpoint. */
@@ -1105,6 +1174,8 @@ export interface KybSelectResponseKybRegistry {
   ownership?: KYBRegistryOwnership;
   /** The registry tier the workflow ordered: `basic`, `shareholders` or `ubo`. Also in `ownership.tier_requested`. */
   registry_tier?: string | null;
+  /** The latest registry monitor for the company, or `null` when none exists. */
+  registry_monitoring?: KybSelectResponseKybRegistryRegistryMonitoring | null;
 }
 
 export interface KybSelectResponseKybRegistryBeneficialOwners {
@@ -1189,4 +1260,19 @@ export interface KybSelectResponseKybRegistryOfficers {
   date_of_birth_year?: number | null;
   /** Registry-reported birth month. Null when only the year is known. */
   date_of_birth_month?: number | null;
+}
+
+/** The latest registry monitor for the company, or `null` when none exists. */
+export interface KybSelectResponseKybRegistryRegistryMonitoring {
+  uuid?: string;
+  status?: string;
+  unavailable_reason?: string | null;
+  enrolled_at?: Date | null;
+  cancelled_at?: Date | null;
+  last_bill_date?: string | null;
+  next_bill_date?: string | null;
+  last_event_at?: Date | null;
+  events_count?: number;
+  /** The company fields the monitor watches. */
+  watched_fields?: unknown;
 }

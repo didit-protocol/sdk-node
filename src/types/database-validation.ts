@@ -130,6 +130,38 @@ export interface DatabaseValidationValidateParams {
   bvn?: string;
   /** Bank card number (CHN bank-card verification). */
   bank_card_number?: string;
+  /** Company registration number as issued by the companies register: the CNPJ in Brazil (e.g. `11222333000181`), the registration number in South Africa (e.g. `1936/007721/06`). Required by the company registry and company directors services (`bra_company_registry`, `bra_company_directors`, `zaf_company_registry`, `zaf_company_directors`). */
+  company_registration_number?: string;
+  /** Registered company name, cross-checked against the register entry. Optional for `zaf_company_registry`. */
+  company_name?: string;
+  /** The person's initials as printed on the document. Required by `zaf_drivers_license`; accepted by `zaf_bank_account_holder`. */
+  initials?: string;
+  /** Driving licence number as printed on the card, for `zaf_drivers_license`. When omitted, `document_number` is used. */
+  licence_number?: string;
+  /** Refugee file number issued by South Africa's Department of Home Affairs. Required by `zaf_refugee`. */
+  refugee_file_number?: string;
+  /** Name of the bank that holds the account. Required by `zaf_bank_account_holder`. */
+  bank_name?: string;
+  /** Bank account number. Required by `zaf_bank_account_holder`; accepted by `zaf_fraud_prevention`. */
+  bank_account_number?: string;
+  /** Bank account type for `zaf_bank_account_holder`: `current`, `savings`, `transmission`, `subscriptionShare` or `notKnown`, case-insensitive. Any other value returns `400`. Omit it when you do not know the type: the account-type cross-check is then reported as not confirmed. */
+  account_type?: string;
+  /** Contact mobile number, for the services that cross-check contactability (`zaf_bank_account_holder`, `zaf_fraud_prevention`, `zaf_refugee`). */
+  phone_number?: string;
+  /** Base64-encoded right thumb fingerprint for `zaf_dha_fingerprint_match`, with `left_thumb` or on its own. */
+  right_thumb?: string;
+  /** Base64-encoded left thumb fingerprint for `zaf_dha_fingerprint_match`, with `right_thumb` or on its own. */
+  left_thumb?: string;
+  /** Minimum biometric score level for `zaf_criminal_face_screening`. Defaults to `3`. */
+  score_level?: number;
+  /** Maximum number of candidate matches `zaf_criminal_face_screening` returns. Defaults to `1`. */
+  max_matches?: number;
+  /** Vehicle register number. Required, with `vehicle_licence_plate` and `vin`, by `zaf_vehicle_ownership`. */
+  vehicle_register_number?: string;
+  /** Vehicle licence plate number. Required, with `vehicle_register_number` and `vin`, by `zaf_vehicle_ownership`. */
+  vehicle_licence_plate?: string;
+  /** Vehicle Identification Number (VIN or chassis number). Required, with `vehicle_register_number` and `vehicle_licence_plate`, by `zaf_vehicle_ownership`. */
+  vin?: string;
   /** Social Security Number (USA). */
   ssn?: string;
   /** Phone number for phone-verification services. */

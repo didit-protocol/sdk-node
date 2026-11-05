@@ -16,6 +16,7 @@ import type {
   SessionDecision,
   SessionDeletionJob,
   SessionEvent,
+  SessionFilesExport,
   SessionImportError,
   SessionImportJob,
   SessionWebhookDelivery,
@@ -28,8 +29,11 @@ import type {
   SessionsBatchDeleteResponse,
   SessionsBulkUpdateAmlHitStatusParams,
   SessionsBulkUpdateAmlHitStatusResponse,
+  SessionsCreateKybPartyDraftParams,
+  SessionsCreateKybPartyDraftResponse,
   SessionsCreateParams,
   SessionsCreateResponse,
+  SessionsDeleteKybPartyDraftParams,
   SessionsDeleteParams,
   SessionsDeleteResponse,
   SessionsExportAmlScreeningHistoryParams,
@@ -51,6 +55,10 @@ import type {
   SessionsListEventsParams,
   SessionsListEventsResponse,
   SessionsListFeatureOverridesResponse,
+  SessionsListKybExtractedPartiesParams,
+  SessionsListKybExtractedPartiesResponse,
+  SessionsListKybPartyDraftsParams,
+  SessionsListKybPartyDraftsResponse,
   SessionsListParams,
   SessionsListResponse,
   SessionsPreviewDecisionEmailParams,
@@ -68,6 +76,8 @@ import type {
   SessionsSignaturesValidateParams,
   SessionsSignaturesValidateResponse,
   SessionsSimulateParams,
+  SessionsSubmitKybPartiesParams,
+  SessionsSubmitKybPartiesResponse,
   SessionsUpdateAmlHitStatusParams,
   SessionsUpdateAmlHitStatusResponse,
   SessionsUpdateAmlStatusParams,
@@ -80,12 +90,16 @@ import type {
   SessionsUpdateFeatureStatusResponse,
   SessionsUpdateKybCompanyDataParams,
   SessionsUpdateKybCompanyDataResponse,
+  SessionsUpdateKybPartyDraftParams,
+  SessionsUpdateKybPartyDraftResponse,
   SessionsUpdateKybPartyParams,
   SessionsUpdateKybPartyResponse,
   SessionsUpdatePoaDataParams,
   SessionsUpdatePoaDataResponse,
   SessionsUpdateStatusParams,
   SessionsUpdateStatusResponse,
+  SessionsUploadKybDocumentsParams,
+  SessionsUploadKybDocumentsResponse,
 } from "../types/sessions.js";
 
 const SESSIONS_IMPORTS_CANCEL: OperationSpec = {
@@ -237,24 +251,47 @@ const SESSIONS_CANCEL_FEATURE_OVERRIDE: OperationSpec = {
   dates: "FeatureStatusOverride",
 };
 const SESSIONS_CREATE: OperationSpec = { method: "POST", path: "/v3/session/", body: "json" };
+const SESSIONS_CREATE_KYB_PARTY_DRAFT: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/kyb/parties/drafts/",
+  query: ["node_id"],
+  body: "json",
+  dates: { p: { created_at: 1, updated_at: 1 } },
+};
 const SESSIONS_DELETE: OperationSpec = {
   method: "DELETE",
   path: "/v3/session/{sessionId}/delete/",
   body: "json",
   dates: { p: { biometric_template_expires_at: 1 } },
 };
+const SESSIONS_DELETE_KYB_PARTY_DRAFT: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/session/{sessionId}/kyb/parties/drafts/{draftId}/",
+  query: ["node_id"],
+  response: "none",
+};
 const SESSIONS_EXPORT_AML_SCREENING_HISTORY: OperationSpec = {
   method: "GET",
   path: "/v3/session/{sessionId}/aml-screening-history/export/",
-  query: ["node_id"],
+  query: ["node_id", "month"],
   response: "binary",
   accept: "text/csv",
+};
+const SESSIONS_EXPORT_FILES: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/files-export/",
+  dates: "SessionFilesExport",
 };
 const SESSIONS_GENERATE_PDF: OperationSpec = {
   method: "GET",
   path: "/v3/session/{sessionId}/generate-pdf/",
   response: "binary",
   accept: "application/pdf",
+};
+const SESSIONS_GET_FILES_EXPORT: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/files-export/{exportId}/",
+  dates: "SessionFilesExport",
 };
 const SESSIONS_IMPORT_SHARED: OperationSpec = {
   method: "POST",
@@ -275,6 +312,9 @@ const SESSIONS_LIST: OperationSpec = {
     "workflow_id",
     "date_from",
     "date_to",
+    "tags",
+    "decided_from",
+    "decided_to",
     "country",
     "document_type",
     "document_name",
@@ -289,12 +329,25 @@ const SESSIONS_LIST: OperationSpec = {
     "euuid",
     "organization_name",
   ],
-  dates: { p: { results: { i: { p: { created_at: 1 } } } } },
+  dates: {
+    p: {
+      results: {
+        i: {
+          p: {
+            created_at: 1,
+            assignee: { p: { assigned_at: 1 } },
+            waiting_since: 1,
+            sla_due_at: 1,
+          },
+        },
+      },
+    },
+  },
 };
 const SESSIONS_LIST_AML_SCREENING_HISTORY: OperationSpec = {
   method: "GET",
   path: "/v3/session/{sessionId}/aml-screening-history/",
-  query: ["node_id", "limit", "offset", "ordering"],
+  query: ["node_id", "month", "limit", "offset", "ordering"],
   dates: { p: { results: { i: "AMLScreeningRun" } } },
 };
 const SESSIONS_LIST_EVENTS: OperationSpec = {
@@ -307,6 +360,17 @@ const SESSIONS_LIST_FEATURE_OVERRIDES: OperationSpec = {
   method: "GET",
   path: "/v3/session/{sessionId}/features/overrides/",
   dates: { p: { flow_finished_at: 1, overrides: { i: "FeatureStatusOverride" } } },
+};
+const SESSIONS_LIST_KYB_EXTRACTED_PARTIES: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/kyb/extracted-parties/",
+  query: ["node_id"],
+};
+const SESSIONS_LIST_KYB_PARTY_DRAFTS: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/{sessionId}/kyb/parties/drafts/",
+  query: ["node_id"],
+  dates: { p: { parties: { i: { p: { created_at: 1, updated_at: 1 } } } } },
 };
 const SESSIONS_LIST_NETWORKS: OperationSpec = {
   method: "GET",
@@ -349,6 +413,12 @@ const SESSIONS_SIMULATE: OperationSpec = {
   path: "/v3/session/{sessionId}/simulate/",
   body: "json",
 };
+const SESSIONS_SUBMIT_KYB_PARTIES: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/kyb/parties/submit/",
+  query: ["node_id"],
+  body: "json",
+};
 const SESSIONS_UPDATE_AML_HIT_STATUS: OperationSpec = {
   method: "PATCH",
   path: "/v3/session/{sessionId}/update-aml-hit-status/",
@@ -389,6 +459,13 @@ const SESSIONS_UPDATE_KYB_PARTY: OperationSpec = {
   path: "/v3/session/{sessionId}/kyb/parties/{partyUuid}/",
   body: "json",
 };
+const SESSIONS_UPDATE_KYB_PARTY_DRAFT: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/session/{sessionId}/kyb/parties/drafts/{draftId}/",
+  query: ["node_id"],
+  body: "json",
+  dates: { p: { created_at: 1, updated_at: 1 } },
+};
 const SESSIONS_UPDATE_POA_DATA: OperationSpec = {
   method: "PATCH",
   path: "/v3/session/{sessionId}/update-poa-data/",
@@ -399,6 +476,13 @@ const SESSIONS_UPDATE_STATUS: OperationSpec = {
   method: "PATCH",
   path: "/v3/session/{sessionId}/update-status/",
   body: "json",
+};
+const SESSIONS_UPLOAD_KYB_DOCUMENTS: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/{sessionId}/kyb/documents/",
+  query: ["node_id"],
+  body: "multipart",
+  files: ["documents"],
 };
 
 /** `sessions.imports` */
@@ -635,14 +719,14 @@ export class SessionsSignatures extends APIResource {
   /**
    * Download a signed document
    *
-   * Download the signed PDF of one document of an Electronic Signature step. Use the `signed_file` path of `signatures[].documents[]` in the decision. The PDF holds the document the signer was shown with their field values stamped, the evidence page (unless `signature_evidence_page` is off) and the PAdES signature with its timestamp. Didit checks the file against `sha256_signed` before returning it.
+   * Download the signed PDF of one document of an E-signature step. Use the `signed_file` path of `signatures[].documents[]` in the decision. The PDF holds the document the signer was shown with their field values stamped and the evidence page (unless `signature_evidence_page` is off). An Advanced (AES) PDF also carries the PAdES signature with its timestamp; a Simple PDF has no digital signature, seal or timestamp. Didit checks the file against `sha256_signed` before returning it.
    *
-   * Works for User Verification (KYC) and Business Verification (KYB) sessions. Needs `read:sessions`; your API key works. See the [Electronic Signature report](/core-technology/electronic-signature/report-electronic-signature#download-the-signed-documents).
+   * Works for User Verification (KYC) and Business Verification (KYB) sessions. Needs `read:sessions`; your API key works. See the [E-signature report](/core-technology/electronic-signature/report-electronic-signature#download-the-signed-documents).
    *
    * `GET /v3/session/{sessionId}/signatures/{nodeId}/documents/{documentId}/file/`
    *
    * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
-   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param nodeId The E-signature step: `node_id` of the item in `signatures[]`.
    * @param documentId `id` of the document in `signatures[].documents[]`.
    */
   downloadDocument(
@@ -662,14 +746,14 @@ export class SessionsSignatures extends APIResource {
   /**
    * Download the signature evidence
    *
-   * Download a signer's evidence PDF: the level and format, the signer and their verified identity session, the code confirmation, the IP address, each document with its original SHA-256 and field values, the certificate, the timestamp and the SHA-256 of every signed file. Use the `evidence_file` path of the signer's item in `signatures[]`.
+   * Download a signer's evidence PDF: the level and format, the signer, the IP address, each document with its original SHA-256 and field values and the SHA-256 of every signed file, plus, for an Advanced (AES) signature, the verified identity session, the code confirmation, the certificate and the timestamp. Use the `evidence_file` path of the signer's item in `signatures[]`.
    *
    * Always pass `signature_id` when a Business Verification step has several signers: without it, the route picks one of the step's signers. Needs `read:sessions`; your API key works.
    *
    * `GET /v3/session/{sessionId}/signatures/{nodeId}/evidence/`
    *
    * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
-   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param nodeId The E-signature step: `node_id` of the item in `signatures[]`.
    */
   downloadEvidence(
     sessionId: string,
@@ -693,7 +777,7 @@ export class SessionsSignatures extends APIResource {
    * `GET /v3/session/{sessionId}/signatures/{nodeId}/fields/{fieldId}/image/`
    *
    * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
-   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param nodeId The E-signature step: `node_id` of the item in `signatures[]`.
    * @param fieldId The field on this signer's copy, as in the field's `image_url`.
    */
   downloadFieldImage(
@@ -713,14 +797,14 @@ export class SessionsSignatures extends APIResource {
   /**
    * Validate signatures again
    *
-   * Re-check the signed documents of an Electronic Signature step. Didit re-reads every signed PDF, checks its SHA-256 and validates the PAdES signature, the certificate, the revocation data and the timestamp, then saves the result in each signer's `validation` and returns the updated items. Nothing is signed again. Send `signature_id` to check one signer; without it, every signer of the step is checked, and the call fails if any of them hasn't signed.
+   * Re-check the signed documents of an E-signature step. Didit re-reads every signed PDF, checks its SHA-256 and, for an Advanced (AES) signature, validates the PAdES signature, the certificate, the revocation data and the timestamp (a Simple signature has no digital signature, so only the file integrity is checked), then saves the result in each signer's `validation` and returns the updated items. Nothing is signed again. Send `signature_id` to check one signer; without it, every signer of the step is checked, and the call fails if any of them hasn't signed.
    *
    * Needs `write:sessions`; your API key works. In the console it's the **Validate again** button.
    *
    * `POST /v3/session/{sessionId}/signatures/{nodeId}/validate/`
    *
    * @param sessionId The User Verification (KYC) or Business Verification (KYB) session.
-   * @param nodeId The Electronic Signature step: `node_id` of the item in `signatures[]`.
+   * @param nodeId The E-signature step: `node_id` of the item in `signatures[]`.
    */
   validate(
     sessionId: string,
@@ -933,13 +1017,30 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Create a KYB party draft
+   *
+   * Add a party (a person or a company) to the list you are preparing for this KYB session. The same fields and rules as the hosted Key People screen apply: a person needs `full_name` or `first_name` and `last_name`, at least one role and a nationality; a company needs `company_name` and the country of incorporation in `nationality`. Nothing is declared or billed until `POST /v3/session/{sessionId}/kyb/parties/submit/`. Requires `write:businesses`.
+   *
+   * `POST /v3/session/{sessionId}/kyb/parties/drafts/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   */
+  createKybPartyDraft(
+    sessionId: string,
+    params: SessionsCreateKybPartyDraftParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsCreateKybPartyDraftResponse> {
+    return this._client.request(SESSIONS_CREATE_KYB_PARTY_DRAFT, [sessionId], params, options);
+  }
+
+  /**
    * Delete a verification session (KYC or KYB)
    *
    * Delete a single verification session, User Verification (KYC) or Business Verification (KYB), by its `session_id`. The id is resolved against KYC sessions first, then KYB sessions, so both kinds are deleted through this one URL.
    *
    * **What is deleted:**
    * - The session and every verification attempt it holds, including results that a resubmission replaced: the decision, extracted data, all related feature records (ID verification, face, liveness, face match, AML, registry checks, IP analysis, and so on), its reviews and its activity log.
-   * - All stored files owned by the session: document front/back photos (full, cropped, and privacy-blurred variants), document-capture videos, portrait crops, NFC chip portrait and signature images, face reference images, liveness videos, face-match source/target images, Proof of Address documents, and any extra uploaded files (KYC); uploaded company documents and extra files (KYB). Electronic Signature documents, signed PDFs, evidence PDFs and signature images (KYC and KYB): their download paths stop working. Previously issued media URLs (`https://<media-host>/...`) stop resolving.
+   * - All stored files owned by the session: document front/back photos (full, cropped, and privacy-blurred variants), document-capture videos, portrait crops, NFC chip portrait and signature images, face reference images, liveness videos, face-match source/target images, Proof of Address documents, and any extra uploaded files (KYC); uploaded company documents and extra files (KYB). E-signature documents, signed PDFs, evidence PDFs and signature images (KYC and KYB): their download paths stop working. Previously issued media URLs (`https://<media-host>/...`) stop resolving.
    * - The session's face data. Its face embedding is deleted too, unless you choose to keep an image-free template (see **Face biometric data**).
    * - Webhook deliveries still queued for the session, and their retries. Webhooks already delivered are not affected.
    * - For a Business Verification (KYB) session: the verifications it created for its key people (KYC) and its corporate owners (KYB), recursively, reported as `deleted_child_verifications`. A verification it only links to, such as an existing approved KYC it reused, is not deleted.
@@ -979,9 +1080,33 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Delete a KYB party draft
+   *
+   * Drop one party draft. Declared parties are not affected. Requires `write:businesses`.
+   *
+   * `DELETE /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   * @param draftId UUID of the party draft (`draft_id` returned when it was created).
+   */
+  deleteKybPartyDraft(
+    sessionId: string,
+    draftId: string,
+    params: SessionsDeleteKybPartyDraftParams = {},
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    return this._client.request(
+      SESSIONS_DELETE_KYB_PARTY_DRAFT,
+      [sessionId, draftId],
+      params,
+      options,
+    );
+  }
+
+  /**
    * Export AML screening history as CSV
    *
-   * Download the same ongoing-monitoring history as `GET /v3/session/{sessionId}/aml-screening-history/` as a CSV file, one line per completed re-screen, newest first, ready to hand to an auditor. The file is streamed whole (no pagination) and starts with a header line; an empty cell means unknown, dataset dates are never estimated, and a value that would start a spreadsheet formula is prefixed with an apostrophe. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Errors are returned as JSON, not CSV. A scoped API key needs `decisions: read` and `media: read`: the response is a file, so a key without `media: read` gets `403`.
+   * Download the same ongoing-monitoring history as `GET /v3/session/{sessionId}/aml-screening-history/` as a CSV file, one line per completed re-screen, newest first, ready to hand to an auditor. The file is streamed whole (no pagination) and starts with a header line; an empty cell means unknown, dataset dates are never estimated, and a value that would start a spreadsheet formula is prefixed with an apostrophe. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Pass `month` to export one calendar month. Errors are returned as JSON, not CSV. A scoped API key needs `decisions: read` and `media: read`: the response is a file, so a key without `media: read` gets `403`.
    *
    * `GET /v3/session/{sessionId}/aml-screening-history/export/`
    *
@@ -998,6 +1123,21 @@ export class Sessions extends APIResource {
       params,
       options,
     );
+  }
+
+  /**
+   * Export every file of a session
+   *
+   * Start preparing one ZIP with every image, video and document of a User Verification (KYC) or Business Verification (KYB) session, in original quality: the files are stored in the ZIP as they were captured, never recompressed. Answers `202` with the export; read it with `GET /v3/session/{sessionId}/files-export/{exportId}/` until `status` is `READY`, then download `download_url`. While an export of the same session is still being prepared, that export is returned instead of a new one.
+   *
+   * The ZIP is deleted 24 hours after it is ready, and at once when the session is deleted. A deleted session cannot be exported. Every export and every download link handed out is written to the session's audit log. A scoped API key needs `media: read` and `decisions: read`; a console user needs the privilege to read sessions.
+   *
+   * `POST /v3/session/{sessionId}/files-export/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs. A deleted session returns `404`.
+   */
+  exportFiles(sessionId: string, options?: RequestOptions): APIPromise<SessionFilesExport> {
+    return this._client.request(SESSIONS_EXPORT_FILES, [sessionId], undefined, options);
   }
 
   /**
@@ -1033,6 +1173,29 @@ export class Sessions extends APIResource {
    */
   generatePdf(sessionId: string, options?: RequestOptions): APIPromise<Blob> {
     return this._client.request(SESSIONS_GENERATE_PDF, [sessionId], undefined, options);
+  }
+
+  /**
+   * Get a session files export
+   *
+   * Progress of an export started with `POST /v3/session/{sessionId}/files-export/`. Once `status` is `READY`, `download_url` is a signed URL of the ZIP that stays valid for a short time; read the export again for a new one until `expires_at`. Each read that hands out a download link is written to the session's audit log. An export of a deleted session returns `404`.
+   *
+   * `GET /v3/session/{sessionId}/files-export/{exportId}/`
+   *
+   * @param sessionId UUID of the verification session (the `session_id` returned by `POST /v3/session/`). Accepts both User Verification (KYC) and Business Verification (KYB) session IDs. A deleted session returns `404`.
+   * @param exportId The `export_id` returned by `POST /v3/session/{sessionId}/files-export/`.
+   */
+  getFilesExport(
+    sessionId: string,
+    exportId: string,
+    options?: RequestOptions,
+  ): APIPromise<SessionFilesExport> {
+    return this._client.request(
+      SESSIONS_GET_FILES_EXPORT,
+      [sessionId, exportId],
+      undefined,
+      options,
+    );
   }
 
   /**
@@ -1085,7 +1248,7 @@ export class Sessions extends APIResource {
   /**
    * List AML screening history
    *
-   * List every completed ongoing-monitoring re-screen of a session's AML check, newest first by `completed_at`, including the runs where nothing changed: alerts, activity entries and webhooks fire only when a result moves, so this history is the evidence that a clean subject was still being screened. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Only ongoing-monitoring re-screens are listed (the first screening is part of the session decision) and runs from before this history existed are not reconstructed, so a session without ongoing monitoring returns an empty list. `count` is exact up to 100 and capped at 100 above that, so follow `next` until it is `null`. A scoped API key needs `decisions: read`; see [Continuous AML monitoring](https://docs.didit.me/core-technology/aml-screening/continuous-monitoring-aml-screening).
+   * List every completed ongoing-monitoring re-screen of a session's AML check, newest first by `completed_at`, including the runs where nothing changed: alerts, activity entries and webhooks fire only when a result moves, so this history is the evidence that a clean subject was still being screened. Works for KYC and KYB session IDs; pass `node_id` when the session ran more than one AML step. Only ongoing-monitoring re-screens are listed (the first screening is part of the session decision) and runs from before this history existed are not reconstructed, so a session without ongoing monitoring returns an empty list. `count` is exact up to 100 and capped at 100 above that, so follow `next` until it is `null`. Pass `month` to read one calendar month at a time. A scoped API key needs `decisions: read`; see [Continuous AML monitoring](https://docs.didit.me/core-technology/aml-screening/continuous-monitoring-aml-screening).
    *
    * `GET /v3/session/{sessionId}/aml-screening-history/`
    *
@@ -1139,6 +1302,40 @@ export class Sessions extends APIResource {
     options?: RequestOptions,
   ): APIPromise<SessionsListFeatureOverridesResponse> {
     return this._client.request(SESSIONS_LIST_FEATURE_OVERRIDES, [sessionId], undefined, options);
+  }
+
+  /**
+   * List the parties named by the uploaded documents
+   *
+   * Return the shareholders and directors that the documents uploaded to this KYB session name, merged per person and attributed to the documents that named them. Show them to your applicant to confirm, then declare them with the party draft endpoints. A range stays a range: `ownership_percent.text` keeps the verbatim figure and `min` / `max` the numbers read from it. Nobody is labelled a UBO here; that is decided when the parties are submitted, from the role settings and ownership thresholds of the workflow. The same list is in the session decision as `document_verifications[].extracted_parties`. Requires `read:businesses` or `read:sessions`.
+   *
+   * `GET /v3/session/{sessionId}/kyb/extracted-parties/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   */
+  listKybExtractedParties(
+    sessionId: string,
+    params: SessionsListKybExtractedPartiesParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsListKybExtractedPartiesResponse> {
+    return this._client.request(SESSIONS_LIST_KYB_EXTRACTED_PARTIES, [sessionId], params, options);
+  }
+
+  /**
+   * List the KYB party drafts
+   *
+   * List the parties you are preparing for this KYB session, oldest first. A draft is not a declared party: it does not appear in the decision or the console and creates no verification session until you submit it with `POST /v3/session/{sessionId}/kyb/parties/submit/`. Requires `write:businesses`.
+   *
+   * `GET /v3/session/{sessionId}/kyb/parties/drafts/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   */
+  listKybPartyDrafts(
+    sessionId: string,
+    params: SessionsListKybPartyDraftsParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsListKybPartyDraftsResponse> {
+    return this._client.request(SESSIONS_LIST_KYB_PARTY_DRAFTS, [sessionId], params, options);
   }
 
   /**
@@ -1231,7 +1428,7 @@ export class Sessions extends APIResource {
    *
    * Retrieve the complete decision report for a verification session - the rolled-up session `status` plus one report per verification feature the workflow executed. This is the canonical read endpoint for both User Verification (KYC) and Business Verification (KYB) sessions: the same path serves both, and the top-level `session_kind` discriminator tells you which shape you received (`"user"` or `"business"`).
    *
-   * **Every feature report is a plural array.** V3 workflows are graphs that can run the same feature more than once, so each block (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `phone_verifications`, `email_verifications`, `aml_screenings`, `ip_analyses`, `database_validations`, `questionnaire_responses`) is a JSON array whose items each carry a `node_id` identifying the workflow graph node that produced them. Read NFC as `response.nfc_verifications[0]` - never as a singular `nfc` field. A block is `null` until the workflow has run that feature at least once; features the workflow does not include never appear with data. Electronic Signature results are in `signatures`, which is present only when the workflow has an Electronic Signature step.
+   * **Every feature report is a plural array.** V3 workflows are graphs that can run the same feature more than once, so each block (`id_verifications`, `nfc_verifications`, `liveness_checks`, `face_matches`, `poa_verifications`, `document_ai_documents`, `phone_verifications`, `email_verifications`, `aml_screenings`, `ip_analyses`, `database_validations`, `questionnaire_responses`) is a JSON array whose items each carry a `node_id` identifying the workflow graph node that produced them. Read NFC as `response.nfc_verifications[0]` - never as a singular `nfc` field. A block is `null` until the workflow has run that feature at least once; features the workflow does not include never appear with data. E-signature results are in `signatures`, which is present only when the workflow has an E-signature step.
    *
    * **When to call.** The recommended pattern is event-driven: wait for the `status.updated` webhook that fires when the session reaches a decision (`Approved`, `Declined`, `In Review`), then call this endpoint once to fetch the full report. Polling also works - the endpoint can be called at any point in the session lifecycle and returns the data produced so far - but webhook-then-fetch is cheaper and faster. Media URLs in the response (document images, videos, PDFs) are short-lived presigned links: fetch them promptly or re-request the decision to get fresh ones, and do not persist them as long-term references.
    *
@@ -1311,9 +1508,26 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Submit the KYB party drafts
+   *
+   * Declare the stored drafts as the company's key people. This is the hosted Key People step under your API key: Didit decides from the role settings and ownership thresholds of the workflow which parties must be verified, creates one individual KYC session (or a KYB sub-session for a corporate owner) for each of them, sends the emails the workflow asks for, and advances the session. Each child session is billed like in the hosted flow. The drafts are consumed. Repeating the call after a successful submit changes nothing and answers `200` with `already_submitted: true` and the parties that already exist. The session must be on the Key People step. Send each person's `kyc_session_url` to them, or embed it. Requires `write:businesses`.
+   *
+   * `POST /v3/session/{sessionId}/kyb/parties/submit/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   */
+  submitKybParties(
+    sessionId: string,
+    params: SessionsSubmitKybPartiesParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsSubmitKybPartiesResponse> {
+    return this._client.request(SESSIONS_SUBMIT_KYB_PARTIES, [sessionId], params, options);
+  }
+
+  /**
    * Update an AML hit review status
    *
-   * Set the review status of a **single AML hit** (a potential sanction / PEP / watchlist / adverse-media match) returned by AML screening, without changing the overall session decision. Identify the hit by its `hit_id` (the `id` of an entry in the AML check's `hits` array - see the session decision).
+   * Set the review status of a **single AML hit** (a potential sanction / PEP / watchlist / adverse-media match) returned by AML screening, without changing the overall session decision. Identify the hit by its `hit_id` (the `id` of an entry in the AML check's `hits` array - see the session decision). A hit id returned in the earlier format is still accepted; the response always names the hit by its current `id`.
    *
    * `review_status` is one of `Unreviewed`, `Confirmed Match`, `False Positive`, or `Inconclusive`. Reviewer decisions are preserved across ongoing-monitoring updates, so a hit you mark `False Positive` stays that way when the provider re-screens.
    *
@@ -1495,6 +1709,30 @@ export class Sessions extends APIResource {
   }
 
   /**
+   * Edit a KYB party draft
+   *
+   * Change fields of one party draft. The edit is merged into the stored draft and the merged party is validated as a whole, so an edit that would leave the party incomplete is rejected. Changing `first_name` or `last_name` replaces the stored full name. Requires `write:businesses`.
+   *
+   * `PATCH /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   * @param draftId UUID of the party draft (`draft_id` returned when it was created).
+   */
+  updateKybPartyDraft(
+    sessionId: string,
+    draftId: string,
+    params: SessionsUpdateKybPartyDraftParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionsUpdateKybPartyDraftResponse> {
+    return this._client.request(
+      SESSIONS_UPDATE_KYB_PARTY_DRAFT,
+      [sessionId, draftId],
+      params,
+      options,
+    );
+  }
+
+  /**
    * Update Proof of Address data extracted from the POA document on a verification session
    *
    * Correct the fields extracted from the user's Proof of Address document - utility bill, bank statement, or other address evidence - after the verification has finished: issuer, dates, the printed name, the address itself, and banking details. Every field in the body is optional: only the keys you send are written, everything else is left untouched (`PATCH` semantics).
@@ -1544,5 +1782,22 @@ export class Sessions extends APIResource {
     options?: RequestOptions,
   ): APIPromise<SessionsUpdateStatusResponse> {
     return this._client.request(SESSIONS_UPDATE_STATUS, [sessionId], params, options);
+  }
+
+  /**
+   * Upload KYB documents to a session
+   *
+   * Upload one or more corporate documents (articles of incorporation, shareholder register, certificate of incorporation, ...) to the KYB Documents step of a Business Verification session, from your own server instead of the hosted page. Didit runs the hosted pipeline: compression, OCR, tampering and cross-document checks, document grouping, and advances the session when the required document groups are satisfied. The step costs one flat fee however many files you send. The session must be open and on the KYB Documents step, and the company chosen at the registry step must exist. Read the people the documents name with `GET /v3/session/{sessionId}/kyb/extracted-parties/`. Requires `write:businesses`.
+   *
+   * `POST /v3/session/{sessionId}/kyb/documents/`
+   *
+   * @param sessionId UUID of the Business Verification (KYB) session. It must belong to the application of the API key.
+   */
+  uploadKybDocuments(
+    sessionId: string,
+    params: SessionsUploadKybDocumentsParams,
+    options?: RequestOptions,
+  ): APIPromise<SessionsUploadKybDocumentsResponse> {
+    return this._client.request(SESSIONS_UPLOAD_KYB_DOCUMENTS, [sessionId], params, options);
   }
 }

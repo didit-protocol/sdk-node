@@ -69,7 +69,7 @@ describe("sessions", () => {
     const result = await client.sessions.bulkUpdateAmlHitStatus(
       "11111111-2222-3333-4444-555555555555",
       {
-        hit_updates: [{ hit_id: "abc123", review_status: "Unreviewed" }],
+        hit_updates: [{ hit_id: "hit_7c1e9a40b2d35f86e0a4c912", review_status: "Unreviewed" }],
         node_id_query: "feature_aml_1",
       },
     );
@@ -85,7 +85,7 @@ describe("sessions", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({
-      hit_updates: [{ hit_id: "abc123", review_status: "Unreviewed" }],
+      hit_updates: [{ hit_id: "hit_7c1e9a40b2d35f86e0a4c912", review_status: "Unreviewed" }],
     });
     expectMatchesExample(
       result,
@@ -140,6 +140,33 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("POST /v3/session/"));
   });
 
+  it("sessions.create_kyb_party_draft: POST /v3/session/{sessionId}/kyb/parties/drafts/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/session/{sessionId}/kyb/parties/drafts/"),
+    });
+    const result = await client.sessions.createKybPartyDraft(
+      "33333333-4444-5555-6666-777777777777",
+      { entity_type: "person", nationality: "value" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/drafts/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ entity_type: "person", nationality: "value" });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/kyb/parties/drafts/"),
+    );
+  });
+
   it("sessions.delete: DELETE /v3/session/{sessionId}/delete/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -159,11 +186,30 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("DELETE /v3/session/{sessionId}/delete/"));
   });
 
+  it("sessions.delete_kyb_party_draft: DELETE /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.sessions.deleteKybPartyDraft(
+      "33333333-4444-5555-6666-777777777777",
+      "5b0d7a52-9d3e-4f0c-8c6a-0e5f3a1b2c4d",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/drafts/5b0d7a52-9d3e-4f0c-8c6a-0e5f3a1b2c4d/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+  });
+
   it("sessions.export_aml_screening_history: GET /v3/session/{sessionId}/aml-screening-history/export/", async () => {
     const { client, calls } = mockClient({ status: 200, body: BINARY, contentType: "text/csv" });
     const result = await client.sessions.exportAmlScreeningHistory(
       "11111111-2222-3333-4444-555555555555",
-      { node_id: "feature_aml_1" },
+      { node_id: "feature_aml_1", month: "2026-09" },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -172,13 +218,31 @@ describe("sessions", () => {
     expect(request.path).toBe(
       "/v3/session/11111111-2222-3333-4444-555555555555/aml-screening-history/export/",
     );
-    expect(request.query).toEqual({ node_id: "feature_aml_1" });
+    expect(request.query).toEqual({ node_id: "feature_aml_1", month: "2026-09" });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("text/csv");
     expect(request.bodyText).toBe("");
     expect(result).toBeInstanceOf(Blob);
     expect(result.type).toBe("text/csv");
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.export_files: POST /v3/session/{sessionId}/files-export/", async () => {
+    const { client, calls } = mockClient({
+      status: 202,
+      json: responseExample("POST /v3/session/{sessionId}/files-export/"),
+    });
+    const result = await client.sessions.exportFiles("11111111-2222-3333-4444-555555555555");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/11111111-2222-3333-4444-555555555555/files-export/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("POST /v3/session/{sessionId}/files-export/"));
   });
 
   it("sessions.generate_pdf: GET /v3/session/{sessionId}/generate-pdf/", async () => {
@@ -200,6 +264,32 @@ describe("sessions", () => {
     expect(result).toBeInstanceOf(Blob);
     expect(result.type).toBe("application/pdf");
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("sessions.get_files_export: GET /v3/session/{sessionId}/files-export/{exportId}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/files-export/{exportId}/"),
+    });
+    const result = await client.sessions.getFilesExport(
+      "11111111-2222-3333-4444-555555555555",
+      "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/11111111-2222-3333-4444-555555555555/files-export/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/session/{sessionId}/files-export/{exportId}/"),
+    );
   });
 
   it("sessions.import_shared: POST /v3/session/import-shared/", async () => {
@@ -546,7 +636,13 @@ describe("sessions", () => {
     });
     const page = await client.sessions.listAmlScreeningHistory(
       "11111111-2222-3333-4444-555555555555",
-      { node_id: "feature_aml_1", limit: 50, offset: 0, ordering: "completed_at" },
+      {
+        node_id: "feature_aml_1",
+        month: "2026-09",
+        limit: 50,
+        offset: 0,
+        ordering: "completed_at",
+      },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -557,6 +653,7 @@ describe("sessions", () => {
     );
     expect(request.query).toEqual({
       node_id: "feature_aml_1",
+      month: "2026-09",
       limit: "50",
       offset: "0",
       ordering: "completed_at",
@@ -619,6 +716,54 @@ describe("sessions", () => {
     expectMatchesExample(
       result,
       responseExample("GET /v3/session/{sessionId}/features/overrides/"),
+    );
+  });
+
+  it("sessions.list_kyb_extracted_parties: GET /v3/session/{sessionId}/kyb/extracted-parties/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/kyb/extracted-parties/"),
+    });
+    const result = await client.sessions.listKybExtractedParties(
+      "33333333-4444-5555-6666-777777777777",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/extracted-parties/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/session/{sessionId}/kyb/extracted-parties/"),
+    );
+  });
+
+  it("sessions.list_kyb_party_drafts: GET /v3/session/{sessionId}/kyb/parties/drafts/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/{sessionId}/kyb/parties/drafts/"),
+    });
+    const result = await client.sessions.listKybPartyDrafts("33333333-4444-5555-6666-777777777777");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/drafts/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/session/{sessionId}/kyb/parties/drafts/"),
     );
   });
 
@@ -954,6 +1099,30 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("POST /v3/session/{sessionId}/simulate/"));
   });
 
+  it("sessions.submit_kyb_parties: POST /v3/session/{sessionId}/kyb/parties/submit/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/kyb/parties/submit/"),
+    });
+    const result = await client.sessions.submitKybParties("33333333-4444-5555-6666-777777777777");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/submit/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/{sessionId}/kyb/parties/submit/"),
+    );
+  });
+
   it("sessions.update_aml_hit_status: PATCH /v3/session/{sessionId}/update-aml-hit-status/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -961,7 +1130,11 @@ describe("sessions", () => {
     });
     const result = await client.sessions.updateAmlHitStatus(
       "11111111-2222-3333-4444-555555555555",
-      { hit_id: "abc123", review_status: "Unreviewed", node_id_query: "feature_aml_1" },
+      {
+        hit_id: "hit_7c1e9a40b2d35f86e0a4c912",
+        review_status: "Unreviewed",
+        node_id_query: "feature_aml_1",
+      },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -974,7 +1147,10 @@ describe("sessions", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({ hit_id: "abc123", review_status: "Unreviewed" });
+    expect(request.json).toEqual({
+      hit_id: "hit_7c1e9a40b2d35f86e0a4c912",
+      review_status: "Unreviewed",
+    });
     expectMatchesExample(
       result,
       responseExample("PATCH /v3/session/{sessionId}/update-aml-hit-status/"),
@@ -1139,6 +1315,33 @@ describe("sessions", () => {
     );
   });
 
+  it("sessions.update_kyb_party_draft: PATCH /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/"),
+    });
+    const result = await client.sessions.updateKybPartyDraft(
+      "33333333-4444-5555-6666-777777777777",
+      "5b0d7a52-9d3e-4f0c-8c6a-0e5f3a1b2c4d",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/session/33333333-4444-5555-6666-777777777777/kyb/parties/drafts/5b0d7a52-9d3e-4f0c-8c6a-0e5f3a1b2c4d/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/session/{sessionId}/kyb/parties/drafts/{draftId}/"),
+    );
+  });
+
   it("sessions.update_poa_data: PATCH /v3/session/{sessionId}/update-poa-data/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -1179,6 +1382,36 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({ new_status: "Approved" });
     expectMatchesExample(result, responseExample("PATCH /v3/session/{sessionId}/update-status/"));
+  });
+
+  it("sessions.upload_kyb_documents: POST /v3/session/{sessionId}/kyb/documents/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/session/{sessionId}/kyb/documents/"),
+    });
+    const result = await client.sessions.uploadKybDocuments(
+      "33333333-4444-5555-6666-777777777777",
+      {
+        documents: [
+          { data: new Uint8Array([1, 2, 3]), filename: "document.jpg", contentType: "image/jpeg" },
+        ],
+      },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/33333333-4444-5555-6666-777777777777/kyb/documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(request.form).toEqual({});
+    expect(Object.keys(request.files).sort()).toEqual(["documents"]);
+    expect(request.files.documents).toEqual([
+      { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
+    ]);
+    expectMatchesExample(result, responseExample("POST /v3/session/{sessionId}/kyb/documents/"));
   });
 
   it("sessions.webhooks.list: GET /v3/session/{sessionId}/webhooks/", async () => {

@@ -436,6 +436,49 @@ describe("travel_rule", () => {
     expect(page.hasNextPage()).toBe(false);
   });
 
+  it("travel_rule.unmatched_deposits.list: GET /v3/travel-rule/unmatched/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/unmatched/", "page"),
+    });
+    const page = await client.travelRule.unmatchedDeposits.list();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/unmatched/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample({ ...page }, responseExample("GET /v3/travel-rule/unmatched/", "page"));
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("travel_rule.unmatched_deposits.match: POST /v3/travel-rule/unmatched/{transaction_uuid}/match/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/travel-rule/unmatched/{transaction_uuid}/match/"),
+    });
+    const result = await client.travelRule.unmatchedDeposits.match("transaction-uuid-1", {
+      transaction_id: "00000000-0000-4000-8000-000000000001",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/unmatched/transaction-uuid-1/match/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ transaction_id: "00000000-0000-4000-8000-000000000001" });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/travel-rule/unmatched/{transaction_uuid}/match/"),
+    );
+  });
+
   it("travel_rule.update_settings: PUT /v3/travel-rule/settings/", async () => {
     const { client, calls } = mockClient({
       status: 200,
