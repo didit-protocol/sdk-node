@@ -660,7 +660,7 @@ export interface AddressValidationResultAddress {
   country?: string | null;
 }
 
-/** Full application record. `uuid`, `client_id`, and `api_key` never change after creation. */
+/** Full application record. `uuid`, `client_id`, and `api_key` never change after creation. `data_location` doesn't either, except once on the live application created with your organization, before it is used (see the update request). */
 export interface Application {
   /** Application UUID. Use as `{app_id}` in subsequent calls. */
   uuid?: string;
@@ -681,6 +681,8 @@ export interface Application {
   /** Internal description for the application (not shown to end users). */
   description?: string | null;
   created_at?: Date;
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney) and `mx` (Mexico) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  data_location?: ApplicationDataLocation;
   /** The application's products. Always all three, in this order: `identity`, `transactions`, `authentication`. A new application has `identity` enabled with every module on, and `transactions` and `authentication` disabled. Read-only: a `products` key in a create or update body is ignored. */
   products?: ApplicationProduct[];
 }
@@ -1102,7 +1104,12 @@ export interface ApplicationCredentialsSummary {
   client_id?: string;
   /** Use this as `x-api-key` on every verification API call. New keys start with `sk_live_` (live application) or `sk_test_` (sandbox application), followed by 43 URL-safe characters (letters, digits, `-` and `_`). Keys created before this format have no prefix and keep working unchanged. */
   api_key?: string;
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney) and `mx` (Mexico) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  data_location?: ApplicationDataLocation;
 }
+
+/** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney) and `mx` (Mexico) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+export type ApplicationDataLocation = "eu" | "au" | "mx" | (string & {});
 
 /** One product of an application and its state. Read-only: the application endpoints return it and ignore it in a request body. */
 export interface ApplicationProduct {
@@ -6334,7 +6341,7 @@ export interface ReviewItem {
   new_value?: Record<string, unknown> | null;
   /** Names of the fields modified by this activity (e.g. `["status"]`). Empty for comments and for entries added via `POST …/reviews/`. */
   changed_fields?: string[];
-  /** Extra context for system-generated entries. Console detail-page views carry `{"system_event": "DETAIL_VIEWED", "detail_type": "verification"}` so they can be filtered out of notification logic. `null` for ordinary entries. */
+  /** Extra context for system-generated entries. Console detail-page views carry `{"system_event": "DETAIL_VIEWED", "detail_type": "verification"}` so they can be filtered out of notification logic. A `COMMENT` its author edited in the Console carries `edited_at`, the ISO 8601 time of the last edit (`comment` and `mentioned_emails` then hold the edited text and its mentions). `null` for ordinary entries. */
   metadata?: Record<string, unknown> | null;
   /** When the entry was written, ISO 8601 UTC. */
   created_at?: Date;
@@ -7288,7 +7295,7 @@ export interface SessionDecisionIdVerifications {
   assurance?: "documentary" | "data_match" | "cryptographic" | (string & {});
   /** Catalog wallet id when `verification_method` is `wallet` (`mitid`, `bankid_se`, `itsme`, ...). `null` otherwise. */
   wallet_provider?: string | null;
-  /** Why a non-document method ended the ID step. Set on the declined report when a lookup or a wallet sign-in failed and the country's fallback switch was `decline`. `null` otherwise. */
+  /** Why a non-document method did not end the ID step. Set when a lookup or a wallet sign-in failed: on the document verification the user continued with when the country's fallback switch was `fallback_to_document` (`action` is `fallback_to_document`), or on the declined report when it was `decline`. `null` otherwise. */
   fallback_from?: SessionDecisionIdVerificationsFallbackFrom | null;
   /** Registry evidence. Present only when `verification_method` is `id_lookup`; `null` otherwise. */
   id_lookup?: SessionDecisionIdVerificationsIdLookup | null;
@@ -7522,14 +7529,14 @@ export interface SessionDecisionIdVerificationsExtraFields {
   [key: string]: unknown;
 }
 
-/** Why a non-document method ended the ID step. Set on the declined report when a lookup or a wallet sign-in failed and the country's fallback switch was `decline`. `null` otherwise. */
+/** Why a non-document method did not end the ID step. Set when a lookup or a wallet sign-in failed: on the document verification the user continued with when the country's fallback switch was `fallback_to_document` (`action` is `fallback_to_document`), or on the declined report when it was `decline`. `null` otherwise. */
 export interface SessionDecisionIdVerificationsFallbackFrom {
   /** The method that failed. */
   method?: "id_lookup" | "wallet" | (string & {});
   /** The outcome that ended it, e.g. `no_match`, `provider_error`, `cancelled`, `timeout`. */
   reason?: string;
-  /** The configured action that was taken, e.g. `decline`. */
-  action?: string;
+  /** The configured action that was taken: `fallback_to_document` or `decline`. */
+  action?: "fallback_to_document" | "decline" | (string & {});
 }
 
 /** Quality metrics for the front document image. Each sub-score ranges from 0 to 100. */
