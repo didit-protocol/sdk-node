@@ -72,8 +72,8 @@ describe("spec sync", () => {
     const result = run(base());
     expect(result).toEqual({
       changed: false,
-      breaking: false,
-      release: "none",
+      type: "chore",
+      breaking: [],
       summary: "No upstream change.\n",
       writes: new Map(),
     });
@@ -103,7 +103,8 @@ describe("spec sync", () => {
       fetched_at: "2026-10-18T06:37:00Z",
     });
     expect(source["verification.json"]!.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(result.breaking).toBe(false);
+    expect(result.breaking).toEqual([]);
+    expect(result.type).toBe("chore");
   });
 
   it("lists added operations, and flags one without SDK naming", () => {
@@ -122,9 +123,17 @@ describe("spec sync", () => {
     const next = base();
     delete (next.paths as Doc)["/v3/items/{id}/"];
     const result = run(next);
-    // Kept as a deprecated method, so nothing breaks yet: a feature release ships it.
-    expect(result.breaking).toBe(false);
-    expect(result.release).toBe("feature");
+    // The operation left the API, which can break typed code; the method stays deprecated.
+    expect(result.type).toBe("feat");
+    expect(result.breaking).toEqual([
+      {
+        operation: "GET /v3/items/{id}/",
+        in: "operation",
+        field: "",
+        kind: "removed",
+        text: "`GET /v3/items/{id}/` was removed (`items.retrieve` stays as a deprecated method until version 0.5.0)",
+      },
+    ]);
     const deprecations = result.summary.slice(result.summary.indexOf("## Deprecated methods"));
     expect(deprecations).toContain(
       "`items.retrieve` was removed upstream (GET /v3/items/{id}/); kept as a deprecated method until version 0.5.0",
@@ -177,8 +186,8 @@ describe("spec sync", () => {
       "x-didit-sdk": naming("items", "get"),
     };
     const result = run(next);
-    expect(result.breaking).toBe(false);
-    expect(result.release).toBe("feature");
+    expect(result.breaking).toEqual([]);
+    expect(result.type).toBe("feat");
     expect(result.summary).toContain("`items.retrieve` renamed to `items.get`");
     const entry = (written(result, "deprecated-operations.json").methods as Record<string, Doc>)[
       "items.retrieve"
@@ -231,12 +240,26 @@ describe("spec sync", () => {
       ],
     };
     const result = run(next);
-    expect(result.breaking).toBe(true);
+    expect(result.type).toBe("feat");
+    expect(result.breaking.map((b) => [b.operation, b.in, b.field, b.kind])).toEqual([
+      ["GET /v3/items/", "response", "[].id", "string->integer"],
+      ["GET /v3/items/", "response", "[].name", "removed"],
+      ["GET /v3/items/", "query", "status", "now-required"],
+      ["GET /v3/items/{id}/", "response", "id", "string->integer"],
+      ["GET /v3/items/{id}/", "response", "name", "removed"],
+    ]);
+    expect(result.summary).toMatch(
+      /^## Breaking changes\n- `GET \/v3\/items\/` response field `\[\]\.id` changed type from string to integer\n/,
+    );
+    expect(result.summary).toContain(
+      "- `GET /v3/items/` query parameter `status` was added and is required\n",
+    );
     const changed = result.summary.slice(result.summary.indexOf("## Changed operations"));
     expect(changed).toContain("parameter added: status (query), required (breaking)");
     expect(changed).toContain("response[].id: type string -> integer (breaking)");
     expect(changed).toContain("response[].name: removed (breaking)");
     expect(changed).toContain("response[].extra: added");
+    expect(changed).not.toContain("response[].extra: added (breaking)");
     expect(result.summary).toContain("verification.json changed: `Item`");
   });
 
@@ -383,7 +406,7 @@ describe("spec sync", () => {
     ]);
     const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
     expect(result.changed).toBe(true);
-    expect(result.release).toBe("none");
+    expect(result.type).toBe("chore");
     expect(result.summary).toContain("## Breaking changes\nNone detected.");
     expect(result.summary).toContain(
       "`GET /v3/pickup/` (not exposed by server SDKs): parameter added: token (query), required",
@@ -485,13 +508,13 @@ describe("spec sync", () => {
     paths["/v3/items/"]!.get!["x-didit-sdk"] = naming("items", "list");
     paths["/v3/items/{id}/"]!.get!["x-didit-sdk"] = naming("items", "retrieve");
     const result = run(next);
-    expect(result.release).toBe("none");
+    expect(result.type).toBe("chore");
     expect(result.summary).toContain("## Changed operations (0)");
     expect(result.summary).toContain("## Overlay\nDropped 2 overlay entries");
     expect(written(result, "overlay.json").operations).toEqual({});
   });
 
-  it("calls a scope or credentials change of a method breaking", () => {
+  it("releases a scope or credentials change of a method as a feature, not as breaking", () => {
     const next = base();
     (next.paths as Record<string, Record<string, Doc>>)["/v3/items/"]!.get!["x-didit-sdk"] = naming(
       "items",
@@ -499,8 +522,9 @@ describe("spec sync", () => {
       { scope: "application" },
     );
     const result = run(next);
-    expect(result.release).toBe("breaking");
-    expect(result.summary).toContain('x-didit-sdk scope null -> "application" (breaking)');
+    expect(result.type).toBe("feat");
+    expect(result.breaking).toEqual([]);
+    expect(result.summary).toContain('`GET /v3/items/`: x-didit-sdk scope null -> "application"');
   });
 
   it("keeps the types of removed schemas that a deprecated method still uses", () => {
@@ -512,14 +536,14 @@ describe("spec sync", () => {
     };
     delete (next.components as { schemas: Doc }).schemas.Item;
     const result = run(next);
-    expect(result.release).toBe("feature");
+    expect(result.type).toBe("feat");
     expect(result.summary).toContain(
       "verification.json removed upstream, type kept for the deprecated methods that use it: `Item`",
     );
     expect(result.summary).not.toContain("its type leaves the SDK");
   });
 
-  it("calls a removed schema that nothing uses any more breaking", () => {
+  it("releases a removed schema that nothing uses any more as a feature", () => {
     const current = base();
     (current.components as { schemas: Doc }).schemas.Orphan = { type: "string" };
     const files = new Map<string, Uint8Array | undefined>([
@@ -532,8 +556,9 @@ describe("spec sync", () => {
       ["account.json", files.get("account.json")!],
     ]);
     const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
-    expect(result.release).toBe("breaking");
-    expect(result.summary).toContain("schema `Orphan` removed (its type leaves the SDK)");
+    expect(result.type).toBe("feat");
+    expect(result.breaking).toEqual([]);
+    expect(result.summary).toContain("verification.json removed (its type leaves the SDK): `Orphan`");
   });
 
   it("releases nothing for a change of descriptions only", () => {
@@ -543,7 +568,8 @@ describe("spec sync", () => {
     ((next.paths as Doc)["/v3/items/"] as Record<string, Doc>).get!.summary = "List items";
     const result = run(next);
     expect(result.changed).toBe(true);
-    expect(result.release).toBe("none");
+    expect(result.type).toBe("chore");
+    expect(result.breaking).toEqual([]);
     expect(result.summary).toContain("verification.json descriptions or examples changed: `Item`");
   });
 });
