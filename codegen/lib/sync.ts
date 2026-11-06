@@ -295,16 +295,18 @@ function sortKeys(node: Json): Json {
 
 /**
  * The types a value of `schema` can have, `null` included: a string format with a
- * type of its own (`string(date-time)`) counts as a type, and a `oneOf`/`anyOf`
- * has the types of its variants, unless one of them has no known type.
+ * type of its own (`string(date-time)`) counts as a type, and with `withVariants` a
+ * `oneOf`/`anyOf` has the types of its variants, unless one of them has no known type.
  */
-function types(schema: JsonObject, depth = 0): Set<string> {
+function types(schema: JsonObject, withVariants = true, depth = 0): Set<string> {
   const out = new Set<string>();
   const format =
     typeof schema.format === "string" && TYPED_FORMATS.has(schema.format)
       ? `string(${schema.format})`
       : "string";
-  const add = (t: string): void => void out.add(t === "string" ? format : t);
+  const add = (t: string): void => {
+    out.add(t === "string" ? format : t);
+  };
   if (typeof schema.type === "string") add(schema.type);
   if (Array.isArray(schema.type)) for (const t of schema.type) add(String(t));
   if (schema.type === undefined && isObject(schema.properties)) add("object");
@@ -315,8 +317,8 @@ function types(schema: JsonObject, depth = 0): Set<string> {
   for (const v of [...asArray(schema.anyOf), ...asArray(schema.oneOf)]) {
     if (!isObject(v)) continue;
     if (v.type === "null") out.add("null");
-    else if (depth < 16) {
-      const inner = types(v, depth + 1);
+    else if (withVariants && depth < 16) {
+      const inner = types(v, true, depth + 1);
       if (![...inner].some((t) => t !== "null")) known = false;
       for (const t of inner) union.add(t);
     }
@@ -398,8 +400,12 @@ export function diffSchema(
   }
   const old = unwrapNullable(oldSchema);
   const next = unwrapNullable(nextSchema);
-  const oldTypes = types(old);
-  const newTypes = types(next);
+  // Two unions compare variant by variant (below); a union and a plain type by type.
+  const unions = [old, next].every(
+    (s) => variants(s, "oneOf").length || variants(s, "anyOf").length,
+  );
+  const oldTypes = types(old, !unions);
+  const newTypes = types(next, !unions);
   const oldPlain = new Set([...oldTypes].filter((t) => t !== "null"));
   const newPlain = new Set([...newTypes].filter((t) => t !== "null"));
   if (oldPlain.size && newPlain.size && !setEq(oldPlain, newPlain)) {
