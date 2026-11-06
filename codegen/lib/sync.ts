@@ -680,26 +680,19 @@ export function releaseSection(
   const end = ["END_COMMIT_OVERRIDE", ""];
   const nested = (text: string): string =>
     `BEGIN_NESTED_COMMIT\n${BREAKING_TYPE}(spec): ${text}\nEND_NESTED_COMMIT`;
-  const size = (parts: string[]): number => parts.join("\n").length;
-  for (let i = 0; i < breaking.length; i++) {
+  const more = (count: number): string =>
+    nested(
+      `and ${count} more changes that can break typed code, listed in the spec sync pull request`,
+    );
+  const fits = (parts: string[]): boolean => [...lines, ...parts, ...end].join("\n").length <= max;
+  for (const [i, change] of breaking.entries()) {
     const rest = breaking.length - i - 1;
-    const more = rest
-      ? [
-          nested(
-            `and ${rest} more changes that can break typed code, listed in the spec sync pull request`,
-          ),
-        ]
-      : [];
-    const candidate = nested(breaking[i]!.text);
-    if (size([...lines, candidate, ...more, ...end]) > max) {
-      lines.push(
-        nested(
-          `and ${breaking.length - i} more changes that can break typed code, listed in the spec sync pull request`,
-        ),
-      );
+    // Always keep room for the line that counts the changes that do not fit.
+    if (!fits([nested(change.text), ...(rest ? [more(rest)] : [])])) {
+      lines.push(more(breaking.length - i));
       break;
     }
-    lines.push(candidate);
+    lines.push(nested(change.text));
   }
   return lines.concat(end).join("\n");
 }
