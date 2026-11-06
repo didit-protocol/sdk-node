@@ -10,7 +10,10 @@
 //   types keep their names) and stays as a deprecated method until the next
 //   minor version; a name that reappears on another path counts as moved;
 // - describe added, removed, renamed, moved and changed operations and schemas,
-//   with everything that can break code written against the SDK listed first.
+//   opening with the changes that can break typed code (exactly the list of
+//   DESIGN section 3.1), and classify the sync as `feat` (a caller can observe
+//   the change) or `chore` (documentation only). Never a major version: a change
+//   that mirrors the API is a minor one (DESIGN section 13).
 
 import { createHash } from "node:crypto";
 
@@ -19,8 +22,20 @@ import { isObject, type Json, type JsonObject } from "./spec.ts";
 export const UPSTREAM: Record<string, string> = {
   "verification.json": "https://docs.didit.me/openapi-25.json",
   "account.json": "https://docs.didit.me/openapi-auth.json",
+  "authentication.json": "https://docs.didit.me/openapi-authentication.json",
 };
-const PREFIXES: Record<string, string> = { "verification.json": "", "account.json": "account " };
+const PREFIXES: Record<string, string> = {
+  "verification.json": "",
+  "account.json": "account ",
+  "authentication.json": "authentication ",
+};
+/**
+ * Documents whose operations the hand-written `authentication` module implements
+ * (DESIGN section 10). The sync describes their changes like any other, but never
+ * names, generates or deprecates a method for them: the contract test in
+ * tests/authentication/contract.test.ts fails until the module follows.
+ */
+const HAND_WRITTEN = new Set(["authentication.json"]);
 const METHODS = ["get", "put", "post", "delete", "patch", "head", "options"];
 // Keys that document a schema without changing what is sent or received.
 const DOC_KEYS = new Set([
@@ -34,10 +49,18 @@ const DOC_KEYS = new Set([
 const MAX_NOTES = 25;
 const COMPONENT_PREFIX = "#/components/schemas/";
 /**
- * The longest summary written for the pull request body. GitHub refuses a body over
- * 65,536 characters, and the workflow appends the checks and the release block.
+ * The longest summary plus release section written for the pull request body. GitHub
+ * refuses a body over 65,536 characters, and the workflow appends the checks.
  */
 export const MAX_SUMMARY = 60_000;
+/** The longest release section, so the summary always keeps most of the room. */
+export const MAX_RELEASE = 20_000;
+/**
+ * The commit type of each change that can break typed code in the release block;
+ * release-please-config.json shows it under RELEASE_NOTES_HEADING.
+ */
+export const BREAKING_TYPE = "api-break";
+export const RELEASE_NOTES_HEADING = "API changes that can break typed code";
 // Objects whose keys are names (properties, media types, status codes), not keywords.
 const NAME_MAPS = new Set([
   "properties",
@@ -69,7 +92,60 @@ export class SpecSyncError extends Error {
   override name = "SpecSyncError";
 }
 
-type Note = [text: string, breaking: boolean];
+/** Where a change that can break typed code is: a parameter goes by its `in`. */
+export type BreakingPlace =
+  | "operation"
+  | "request"
+  | "response"
+  | "query"
+  | "path"
+  | "header"
+  | "cookie";
+
+/**
+ * A change that can break typed code (DESIGN section 3.1): a field or parameter
+ * whose type changed, a field that can now be null, a removed operation, field or
+ * enum value, or a newly required parameter or request field. Every SDK repository
+ * detects exactly this list. Everything else stays in the summary only.
+ */
+export interface BreakingChange {
+  /** The operation: `POST /v3/session/`, `account ...` or `authentication ...`. */
+  operation: string;
+  in: BreakingPlace;
+  /**
+   * The field path (`registry_checks[].company.registry_data`, `[]` for array items,
+   * `{}` for map values) or the parameter name; empty for the operation or a whole body.
+   */
+  field: string;
+  /**
+   * `now-null`; `<old>-><new>` for a type change (`string->object`), `replaced` for a
+   * schema that is no longer an object schema, `variant-removed` for a removed
+   * `oneOf`/`anyOf` variant; `removed`; `enum-removed`; `now-required`.
+   */
+  kind: string;
+  /** The sentence the pull request and the release notes show. */
+  text: string;
+}
+
+type Finding = Omit<BreakingChange, "operation" | "text"> & { says: string };
+
+interface Note {
+  text: string;
+  /** Set when the note is one of the changes that can break typed code. */
+  breaking?: Finding;
+}
+
+/** Where diffSchema is: the label of its notes and the place of what it finds. */
+interface At {
+  /** `response.items[].id`, `body.name` or `parameter status (query)`. */
+  label: string;
+  /** Parameters and the request body; the response otherwise. */
+  request: boolean;
+  in: Exclude<BreakingPlace, "operation">;
+  field: string;
+}
+
+const DOCS_ONLY = "descriptions, examples or other details changed";
 
 /** Parse a download and refuse anything that is not an OpenAPI 3 document with paths. */
 export function checkOpenAPI(name: string, data: Uint8Array): JsonObject {
@@ -245,22 +321,33 @@ function setEq(a: Set<string>, b: Set<string>): boolean {
   return a.size === b.size && [...a].every((x) => b.has(x));
 }
 
+function below(at: At, name: string, separator = "."): At {
+  return {
+    ...at,
+    label: `${at.label}${separator}${name}`,
+    field: at.field && separator === "." ? `${at.field}.${name}` : `${at.field}${name}`,
+  };
+}
+
+function finding(at: At, kind: string, says: string): Finding {
+  return { in: at.in, field: at.field, kind, says };
+}
+
+/** Request and response fields; a parameter itself is not a field. */
+function isField(at: At): boolean {
+  return at.in === "request" || at.in === "response";
+}
+
 /**
- * Append a note for every difference between two dereferenced schemas.
- * `request` tells which side the schema is on: a removed enum value breaks
- * callers that send it, while response enums are open (DESIGN 5.1).
+ * Append a note for every difference between two dereferenced schemas; the ones
+ * DESIGN section 3.1 lists as able to break typed code carry `breaking`.
  */
-export function diffSchema(
-  old: Json,
-  next: Json,
-  where: string,
-  request: boolean,
-  notes: Note[],
-  depth = 0,
-): void {
+export function diffSchema(old: Json, next: Json, at: At, notes: Note[], depth = 0): void {
   if (depth > 16 || same(shape(old), shape(next))) return;
+  const { label, request } = at;
+  const before = notes.length;
   if (!isObject(old) || !isObject(next)) {
-    notes.push([`${where}: schema replaced`, true]);
+    notes.push({ text: `${label}: schema replaced`, breaking: finding(at, "replaced", "changed type") });
     return;
   }
   const oldTypes = types(old);
@@ -268,31 +355,43 @@ export function diffSchema(
   const oldPlain = new Set([...oldTypes].filter((t) => t !== "null"));
   const newPlain = new Set([...newTypes].filter((t) => t !== "null"));
   if (oldPlain.size && newPlain.size && !setEq(oldPlain, newPlain)) {
-    const widened = setEq(oldPlain, new Set(["integer"])) && setEq(newPlain, new Set(["number"]));
-    const narrowed = setEq(oldPlain, new Set(["number"])) && setEq(newPlain, new Set(["integer"]));
-    const harmless = (request && widened) || (!request && narrowed);
-    notes.push([
-      `${where}: type ${[...oldPlain].sort().join("/")} -> ${[...newPlain].sort().join("/")}`,
-      !harmless,
-    ]);
+    const from = [...oldPlain].sort().join("/");
+    const to = [...newPlain].sort().join("/");
+    notes.push({
+      text: `${label}: type ${from} -> ${to}`,
+      breaking: finding(at, `${from}->${to}`, `changed type from ${from} to ${to}`),
+    });
     return;
   }
-  if (newTypes.has("null") && !oldTypes.has("null") && !request)
-    notes.push([`${where}: can now be null`, true]);
-  if (oldTypes.has("null") && !newTypes.has("null") && request)
-    notes.push([`${where}: no longer accepts null`, true]);
+  if (newTypes.has("null") && !oldTypes.has("null")) {
+    const note: Note = { text: `${label}: can now be null` };
+    if (isField(at)) note.breaking = finding(at, "now-null", "can now be null");
+    notes.push(note);
+  }
+  if (oldTypes.has("null") && !newTypes.has("null"))
+    notes.push({ text: `${label}: ${request ? "no longer accepts null" : "is never null now"}` });
 
   const oldEnum = old.enum;
   const newEnum = next.enum;
   if (Array.isArray(oldEnum) && Array.isArray(newEnum)) {
     const gone = oldEnum.filter((v) => !newEnum.some((w) => same(v, w)));
     const added = newEnum.filter((v) => !oldEnum.some((w) => same(v, w)));
-    if (gone.length) notes.push([`${where}: values removed ${JSON.stringify(gone)}`, request]);
-    if (added.length) notes.push([`${where}: values added ${JSON.stringify(added)}`, false]);
+    if (gone.length) {
+      const values = gone.map((v) => `\`${JSON.stringify(v)}\``).join(", ");
+      notes.push({
+        text: `${label}: values removed ${JSON.stringify(gone)}`,
+        breaking: finding(
+          at,
+          "enum-removed",
+          `no longer has the enum ${gone.length === 1 ? "value" : "values"} ${values}`,
+        ),
+      });
+    }
+    if (added.length) notes.push({ text: `${label}: values added ${JSON.stringify(added)}` });
   } else if (Array.isArray(newEnum)) {
-    notes.push([`${where}: now limited to ${JSON.stringify(newEnum)}`, request]);
+    notes.push({ text: `${label}: now limited to ${JSON.stringify(newEnum)}` });
   } else if (Array.isArray(oldEnum)) {
-    notes.push([`${where}: no longer limited to fixed values`, false]);
+    notes.push({ text: `${label}: no longer limited to fixed values` });
   }
 
   const a = objectProps(old);
@@ -300,23 +399,37 @@ export function diffSchema(
   for (const name of Object.keys(a.props)
     .filter((n) => !(n in b.props))
     .sort()) {
-    notes.push([`${where}.${name}: removed`, true]);
+    notes.push({
+      text: `${label}.${name}: removed`,
+      breaking: finding(below(at, name), "removed", "was removed"),
+    });
   }
   for (const name of Object.keys(b.props)
     .filter((n) => !(n in a.props))
     .sort()) {
-    const required = request && b.required.has(name);
-    notes.push([`${where}.${name}: added${required ? " (required)" : ""}`, required]);
+    const note: Note = { text: `${label}.${name}: added` };
+    if (request && b.required.has(name)) {
+      note.text += " (required)";
+      note.breaking = finding(below(at, name), "now-required", "was added and is required");
+    }
+    notes.push(note);
   }
   for (const name of Object.keys(a.props)
     .filter((n) => n in b.props)
     .sort()) {
-    if (request && b.required.has(name) && !a.required.has(name))
-      notes.push([`${where}.${name}: now required`, true]);
-    if (!request && a.required.has(name) && !b.required.has(name)) {
-      notes.push([`${where}.${name}: no longer always present`, true]);
+    if (request && b.required.has(name) && !a.required.has(name)) {
+      notes.push({
+        text: `${label}.${name}: now required`,
+        breaking: finding(below(at, name), "now-required", "is now required"),
+      });
     }
-    diffSchema(a.props[name], b.props[name], `${where}.${name}`, request, notes, depth + 1);
+    if (request && a.required.has(name) && !b.required.has(name))
+      notes.push({ text: `${label}.${name}: now optional` });
+    if (!request && a.required.has(name) && !b.required.has(name))
+      notes.push({ text: `${label}.${name}: no longer always present` });
+    if (!request && b.required.has(name) && !a.required.has(name))
+      notes.push({ text: `${label}.${name}: now always present` });
+    diffSchema(a.props[name], b.props[name], below(at, name), notes, depth + 1);
   }
   for (const [key, suffix] of [
     ["items", "[]"],
@@ -326,8 +439,7 @@ export function diffSchema(
       diffSchema(
         isObject(old[key]) ? old[key] : {},
         isObject(next[key]) ? next[key] : {},
-        `${where}${suffix}`,
-        request,
+        below(at, suffix, ""),
         notes,
         depth + 1,
       );
@@ -336,14 +448,26 @@ export function diffSchema(
   for (const keyword of ["oneOf", "anyOf"]) {
     const ov = variants(old, keyword);
     const nv = variants(next, keyword);
-    if (nv.length < ov.length)
-      notes.push([`${where}: ${ov.length - nv.length} ${keyword} variant(s) removed`, true]);
-    else if (nv.length > ov.length)
-      notes.push([`${where}: ${nv.length - ov.length} ${keyword} variant(s) added`, false]);
-    else
-      ov.forEach((v, i) => {
-        diffSchema(v, nv[i], `${where}<${keyword} ${i + 1}>`, request, notes, depth + 1);
+    if (nv.length < ov.length) {
+      const gone = ov.length - nv.length;
+      notes.push({
+        text: `${label}: ${gone} ${keyword} variant(s) removed`,
+        breaking: finding(at, "variant-removed", `lost ${gone} of its ${keyword} variants`),
       });
+    } else if (nv.length > ov.length) {
+      notes.push({ text: `${label}: ${nv.length - ov.length} ${keyword} variant(s) added` });
+    } else {
+      ov.forEach((v, i) => {
+        diffSchema(v, nv[i], below(at, `(${keyword} ${i + 1})`, ""), notes, depth + 1);
+      });
+    }
+  }
+  // Any other difference a caller can observe (format, pattern, limits, default...).
+  if (notes.length === before) {
+    const keys = [...new Set([...Object.keys(old), ...Object.keys(next)])]
+      .filter((k) => !same(shape(old[k]), shape(next[k])))
+      .sort();
+    notes.push({ text: `${label}: ${keys.join(", ") || "schema"} changed` });
   }
 }
 
