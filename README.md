@@ -346,7 +346,13 @@ Choices this SDK makes where the shared design leaves them to each language:
 
 ## Versioning
 
-This package follows [semantic versioning](https://semver.org). A breaking change to the public SDK surface is a major version (a minor version while the version is 0.x).
+This package follows [semantic versioning](https://semver.org), with one rule for API changes shared by every Didit server SDK ([docs/DESIGN.md](docs/DESIGN.md) section 13):
+
+- A change that mirrors the Didit API is a minor version, even when it can break typed code: a type change, a field that can now be null, or a removed field, operation or enum value. The API already behaves that way for every caller, so an older version of this package is not safer. The release notes list such changes under "API changes that can break typed code".
+- A major version is only for a change to the SDK's own design: renaming or removing a method or resource the API still has, changing client configuration, errors, retries, pagination or webhook verification, or dropping a supported runtime version.
+- An API update that only changes documentation releases nothing on its own.
+
+The version number is this package's own: it moved to 2.x on 2026-11-05 under the earlier rule and continues from there.
 Releases and `CHANGELOG.md` are produced by release-please from conventional commits.
 When the API removes or renames an endpoint, the SDK keeps the old method as deprecated for one more minor version.
 

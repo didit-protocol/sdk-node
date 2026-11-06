@@ -1,19 +1,30 @@
 // Sync openapi/ with the published API contract (docs/DESIGN.md section 3.1).
 //
-//   node codegen/spec-sync.ts [--summary FILE] [--from-dir DIR]
+//   node codegen/spec-sync.ts [--summary FILE] [--release FILE] [--from-dir DIR]
 //
-// Downloads https://docs.didit.me/openapi-25.json and openapi-auth.json and,
-// when either changed, updates openapi/ (see codegen/lib/sync.ts). Writes
-// changed=true|false, breaking=true|false and release=breaking|feature|none to
-// $GITHUB_OUTPUT when set. The generator, not this script, regenerates the code.
-// The summary in FILE (the pull request body) is cut to MAX_SUMMARY characters;
-// the full summary goes to the job summary ($GITHUB_STEP_SUMMARY) when set.
+// Downloads https://docs.didit.me/openapi-25.json, openapi-auth.json and
+// openapi-authentication.json and, when any of them changed, updates openapi/
+// (see codegen/lib/sync.ts). Writes changed=true|false, type=feat|chore, the
+// number of changes that can break typed code (breaking=N), the pull request title
+// and date to $GITHUB_OUTPUT when set. The generator, not this script, regenerates
+// the code. --summary FILE gets the summary for the pull request body and
+// --release FILE the release section that ends it (the BEGIN_COMMIT_OVERRIDE block,
+// empty for chore); together they stay within MAX_SUMMARY characters, and the full
+// summary goes to the job summary ($GITHUB_STEP_SUMMARY) when set.
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { boundSummary, MAX_SUMMARY, SpecSyncError, sync, UPSTREAM } from "./lib/sync.ts";
+import {
+  boundSummary,
+  MAX_SUMMARY,
+  releaseSection,
+  SpecSyncError,
+  sync,
+  syncTitle,
+  UPSTREAM,
+} from "./lib/sync.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OPENAPI = join(ROOT, "openapi");
@@ -46,6 +57,7 @@ function packageVersion(): string {
 async function main(): Promise<void> {
   const fromDir = argument("--from-dir");
   const summaryPath = argument("--summary");
+  const releasePath = argument("--release");
   const downloads = new Map<string, Uint8Array>();
   try {
     for (const [name, url] of Object.entries(UPSTREAM)) {
@@ -77,10 +89,17 @@ async function main(): Promise<void> {
     throw error;
   }
   for (const [name, data] of result.writes) writeFileSync(join(OPENAPI, name), data);
+  const date = now.toISOString().slice(0, 10);
+  const release = result.changed ? releaseSection(result.type, result.breaking, date) : "";
+  if (releasePath) writeFileSync(releasePath, release);
   if (summaryPath) {
     writeFileSync(
       summaryPath,
-      boundSummary(result.summary, MAX_SUMMARY, "the job summary of the spec sync run"),
+      boundSummary(
+        result.summary,
+        MAX_SUMMARY - release.length,
+        "the job summary of the spec sync run",
+      ),
     );
   }
   console.log(result.summary);
@@ -93,7 +112,14 @@ async function main(): Promise<void> {
   if (output) {
     appendFileSync(
       output,
-      `changed=${String(result.changed)}\nbreaking=${String(result.breaking)}\nrelease=${result.release}\ndate=${now.toISOString().slice(0, 10)}\n`,
+      [
+        `changed=${String(result.changed)}`,
+        `type=${result.type}`,
+        `breaking=${result.breaking.length}`,
+        `title=${syncTitle(result.type, date)}`,
+        `date=${date}`,
+        "",
+      ].join("\n"),
     );
   }
 }

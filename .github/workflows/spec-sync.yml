@@ -2,14 +2,16 @@
 #
 # Downloads the upstream OpenAPI documents into openapi/, regenerates the SDK, runs the
 # checks and opens (or updates) one pull request titled
-# "chore(spec): sync API spec YYYY-MM-DD" on the branch chore/spec-sync. The title is
-# fixed by DESIGN.md; the commit, and a BEGIN_COMMIT_OVERRIDE block in the pull request
-# body that release-please reads after a squash merge, carry the type that matches the
-# change: "feat(spec)!" when it breaks the public SDK surface, "feat(spec)" when it adds
-# or changes methods and types (a removed method is kept as deprecated, which is not
-# breaking yet), and "chore(spec)" for documentation-only changes. The summary in the
-# body is cut to fit GitHub's limit for a pull request description; the full summary is
-# in the job summary of the run.
+# "<type>(spec): sync API spec YYYY-MM-DD" on the branch chore/spec-sync. The type is the
+# same in every SDK repository (DESIGN.md sections 3.1 and 13): "feat(spec)" when a caller
+# can observe the change, a minor version even when it can break typed code, and
+# "chore(spec)" when only documentation changed, which releases nothing on its own. Never
+# "!" and never a "BREAKING CHANGE:" footer. The body opens with the changes that can break
+# typed code; for a feat(spec) sync it ends with a BEGIN_COMMIT_OVERRIDE block that
+# release-please reads instead of the commits, with one api-break(spec) entry per such
+# change, which release-please-config.json lists under "API changes that can break typed
+# code". The summary in the body is cut to fit GitHub's limit for a pull request
+# description; the full summary is in the job summary of the run.
 #
 # Secret scan: the files the sync commits are scanned with gitleaks before anything is
 # pushed, because a finding on the sync branch would fail the full-history scan of
@@ -59,11 +61,10 @@ jobs:
       FORCE_COLOR: "1"
     steps:
       - name: Prepare
-        id: prepare
-        # The summary lives outside the checkout so that it is never committed.
+        # The summary and the release section live outside the checkout so that they are never committed.
         run: |
           echo "SUMMARY=$RUNNER_TEMP/spec-sync-summary.md" >> "$GITHUB_ENV"
-          echo "today=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "RELEASE=$RUNNER_TEMP/spec-sync-release.md" >> "$GITHUB_ENV"
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -105,11 +106,13 @@ jobs:
       - name: Download the upstream OpenAPI documents
         id: sync
         if: steps.guard.outputs.skip != 'true'
-        # Writes changed=true|false, breaking=true|false and release=breaking|feature|none
-        # to $GITHUB_OUTPUT, a markdown summary of the added, removed and changed
-        # operations to $SUMMARY (cut to fit a pull request description) and the full
+        # Writes changed=true|false, type=feat|chore, breaking=<count>, the pull request
+        # title and the date to $GITHUB_OUTPUT; a markdown summary that opens with the
+        # changes that can break typed code, then the added, removed and changed
+        # operations and schemas, to $SUMMARY; the release section (empty for chore) to
+        # $RELEASE (together cut to fit a pull request description); and the full
         # summary to the job summary.
-        run: pnpm spec-sync --summary "$SUMMARY"
+        run: pnpm spec-sync --summary "$SUMMARY" --release "$RELEASE"
       - name: Regenerate the SDK and run the checks
         id: checks
         if: steps.sync.outputs.changed == 'true'
@@ -151,41 +154,22 @@ jobs:
       - name: Secret scan of the files the sync commits
         if: steps.sync.outputs.changed == 'true'
         run: bash .github/scripts/scan-spec-sync.sh
-      - name: Write the commit message
-        id: message
+      - name: End the pull request body with the release section
         if: steps.sync.outputs.changed == 'true'
         env:
-          TODAY: ${{ steps.prepare.outputs.today }}
-          RELEASE: ${{ steps.sync.outputs.release }}
-        # A sync that breaks the public SDK surface must never ship as a patch release, and
-        # one that adds methods must reach a release at all (release-please skips chore).
+          TITLE: ${{ steps.sync.outputs.title }}
+        # A feat(spec) sync must reach a release (release-please skips chore), as a minor
+        # version: the title, the commit message and the release block all carry the type,
+        # and none of them carries "!" or a "BREAKING CHANGE:" footer.
         run: |
-          case "$RELEASE" in
-            breaking) header="feat(spec)!: sync API spec ${TODAY}" ;;
-            feature) header="feat(spec): sync API spec ${TODAY}" ;;
-            *) header="chore(spec): sync API spec ${TODAY}" ;;
+          case "$TITLE" in
+            "feat(spec): sync API spec "* | "chore(spec): sync API spec "*) ;;
+            *)
+              echo "::error::Unexpected spec sync title '${TITLE}'."
+              exit 1
+              ;;
           esac
-          {
-            echo "message<<SPEC_SYNC_EOF"
-            echo "$header"
-            if [ "$RELEASE" = "breaking" ]; then
-              echo
-              echo "BREAKING CHANGE: the API contract changed in a way that breaks the SDK surface; see the Breaking changes section of the pull request."
-            fi
-            echo "SPEC_SYNC_EOF"
-          } >> "$GITHUB_OUTPUT"
-          if [ "$RELEASE" != "none" ]; then
-            {
-              echo
-              echo "## Release"
-              echo
-              echo "release-please reads the block below instead of the merge commit, so a squash merge with the pull request title still releases this as \`${header%%:*}\`. Keep it when you edit this description."
-              echo
-              echo "BEGIN_COMMIT_OVERRIDE"
-              echo "$header"
-              echo "END_COMMIT_OVERRIDE"
-            } >> "$SUMMARY"
-          fi
+          cat "$RELEASE" >> "$SUMMARY"
       - name: Stop if someone pushed to the sync branch during this run
         if: steps.sync.outputs.changed == 'true'
         env:
@@ -205,8 +189,8 @@ jobs:
           token: ${{ secrets.SPEC_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
           branch: chore/spec-sync
           delete-branch: true
-          title: "chore(spec): sync API spec ${{ steps.prepare.outputs.today }}"
-          commit-message: ${{ steps.message.outputs.message }}
+          title: ${{ steps.sync.outputs.title }}
+          commit-message: ${{ steps.sync.outputs.title }}
           body-path: ${{ env.SUMMARY }}
           # A sync that fails a check still opens the pull request, as a draft, so the fix
           # (usually an openapi/overlay.json entry) can be pushed to the same branch.
