@@ -7,8 +7,8 @@
 <!-- The conventional commit type of the pull request title. It decides the next version. -->
 
 - [ ] `fix`: a bug fix (patch)
-- [ ] `feat`: a new capability (minor)
-- [ ] `feat!` or `BREAKING CHANGE:`: a breaking change to the public SDK surface (major; minor while 0.x)
+- [ ] `feat`: a new capability, or an API change, even one that can break typed code (minor)
+- [ ] `feat!` or `BREAKING CHANGE:`: a change to the SDK's own design (major, docs/DESIGN.md section 13)
 - [ ] `docs`, `test`, `refactor`, `perf`, `build`, `ci` or `chore`: no release on its own
 
 ## Tests run
@@ -25,7 +25,7 @@
 ## Checklist
 
 - [ ] Generated code (`src/resources`, `src/types`, `tests/generated`) was regenerated with `pnpm generate`, not edited by hand.
-- [ ] The upstream copies in `openapi/` (`verification.json`, `account.json`, `webhook-vectors.json`) were not edited by hand.
+- [ ] The upstream copies in `openapi/` (`verification.json`, `account.json`, `authentication.json`, `webhook-vectors.json`) were not edited by hand.
 - [ ] Public API changes have tests and a README update.
 - [ ] No secrets, API keys or real customer data (fixtures are synthetic).
 
