@@ -526,7 +526,10 @@ export interface OperationChange {
   notes: string[];
   /** The differences that can break typed code (DESIGN section 3.1). */
   breaking: Finding[];
-  /** Only descriptions, examples or other documentation changed. */
+  /**
+   * No difference in parameters, body, success response or naming. The rest of the
+   * operation (error responses, security...) can still differ: see `observable`.
+   */
   docsOnly: boolean;
 }
 
@@ -611,15 +614,7 @@ export function describeChange(
   if (!same(old["x-didit-sdk"], next["x-didit-sdk"]) && next["x-didit-sdk"] !== undefined) {
     found.push({ text: `x-didit-sdk now ${JSON.stringify(sortKeys(next["x-didit-sdk"]))}` });
   }
-  if (!found.length) {
-    // Error responses, security, servers and the like: not documentation.
-    const docsOnly = same(observable(oldDoc, old), observable(newDoc, next));
-    return {
-      notes: [docsOnly ? DOCS_ONLY : "other request or response details changed"],
-      breaking: [],
-      docsOnly,
-    };
-  }
+  if (!found.length) return { notes: [DOCS_ONLY], breaking: [], docsOnly: true };
   const ordered = [...found.filter((n) => n.breaking), ...found.filter((n) => !n.breaking)];
   let notes = ordered.map((n) => (n.breaking ? `${n.text} (breaking)` : n.text));
   if (notes.length > MAX_NOTES)
@@ -1072,9 +1067,10 @@ export function sync(input: SyncInput): SyncResult {
     const old = sameNaming ? withoutNaming(oldOp) : oldOp;
     const next = sameNaming ? withoutNaming(newOp) : newOp;
     const sameOp = same(old, next);
-    if (sameOp && same(oldDocs.get(oldName)!.components, newDocs.get(newName)!.components))
-      continue;
-    const described = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
+    const oldDoc = oldDocs.get(oldName)!;
+    const newDoc = newDocs.get(newName)!;
+    if (sameOp && same(oldDoc.components, newDoc.components)) continue;
+    const described = describeChange(oldDoc, old, newDoc, next);
     let { notes } = described;
     if (!exposed(before) && !exposed(after)) {
       // No SDK method calls it, so nothing here can break or change the SDK.
@@ -1087,6 +1083,11 @@ export function sync(input: SyncInput): SyncResult {
     // A method that keeps its name but changes scope or credentials takes other
     // arguments or needs another client option.
     let docsOnly = described.docsOnly;
+    // Error responses, security and the like are not documentation either.
+    if (docsOnly && !sameOp && !same(observable(oldDoc, old), observable(newDoc, next))) {
+      notes = ["other request or response details changed"];
+      docsOnly = false;
+    }
     if (before?.server && after?.server && nameOf(before) === nameOf(after)) {
       for (const field of ["scope", "auth"] as const) {
         const was = (before as unknown as JsonObject)[field] ?? null;
