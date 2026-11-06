@@ -78,6 +78,9 @@ const NAME_MAPS = new Set([
 ]);
 // Keywords whose value is data sent or received as it is, not a schema.
 const LITERALS = new Set(["enum", "const", "default"]);
+// String formats the SDK gives a type of their own (`Date`, an upload), so a change
+// to or from one is a type change.
+const TYPED_FORMATS = new Set(["date-time", "binary"]);
 
 /**
  * Sample data a deprecated method does not need: examples and vendor extensions such
@@ -290,14 +293,37 @@ function sortKeys(node: Json): Json {
   );
 }
 
-function types(schema: JsonObject): Set<string> {
+/**
+ * The types a value of `schema` can have, `null` included: a string format with a
+ * type of its own (`string(date-time)`) counts as a type, and with `withVariants` a
+ * `oneOf`/`anyOf` has the types of its variants, unless one of them has no known type.
+ */
+function types(schema: JsonObject, withVariants = true, depth = 0): Set<string> {
   const out = new Set<string>();
-  if (typeof schema.type === "string") out.add(schema.type);
-  if (Array.isArray(schema.type)) for (const t of schema.type) out.add(String(t));
-  if (schema.nullable === true) out.add("null");
+  const format =
+    typeof schema.format === "string" && TYPED_FORMATS.has(schema.format)
+      ? `string(${schema.format})`
+      : "string";
+  const add = (t: string): void => {
+    out.add(t === "string" ? format : t);
+  };
+  if (typeof schema.type === "string") add(schema.type);
+  if (Array.isArray(schema.type)) for (const t of schema.type) add(String(t));
+  if (schema.type === undefined && isObject(schema.properties)) add("object");
+  if (schema.type === undefined && isObject(schema.items)) add("array");
+  if (schema.nullable === true || asArray(schema.enum).includes(null)) out.add("null");
+  const union = new Set<string>();
+  let known = true;
   for (const v of [...asArray(schema.anyOf), ...asArray(schema.oneOf)]) {
-    if (isObject(v) && v.type === "null") out.add("null");
+    if (!isObject(v)) continue;
+    if (v.type === "null") out.add("null");
+    else if (withVariants && depth < 16) {
+      const inner = types(v, true, depth + 1);
+      if (![...inner].some((t) => t !== "null")) known = false;
+      for (const t of inner) union.add(t);
+    }
   }
+  if (known) for (const t of union) out.add(t);
   return out;
 }
 
@@ -351,11 +377,6 @@ function finding(at: At, kind: string, says: string): Finding {
   return { in: at.in, field: at.field, kind, says };
 }
 
-/** Request and response fields; a parameter itself is not a field. */
-function isField(at: At): boolean {
-  return at.in === "request" || at.in === "response";
-}
-
 /**
  * Append a note for every difference between two dereferenced schemas; the ones
  * DESIGN section 3.1 lists as able to break typed code carry `breaking`.
@@ -379,8 +400,12 @@ export function diffSchema(
   }
   const old = unwrapNullable(oldSchema);
   const next = unwrapNullable(nextSchema);
-  const oldTypes = types(old);
-  const newTypes = types(next);
+  // Two unions compare variant by variant (below); a union and a plain type by type.
+  const unions = [old, next].every(
+    (s) => variants(s, "oneOf").length || variants(s, "anyOf").length,
+  );
+  const oldTypes = types(old, !unions);
+  const newTypes = types(next, !unions);
   const oldPlain = new Set([...oldTypes].filter((t) => t !== "null"));
   const newPlain = new Set([...newTypes].filter((t) => t !== "null"));
   if (oldPlain.size && newPlain.size && !setEq(oldPlain, newPlain)) {
@@ -393,9 +418,10 @@ export function diffSchema(
     return;
   }
   if (newTypes.has("null") && !oldTypes.has("null")) {
-    const note: Note = { text: `${label}: can now be null` };
-    if (isField(at)) note.breaking = finding(at, "now-null", "can now be null");
-    notes.push(note);
+    notes.push({
+      text: `${label}: can now be null`,
+      breaking: finding(at, "now-null", "can now be null"),
+    });
   }
   if (oldTypes.has("null") && !newTypes.has("null"))
     notes.push({ text: `${label}: ${request ? "no longer accepts null" : "is never null now"}` });
@@ -508,7 +534,10 @@ function body(
   const resolved = dereference(doc, op.requestBody ?? {});
   const rb = isObject(resolved) ? resolved : {};
   const content = isObject(rb.content) ? rb.content : {};
-  const media = content["application/json"] ?? content["multipart/form-data"];
+  const media =
+    content["application/json"] ??
+    content["multipart/form-data"] ??
+    content["application/x-www-form-urlencoded"];
   return {
     required: rb.required === true,
     types: new Set(Object.keys(content)),
@@ -1112,8 +1141,9 @@ export function sync(input: SyncInput): SyncResult {
       continue;
     }
     let docsOnly = described.docsOnly;
-    // Error responses, security and the like are not documentation either.
-    if (docsOnly && !sameOp && !same(observable(oldDoc, old), observable(newDoc, next))) {
+    // Error responses, security and the like are not documentation either, also when
+    // only a component they reference (a response, a parameter...) changed.
+    if (docsOnly && !same(observable(oldDoc, old), observable(newDoc, next))) {
       notes = ["other request or response details changed"];
       docsOnly = false;
     }
@@ -1133,7 +1163,8 @@ export function sync(input: SyncInput): SyncResult {
       }
     }
     if (docsOnly) notes = [DOCS_ONLY];
-    // An unchanged operation whose components changed: the Schemas section lists them.
+    // An unchanged operation whose components changed only in what documents them: the
+    // Schemas section lists them.
     if (sameOp && docsOnly) continue;
     if (!docsOnly) feature = true;
     const isBreaking = described.breaking.length > 0;

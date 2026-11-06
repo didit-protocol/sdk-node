@@ -663,11 +663,48 @@ describe("changes that can break typed code", () => {
     );
   });
 
-  it("lists a field that can now be null, through $refs, array items and every null notation", () => {
+  it("lists a type change through a string format with its own type or a union", () => {
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ file: { type: "string" } }),
+          object({ at: { type: "string" }, value: { type: "string" }, since: { type: "string" } }),
+        ),
+      },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ file: { type: "string", format: "binary" } }),
+          object({
+            at: { type: "string", format: "date-time" },
+            value: { oneOf: [{ type: "integer" }, { type: "boolean" }] },
+            // A union of the same type is the same type.
+            since: { anyOf: [{ type: "string" }, { type: "string", pattern: "^[0-9]+$" }] },
+          }),
+        ),
+      },
+    });
+    const result = classify(before, after);
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "response", "at", "string->string(date-time)"],
+      ["POST /v3/things/", "request", "file", "string->string(binary)"],
+      ["POST /v3/things/", "response", "value", "string->boolean/integer"],
+    ]);
+    expect(result.breaking[0]!.text).toBe(
+      "`POST /v3/things/` response field `at` changed type from string to string(date-time)",
+    );
+  });
+
+  it("lists a field or parameter that can now be null, through $refs, array items and every null notation", () => {
     const company = object({
       registry_data: object({}),
       owner: object({}),
       channel: { type: "string" },
+      status: { type: "string", enum: ["open"] },
     });
     const before = openapi(
       {
@@ -692,6 +729,7 @@ describe("changes that can break typed code", () => {
       registry_data: { ...object({}), nullable: true },
       owner: { anyOf: [object({}), { type: "null" }] },
       channel: { type: ["string", "null"] },
+      status: { type: "string", enum: ["open", null] },
     });
     const paths = after.paths as Record<string, Record<string, Doc>>;
     paths["/v3/things/{id}/"]!.get!.parameters = [
@@ -703,14 +741,15 @@ describe("changes that can break typed code", () => {
       object({}),
     );
     const result = classify(before, after);
-    // A parameter that accepts null is not a field: listed in the summary only.
     expect(places(result.breaking)).toEqual([
       ["GET /v3/things/{id}/", "response", "checks[].channel", "now-null"],
       ["GET /v3/things/{id}/", "response", "checks[].owner", "now-null"],
       ["GET /v3/things/{id}/", "response", "checks[].registry_data", "now-null"],
+      ["GET /v3/things/{id}/", "response", "checks[].status", "now-null"],
+      ["GET /v3/things/{id}/", "query", "q", "now-null"],
       ["POST /v3/things/", "request", "note", "now-null"],
     ]);
-    expect(result.summary).toContain("parameter q (query): can now be null");
+    expect(result.summary).toContain("parameter q (query): can now be null (breaking)");
     expect(result.summary).not.toContain("checks[].owner: removed");
   });
 
@@ -837,7 +876,7 @@ describe("changes that can break typed code", () => {
           ...thing(
             "create",
             object({ note: { type: "string" }, kind: { type: "string", enum: ["a"] } }),
-            object({ at: { type: "string", format: "date-time" } }),
+            object({ at: { type: "string", format: "email" } }),
           ),
           deprecated: true,
         },
@@ -887,6 +926,41 @@ describe("changes that can break typed code", () => {
     expect(classify(before, docs).type).toBe("chore");
   });
 
+  it("releases a change of a referenced error response as a feature when the operation is the same", () => {
+    const doc = (error: Doc, description = "bad"): Doc => {
+      const base = thing("create", object({}), object({ id: { type: "string" } }));
+      return {
+        ...openapi({
+          "/v3/things/": {
+            post: {
+              ...base,
+              responses: {
+                ...(base.responses as Doc),
+                "400": { $ref: "#/components/responses/Error" },
+              },
+            },
+          },
+        }),
+        components: {
+          schemas: {},
+          responses: {
+            Error: { description, content: { "application/json": { schema: error } } },
+          },
+        },
+      };
+    };
+    const before = doc(object({ code: { type: "string" } }));
+    const changed = classify(before, doc(object({ code: { type: "integer" } })));
+    expect(changed.type).toBe("feat");
+    expect(changed.summary).toContain("## Changed operations (1)");
+    expect(changed.summary).toContain(
+      "`POST /v3/things/`: other request or response details changed",
+    );
+    const docs = classify(before, doc(object({ code: { type: "string" } }), "Bad request."));
+    expect(docs.type).toBe("chore");
+    expect(docs.summary).toContain("## Changed operations (0)");
+  });
+
   it("compares fields named like documentation keywords as fields", () => {
     const op = (fields: Doc): Doc =>
       openapi({ "/v3/things/": { post: thing("create", object({}), object(fields)) } });
@@ -912,6 +986,27 @@ describe("changes that can break typed code", () => {
       "x-id": { type: "string" },
     });
     expect(classify(before, docs).type).toBe("chore");
+  });
+
+  it("compares a form request body like a JSON one", () => {
+    const op = (count: Doc): Doc =>
+      openapi({
+        "/v3/things/": {
+          post: {
+            ...thing("create", object({}), object({})),
+            requestBody: {
+              content: {
+                "application/x-www-form-urlencoded": { schema: object({ count }, ["count"]) },
+              },
+            },
+          },
+        },
+      });
+    const result = classify(op({ type: "string" }), op({ type: "integer" }));
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "request", "count", "string->integer"],
+    ]);
   });
 
   it("follows a $ref to a request body or a response", () => {
