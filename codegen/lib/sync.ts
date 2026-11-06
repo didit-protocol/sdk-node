@@ -78,6 +78,9 @@ const NAME_MAPS = new Set([
 ]);
 // Keywords whose value is data sent or received as it is, not a schema.
 const LITERALS = new Set(["enum", "const", "default"]);
+// String formats the SDK gives a type of their own (`Date`, an upload), so a change
+// to or from one is a type change.
+const TYPED_FORMATS = new Set(["date-time", "binary"]);
 
 /**
  * Sample data a deprecated method does not need: examples and vendor extensions such
@@ -290,14 +293,35 @@ function sortKeys(node: Json): Json {
   );
 }
 
-function types(schema: JsonObject): Set<string> {
+/**
+ * The types a value of `schema` can have, `null` included: a string format with a
+ * type of its own (`string(date-time)`) counts as a type, and a `oneOf`/`anyOf`
+ * has the types of its variants, unless one of them has no known type.
+ */
+function types(schema: JsonObject, depth = 0): Set<string> {
   const out = new Set<string>();
-  if (typeof schema.type === "string") out.add(schema.type);
-  if (Array.isArray(schema.type)) for (const t of schema.type) out.add(String(t));
-  if (schema.nullable === true) out.add("null");
+  const format =
+    typeof schema.format === "string" && TYPED_FORMATS.has(schema.format)
+      ? `string(${schema.format})`
+      : "string";
+  const add = (t: string): void => void out.add(t === "string" ? format : t);
+  if (typeof schema.type === "string") add(schema.type);
+  if (Array.isArray(schema.type)) for (const t of schema.type) add(String(t));
+  if (schema.type === undefined && isObject(schema.properties)) add("object");
+  if (schema.type === undefined && isObject(schema.items)) add("array");
+  if (schema.nullable === true || asArray(schema.enum).includes(null)) out.add("null");
+  const union = new Set<string>();
+  let known = true;
   for (const v of [...asArray(schema.anyOf), ...asArray(schema.oneOf)]) {
-    if (isObject(v) && v.type === "null") out.add("null");
+    if (!isObject(v)) continue;
+    if (v.type === "null") out.add("null");
+    else if (depth < 16) {
+      const inner = types(v, depth + 1);
+      if (![...inner].some((t) => t !== "null")) known = false;
+      for (const t of inner) union.add(t);
+    }
   }
+  if (known) for (const t of union) out.add(t);
   return out;
 }
 
