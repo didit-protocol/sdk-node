@@ -1057,6 +1057,10 @@ export function sync(input: SyncInput): SyncResult {
   }
 
   const changes: string[] = [];
+  // Compared once per document: components can be megabytes.
+  const sameComponents = new Map<string, boolean>();
+  for (const name of input.downloads.keys())
+    sameComponents.set(name, same(oldDocs.get(name)!.components, newDocs.get(name)!.components));
   for (const key of common) {
     const [oldName, oldOp] = oldOps.get(key)!;
     const [newName, newOp] = newOps.get(key)!;
@@ -1069,7 +1073,7 @@ export function sync(input: SyncInput): SyncResult {
     const sameOp = same(old, next);
     const oldDoc = oldDocs.get(oldName)!;
     const newDoc = newDocs.get(newName)!;
-    if (sameOp && same(oldDoc.components, newDoc.components)) continue;
+    if (sameOp && oldName === newName && sameComponents.get(oldName)) continue;
     const described = describeChange(oldDoc, old, newDoc, next);
     let { notes } = described;
     if (!exposed(before) && !exposed(after)) {
