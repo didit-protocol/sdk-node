@@ -1,0 +1,44 @@
+# Weekly dependency updates, one grouped pull request per ecosystem.
+# Commit messages follow conventional commits: "ci: ..." for actions,
+# "chore(deps-dev): ..." for npm development dependencies (the package has no
+# runtime dependencies).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-development:
+        dependency-type: development
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
+    ignore:
+      # The test suite must keep running on Node.js 18 (docs/DESIGN.md section 2):
+      # vitest 4+ and vite 7+ need Node.js 20 or later.
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/coverage-v8"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 (the native compiler) has no JavaScript API yet, which the
+      # declaration build (tsup) and typescript-eslint need.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # @types/node follows the oldest supported Node.js line used for development.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]

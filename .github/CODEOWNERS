@@ -1,0 +1,5 @@
+# Code owners of the Didit TypeScript SDK.
+# GitHub applies only a user or an @org/team here; replace @didit-protocol/backend
+# with the SDK team if it is named differently. It is requested for review once the
+# team has write access to this repository (Settings > Collaborators and teams).
+* @didit-protocol/backend
