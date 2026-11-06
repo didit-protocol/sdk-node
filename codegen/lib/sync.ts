@@ -500,29 +500,40 @@ export function diffSchema(
   }
 }
 
-function body(op: JsonObject): { types: Set<string>; schema: Json } {
-  const rb = isObject(op.requestBody) ? op.requestBody : {};
+/** The request body as a caller sends it, with its references (`$ref` included) inlined. */
+function body(
+  doc: JsonObject,
+  op: JsonObject,
+): { required: boolean; types: Set<string>; schema: Json } {
+  const resolved = dereference(doc, op.requestBody ?? {});
+  const rb = isObject(resolved) ? resolved : {};
   const content = isObject(rb.content) ? rb.content : {};
   const media = content["application/json"] ?? content["multipart/form-data"];
   return {
+    required: rb.required === true,
     types: new Set(Object.keys(content)),
     schema: isObject(media) ? (media.schema ?? {}) : {},
   };
 }
 
-function success(op: JsonObject): { types: Set<string>; schema: Json } {
+/** Every success response by status code as a caller receives it, references inlined. */
+function successes(
+  doc: JsonObject,
+  op: JsonObject,
+): Map<string, { types: Set<string>; schema: Json }> {
+  const out = new Map<string, { types: Set<string>; schema: Json }>();
   const responses = isObject(op.responses) ? op.responses : {};
   for (const code of Object.keys(responses).sort()) {
     if (!code.startsWith("2")) continue;
-    const response = responses[code];
+    const response = dereference(doc, responses[code]);
     const content = isObject(response) && isObject(response.content) ? response.content : {};
     const media = content["application/json"];
-    return {
+    out.set(code, {
       types: new Set(Object.keys(content)),
       schema: isObject(media) ? (media.schema ?? {}) : {},
-    };
+    });
   }
-  return { types: new Set(), schema: {} };
+  return out;
 }
 
 const PARAMETER_PLACES = new Set(["query", "path", "header", "cookie"]);
@@ -592,35 +603,46 @@ export function describeChange(
       found.push({ text: `parameter now optional: ${key}` });
     diffSchema(a.schema ?? {}, b.schema ?? {}, at, found);
   }
-  const ob = body(old);
-  const nb = body(next);
+  const ob = body(oldDoc, old);
+  const nb = body(newDoc, next);
   if (!setEq(ob.types, nb.types) && ob.types.size && nb.types.size) {
     found.push({
       text: `request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`,
     });
   }
-  const oldRequired = isObject(old.requestBody) && old.requestBody.required === true;
-  const newRequired = isObject(next.requestBody) && next.requestBody.required === true;
-  if (!oldRequired && newRequired) found.push({ text: "request body now required" });
+  if (!ob.required && nb.required) found.push({ text: "request body now required" });
   diffSchema(
-    dereference(oldDoc, ob.schema),
-    dereference(newDoc, nb.schema),
+    ob.schema,
+    nb.schema,
     { label: "body", request: true, in: "request", field: "" },
     found,
   );
-  const or = success(old);
-  const nr = success(next);
-  if (!setEq(or.types, nr.types)) {
-    found.push({
-      text: `response content type ${JSON.stringify([...or.types].sort())} -> ${JSON.stringify([...nr.types].sort())}`,
-    });
+  // Every success response: the same change in several of them is listed once (see sync).
+  const or = successes(oldDoc, old);
+  const nr = successes(newDoc, next);
+  const only = (codes: Map<string, unknown>): string | undefined =>
+    codes.size === 1 ? [...codes.keys()][0] : undefined;
+  // The only success response on both sides is the same response under any status code.
+  const pairs: [string, string][] =
+    only(or) && only(nr)
+      ? [[only(or)!, only(nr)!]]
+      : [...or.keys()].filter((code) => nr.has(code)).map((code) => [code, code]);
+  for (const code of [...or.keys()].filter((c) => !pairs.some(([o]) => o === c)))
+    found.push({ text: `response ${code} removed` });
+  for (const code of [...nr.keys()].filter((c) => !pairs.some(([, n]) => n === c)))
+    found.push({ text: `response ${code} added` });
+  for (const [oldCode, newCode] of pairs) {
+    const label = pairs.length > 1 ? `response ${newCode}` : "response";
+    const a = or.get(oldCode)!;
+    const b = nr.get(newCode)!;
+    if (oldCode !== newCode) found.push({ text: `success status ${oldCode} -> ${newCode}` });
+    if (!setEq(a.types, b.types)) {
+      found.push({
+        text: `${label} content type ${JSON.stringify([...a.types].sort())} -> ${JSON.stringify([...b.types].sort())}`,
+      });
+    }
+    diffSchema(a.schema, b.schema, { label, request: false, in: "response", field: "" }, found);
   }
-  diffSchema(
-    dereference(oldDoc, or.schema),
-    dereference(newDoc, nr.schema),
-    { label: "response", request: false, in: "response", field: "" },
-    found,
-  );
   if (old.deprecated !== true && next.deprecated === true)
     found.push({ text: "marked deprecated upstream" });
   if (!same(old["x-didit-sdk"], next["x-didit-sdk"]) && next["x-didit-sdk"] !== undefined) {
@@ -1194,10 +1216,11 @@ export function sync(input: SyncInput): SyncResult {
     );
   }
 
-  // One entry per place, sorted by operation, field and kind, so every repository lists the same.
+  // One entry per change (several success responses can share one), sorted by operation,
+  // field and kind, so every repository lists the same.
   const order = (b: BreakingChange): string[] => [b.operation, b.field, b.kind, b.in];
   const listed = new Map<string, BreakingChange>();
-  for (const b of breaking) listed.set(JSON.stringify(order(b)), b);
+  for (const b of breaking) listed.set(JSON.stringify([...order(b), b.text]), b);
   const breakingChanges = [...listed.values()].sort((x, y) => {
     const a = order(x);
     const b = order(y);
