@@ -76,6 +76,8 @@ const NAME_MAPS = new Set([
   "responses",
   "mapping",
 ]);
+// Keywords whose value is data sent or received as it is, not a schema.
+const LITERALS = new Set(["enum", "const", "default"]);
 
 /**
  * Sample data a deprecated method does not need: examples and vendor extensions such
@@ -254,14 +256,24 @@ export function operations(doc: JsonObject, prefix: string): Map<string, JsonObj
 
 // Schema comparison --------------------------------------------------------------
 
-function shape(node: Json): Json {
-  if (Array.isArray(node)) return node.map(shape);
+/**
+ * `node` without what only documents it (descriptions, examples, vendor extensions), so
+ * two equal shapes are the same to a caller. `names`: the keys of `node` are names (of
+ * properties, media types, status codes...), kept even when they read like a keyword.
+ */
+function shape(node: Json, names = false): Json {
+  if (Array.isArray(node)) return node.map((v: Json) => shape(v));
   if (!isObject(node)) return node;
   return Object.fromEntries(
     Object.entries(node)
-      .filter(([k]) => !DOC_KEYS.has(k) && !k.startsWith("x-"))
-      .map(([k, v]) => [k, shape(v)]),
+      .filter(([k]) => names || (!DOC_KEYS.has(k) && !k.startsWith("x-")))
+      .map(([k, v]) => [k, names ? shape(v) : keywordShape(k, v)]),
   );
+}
+
+/** The shape of the value of keyword `key`: data such as enum values stays as it is. */
+function keywordShape(key: string, value: Json): Json {
+  return LITERALS.has(key) ? value : shape(value, NAME_MAPS.has(key));
 }
 
 function same(a: Json, b: Json): boolean {
@@ -482,7 +494,7 @@ export function diffSchema(
   // Any other difference a caller can observe (format, pattern, limits, default...).
   if (notes.length === before) {
     const keys = [...new Set([...Object.keys(old), ...Object.keys(next)])]
-      .filter((k) => !same(shape(old[k]), shape(next[k])))
+      .filter((k) => !same(keywordShape(k, old[k]), keywordShape(k, next[k])))
       .sort();
     notes.push({ text: `${label}: ${keys.join(", ") || "schema"} changed` });
   }
