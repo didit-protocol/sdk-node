@@ -1,5 +1,6 @@
 # Upstream copies and generated files keep their own formatting.
 openapi/
+codegen/tests/fixtures/spec-sync/
 dist/
 coverage/
 pnpm-lock.yaml
