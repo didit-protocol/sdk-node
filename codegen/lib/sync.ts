@@ -1077,14 +1077,14 @@ export function sync(input: SyncInput): SyncResult {
         );
       continue;
     }
-    // A method that keeps its name but changes scope or credentials takes other
-    // arguments or needs another client option.
     let docsOnly = described.docsOnly;
     // Error responses, security and the like are not documentation either.
     if (docsOnly && !sameOp && !same(observable(oldDoc, old), observable(newDoc, next))) {
       notes = ["other request or response details changed"];
       docsOnly = false;
     }
+    // A method that keeps its name but changes scope or credentials takes other
+    // arguments or needs another client option.
     if (before?.server && after?.server && nameOf(before) === nameOf(after)) {
       for (const field of ["scope", "auth"] as const) {
         const was = (before as unknown as JsonObject)[field] ?? null;
