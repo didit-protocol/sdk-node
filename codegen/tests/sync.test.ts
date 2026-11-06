@@ -5,9 +5,12 @@ import {
   checkOpenAPI,
   detach,
   nextMinor,
+  releaseSection,
   removalVersion,
   SpecSyncError,
   sync,
+  syncTitle,
+  type BreakingChange,
 } from "../lib/sync.ts";
 import { naming, openapi, type Doc } from "./helpers.ts";
 
@@ -558,7 +561,9 @@ describe("spec sync", () => {
     const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
     expect(result.type).toBe("feat");
     expect(result.breaking).toEqual([]);
-    expect(result.summary).toContain("verification.json removed (its type leaves the SDK): `Orphan`");
+    expect(result.summary).toContain(
+      "verification.json removed (its type leaves the SDK): `Orphan`",
+    );
   });
 
   it("releases nothing for a change of descriptions only", () => {
@@ -571,5 +576,424 @@ describe("spec sync", () => {
     expect(result.type).toBe("chore");
     expect(result.breaking).toEqual([]);
     expect(result.summary).toContain("verification.json descriptions or examples changed: `Item`");
+  });
+});
+
+// The changes that can break typed code (DESIGN section 3.1) -----------------------
+
+const ACCOUNT = openapi({ "/x/": { get: json({}) } });
+
+/** Sync `before` to `after` (verification.json), every operation named upstream. */
+function classify(before: Doc, after: Doc, extra: [string, Doc, Doc][] = []) {
+  const files = new Map<string, Uint8Array | undefined>([
+    ["verification.json", bytes(before)],
+    ["account.json", bytes(ACCOUNT)],
+    ["overlay.json", bytes({ operations: {} })],
+  ]);
+  const downloads = new Map([
+    ["verification.json", bytes(after)],
+    ["account.json", bytes(ACCOUNT)],
+  ]);
+  for (const [name, old, next] of extra) {
+    files.set(name, bytes(old));
+    downloads.set(name, bytes(next));
+  }
+  return sync({ files, downloads, now: NOW, version: "2.1.0" });
+}
+
+function places(breaking: BreakingChange[]): string[][] {
+  return breaking.map((b) => [b.operation, b.in, b.field, b.kind]);
+}
+
+/** An operation with a JSON body and response, named `things.<method>` upstream. */
+function thing(method: string, request: unknown, response: unknown, parameters: unknown[] = []) {
+  return {
+    "x-didit-sdk": naming("things", method),
+    parameters,
+    requestBody: { content: { "application/json": { schema: request } } },
+    ...json(response),
+  };
+}
+
+function object(properties: Doc, required: string[] = []): Doc {
+  return { type: "object", required, properties };
+}
+
+describe("changes that can break typed code", () => {
+  it("lists a type change of a field or parameter in either direction", () => {
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({
+            count: { type: "integer" },
+            tags: { type: "array", items: { type: "string" } },
+          }),
+          object({ score: { type: "number" } }),
+          [{ in: "query", name: "limit", schema: { type: "integer" } }],
+        ),
+      },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({
+            count: { type: "number" },
+            tags: { type: "array", items: { type: "integer" } },
+          }),
+          object({ score: { type: "integer" } }),
+          [{ in: "query", name: "limit", schema: { type: "string" } }],
+        ),
+      },
+    });
+    const result = classify(before, after);
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "request", "count", "integer->number"],
+      ["POST /v3/things/", "query", "limit", "integer->string"],
+      ["POST /v3/things/", "response", "score", "number->integer"],
+      ["POST /v3/things/", "request", "tags[]", "string->integer"],
+    ]);
+    expect(result.breaking[0]!.text).toBe(
+      "`POST /v3/things/` request field `count` changed type from integer to number",
+    );
+    expect(result.breaking[1]!.text).toBe(
+      "`POST /v3/things/` query parameter `limit` changed type from integer to string",
+    );
+  });
+
+  it("lists a field that can now be null, through $refs, array items and every null notation", () => {
+    const company = object({
+      registry_data: object({}),
+      owner: object({}),
+      channel: { type: "string" },
+    });
+    const before = openapi(
+      {
+        "/v3/things/{id}/": {
+          get: {
+            "x-didit-sdk": naming("things", "retrieve"),
+            parameters: [{ in: "query", name: "q", schema: { type: "string" } }],
+            ...json(
+              object({
+                checks: { type: "array", items: { $ref: "#/components/schemas/Company" } },
+              }),
+            ),
+          },
+        },
+        "/v3/things/": { post: thing("create", object({ note: { type: "string" } }), object({})) },
+      },
+      { Company: company },
+    );
+    const after = structuredClone(before);
+    const schemas = (after.components as { schemas: Record<string, Doc> }).schemas;
+    schemas.Company = object({
+      registry_data: { ...object({}), nullable: true },
+      owner: { anyOf: [object({}), { type: "null" }] },
+      channel: { type: ["string", "null"] },
+    });
+    const paths = after.paths as Record<string, Record<string, Doc>>;
+    paths["/v3/things/{id}/"]!.get!.parameters = [
+      { in: "query", name: "q", schema: { type: "string", nullable: true } },
+    ];
+    paths["/v3/things/"]!.post = thing(
+      "create",
+      object({ note: { type: "string", nullable: true } }),
+      object({}),
+    );
+    const result = classify(before, after);
+    // A parameter that accepts null is not a field: listed in the summary only.
+    expect(places(result.breaking)).toEqual([
+      ["GET /v3/things/{id}/", "response", "checks[].channel", "now-null"],
+      ["GET /v3/things/{id}/", "response", "checks[].owner", "now-null"],
+      ["GET /v3/things/{id}/", "response", "checks[].registry_data", "now-null"],
+      ["POST /v3/things/", "request", "note", "now-null"],
+    ]);
+    expect(result.summary).toContain("parameter q (query): can now be null");
+    expect(result.summary).not.toContain("checks[].owner: removed");
+  });
+
+  it("lists a removed operation, field or enum value", () => {
+    const status = (values: string[]): Doc => ({ type: "string", enum: values });
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ kind: status(["x", "y"]), legacy: { type: "string" } }),
+          object({ id: { type: "string" }, status: status(["a", "b", "c"]) }),
+          [{ in: "query", name: "old", schema: { type: "string" } }],
+        ),
+      },
+      "/v3/things/{id}/": { delete: thing("delete", object({}), object({})) },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ kind: status(["x"]) }),
+          object({ status: status(["a", "b", "d"]) }),
+        ),
+      },
+    });
+    const result = classify(before, after);
+    expect(places(result.breaking)).toEqual([
+      ["DELETE /v3/things/{id}/", "operation", "", "removed"],
+      ["POST /v3/things/", "response", "id", "removed"],
+      ["POST /v3/things/", "request", "kind", "enum-removed"],
+      ["POST /v3/things/", "request", "legacy", "removed"],
+      ["POST /v3/things/", "response", "status", "enum-removed"],
+    ]);
+    expect(result.breaking.map((b) => b.text)).toEqual([
+      "`DELETE /v3/things/{id}/` was removed (`things.delete` stays as a deprecated method until version 2.3.0)",
+      "`POST /v3/things/` response field `id` was removed",
+      '`POST /v3/things/` request field `kind` no longer has the enum value `"y"`',
+      "`POST /v3/things/` request field `legacy` was removed",
+      '`POST /v3/things/` response field `status` no longer has the enum value `"c"`',
+    ]);
+    // A removed parameter and an added enum value are not on the list.
+    expect(result.summary).toContain("parameter removed: old (query)");
+    expect(result.summary).toContain('response.status: values added ["d"]');
+  });
+
+  it("lists a newly required parameter or request field", () => {
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ name: { type: "string" }, email: { type: "string" } }, ["email"]),
+          object({ id: { type: "string" } }, ["id"]),
+          [{ in: "query", name: "mode", schema: { type: "string" } }],
+        ),
+      },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object(
+            { name: { type: "string" }, email: { type: "string" }, phone: { type: "string" } },
+            ["name", "phone"],
+          ),
+          object({ id: { type: "string" } }),
+          [
+            { in: "query", name: "mode", required: true, schema: { type: "string" } },
+            { in: "header", name: "x-tenant", required: true, schema: { type: "string" } },
+          ],
+        ),
+      },
+    });
+    const result = classify(before, after);
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "query", "mode", "now-required"],
+      ["POST /v3/things/", "request", "name", "now-required"],
+      ["POST /v3/things/", "request", "phone", "now-required"],
+      ["POST /v3/things/", "header", "x-tenant", "now-required"],
+    ]);
+    expect(result.summary).toContain("body.email: now optional");
+    expect(result.summary).toContain("response.id: no longer always present");
+  });
+
+  it("lists a removed oneOf or anyOf variant, but not an added one", () => {
+    const value = (variants: Doc[]): Doc => object({ value: { oneOf: variants } });
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          value([{ type: "string" }]),
+          value([{ type: "string" }, { type: "integer" }]),
+        ),
+      },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          value([{ type: "string" }, { type: "integer" }]),
+          value([{ type: "string" }]),
+        ),
+      },
+    });
+    const result = classify(before, after);
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "response", "value", "variant-removed"],
+    ]);
+    expect(result.summary).toContain("body.value: 1 oneOf variant(s) added");
+  });
+
+  it("lists everything else in the summary only, and releases it as a feature", () => {
+    const before = openapi({
+      "/v3/things/": {
+        post: thing(
+          "create",
+          object({ note: { type: "string", nullable: true }, kind: { type: "string" } }),
+          object({ at: { type: "string" } }),
+        ),
+      },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: {
+          ...thing(
+            "create",
+            object({ note: { type: "string" }, kind: { type: "string", enum: ["a"] } }),
+            object({ at: { type: "string", format: "date-time" } }),
+          ),
+          deprecated: true,
+        },
+      },
+    });
+    const result = classify(before, after);
+    expect(result.type).toBe("feat");
+    expect(result.breaking).toEqual([]);
+    expect(result.summary).toContain("## Breaking changes\nNone detected.");
+    for (const note of [
+      "body.note: no longer accepts null",
+      'body.kind: now limited to ["a"]',
+      "response.at: format changed",
+      "marked deprecated upstream",
+    ])
+      expect(result.summary).toContain(note);
+  });
+
+  it("releases a change of an error response as a feature, and documentation alone as nothing", () => {
+    const op = (error: Doc, extra: Doc = {}): Doc => {
+      const base = thing("create", object({}), object({ id: { type: "string" } }));
+      return {
+        ...base,
+        ...extra,
+        responses: {
+          ...(base.responses as Doc),
+          "400": { description: "bad", content: { "application/json": { schema: error } } },
+        },
+      };
+    };
+    const before = openapi({ "/v3/things/": { post: op(object({ detail: { type: "string" } })) } });
+    const errors = openapi({ "/v3/things/": { post: op(object({ code: { type: "string" } })) } });
+    const docs = openapi({
+      "/v3/things/": {
+        post: op(object({ detail: { type: "string", description: "Why." } }), {
+          summary: "Create a thing",
+          tags: ["Things"],
+          operationId: "things_create",
+        }),
+      },
+    });
+    const changed = classify(before, errors);
+    expect(changed.type).toBe("feat");
+    expect(changed.summary).toContain(
+      "`POST /v3/things/`: other request or response details changed",
+    );
+    expect(classify(before, docs).type).toBe("chore");
+  });
+});
+
+describe("the hand-written Authentication document", () => {
+  const auth = (paths: Doc): Doc => openapi(paths);
+  const op = (method: string, extra: Doc = {}): Doc => ({
+    ...json(object({ id: { type: "string" } })),
+    "x-didit-sdk": {
+      resource: "authentication",
+      method,
+      auth: "access_token",
+      server: true,
+      ...extra,
+    },
+  });
+
+  it("lists its changes without naming, generating or deprecating a method", () => {
+    const before = auth({
+      "/session/": { get: op("get_session"), delete: op("revoke_session") },
+      "/step-up/": { post: op("create_step_up") },
+    });
+    const after = auth({
+      "/session/": { get: op("get_session") },
+      "/step-up/": { post: op("start_step_up") },
+      "/monitoring-token/": { post: op("create_monitoring_token", { server: false }) },
+      "/userinfo/": { get: op("get_user_info") },
+    });
+    const result = classify(base(), base(), [["authentication.json", before, after]]);
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["authentication DELETE /session/", "operation", "", "removed"],
+    ]);
+    const follow =
+      "the hand-written `authentication` module must follow (its contract test fails until it does)";
+    expect(result.summary).toContain(
+      `- \`authentication GET /userinfo/\` -> \`authentication.get_user_info\`: ${follow}`,
+    );
+    expect(result.summary).toContain(
+      "- `authentication POST /monitoring-token/` (not exposed by server SDKs: access_token)",
+    );
+    expect(result.summary).toContain(
+      `- \`authentication DELETE /session/\` (\`authentication.revoke_session\`): ${follow}`,
+    );
+    expect(result.summary).toContain(
+      `- \`authentication POST /step-up/\`: \`authentication.create_step_up\` is now \`authentication.start_step_up\` upstream; ${follow}`,
+    );
+    expect(result.summary).toContain("## Deprecated methods\nNone.");
+    expect(written(result, "deprecated-operations.json").methods).toEqual({});
+    expect(written(result, "overlay.json").operations).toEqual({});
+    expect(
+      (written(result, "SOURCE.json") as Record<string, Doc>)["authentication.json"],
+    ).toMatchObject({
+      url: "https://docs.didit.me/openapi-authentication.json",
+    });
+  });
+});
+
+describe("the release section and title", () => {
+  const change = (n: number): BreakingChange => ({
+    operation: `GET /v3/things/${n}/`,
+    in: "response",
+    field: "value",
+    kind: "now-null",
+    text: `\`GET /v3/things/${n}/\` response field \`value\` can now be null`,
+  });
+
+  it("titles the sync with its type, never with !", () => {
+    expect(syncTitle("feat", "2026-11-07")).toBe("feat(spec): sync API spec 2026-11-07");
+    expect(syncTitle("chore", "2026-11-07")).toBe("chore(spec): sync API spec 2026-11-07");
+  });
+
+  it("is empty for a chore(spec) sync, which releases nothing", () => {
+    expect(releaseSection("chore", [], "2026-11-07")).toBe("");
+  });
+
+  it("overrides the commits with one feat(spec) line and one api-break(spec) line per change", () => {
+    const section = releaseSection("feat", [change(1), change(2)], "2026-11-07");
+    const block = section.slice(
+      section.indexOf("BEGIN_COMMIT_OVERRIDE\n") + "BEGIN_COMMIT_OVERRIDE\n".length,
+      section.indexOf("\nEND_COMMIT_OVERRIDE"),
+    );
+    expect(block).toBe(
+      [
+        "feat(spec): sync API spec 2026-11-07",
+        "BEGIN_NESTED_COMMIT",
+        "api-break(spec): `GET /v3/things/1/` response field `value` can now be null",
+        "END_NESTED_COMMIT",
+        "BEGIN_NESTED_COMMIT",
+        "api-break(spec): `GET /v3/things/2/` response field `value` can now be null",
+        "END_NESTED_COMMIT",
+      ].join("\n"),
+    );
+    expect(section).toMatch(/^\n## Release\n/);
+    expect(section).toContain('under "API changes that can break typed code"');
+    // The markers appear once, so release-please reads exactly this block.
+    expect(section.split("BEGIN_COMMIT_OVERRIDE")).toHaveLength(2);
+    expect(section).not.toMatch(/BREAKING[ -]CHANGE|!:/);
+    expect(releaseSection("feat", [], "2026-11-07")).not.toContain("BEGIN_NESTED_COMMIT");
+  });
+
+  it("stays within its limit, counting the changes that do not fit", () => {
+    const many = Array.from({ length: 500 }, (_, i) => change(i));
+    const section = releaseSection("feat", many, "2026-11-07", 5_000);
+    expect(section.length).toBeLessThanOrEqual(5_000);
+    const nested = section.split("BEGIN_NESTED_COMMIT").length - 1;
+    expect(nested).toBeLessThan(500);
+    expect(section).toContain(
+      `api-break(spec): and ${500 - nested + 1} more changes that can break typed code, listed in the spec sync pull request\nEND_NESTED_COMMIT\nEND_COMMIT_OVERRIDE`,
+    );
+    expect(releaseSection("feat", many, "2026-11-07").length).toBeLessThanOrEqual(20_000);
   });
 });
