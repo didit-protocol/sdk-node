@@ -9,7 +9,7 @@
 // pass: the hand-written tests and examples still call the old names, which stay
 // as deprecated methods until their removal version.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -52,4 +52,6 @@ for (const api of ["verification", "account"] as const) {
   }
   writeFileSync(join(out, `${api}.json`), JSON.stringify(doc, null, 2));
 }
+// The Authentication document is unchanged: its methods are hand-written.
+copyFileSync(join(OPENAPI, "authentication.json"), join(out, "authentication.json"));
 console.log(`Renamed ${renamed} server methods to <name>_v2 and removed ${removed ?? "nothing"}.`);

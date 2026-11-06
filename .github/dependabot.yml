@@ -42,3 +42,7 @@ updates:
       # @types/node follows the oldest supported Node.js line used for development.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # release-please is the version release-please-action bundles (17.6.0 in v5.0.0), so
+      # codegen/tests/classification.test.ts runs what the release workflow runs: bump it
+      # together with the action.
+      - dependency-name: release-please
