@@ -496,13 +496,30 @@ function success(op: JsonObject): { types: Set<string>; schema: Json } {
   return { types: new Set(), schema: {} };
 }
 
-/** Human-readable differences of one operation, and whether any is breaking. */
+const PARAMETER_PLACES = new Set(["query", "path", "header", "cookie"]);
+
+/** The operation as a caller sees it: its references inlined, without tags and operationId. */
+function observable(doc: JsonObject, op: JsonObject): Json {
+  const { tags: _tags, operationId: _id, ...rest } = op;
+  return shape(dereference(doc, rest));
+}
+
+export interface OperationChange {
+  /** Human-readable differences, the breaking ones first and marked "(breaking)". */
+  notes: string[];
+  /** The differences that can break typed code (DESIGN section 3.1). */
+  breaking: Finding[];
+  /** Only descriptions, examples or other documentation changed. */
+  docsOnly: boolean;
+}
+
+/** Human-readable differences of one operation, and which of them can break typed code. */
 export function describeChange(
   oldDoc: JsonObject,
   old: JsonObject,
   newDoc: JsonObject,
   next: JsonObject,
-): { notes: string[]; breaking: boolean } {
+): OperationChange {
   const found: Note[] = [];
   const params = (doc: JsonObject, op: JsonObject): Map<string, JsonObject> => {
     const out = new Map<string, JsonObject>();
@@ -511,61 +528,162 @@ export function describeChange(
     }
     return out;
   };
+  const parameterAt = (p: JsonObject, key: string): At => ({
+    label: `parameter ${key}`,
+    request: true,
+    in: (PARAMETER_PLACES.has(String(p.in)) ? p.in : "query") as At["in"],
+    field: String(p.name),
+  });
   const oldParams = params(oldDoc, old);
   const newParams = params(newDoc, next);
   for (const key of [...oldParams.keys()].filter((k) => !newParams.has(k)).sort())
-    found.push([`parameter removed: ${key}`, true]);
+    found.push({ text: `parameter removed: ${key}` });
   for (const key of [...newParams.keys()].filter((k) => !oldParams.has(k)).sort()) {
-    const required = newParams.get(key)!.required === true;
-    found.push([`parameter added: ${key}${required ? ", required" : ""}`, required]);
+    const p = newParams.get(key)!;
+    const note: Note = { text: `parameter added: ${key}` };
+    if (p.required === true) {
+      note.text += ", required";
+      note.breaking = finding(parameterAt(p, key), "now-required", "was added and is required");
+    }
+    found.push(note);
   }
   for (const key of [...oldParams.keys()].filter((k) => newParams.has(k)).sort()) {
     const a = oldParams.get(key)!;
     const b = newParams.get(key)!;
+    const at = parameterAt(b, key);
     if (a.required !== true && b.required === true)
-      found.push([`parameter now required: ${key}`, true]);
-    diffSchema(a.schema ?? {}, b.schema ?? {}, `parameter ${key}`, true, found);
+      found.push({
+        text: `parameter now required: ${key}`,
+        breaking: finding(at, "now-required", "is now required"),
+      });
+    if (a.required === true && b.required !== true)
+      found.push({ text: `parameter now optional: ${key}` });
+    diffSchema(a.schema ?? {}, b.schema ?? {}, at, found);
   }
   const ob = body(old);
   const nb = body(next);
   if (!setEq(ob.types, nb.types) && ob.types.size && nb.types.size) {
-    const subset = [...ob.types].every((t) => nb.types.has(t));
-    found.push([
-      `request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`,
-      !subset,
-    ]);
+    found.push({
+      text: `request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`,
+    });
   }
   const oldRequired = isObject(old.requestBody) && old.requestBody.required === true;
   const newRequired = isObject(next.requestBody) && next.requestBody.required === true;
-  if (!oldRequired && newRequired) found.push(["request body now required", true]);
-  diffSchema(dereference(oldDoc, ob.schema), dereference(newDoc, nb.schema), "body", true, found);
+  if (!oldRequired && newRequired) found.push({ text: "request body now required" });
+  diffSchema(
+    dereference(oldDoc, ob.schema),
+    dereference(newDoc, nb.schema),
+    { label: "body", request: true, in: "request", field: "" },
+    found,
+  );
   const or = success(old);
   const nr = success(next);
   if (!setEq(or.types, nr.types)) {
-    found.push([
-      `response content type ${JSON.stringify([...or.types].sort())} -> ${JSON.stringify([...nr.types].sort())}`,
-      true,
-    ]);
+    found.push({
+      text: `response content type ${JSON.stringify([...or.types].sort())} -> ${JSON.stringify([...nr.types].sort())}`,
+    });
   }
   diffSchema(
     dereference(oldDoc, or.schema),
     dereference(newDoc, nr.schema),
-    "response",
-    false,
+    { label: "response", request: false, in: "response", field: "" },
     found,
   );
   if (old.deprecated !== true && next.deprecated === true)
-    found.push(["marked deprecated upstream", false]);
+    found.push({ text: "marked deprecated upstream" });
   if (!same(old["x-didit-sdk"], next["x-didit-sdk"]) && next["x-didit-sdk"] !== undefined) {
-    found.push([`x-didit-sdk now ${JSON.stringify(sortKeys(next["x-didit-sdk"]))}`, false]);
+    found.push({ text: `x-didit-sdk now ${JSON.stringify(sortKeys(next["x-didit-sdk"]))}` });
   }
-  if (!found.length)
-    return { notes: ["descriptions, examples or other details changed"], breaking: false };
-  const ordered = [...found.filter(([, b]) => b), ...found.filter(([, b]) => !b)];
-  let notes = ordered.map(([n, b]) => (b ? `${n} (breaking)` : n));
+  if (!found.length) {
+    // Error responses, security, servers and the like: not documentation.
+    const docsOnly = same(observable(oldDoc, old), observable(newDoc, next));
+    return {
+      notes: [docsOnly ? DOCS_ONLY : "other request or response details changed"],
+      breaking: [],
+      docsOnly,
+    };
+  }
+  const ordered = [...found.filter((n) => n.breaking), ...found.filter((n) => !n.breaking)];
+  let notes = ordered.map((n) => (n.breaking ? `${n.text} (breaking)` : n.text));
   if (notes.length > MAX_NOTES)
     notes = [...notes.slice(0, MAX_NOTES), `and ${notes.length - MAX_NOTES} more differences`];
-  return { notes, breaking: found.some(([, b]) => b) };
+  return {
+    notes,
+    breaking: found.flatMap((n) => (n.breaking ? [n.breaking] : [])),
+    docsOnly: false,
+  };
+}
+
+/** The sentence for one change that can break typed code. */
+function sentence(operation: string, f: Finding): string {
+  let subject: string;
+  if (f.in === "operation") subject = "";
+  else if (f.in === "request") subject = f.field ? `request field \`${f.field}\`` : "the request body";
+  else if (f.in === "response") subject = f.field ? `response field \`${f.field}\`` : "the response";
+  else subject = `${f.in} parameter \`${f.field}\``;
+  return `\`${operation}\` ${subject ? `${subject} ` : ""}${f.says}`;
+}
+
+function breakingChange(operation: string, f: Finding): BreakingChange {
+  return { operation, in: f.in, field: f.field, kind: f.kind, text: sentence(operation, f) };
+}
+
+/** The pull request title and the sync's commit message (DESIGN section 3.1). */
+export function syncTitle(type: SyncType, date: string): string {
+  return `${type}(spec): sync API spec ${date}`;
+}
+
+/**
+ * The "Release" section the workflow appends to the pull request body: a
+ * BEGIN_COMMIT_OVERRIDE block that release-please reads instead of the commits,
+ * so a squash merge with any title still releases the sync as `feat(spec)`, a minor
+ * version, with one nested `api-break(spec)` commit per change that can break typed
+ * code, which release-please-config.json lists under RELEASE_NOTES_HEADING. Never
+ * `!` and never a `BREAKING CHANGE:` footer (DESIGN section 13). Empty for `chore`,
+ * which releases nothing on its own. At most `max` characters: changes that do not
+ * fit are counted in one last line.
+ */
+export function releaseSection(
+  type: SyncType,
+  breaking: readonly BreakingChange[],
+  date: string,
+  max = MAX_RELEASE,
+): string {
+  if (type !== "feat") return "";
+  const lines = [
+    "",
+    "## Release",
+    "",
+    `release-please reads the block below instead of the commits of this pull request, so the release is a minor version${
+      breaking.length
+        ? `, and its notes list each change that can break typed code under "${RELEASE_NOTES_HEADING}"`
+        : ""
+    } (docs/DESIGN.md section 13). Keep the block when you edit this description, and merge with "Squash and merge": after a merge commit, release-please reads the block for both commits and lists every line twice.`,
+    "",
+    "BEGIN_COMMIT_OVERRIDE",
+    syncTitle(type, date),
+  ];
+  const end = ["END_COMMIT_OVERRIDE", ""];
+  const nested = (text: string): string =>
+    `BEGIN_NESTED_COMMIT\n${BREAKING_TYPE}(spec): ${text}\nEND_NESTED_COMMIT`;
+  const size = (parts: string[]): number => parts.join("\n").length;
+  for (let i = 0; i < breaking.length; i++) {
+    const rest = breaking.length - i - 1;
+    const more = rest
+      ? [nested(`and ${rest} more changes that can break typed code, listed in the spec sync pull request`)]
+      : [];
+    const candidate = nested(breaking[i]!.text);
+    if (size([...lines, candidate, ...more, ...end]) > max) {
+      lines.push(
+        nested(
+          `and ${breaking.length - i} more changes that can break typed code, listed in the spec sync pull request`,
+        ),
+      );
+      break;
+    }
+    lines.push(candidate);
+  }
+  return lines.concat(end).join("\n");
 }
 
 /**
