@@ -311,6 +311,18 @@ function variants(schema: JsonObject, keyword: string): Json[] {
   return asArray(schema[keyword]).filter((v) => !(isObject(v) && v.type === "null"));
 }
 
+/** `anyOf` or `oneOf` of one schema and `null` is that schema, nullable. */
+function unwrapNullable(schema: JsonObject): JsonObject {
+  for (const keyword of ["anyOf", "oneOf"]) {
+    const only = variants(schema, keyword);
+    if (asArray(schema[keyword]).length === 2 && only.length === 1 && isObject(only[0])) {
+      const { [keyword]: _variants, ...rest } = schema;
+      return { ...only[0], ...rest, nullable: true };
+    }
+  }
+  return schema;
+}
+
 function setEq(a: Set<string>, b: Set<string>): boolean {
   return a.size === b.size && [...a].every((x) => b.has(x));
 }
@@ -336,17 +348,25 @@ function isField(at: At): boolean {
  * Append a note for every difference between two dereferenced schemas; the ones
  * DESIGN section 3.1 lists as able to break typed code carry `breaking`.
  */
-export function diffSchema(old: Json, next: Json, at: At, notes: Note[], depth = 0): void {
-  if (depth > 16 || same(shape(old), shape(next))) return;
+export function diffSchema(
+  oldSchema: Json,
+  nextSchema: Json,
+  at: At,
+  notes: Note[],
+  depth = 0,
+): void {
+  if (depth > 16 || same(shape(oldSchema), shape(nextSchema))) return;
   const { label, request } = at;
   const before = notes.length;
-  if (!isObject(old) || !isObject(next)) {
+  if (!isObject(oldSchema) || !isObject(nextSchema)) {
     notes.push({
       text: `${label}: schema replaced`,
       breaking: finding(at, "replaced", "changed type"),
     });
     return;
   }
+  const old = unwrapNullable(oldSchema);
+  const next = unwrapNullable(nextSchema);
   const oldTypes = types(old);
   const newTypes = types(next);
   const oldPlain = new Set([...oldTypes].filter((t) => t !== "null"));
