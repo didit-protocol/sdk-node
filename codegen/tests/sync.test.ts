@@ -886,6 +886,101 @@ describe("changes that can break typed code", () => {
     );
     expect(classify(before, docs).type).toBe("chore");
   });
+
+  it("compares fields named like documentation keywords as fields", () => {
+    const op = (fields: Doc): Doc => ({
+      "/v3/things/": { post: thing("create", object({}), object(fields)) },
+    });
+    const before = op({
+      description: { type: "string", description: "What matched." },
+      title: { type: "string" },
+      "x-id": { type: "string" },
+    });
+    const after = op({
+      description: { type: "integer", description: "What matched." },
+      title: { type: "string" },
+    });
+    const result = classify(before, after);
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "response", "description", "string->integer"],
+      ["POST /v3/things/", "response", "x-id", "removed"],
+    ]);
+    // Only the description of the field named description changed: documentation.
+    const docs = op({
+      description: { type: "string", description: "Other words." },
+      title: { type: "string" },
+      "x-id": { type: "string" },
+    });
+    expect(classify(before, docs).type).toBe("chore");
+  });
+
+  it("follows a $ref to a request body or a response", () => {
+    const doc = (request: Doc, response: Doc): Doc => ({
+      ...openapi({
+        "/v3/things/": {
+          post: {
+            "x-didit-sdk": naming("things", "create"),
+            requestBody: { $ref: "#/components/requestBodies/Create" },
+            responses: { "201": { $ref: "#/components/responses/Created" } },
+          },
+        },
+      }),
+      components: {
+        schemas: {},
+        requestBodies: { Create: { content: { "application/json": { schema: request } } } },
+        responses: {
+          Created: {
+            description: "ok",
+            content: { "application/json": { schema: response } },
+          },
+        },
+      },
+    });
+    const before = doc(object({ name: { type: "string" } }), object({ id: { type: "string" } }));
+    const after = doc(
+      object({ name: { type: "string" }, email: { type: "string" } }, ["email"]),
+      object({ id: { type: "integer" } }),
+    );
+    const result = classify(before, after);
+    expect(result.type).toBe("feat");
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "request", "email", "now-required"],
+      ["POST /v3/things/", "response", "id", "string->integer"],
+    ]);
+  });
+
+  it("compares every success response, and lists a change they share once", () => {
+    const op = (ok: Doc, accepted: Doc, extra: Doc = {}): Doc =>
+      openapi({
+        "/v3/things/": {
+          post: {
+            ...thing("create", object({}), ok),
+            responses: {
+              "200": { description: "ok", content: { "application/json": { schema: ok } } },
+              "202": {
+                description: "accepted",
+                content: { "application/json": { schema: accepted } },
+              },
+              ...extra,
+            },
+          },
+        },
+      });
+    const report = (id: string, status: string): Doc =>
+      object({ id: { type: id }, status: { type: status } });
+    const before = op(report("string", "string"), report("string", "string"));
+    const after = op(report("integer", "string"), report("integer", "integer"), {
+      "207": { description: "partial" },
+    });
+    const result = classify(before, after);
+    expect(places(result.breaking)).toEqual([
+      ["POST /v3/things/", "response", "id", "string->integer"],
+      ["POST /v3/things/", "response", "status", "string->integer"],
+    ]);
+    expect(result.summary).toContain("response 202.status: type string -> integer (breaking)");
+    expect(result.summary).toContain("response 207 added");
+  });
 });
 
 describe("the hand-written Authentication document", () => {
