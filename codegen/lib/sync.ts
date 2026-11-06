@@ -375,11 +375,6 @@ function finding(at: At, kind: string, says: string): Finding {
   return { in: at.in, field: at.field, kind, says };
 }
 
-/** Request and response fields; a parameter itself is not a field. */
-function isField(at: At): boolean {
-  return at.in === "request" || at.in === "response";
-}
-
 /**
  * Append a note for every difference between two dereferenced schemas; the ones
  * DESIGN section 3.1 lists as able to break typed code carry `breaking`.
@@ -417,9 +412,10 @@ export function diffSchema(
     return;
   }
   if (newTypes.has("null") && !oldTypes.has("null")) {
-    const note: Note = { text: `${label}: can now be null` };
-    if (isField(at)) note.breaking = finding(at, "now-null", "can now be null");
-    notes.push(note);
+    notes.push({
+      text: `${label}: can now be null`,
+      breaking: finding(at, "now-null", "can now be null"),
+    });
   }
   if (oldTypes.has("null") && !newTypes.has("null"))
     notes.push({ text: `${label}: ${request ? "no longer accepts null" : "is never null now"}` });
@@ -532,7 +528,10 @@ function body(
   const resolved = dereference(doc, op.requestBody ?? {});
   const rb = isObject(resolved) ? resolved : {};
   const content = isObject(rb.content) ? rb.content : {};
-  const media = content["application/json"] ?? content["multipart/form-data"];
+  const media =
+    content["application/json"] ??
+    content["multipart/form-data"] ??
+    content["application/x-www-form-urlencoded"];
   return {
     required: rb.required === true,
     types: new Set(Object.keys(content)),
@@ -1136,8 +1135,9 @@ export function sync(input: SyncInput): SyncResult {
       continue;
     }
     let docsOnly = described.docsOnly;
-    // Error responses, security and the like are not documentation either.
-    if (docsOnly && !sameOp && !same(observable(oldDoc, old), observable(newDoc, next))) {
+    // Error responses, security and the like are not documentation either, also when
+    // only a component they reference (a response, a parameter...) changed.
+    if (docsOnly && !same(observable(oldDoc, old), observable(newDoc, next))) {
       notes = ["other request or response details changed"];
       docsOnly = false;
     }
@@ -1157,7 +1157,8 @@ export function sync(input: SyncInput): SyncResult {
       }
     }
     if (docsOnly) notes = [DOCS_ONLY];
-    // An unchanged operation whose components changed: the Schemas section lists them.
+    // An unchanged operation whose components changed only in what documents them: the
+    // Schemas section lists them.
     if (sameOp && docsOnly) continue;
     if (!docsOnly) feature = true;
     const isBreaking = described.breaking.length > 0;
