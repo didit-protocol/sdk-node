@@ -888,9 +888,8 @@ describe("changes that can break typed code", () => {
   });
 
   it("compares fields named like documentation keywords as fields", () => {
-    const op = (fields: Doc): Doc => ({
-      "/v3/things/": { post: thing("create", object({}), object(fields)) },
-    });
+    const op = (fields: Doc): Doc =>
+      openapi({ "/v3/things/": { post: thing("create", object({}), object(fields)) } });
     const before = op({
       description: { type: "string", description: "What matched." },
       title: { type: "string" },
