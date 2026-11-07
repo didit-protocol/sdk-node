@@ -619,8 +619,15 @@ export function diffSchema(
   const b = objectProps(next);
   const oldNames = Object.keys(a.props);
   const newNames = Object.keys(b.props);
-  // A union's fields live in its variants, compared below.
-  if ((oldNames.length && newNames.length) || !(variants(old).length || variants(next).length)) {
+  // A plain object against a union is compared as one of its variants (below). The
+  // fields a union declares beside its variants are shared by all of them and compared
+  // here, also when the last of them goes or the first one comes.
+  const oldUnion = variants(old).length > 0;
+  const newUnion = variants(next).length > 0;
+  const asVariant = oldNames.length
+    ? !newNames.length && !oldUnion && newUnion
+    : newNames.length > 0 && !newUnion && oldUnion;
+  if (!asVariant) {
     for (const name of oldNames.filter((n) => !(n in b.props)).sort(byCodePoint))
       counted(notes, below(at, name), "removed", "was removed");
     for (const name of newNames.filter((n) => !(n in a.props)).sort(byCodePoint)) {
