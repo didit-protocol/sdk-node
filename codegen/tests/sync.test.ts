@@ -958,6 +958,39 @@ describe("changes that can break typed code", () => {
     );
   });
 
+  it("compares the fields a union shares beside its variants, also the last one or the first", () => {
+    const card = object({ last4: { type: "string" } });
+    const bank = object({ iban: { type: "string" } });
+    const union = (shared: Doc | undefined): Doc => ({
+      ...(shared ? object(shared, Object.keys(shared)) : {}),
+      oneOf: [card, bank],
+    });
+    const shared = { id: { type: "string" } };
+    const removed = classify(
+      openapi({ "/v3/things/": { post: thing("create", union(shared), union(shared)) } }),
+      openapi({ "/v3/things/": { post: thing("create", union(undefined), union(undefined)) } }),
+    );
+    expect(removed.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ request body id: removed",
+      "POST /v3/things/ response id: removed",
+    ]);
+    // A shared field that comes is listed in a response, and counts in a request when required.
+    const added = classify(
+      openapi({ "/v3/things/": { post: thing("create", union(undefined), union(undefined)) } }),
+      openapi({ "/v3/things/": { post: thing("create", union(shared), union(shared)) } }),
+    );
+    expect(added.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ request body id: now required",
+    ]);
+    expect(added.summary).toContain("response.id: added");
+    // A plain object that becomes a union is still compared as one of its variants.
+    const split = classify(
+      openapi({ "/v3/things/": { post: thing("create", object({}), card) } }),
+      openapi({ "/v3/things/": { post: thing("create", object({}), union(undefined)) } }),
+    );
+    expect(split.breaking).toEqual([]);
+  });
+
   it("lists everything else in the summary only, and releases it as a feature", () => {
     const before = openapi({
       "/v3/things/": {
