@@ -59,7 +59,7 @@ export const MAX_RELEASE = 20_000;
  * The commit type of each change that can break typed code in the release block;
  * release-please-config.json shows it under RELEASE_NOTES_HEADING.
  */
-export const BREAKING_TYPE = "api-break";
+export const BREAKING_TYPE = "api";
 export const RELEASE_NOTES_HEADING = "API changes that can break typed code";
 // Objects whose keys are names (properties, media types, status codes), not keywords.
 const NAME_MAPS = new Set([
@@ -714,7 +714,7 @@ export function syncTitle(type: SyncType, date: string): string {
  * The "Release" section the workflow appends to the pull request body: a
  * BEGIN_COMMIT_OVERRIDE block that release-please reads instead of the commits,
  * so a squash merge with any title still releases the sync as `feat(spec)`, a minor
- * version, with one nested `api-break(spec)` commit per change that can break typed
+ * version, with one nested `api(spec)` commit per change that can break typed
  * code, which release-please-config.json lists under RELEASE_NOTES_HEADING. Never
  * `!` and never a `BREAKING CHANGE:` footer (DESIGN section 13). Empty for `chore`,
  * which releases nothing on its own. At most `max` characters: changes that do not

@@ -1149,7 +1149,7 @@ describe("the release section and title", () => {
     expect(releaseSection("chore", [], "2026-11-07")).toBe("");
   });
 
-  it("overrides the commits with one feat(spec) line and one api-break(spec) line per change", () => {
+  it("overrides the commits with one feat(spec) line and one api(spec) line per change", () => {
     const section = releaseSection("feat", [change(1), change(2)], "2026-11-07");
     const block = section.slice(
       section.indexOf("BEGIN_COMMIT_OVERRIDE\n") + "BEGIN_COMMIT_OVERRIDE\n".length,
@@ -1159,10 +1159,10 @@ describe("the release section and title", () => {
       [
         "feat(spec): sync API spec 2026-11-07",
         "BEGIN_NESTED_COMMIT",
-        "api-break(spec): `GET /v3/things/1/` response field `value` can now be null",
+        "api(spec): `GET /v3/things/1/` response field `value` can now be null",
         "END_NESTED_COMMIT",
         "BEGIN_NESTED_COMMIT",
-        "api-break(spec): `GET /v3/things/2/` response field `value` can now be null",
+        "api(spec): `GET /v3/things/2/` response field `value` can now be null",
         "END_NESTED_COMMIT",
       ].join("\n"),
     );
@@ -1181,7 +1181,7 @@ describe("the release section and title", () => {
     const nested = section.split("BEGIN_NESTED_COMMIT").length - 1;
     expect(nested).toBeLessThan(500);
     expect(section).toContain(
-      `api-break(spec): and ${500 - nested + 1} more changes that can break typed code, listed in the spec sync pull request\nEND_NESTED_COMMIT\nEND_COMMIT_OVERRIDE`,
+      `api(spec): and ${500 - nested + 1} more changes that can break typed code, listed in the spec sync pull request\nEND_NESTED_COMMIT\nEND_COMMIT_OVERRIDE`,
     );
     expect(releaseSection("feat", many, "2026-11-07").length).toBeLessThanOrEqual(20_000);
   });
