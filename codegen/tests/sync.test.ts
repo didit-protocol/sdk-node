@@ -854,8 +854,9 @@ describe("changes that can break typed code", () => {
         ),
       },
     });
-    ((after.paths as Doc)["/v3/things/"] as { post: { requestBody: Doc } }).post.requestBody.required =
-      true;
+    (
+      (after.paths as Doc)["/v3/things/"] as { post: { requestBody: Doc } }
+    ).post.requestBody.required = true;
     const result = classify(before, after);
     expect(places(result.breaking)).toEqual([
       ["POST /v3/things/", "request", "", "body now required"],
@@ -911,7 +912,9 @@ describe("changes that can break typed code", () => {
         },
       }),
       openapi({
-        "/v3/things/": { post: thing("create", object({}), value([{ type: "string" }, object({})])) },
+        "/v3/things/": {
+          post: thing("create", object({}), value([{ type: "string" }, object({})])),
+        },
       }),
     );
     expect(three.breaking.map(normalized)).toEqual([
@@ -928,13 +931,18 @@ describe("changes that can break typed code", () => {
     const bank = object({ kind: { type: "string", enum: ["bank"] }, iban: { type: "string" } }, [
       "kind",
     ]);
-    const wallet = object({ kind: { type: "string", enum: ["wallet"] }, address: { type: "string" } });
+    const wallet = object({
+      kind: { type: "string", enum: ["wallet"] },
+      address: { type: "string" },
+    });
     const before = openapi({
       "/v3/things/": { post: thing("create", object({}), { oneOf: [card("string"), bank] }) },
     });
     const after = openapi({
       "/v3/things/": {
-        post: thing("create", object({}), { oneOf: [bank, wallet, { ...card("integer"), title: "Card" }] }),
+        post: thing("create", object({}), {
+          oneOf: [bank, wallet, { ...card("integer"), title: "Card" }],
+        }),
       },
     });
     const result = classify(before, after);
@@ -945,7 +953,9 @@ describe("changes that can break typed code", () => {
     expect(changed).toContain("response: 1 oneOf variant(s) added");
     expect(changed).toContain("response: oneOf variants reordered");
     // The title names the variant's generated type: listed, not counted.
-    expect(changed).toContain("response(oneOf 3): variant type renamed from a numbered name to Card");
+    expect(changed).toContain(
+      "response(oneOf 3): variant type renamed from a numbered name to Card",
+    );
   });
 
   it("lists everything else in the summary only, and releases it as a feature", () => {
@@ -1163,7 +1173,9 @@ describe("changes that can break typed code", () => {
     ]);
     expect(result.summary).toContain("response 202.status: type string -> integer (breaking)");
     // The method returns every 2xx body: one without a body makes it nullable.
-    expect(result.summary).toContain("response: can now be null (status 207 has no body) (breaking)");
+    expect(result.summary).toContain(
+      "response: can now be null (status 207 has no body) (breaking)",
+    );
     expect(result.breaking[0]!.text).toBe(
       "`POST /v3/things/` the response can now be null (success status 207 has no body)",
     );
@@ -1176,7 +1188,10 @@ describe("changes that can break typed code", () => {
       description: "ok",
       content: { "application/json": { schema } },
     });
-    const before = op({ "200": body(object({ id: { type: "string" } })), "202": body({ type: "string" }) });
+    const before = op({
+      "200": body(object({ id: { type: "string" } })),
+      "202": body({ type: "string" }),
+    });
     const result = classify(before, op({ "200": body(object({ id: { type: "string" } })) }));
     expect(result.breaking.map(normalized)).toEqual([
       "POST /v3/things/ response: type object|string -> object",
@@ -1305,8 +1320,14 @@ describe("the release section and title", () => {
     expect(section.length).toBeLessThanOrEqual(5_000);
     expect(section).not.toContain("BEGIN_COMMIT_OVERRIDE");
     expect(section).not.toContain("BEGIN_NESTED_COMMIT");
-    expect(section).toContain("The 500 changes that can break typed code do not fit this description");
-    expect(section).toContain("keep the message of this branch's sync commit as the commit message");
-    expect(commitMessage("chore", [], "2026-11-07")).toBe("chore(spec): sync API spec 2026-11-07\n");
+    expect(section).toContain(
+      "The 500 changes that can break typed code do not fit this description",
+    );
+    expect(section).toContain(
+      "keep the message of this branch's sync commit as the commit message",
+    );
+    expect(commitMessage("chore", [], "2026-11-07")).toBe(
+      "chore(spec): sync API spec 2026-11-07\n",
+    );
   });
 });

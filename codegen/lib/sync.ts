@@ -194,8 +194,7 @@ function pointer(doc: Json, ref: string): Json {
  */
 export function dereference(doc: Json, node: Json, depth = 0, refTitles = true): Json {
   if (depth > 64) return {};
-  if (Array.isArray(node))
-    return node.map((v: Json) => dereference(doc, v, depth + 1, refTitles));
+  if (Array.isArray(node)) return node.map((v: Json) => dereference(doc, v, depth + 1, refTitles));
   if (!isObject(node)) return node;
   if (typeof node.$ref === "string") {
     const found = pointer(doc, node.$ref);
@@ -416,7 +415,10 @@ function single(schema: JsonObject, depth = 0): JsonObject {
     for (const member of members) {
       for (const [key, value] of Object.entries(single(member, depth + 1))) {
         if (key === "properties" && isObject(value)) {
-          merged.properties = { ...value, ...(isObject(merged.properties) ? merged.properties : {}) };
+          merged.properties = {
+            ...value,
+            ...(isObject(merged.properties) ? merged.properties : {}),
+          };
         } else if (key === "required" && Array.isArray(value)) {
           merged.required = [...new Set([...asArray(merged.required), ...(value as Json[])])].sort(
             (a, b) => byCodePoint(String(a), String(b)),
@@ -448,9 +450,7 @@ function jsonType(value: Json): string {
 function kinds(schema: Json, depth = 0): Set<string> {
   if (!isObject(schema) || depth > MAX_DEPTH) return new Set();
   const raw = schema.type;
-  const out = new Set(
-    Array.isArray(raw) ? raw.map(String) : typeof raw === "string" ? [raw] : [],
-  );
+  const out = new Set(Array.isArray(raw) ? raw.map(String) : typeof raw === "string" ? [raw] : []);
   out.delete("null");
   if (out.size) return out;
   if (["properties", "additionalProperties", "patternProperties"].some((k) => has(schema, k)))
@@ -538,7 +538,10 @@ function listed(notes: Note[], at: At, text: string): void {
  * for the release notes and `text` for the summary.
  */
 function counted(notes: Note[], at: At, kind: string, says: string, text = kind): void {
-  notes.push({ text: `${at.label}: ${text}`, breaking: { in: at.in, field: at.field, kind, says } });
+  notes.push({
+    text: `${at.label}: ${text}`,
+    breaking: { in: at.in, field: at.field, kind, says },
+  });
 }
 
 /** A type as the release notes write it (`string or integer`). */
@@ -622,7 +625,13 @@ export function diffSchema(
       counted(notes, below(at, name), "removed", "was removed");
     for (const name of newNames.filter((n) => !(n in a.props)).sort(byCodePoint)) {
       if (request && b.required.has(name))
-        counted(notes, below(at, name), "now required", "was added and is required", "added (required)");
+        counted(
+          notes,
+          below(at, name),
+          "now required",
+          "was added and is required",
+          "added (required)",
+        );
       else listed(notes, below(at, name), "added");
     }
     for (const name of oldNames.filter((n) => n in b.props).sort(byCodePoint)) {
@@ -633,7 +642,8 @@ export function diffSchema(
       } else if (a.required.has(name) && !b.required.has(name)) {
         // A response field that may be missing breaks code that reads it.
         if (request) listed(notes, field, "now optional");
-        else counted(notes, field, "no longer required", "is no longer required (it can be missing)");
+        else
+          counted(notes, field, "no longer required", "is no longer required (it can be missing)");
       }
       diffSchema(a.props[name], b.props[name], field, notes, depth + 1);
     }
@@ -738,7 +748,13 @@ function diffVariants(
   for (const [i, j] of pairs) {
     const inner = newVars.length > 1 ? below(at, `(${numbered[j]!})`, "") : at;
     // The fields the union requires are required in each variant too.
-    diffSchema(withRequired(oldVars[i], old), withRequired(newVars[j], next), inner, notes, depth + 1);
+    diffSchema(
+      withRequired(oldVars[i], old),
+      withRequired(newVars[j], next),
+      inner,
+      notes,
+      depth + 1,
+    );
     const before = variantTypeName(oldVars[i]) ?? "a numbered name";
     const after = variantTypeName(newVars[j]) ?? "a numbered name";
     // The variant's title names its generated type, which gets another name.
@@ -757,7 +773,8 @@ function diffVariants(
   }
   if (added.length) listed(notes, at, `${added.length} ${keyword} variant(s) added`);
   const order = [...pairs].sort((x, y) => x[0] - y[0]).map(([, j]) => j);
-  if (order.some((j, k) => k > 0 && order[k - 1]! > j)) listed(notes, at, `${keyword} variants reordered`);
+  if (order.some((j, k) => k > 0 && order[k - 1]! > j))
+    listed(notes, at, `${keyword} variants reordered`);
 }
 
 /** The schema of each media type of a request body or response, references inlined. */
@@ -791,7 +808,11 @@ function diffContent(old: Map<string, Json>, next: Map<string, Json>, at: At, no
   const oldTypes = new Set(old.keys());
   const newTypes = new Set(next.keys());
   if (old.size && next.size && !setEq(oldTypes, newTypes))
-    listed(notes, at, `content type ${[...oldTypes].sort().join(", ")} -> ${[...newTypes].sort().join(", ")}`);
+    listed(
+      notes,
+      at,
+      `content type ${[...oldTypes].sort().join(", ")} -> ${[...newTypes].sort().join(", ")}`,
+    );
   const pairs: [Json, Json][] = [...oldTypes]
     .filter((t) => newTypes.has(t))
     .sort()
@@ -833,7 +854,10 @@ function diffStatuses(
       if (!media.size) continue;
       const key = JSON.stringify(sortKeys(shaped(media)));
       if (!distinct.has(key))
-        distinct.set(key, media.get(media.has("application/json") ? "application/json" : first(media.keys())));
+        distinct.set(
+          key,
+          media.get(media.has("application/json") ? "application/json" : first(media.keys())),
+        );
     }
     return unionNames([...distinct.values()]) || "null";
   };
@@ -924,7 +948,11 @@ export function describeChange(
   for (const key of [...oldParams.keys()].filter((k) => !newParams.has(k)).sort()) {
     found.push({
       text: `parameter removed: ${key}`,
-      breaking: { ...finding(parameterAt(oldParams.get(key)!, key)), kind: "removed", says: "was removed" },
+      breaking: {
+        ...finding(parameterAt(oldParams.get(key)!, key)),
+        kind: "removed",
+        says: "was removed",
+      },
     });
   }
   for (const key of [...newParams.keys()].filter((k) => !oldParams.has(k)).sort()) {
@@ -932,7 +960,11 @@ export function describeChange(
     const note: Note = { text: `parameter added: ${key}` };
     if (p.required === true) {
       note.text += ", required";
-      note.breaking = { ...finding(parameterAt(p, key)), kind: "now required", says: "was added and is required" };
+      note.breaking = {
+        ...finding(parameterAt(p, key)),
+        kind: "now required",
+        says: "was added and is required",
+      };
     }
     found.push(note);
   }
@@ -993,7 +1025,12 @@ export function describeChange(
   }
   for (const [oldCode, newCode] of pairs) {
     const label = pairs.length > 1 ? `response ${newCode}` : "response";
-    diffContent(or.get(oldCode)!, nr.get(newCode)!, { label, request: false, in: "response", field: "" }, found);
+    diffContent(
+      or.get(oldCode)!,
+      nr.get(newCode)!,
+      { label, request: false, in: "response", field: "" },
+      found,
+    );
   }
   if (old.deprecated !== true && next.deprecated === true)
     found.push({ text: "marked deprecated upstream" });

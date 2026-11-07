@@ -69,8 +69,16 @@ function syncPair(before: keyof typeof PINNED, after: keyof typeof PINNED): Sync
 
 /** The changes that can break typed code in the 2026-11-04 API change: (operation, field, kind). */
 const EXPECTED_2026_11_04 = [
-  ["GET /v3/session/{sessionId}/decision/", "registry_checks[].company.registry_data", "can now be null"],
-  ["GET /v3/session/{sessionId}/decision/", "registry_checks[].ownership_structure", "can now be null"],
+  [
+    "GET /v3/session/{sessionId}/decision/",
+    "registry_checks[].company.registry_data",
+    "can now be null",
+  ],
+  [
+    "GET /v3/session/{sessionId}/decision/",
+    "registry_checks[].ownership_structure",
+    "can now be null",
+  ],
   ["GET /v3/session/{sessionId}/decision/", "signatures[].confirmation.channel", "can now be null"],
   ["POST /v3/email/risk/", "email.email_intelligence.reason_codes[]", "type string -> object"],
   ["POST /v3/email/risk/", "email.enrichment.reason_codes[]", "type string -> object"],
@@ -315,7 +323,9 @@ describe.skipIf(NODE_MAJOR < 20)("release-please with release-please-config.json
       releaseSection(result.type, result.breaking, DATE, 100),
     );
     expect(pr.body).not.toContain("BEGIN_COMMIT_OVERRIDE");
-    const release = await nextRelease(squashed(pr, commitMessage(result.type, result.breaking, DATE)));
+    const release = await nextRelease(
+      squashed(pr, commitMessage(result.type, result.breaking, DATE)),
+    );
     expect(release?.version).toBe(minor);
     const notes = release!.notes;
     expect(notes).not.toContain("BREAKING");
