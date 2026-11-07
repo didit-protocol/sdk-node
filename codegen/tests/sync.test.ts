@@ -979,7 +979,9 @@ describe("changes that can break typed code", () => {
       openapi({ "/v3/things/": { post: thing("create", union(undefined), union(undefined)) } }),
       openapi({ "/v3/things/": { post: thing("create", union(shared), union(shared)) } }),
     );
-    expect(added.breaking.map(normalized)).toEqual(["POST /v3/things/ request body id: now required"]);
+    expect(added.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ request body id: now required",
+    ]);
     expect(added.summary).toContain("response.id: added");
     // A plain object that becomes a union is still compared as one of its variants.
     const split = classify(
