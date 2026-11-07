@@ -1,0 +1,1305 @@
+// Sync openapi/ with the published API contract (docs/DESIGN.md section 3.1).
+//
+// When a download differs from the committed copy:
+// - refuse anything that is not an OpenAPI 3 document with paths;
+// - write it byte for byte and record URL, SHA-256 and fetch time in SOURCE.json;
+// - drop overlay.json entries that upstream now carries as x-didit-sdk;
+// - never delete a public method silently: a server method whose operation was
+//   removed, renamed or is no longer a server operation is recorded in
+//   deprecated-operations.json (with the component schemas it uses, so its
+//   types keep their names) and stays as a deprecated method until the next
+//   minor version; a name that reappears on another path counts as moved;
+// - describe added, removed, renamed, moved and changed operations and schemas,
+//   opening with the changes that can break typed code (exactly the list of
+//   DESIGN section 3.1), and classify the sync as `feat` (a caller can observe
+//   the change) or `chore` (documentation only). Never a major version: a change
+//   that mirrors the API is a minor one (DESIGN section 13).
+
+import { createHash } from "node:crypto";
+
+import { isObject, type Json, type JsonObject } from "./spec.ts";
+
+export const UPSTREAM: Record<string, string> = {
+  "verification.json": "https://docs.didit.me/openapi-25.json",
+  "account.json": "https://docs.didit.me/openapi-auth.json",
+  "authentication.json": "https://docs.didit.me/openapi-authentication.json",
+};
+const PREFIXES: Record<string, string> = {
+  "verification.json": "",
+  "account.json": "account ",
+  "authentication.json": "authentication ",
+};
+/**
+ * Documents whose operations the hand-written `authentication` module implements
+ * (DESIGN section 10). The sync describes their changes like any other, but never
+ * names, generates or deprecates a method for them: the contract test in
+ * tests/authentication/contract.test.ts fails until the module follows.
+ */
+const HAND_WRITTEN = new Set(["authentication.json"]);
+const METHODS = ["get", "put", "post", "delete", "patch", "head", "options"];
+// Keys that document a schema without changing what is sent or received.
+const DOC_KEYS = new Set([
+  "description",
+  "summary",
+  "title",
+  "example",
+  "examples",
+  "externalDocs",
+]);
+const MAX_NOTES = 25;
+const COMPONENT_PREFIX = "#/components/schemas/";
+/**
+ * The longest summary plus release section written for the pull request body. GitHub
+ * refuses a body over 65,536 characters, and the workflow appends the checks.
+ */
+export const MAX_SUMMARY = 60_000;
+/** The longest release section, so the summary always keeps most of the room. */
+export const MAX_RELEASE = 20_000;
+/**
+ * The commit type of each change that can break typed code in the release block;
+ * release-please-config.json shows it under RELEASE_NOTES_HEADING.
+ */
+export const BREAKING_TYPE = "api";
+export const RELEASE_NOTES_HEADING = "API changes that can break typed code";
+// Objects whose keys are names (properties, media types, status codes), not keywords.
+const NAME_MAPS = new Set([
+  "properties",
+  "patternProperties",
+  "dependentSchemas",
+  "$defs",
+  "definitions",
+  "content",
+  "encoding",
+  "headers",
+  "links",
+  "callbacks",
+  "responses",
+  "mapping",
+]);
+// Keywords whose value is data sent or received as it is, not a schema.
+const LITERALS = new Set(["enum", "const", "default"]);
+// String formats the SDK gives a type of their own (`Date`, an upload), so a change
+// to or from one is a type change.
+const TYPED_FORMATS = new Set(["date-time", "binary"]);
+
+/**
+ * Sample data a deprecated method does not need: examples and vendor extensions such
+ * as x-codeSamples (curl commands with API keys). Upstream examples can look like
+ * credentials (JWTs, API keys); the secret scan allowlists the upstream copies only,
+ * so deprecated-operations.json must not carry them.
+ */
+function isSample(key: string): boolean {
+  return key === "example" || key === "examples" || (key.startsWith("x-") && key !== "x-didit-sdk");
+}
+
+/** A download is not a document the SDK can be generated from. */
+export class SpecSyncError extends Error {
+  override name = "SpecSyncError";
+}
+
+/** Where a change that can break typed code is: a parameter goes by its `in`. */
+export type BreakingPlace =
+  "operation" | "request" | "response" | "query" | "path" | "header" | "cookie";
+
+/**
+ * A change that can break typed code (DESIGN section 3.1): a field or parameter
+ * whose type changed, a field that can now be null, a removed operation, field or
+ * enum value, or a newly required parameter or request field. Every SDK repository
+ * detects exactly this list. Everything else stays in the summary only.
+ */
+export interface BreakingChange {
+  /** The operation: `POST /v3/session/`, `account ...` or `authentication ...`. */
+  operation: string;
+  in: BreakingPlace;
+  /**
+   * The field path (`registry_checks[].company.registry_data`, `[]` for array items,
+   * `{}` for map values) or the parameter name; empty for the operation or a whole body.
+   */
+  field: string;
+  /**
+   * `now-null`; `<old>-><new>` for a type change (`string->object`), `replaced` for a
+   * schema that is no longer an object schema, `variant-removed` for a removed
+   * `oneOf`/`anyOf` variant; `removed`; `enum-removed`; `now-required`.
+   */
+  kind: string;
+  /** The sentence the pull request and the release notes show. */
+  text: string;
+}
+
+type Finding = Omit<BreakingChange, "operation" | "text"> & { says: string };
+
+interface Note {
+  text: string;
+  /** Set when the note is one of the changes that can break typed code. */
+  breaking?: Finding;
+}
+
+/** Where diffSchema is: the label of its notes and the place of what it finds. */
+interface At {
+  /** `response.items[].id`, `body.name` or `parameter status (query)`. */
+  label: string;
+  /** Parameters and the request body; the response otherwise. */
+  request: boolean;
+  in: Exclude<BreakingPlace, "operation">;
+  field: string;
+}
+
+const DOCS_ONLY = "descriptions, examples or other details changed";
+
+/** Parse a download and refuse anything that is not an OpenAPI 3 document with paths. */
+export function checkOpenAPI(name: string, data: Uint8Array): JsonObject {
+  let doc: unknown;
+  try {
+    doc = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(data));
+  } catch (error) {
+    throw new SpecSyncError(`${name}: the download is not JSON (${(error as Error).message}).`);
+  }
+  if (!isObject(doc)) throw new SpecSyncError(`${name}: the download is not a JSON object.`);
+  if (typeof doc.openapi !== "string" || !doc.openapi.startsWith("3.")) {
+    throw new SpecSyncError(
+      `${name}: the download is not an OpenAPI 3 document (openapi=${JSON.stringify(doc.openapi)}).`,
+    );
+  }
+  if (!isObject(doc.paths) || !Object.keys(doc.paths).length) {
+    throw new SpecSyncError(`${name}: the download has no paths.`);
+  }
+  return doc;
+}
+
+function pointer(doc: Json, ref: string): Json {
+  let cur = doc;
+  for (const raw of ref.slice(2).split("/")) {
+    if (!isObject(cur) && !Array.isArray(cur)) return undefined;
+    cur = (cur as Record<string, Json>)[raw.replace(/~1/g, "/").replace(/~0/g, "~")];
+  }
+  return cur;
+}
+
+/** `node` with every local `$ref` inlined. */
+export function dereference(doc: Json, node: Json, depth = 0): Json {
+  if (depth > 64) return {};
+  if (Array.isArray(node)) return node.map((v: Json) => dereference(doc, v, depth + 1));
+  if (!isObject(node)) return node;
+  if (typeof node.$ref === "string") {
+    const found = pointer(doc, node.$ref);
+    if (found === undefined) return { "x-unresolved-ref": node.$ref };
+    const target = dereference(doc, found, depth + 1);
+    const extra = Object.fromEntries(Object.entries(node).filter(([k]) => k !== "$ref"));
+    return isObject(target) ? { ...target, ...extra } : target;
+  }
+  return Object.fromEntries(
+    Object.entries(node).map(([k, v]) => [k, dereference(doc, v, depth + 1)]),
+  );
+}
+
+/**
+ * `node` with every `$ref` inlined except component schemas, plus the component
+ * schemas it uses (transitively), so a deprecated method keeps its type names.
+ * Sample data (examples, x-codeSamples and other vendor extensions) is left out.
+ */
+export function detach(doc: Json, node: Json): { node: Json; components: Record<string, Json> } {
+  const components: Record<string, Json> = {};
+  // `names`: the keys of `value` are names (of properties, media types...), not keywords.
+  const inline = (value: Json, depth: number, names = false): Json => {
+    if (depth > 64) return {};
+    if (Array.isArray(value)) return value.map((v: Json) => inline(v, depth + 1));
+    if (!isObject(value)) return value;
+    if (names) {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, inline(v, depth + 1)]));
+    }
+    const entries = Object.entries(value)
+      .filter(([k]) => !isSample(k))
+      .map(([k, v]): [string, Json] => [
+        k,
+        k === "$ref" ? v : inline(v, depth + 1, NAME_MAPS.has(k)),
+      ]);
+    if (typeof value.$ref === "string") {
+      const extra = Object.fromEntries(entries.filter(([k]) => k !== "$ref"));
+      if (value.$ref.startsWith(COMPONENT_PREFIX)) {
+        const name = value.$ref
+          .slice(COMPONENT_PREFIX.length)
+          .replace(/~1/g, "/")
+          .replace(/~0/g, "~");
+        if (!(name in components)) {
+          components[name] = {};
+          components[name] = inline(pointer(doc, value.$ref) ?? {}, depth + 1);
+        }
+        return { $ref: value.$ref, ...extra };
+      }
+      const found = pointer(doc, value.$ref);
+      if (found === undefined) return { "x-unresolved-ref": value.$ref };
+      const target = inline(found, depth + 1);
+      return isObject(target) ? { ...target, ...extra } : target;
+    }
+    return Object.fromEntries(entries);
+  };
+  return { node: inline(node, 0), components };
+}
+
+export function operations(doc: JsonObject, prefix: string): Map<string, JsonObject> {
+  const out = new Map<string, JsonObject>();
+  const paths = isObject(doc.paths) ? doc.paths : {};
+  for (const [path, rawItem] of Object.entries(paths)) {
+    const item = isObject(rawItem) ? rawItem : {};
+    for (const method of METHODS) {
+      const op = item[method];
+      if (!isObject(op)) continue;
+      const merged: JsonObject = { ...op };
+      if (Array.isArray(item.parameters) && item.parameters.length) {
+        merged.parameters = [
+          ...(item.parameters as Json[]),
+          ...(Array.isArray(op.parameters) ? (op.parameters as Json[]) : []),
+        ];
+      }
+      out.set(`${prefix}${method.toUpperCase()} ${path}`, merged);
+    }
+  }
+  return out;
+}
+
+// Schema comparison --------------------------------------------------------------
+
+/**
+ * `node` without what only documents it (descriptions, examples, vendor extensions), so
+ * two equal shapes are the same to a caller. `names`: the keys of `node` are names (of
+ * properties, media types, status codes...), kept even when they read like a keyword.
+ */
+function shape(node: Json, names = false): Json {
+  if (Array.isArray(node)) return node.map((v: Json) => shape(v));
+  if (!isObject(node)) return node;
+  return Object.fromEntries(
+    Object.entries(node)
+      .filter(([k]) => names || (!DOC_KEYS.has(k) && !k.startsWith("x-")))
+      .map(([k, v]) => [k, names ? shape(v) : keywordShape(k, v)]),
+  );
+}
+
+/** The shape of the value of keyword `key`: data such as enum values stays as it is. */
+function keywordShape(key: string, value: Json): Json {
+  return LITERALS.has(key) ? value : shape(value, NAME_MAPS.has(key));
+}
+
+function same(a: Json, b: Json): boolean {
+  return JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
+}
+
+function sortKeys(node: Json): Json {
+  if (Array.isArray(node)) return node.map(sortKeys);
+  if (!isObject(node)) return node;
+  return Object.fromEntries(
+    Object.keys(node)
+      .sort()
+      .map((k) => [k, sortKeys(node[k])]),
+  );
+}
+
+/**
+ * The types a value of `schema` can have, `null` included: a string format with a
+ * type of its own (`string(date-time)`) counts as a type, and with `withVariants` a
+ * `oneOf`/`anyOf` has the types of its variants, unless one of them has no known type.
+ */
+function types(schema: JsonObject, withVariants = true, depth = 0): Set<string> {
+  const out = new Set<string>();
+  const format =
+    typeof schema.format === "string" && TYPED_FORMATS.has(schema.format)
+      ? `string(${schema.format})`
+      : "string";
+  const add = (t: string): void => {
+    out.add(t === "string" ? format : t);
+  };
+  if (typeof schema.type === "string") add(schema.type);
+  if (Array.isArray(schema.type)) for (const t of schema.type) add(String(t));
+  if (schema.type === undefined && isObject(schema.properties)) add("object");
+  if (schema.type === undefined && isObject(schema.items)) add("array");
+  if (schema.nullable === true || asArray(schema.enum).includes(null)) out.add("null");
+  const union = new Set<string>();
+  let known = true;
+  for (const v of [...asArray(schema.anyOf), ...asArray(schema.oneOf)]) {
+    if (!isObject(v)) continue;
+    if (v.type === "null") out.add("null");
+    else if (withVariants && depth < 16) {
+      const inner = types(v, true, depth + 1);
+      if (![...inner].some((t) => t !== "null")) known = false;
+      for (const t of inner) union.add(t);
+    }
+  }
+  if (known) for (const t of union) out.add(t);
+  return out;
+}
+
+function asArray(value: Json): Json[] {
+  return Array.isArray(value) ? (value as Json[]) : [];
+}
+
+function objectProps(schema: JsonObject): { props: Record<string, Json>; required: Set<string> } {
+  const props: Record<string, Json> = {};
+  const required = new Set<string>();
+  const stack: Json[] = [schema];
+  while (stack.length) {
+    const cur = stack.pop();
+    if (!isObject(cur)) continue;
+    if (isObject(cur.properties)) Object.assign(props, cur.properties);
+    for (const r of asArray(cur.required)) required.add(String(r));
+    stack.push(...asArray(cur.allOf));
+  }
+  return { props, required };
+}
+
+function variants(schema: JsonObject, keyword: string): Json[] {
+  return asArray(schema[keyword]).filter((v) => !(isObject(v) && v.type === "null"));
+}
+
+/** `anyOf` or `oneOf` of one schema and `null` is that schema, nullable. */
+function unwrapNullable(schema: JsonObject): JsonObject {
+  for (const keyword of ["anyOf", "oneOf"]) {
+    const only = variants(schema, keyword);
+    if (asArray(schema[keyword]).length === 2 && only.length === 1 && isObject(only[0])) {
+      const { [keyword]: _variants, ...rest } = schema;
+      return { ...only[0], ...rest, nullable: true };
+    }
+  }
+  return schema;
+}
+
+function setEq(a: Set<string>, b: Set<string>): boolean {
+  return a.size === b.size && [...a].every((x) => b.has(x));
+}
+
+function below(at: At, name: string, separator = "."): At {
+  return {
+    ...at,
+    label: `${at.label}${separator}${name}`,
+    field: at.field && separator === "." ? `${at.field}.${name}` : `${at.field}${name}`,
+  };
+}
+
+function finding(at: At, kind: string, says: string): Finding {
+  return { in: at.in, field: at.field, kind, says };
+}
+
+/**
+ * Append a note for every difference between two dereferenced schemas; the ones
+ * DESIGN section 3.1 lists as able to break typed code carry `breaking`.
+ */
+export function diffSchema(
+  oldSchema: Json,
+  nextSchema: Json,
+  at: At,
+  notes: Note[],
+  depth = 0,
+): void {
+  if (depth > 16 || same(shape(oldSchema), shape(nextSchema))) return;
+  const { label, request } = at;
+  const before = notes.length;
+  if (!isObject(oldSchema) || !isObject(nextSchema)) {
+    notes.push({
+      text: `${label}: schema replaced`,
+      breaking: finding(at, "replaced", "changed type"),
+    });
+    return;
+  }
+  const old = unwrapNullable(oldSchema);
+  const next = unwrapNullable(nextSchema);
+  // Two unions compare variant by variant (below); a union and a plain type by type.
+  const unions = [old, next].every(
+    (s) => variants(s, "oneOf").length || variants(s, "anyOf").length,
+  );
+  const oldTypes = types(old, !unions);
+  const newTypes = types(next, !unions);
+  const oldPlain = new Set([...oldTypes].filter((t) => t !== "null"));
+  const newPlain = new Set([...newTypes].filter((t) => t !== "null"));
+  if (oldPlain.size && newPlain.size && !setEq(oldPlain, newPlain)) {
+    const from = [...oldPlain].sort().join("/");
+    const to = [...newPlain].sort().join("/");
+    notes.push({
+      text: `${label}: type ${from} -> ${to}`,
+      breaking: finding(at, `${from}->${to}`, `changed type from ${from} to ${to}`),
+    });
+    return;
+  }
+  if (newTypes.has("null") && !oldTypes.has("null")) {
+    notes.push({
+      text: `${label}: can now be null`,
+      breaking: finding(at, "now-null", "can now be null"),
+    });
+  }
+  if (oldTypes.has("null") && !newTypes.has("null"))
+    notes.push({ text: `${label}: ${request ? "no longer accepts null" : "is never null now"}` });
+
+  const oldEnum = old.enum;
+  const newEnum = next.enum;
+  if (Array.isArray(oldEnum) && Array.isArray(newEnum)) {
+    const gone = oldEnum.filter((v) => !newEnum.some((w) => same(v, w)));
+    const added = newEnum.filter((v) => !oldEnum.some((w) => same(v, w)));
+    if (gone.length) {
+      const values = gone.map((v) => `\`${JSON.stringify(v)}\``).join(", ");
+      notes.push({
+        text: `${label}: values removed ${JSON.stringify(gone)}`,
+        breaking: finding(
+          at,
+          "enum-removed",
+          `no longer has the enum ${gone.length === 1 ? "value" : "values"} ${values}`,
+        ),
+      });
+    }
+    if (added.length) notes.push({ text: `${label}: values added ${JSON.stringify(added)}` });
+  } else if (Array.isArray(newEnum)) {
+    notes.push({ text: `${label}: now limited to ${JSON.stringify(newEnum)}` });
+  } else if (Array.isArray(oldEnum)) {
+    notes.push({ text: `${label}: no longer limited to fixed values` });
+  }
+
+  const a = objectProps(old);
+  const b = objectProps(next);
+  for (const name of Object.keys(a.props)
+    .filter((n) => !(n in b.props))
+    .sort()) {
+    notes.push({
+      text: `${label}.${name}: removed`,
+      breaking: finding(below(at, name), "removed", "was removed"),
+    });
+  }
+  for (const name of Object.keys(b.props)
+    .filter((n) => !(n in a.props))
+    .sort()) {
+    const note: Note = { text: `${label}.${name}: added` };
+    if (request && b.required.has(name)) {
+      note.text += " (required)";
+      note.breaking = finding(below(at, name), "now-required", "was added and is required");
+    }
+    notes.push(note);
+  }
+  for (const name of Object.keys(a.props)
+    .filter((n) => n in b.props)
+    .sort()) {
+    if (request && b.required.has(name) && !a.required.has(name)) {
+      notes.push({
+        text: `${label}.${name}: now required`,
+        breaking: finding(below(at, name), "now-required", "is now required"),
+      });
+    }
+    if (request && a.required.has(name) && !b.required.has(name))
+      notes.push({ text: `${label}.${name}: now optional` });
+    if (!request && a.required.has(name) && !b.required.has(name))
+      notes.push({ text: `${label}.${name}: no longer always present` });
+    if (!request && b.required.has(name) && !a.required.has(name))
+      notes.push({ text: `${label}.${name}: now always present` });
+    diffSchema(a.props[name], b.props[name], below(at, name), notes, depth + 1);
+  }
+  for (const [key, suffix] of [
+    ["items", "[]"],
+    ["additionalProperties", "{}"],
+  ] as const) {
+    if (isObject(old[key]) || isObject(next[key])) {
+      diffSchema(
+        isObject(old[key]) ? old[key] : {},
+        isObject(next[key]) ? next[key] : {},
+        below(at, suffix, ""),
+        notes,
+        depth + 1,
+      );
+    }
+  }
+  for (const keyword of ["oneOf", "anyOf"]) {
+    const ov = variants(old, keyword);
+    const nv = variants(next, keyword);
+    if (nv.length < ov.length) {
+      const gone = ov.length - nv.length;
+      notes.push({
+        text: `${label}: ${gone} ${keyword} variant(s) removed`,
+        breaking: finding(at, "variant-removed", `lost ${gone} of its ${keyword} variants`),
+      });
+    } else if (nv.length > ov.length) {
+      notes.push({ text: `${label}: ${nv.length - ov.length} ${keyword} variant(s) added` });
+    } else {
+      ov.forEach((v, i) => {
+        diffSchema(v, nv[i], below(at, `(${keyword} ${i + 1})`, ""), notes, depth + 1);
+      });
+    }
+  }
+  // Any other difference a caller can observe (format, pattern, limits, default...).
+  if (notes.length === before) {
+    const keys = [...new Set([...Object.keys(old), ...Object.keys(next)])]
+      .filter((k) => !same(keywordShape(k, old[k]), keywordShape(k, next[k])))
+      .sort();
+    notes.push({ text: `${label}: ${keys.join(", ") || "schema"} changed` });
+  }
+}
+
+/** The request body as a caller sends it, with its references (`$ref` included) inlined. */
+function body(
+  doc: JsonObject,
+  op: JsonObject,
+): { required: boolean; types: Set<string>; schema: Json } {
+  const resolved = dereference(doc, op.requestBody ?? {});
+  const rb = isObject(resolved) ? resolved : {};
+  const content = isObject(rb.content) ? rb.content : {};
+  const media =
+    content["application/json"] ??
+    content["multipart/form-data"] ??
+    content["application/x-www-form-urlencoded"];
+  return {
+    required: rb.required === true,
+    types: new Set(Object.keys(content)),
+    schema: isObject(media) ? (media.schema ?? {}) : {},
+  };
+}
+
+/** Every success response by status code as a caller receives it, references inlined. */
+function successes(
+  doc: JsonObject,
+  op: JsonObject,
+): Map<string, { types: Set<string>; schema: Json }> {
+  const out = new Map<string, { types: Set<string>; schema: Json }>();
+  const responses = isObject(op.responses) ? op.responses : {};
+  for (const code of Object.keys(responses).sort()) {
+    if (!code.startsWith("2")) continue;
+    const response = dereference(doc, responses[code]);
+    const content = isObject(response) && isObject(response.content) ? response.content : {};
+    const media = content["application/json"];
+    out.set(code, {
+      types: new Set(Object.keys(content)),
+      schema: isObject(media) ? (media.schema ?? {}) : {},
+    });
+  }
+  return out;
+}
+
+const PARAMETER_PLACES = new Set(["query", "path", "header", "cookie"]);
+
+/** The operation as a caller sees it: its references inlined, without tags and operationId. */
+function observable(doc: JsonObject, op: JsonObject): Json {
+  const { tags: _tags, operationId: _id, ...rest } = op;
+  return shape(dereference(doc, rest));
+}
+
+export interface OperationChange {
+  /** Human-readable differences, the breaking ones first and marked "(breaking)". */
+  notes: string[];
+  /** The differences that can break typed code (DESIGN section 3.1). */
+  breaking: Finding[];
+  /**
+   * No difference in parameters, body, success response or naming. The rest of the
+   * operation (error responses, security...) can still differ: see `observable`.
+   */
+  docsOnly: boolean;
+}
+
+/** Human-readable differences of one operation, and which of them can break typed code. */
+export function describeChange(
+  oldDoc: JsonObject,
+  old: JsonObject,
+  newDoc: JsonObject,
+  next: JsonObject,
+): OperationChange {
+  const found: Note[] = [];
+  const params = (doc: JsonObject, op: JsonObject): Map<string, JsonObject> => {
+    const out = new Map<string, JsonObject>();
+    for (const p of asArray(dereference(doc, op.parameters ?? []))) {
+      if (isObject(p)) out.set(`${String(p.name)} (${String(p.in)})`, p);
+    }
+    return out;
+  };
+  const parameterAt = (p: JsonObject, key: string): At => ({
+    label: `parameter ${key}`,
+    request: true,
+    in: (PARAMETER_PLACES.has(String(p.in)) ? p.in : "query") as At["in"],
+    field: String(p.name),
+  });
+  const oldParams = params(oldDoc, old);
+  const newParams = params(newDoc, next);
+  for (const key of [...oldParams.keys()].filter((k) => !newParams.has(k)).sort())
+    found.push({ text: `parameter removed: ${key}` });
+  for (const key of [...newParams.keys()].filter((k) => !oldParams.has(k)).sort()) {
+    const p = newParams.get(key)!;
+    const note: Note = { text: `parameter added: ${key}` };
+    if (p.required === true) {
+      note.text += ", required";
+      note.breaking = finding(parameterAt(p, key), "now-required", "was added and is required");
+    }
+    found.push(note);
+  }
+  for (const key of [...oldParams.keys()].filter((k) => newParams.has(k)).sort()) {
+    const a = oldParams.get(key)!;
+    const b = newParams.get(key)!;
+    const at = parameterAt(b, key);
+    if (a.required !== true && b.required === true)
+      found.push({
+        text: `parameter now required: ${key}`,
+        breaking: finding(at, "now-required", "is now required"),
+      });
+    if (a.required === true && b.required !== true)
+      found.push({ text: `parameter now optional: ${key}` });
+    diffSchema(a.schema ?? {}, b.schema ?? {}, at, found);
+  }
+  const ob = body(oldDoc, old);
+  const nb = body(newDoc, next);
+  if (!setEq(ob.types, nb.types) && ob.types.size && nb.types.size) {
+    found.push({
+      text: `request content type ${JSON.stringify([...ob.types].sort())} -> ${JSON.stringify([...nb.types].sort())}`,
+    });
+  }
+  if (!ob.required && nb.required) found.push({ text: "request body now required" });
+  diffSchema(
+    ob.schema,
+    nb.schema,
+    { label: "body", request: true, in: "request", field: "" },
+    found,
+  );
+  // Every success response: the same change in several of them is listed once (see sync).
+  const or = successes(oldDoc, old);
+  const nr = successes(newDoc, next);
+  const only = (codes: Map<string, unknown>): string | undefined =>
+    codes.size === 1 ? [...codes.keys()][0] : undefined;
+  // The only success response on both sides is the same response under any status code.
+  const pairs: [string, string][] =
+    only(or) && only(nr)
+      ? [[only(or)!, only(nr)!]]
+      : [...or.keys()].filter((code) => nr.has(code)).map((code) => [code, code]);
+  for (const code of [...or.keys()].filter((c) => !pairs.some(([o]) => o === c)))
+    found.push({ text: `response ${code} removed` });
+  for (const code of [...nr.keys()].filter((c) => !pairs.some(([, n]) => n === c)))
+    found.push({ text: `response ${code} added` });
+  for (const [oldCode, newCode] of pairs) {
+    const label = pairs.length > 1 ? `response ${newCode}` : "response";
+    const a = or.get(oldCode)!;
+    const b = nr.get(newCode)!;
+    if (oldCode !== newCode) found.push({ text: `success status ${oldCode} -> ${newCode}` });
+    if (!setEq(a.types, b.types)) {
+      found.push({
+        text: `${label} content type ${JSON.stringify([...a.types].sort())} -> ${JSON.stringify([...b.types].sort())}`,
+      });
+    }
+    diffSchema(a.schema, b.schema, { label, request: false, in: "response", field: "" }, found);
+  }
+  if (old.deprecated !== true && next.deprecated === true)
+    found.push({ text: "marked deprecated upstream" });
+  if (!same(old["x-didit-sdk"], next["x-didit-sdk"]) && next["x-didit-sdk"] !== undefined) {
+    found.push({ text: `x-didit-sdk now ${JSON.stringify(sortKeys(next["x-didit-sdk"]))}` });
+  }
+  if (!found.length) return { notes: [DOCS_ONLY], breaking: [], docsOnly: true };
+  const ordered = [...found.filter((n) => n.breaking), ...found.filter((n) => !n.breaking)];
+  let notes = ordered.map((n) => (n.breaking ? `${n.text} (breaking)` : n.text));
+  if (notes.length > MAX_NOTES)
+    notes = [...notes.slice(0, MAX_NOTES), `and ${notes.length - MAX_NOTES} more differences`];
+  return {
+    notes,
+    breaking: found.flatMap((n) => (n.breaking ? [n.breaking] : [])),
+    docsOnly: false,
+  };
+}
+
+/** The sentence for one change that can break typed code. */
+function sentence(operation: string, f: Finding): string {
+  let subject: string;
+  if (f.in === "operation") subject = "";
+  else if (f.in === "request")
+    subject = f.field ? `request field \`${f.field}\`` : "the request body";
+  else if (f.in === "response")
+    subject = f.field ? `response field \`${f.field}\`` : "the response";
+  else subject = `${f.in} parameter \`${f.field}\``;
+  return `\`${operation}\` ${subject ? `${subject} ` : ""}${f.says}`;
+}
+
+function breakingChange(operation: string, f: Finding): BreakingChange {
+  return { operation, in: f.in, field: f.field, kind: f.kind, text: sentence(operation, f) };
+}
+
+/** The pull request title and the sync's commit message (DESIGN section 3.1). */
+export function syncTitle(type: SyncType, date: string): string {
+  return `${type}(spec): sync API spec ${date}`;
+}
+
+/**
+ * The "Release" section the workflow appends to the pull request body: a
+ * BEGIN_COMMIT_OVERRIDE block that release-please reads instead of the commits,
+ * so a squash merge with any title still releases the sync as `feat(spec)`, a minor
+ * version, with one nested `api(spec)` commit per change that can break typed
+ * code, which release-please-config.json lists under RELEASE_NOTES_HEADING. Never
+ * `!` and never a `BREAKING CHANGE:` footer (DESIGN section 13). Empty for `chore`,
+ * which releases nothing on its own. At most `max` characters: changes that do not
+ * fit are counted in one last line.
+ */
+export function releaseSection(
+  type: SyncType,
+  breaking: readonly BreakingChange[],
+  date: string,
+  max = MAX_RELEASE,
+): string {
+  if (type !== "feat") return "";
+  const lines = [
+    "",
+    "## Release",
+    "",
+    `release-please reads the block below instead of the commits of this pull request, so the release is a minor version${
+      breaking.length
+        ? `, and its notes list each change that can break typed code under "${RELEASE_NOTES_HEADING}"`
+        : ""
+    } (docs/DESIGN.md section 13). Keep the block when you edit this description, and merge with "Squash and merge": after a merge commit, release-please reads the block for both commits and lists every line twice.`,
+    "",
+    "BEGIN_COMMIT_OVERRIDE",
+    syncTitle(type, date),
+  ];
+  const end = ["END_COMMIT_OVERRIDE", ""];
+  const nested = (text: string): string =>
+    `BEGIN_NESTED_COMMIT\n${BREAKING_TYPE}(spec): ${text}\nEND_NESTED_COMMIT`;
+  const more = (count: number): string =>
+    nested(
+      `and ${count} more changes that can break typed code, listed in the spec sync pull request`,
+    );
+  const fits = (parts: string[]): boolean => [...lines, ...parts, ...end].join("\n").length <= max;
+  for (const [i, change] of breaking.entries()) {
+    const rest = breaking.length - i - 1;
+    // Always keep room for the line that counts the changes that do not fit.
+    if (!fits([nested(change.text), ...(rest ? [more(rest)] : [])])) {
+      lines.push(more(breaking.length - i));
+      break;
+    }
+    lines.push(nested(change.text));
+  }
+  return lines.concat(end).join("\n");
+}
+
+/**
+ * `summary` cut at a line to at most `max` characters, with a note that says so and
+ * where the full text is.
+ */
+export function boundSummary(summary: string, max: number, fullAt: string): string {
+  if (summary.length <= max) return summary;
+  const note = `\n**The summary is cut here: it has ${summary.length} characters, more than fit. The full summary is in ${fullAt}.**\n`;
+  const room = Math.max(0, max - note.length - 1);
+  const cut = summary.lastIndexOf("\n", room);
+  return `${summary.slice(0, cut > 0 ? cut : room)}\n${note}`;
+}
+
+/** The minor version after `version`. */
+export function nextMinor(version: string): string {
+  const match = /^(\d+)\.(\d+)/.exec(version);
+  if (!match) return "0.1.0";
+  return `${match[1]}.${Number(match[2]) + 1}.0`;
+}
+
+/**
+ * The version in which a method deprecated while the package is at `version`
+ * is deleted: two minors on. The sync pull request is a `feat`, so the first
+ * release that ships the deprecation is at most the next minor, and the method
+ * then stays deprecated for at least one minor version (DESIGN section 3.1).
+ */
+export function removalVersion(version: string): string {
+  return nextMinor(nextMinor(version));
+}
+
+interface Naming {
+  resource: string;
+  method: string;
+  auth?: string;
+  server?: boolean;
+}
+
+function nameOf(naming: Naming): string {
+  return `${naming.resource}.${naming.method}`;
+}
+
+function naming(value: Json): Naming | undefined {
+  return isObject(value) && typeof value.resource === "string" && typeof value.method === "string"
+    ? (value as unknown as Naming)
+    : undefined;
+}
+
+export interface SyncInput {
+  /** Current contents of openapi/ by file name (SOURCE.json, overlay.json, deprecated-operations.json and the specs). */
+  files: Map<string, Uint8Array | undefined>;
+  /** Upstream downloads by file name. */
+  downloads: Map<string, Uint8Array>;
+  now: Date;
+  version: string;
+}
+
+/**
+ * The conventional commit type of the sync (DESIGN section 3.1): `feat` when it adds
+ * or changes anything a caller can observe, a minor version even when it can break
+ * typed code; `chore` when only documentation changed, which releases nothing.
+ */
+export type SyncType = "feat" | "chore";
+
+export interface SyncResult {
+  changed: boolean;
+  type: SyncType;
+  /** The changes that can break typed code, sorted by operation and field. */
+  breaking: BreakingChange[];
+  summary: string;
+  /** Files of openapi/ to write. */
+  writes: Map<string, Uint8Array>;
+}
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function json(text: Uint8Array | undefined, fallback: JsonObject): JsonObject {
+  if (text === undefined) return fallback;
+  const value: unknown = JSON.parse(decoder.decode(text));
+  return isObject(value) ? value : fallback;
+}
+
+function equalBytes(a: Uint8Array | undefined, b: Uint8Array): boolean {
+  if (a?.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** Apply the downloads to openapi/; returns what to write and the pull request summary. */
+export function sync(input: SyncInput): SyncResult {
+  const today = input.now.toISOString().slice(0, 10);
+  const oldDocs = new Map<string, JsonObject>();
+  const newDocs = new Map<string, JsonObject>();
+  const changedFiles: string[] = [];
+  for (const [name, data] of input.downloads) {
+    newDocs.set(name, checkOpenAPI(name, data));
+    const old = input.files.get(name);
+    oldDocs.set(name, json(old, {}));
+    if (!equalBytes(old, data)) changedFiles.push(name);
+  }
+  if (!changedFiles.length) {
+    return {
+      changed: false,
+      type: "chore",
+      breaking: [],
+      summary: "No upstream change.\n",
+      writes: new Map(),
+    };
+  }
+
+  const removeIn = removalVersion(input.version);
+  const overlay = json(input.files.get("overlay.json"), { operations: {} });
+  const overlayOps = (isObject(overlay.operations) ? overlay.operations : {}) as Record<
+    string,
+    Json
+  >;
+  const oldOverlay = { ...overlayOps };
+  const deprecated = json(input.files.get("deprecated-operations.json"), {
+    description: "",
+    methods: {},
+  });
+  if (!isObject(deprecated.methods)) deprecated.methods = {};
+  const deprecatedMethods = deprecated.methods as Record<string, JsonObject>;
+
+  const oldOps = new Map<string, [string, JsonObject]>();
+  const newOps = new Map<string, [string, JsonObject]>();
+  for (const name of input.downloads.keys()) {
+    for (const [key, op] of operations(oldDocs.get(name)!, PREFIXES[name] ?? ""))
+      oldOps.set(key, [name, op]);
+    for (const [key, op] of operations(newDocs.get(name)!, PREFIXES[name] ?? ""))
+      newOps.set(key, [name, op]);
+  }
+  // Naming carried over to an operation that moved to another path (see below).
+  const carried = new Map<string, { from: string; naming: Json }>();
+  const oldNaming = (key: string): Naming | undefined =>
+    naming(oldOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key]);
+  const newNaming = (key: string): Naming | undefined =>
+    naming(newOps.get(key)![1]["x-didit-sdk"] ?? oldOverlay[key] ?? carried.get(key)?.naming);
+  // Only server operations become SDK methods; the rest cannot change the release.
+  const exposed = (n: Naming | undefined): boolean => n?.server !== false;
+  // Operations of the hand-written authentication module: never generated or deprecated.
+  const handWritten = (ops: Map<string, [string, JsonObject]>, key: string): boolean =>
+    HAND_WRITTEN.has(ops.get(key)![0]);
+  const follow =
+    "the hand-written `authentication` module must follow (its contract test fails until it does)";
+
+  const added = [...newOps.keys()].filter((k) => !oldOps.has(k)).sort();
+  const removed = [...oldOps.keys()].filter((k) => !newOps.has(k)).sort();
+  const common = [...oldOps.keys()].filter((k) => newOps.has(k)).sort();
+
+  // An added operation without naming that has the operationId of a removed one in
+  // the same document is that operation on another path: its naming moves with it,
+  // so the method keeps its name and the overlay needs no hand edit.
+  const removedById = new Map<string, string>();
+  for (const key of removed) {
+    const [docName, op] = oldOps.get(key)!;
+    if (typeof op.operationId === "string" && op.operationId)
+      removedById.set(`${docName} ${op.operationId}`, key);
+  }
+  for (const key of added) {
+    const [docName, op] = newOps.get(key)!;
+    if (HAND_WRITTEN.has(docName)) continue;
+    if (op["x-didit-sdk"] !== undefined || oldOverlay[key] !== undefined) continue;
+    const id = op.operationId;
+    const from = typeof id === "string" ? removedById.get(`${docName} ${id}`) : undefined;
+    if (from === undefined || !oldNaming(from)) continue;
+    const value = oldOps.get(from)![1]["x-didit-sdk"] ?? oldOverlay[from];
+    carried.set(key, { from, naming: value });
+    overlayOps[key] = value;
+  }
+  // The generated server methods by name.
+  const newServerNames = new Map<string, string>();
+  for (const key of newOps.keys()) {
+    const n = newNaming(key);
+    if (n?.server && !handWritten(newOps, key)) newServerNames.set(nameOf(n), key);
+  }
+  const oldServerNames = new Map<string, string>();
+  for (const key of oldOps.keys()) {
+    const n = oldNaming(key);
+    if (n?.server && !handWritten(oldOps, key)) oldServerNames.set(nameOf(n), key);
+  }
+
+  const lines: string[] = [
+    `Spec sync ${today}. Upstream files changed: ${changedFiles.join(", ")}.`,
+    "",
+  ];
+  const breaking: BreakingChange[] = [];
+  // Kept as deprecated methods: not breaking until removeIn.
+  const deprecations: string[] = [];
+  // Anything that changes the generated methods or types.
+  let feature = false;
+  const kept: string[] = [];
+
+  const keep = (
+    n: Naming,
+    key: string,
+    reason: "removed" | "renamed",
+    replacement?: string,
+  ): void => {
+    const [docName, op] = oldOps.get(key)!;
+    const method = nameOf(n);
+    const note = replacement
+      ? `Renamed to ${replacement} on ${today}; this name is removed in version ${removeIn}.`
+      : `Removed from the API contract on ${today}; this method is removed in version ${removeIn}.`;
+    const detached = detach(oldDocs.get(docName)!, op);
+    const entry: JsonObject = {
+      reason,
+      operation_key: key,
+      "x-didit-sdk": n,
+      operation: detached.node,
+      components: detached.components,
+      since: today,
+      deprecated_since: input.version,
+      remove_in: removeIn,
+      note,
+    };
+    if (replacement) entry.replacement = replacement;
+    deprecatedMethods[method] = entry;
+    kept.push(method);
+  };
+
+  if (
+    added.some((key) => exposed(newNaming(key))) ||
+    removed.some((key) => exposed(oldNaming(key)))
+  )
+    feature = true;
+  lines.push(`## Added operations (${added.length})`);
+  for (const key of added) {
+    const n = newNaming(key);
+    const from = carried.get(key)?.from;
+    const moved = from
+      ? ` (moved from \`${from}\`, same operationId; its overlay naming moved with it)`
+      : "";
+    if (!n)
+      lines.push(
+        `- \`${key}\`: **no SDK naming**; add an entry to \`openapi/overlay.json\` (DESIGN section 4)`,
+      );
+    else if (n.server && handWritten(newOps, key))
+      lines.push(`- \`${key}\` -> \`${nameOf(n)}\`: ${follow}`);
+    else if (n.server) lines.push(`- \`${key}\` -> \`${nameOf(n)}\`${moved}`);
+    else lines.push(`- \`${key}\` (not exposed by server SDKs: ${n.auth ?? "-"})${moved}`);
+  }
+  lines.push("");
+
+  lines.push(`## Removed operations (${removed.length})`);
+  for (const key of removed) {
+    const n = oldNaming(key);
+    if (!n) lines.push(`- \`${key}\``);
+    else if (!n.server) lines.push(`- \`${key}\` (not exposed by server SDKs)`);
+    else if (handWritten(oldOps, key)) {
+      lines.push(`- \`${key}\` (\`${nameOf(n)}\`): ${follow}`);
+      breaking.push(
+        breakingChange(key, { in: "operation", field: "", kind: "removed", says: "was removed" }),
+      );
+    } else if (newServerNames.has(nameOf(n))) {
+      lines.push(
+        `- \`${key}\` moved to \`${newServerNames.get(nameOf(n))!}\`; \`${nameOf(n)}\` keeps its name`,
+      );
+    } else {
+      deprecations.push(
+        `\`${nameOf(n)}\` was removed upstream (${key}); kept as a deprecated method until version ${removeIn}`,
+      );
+      lines.push(
+        `- \`${key}\` (\`${nameOf(n)}\`): kept as a deprecated method until version ${removeIn}, recorded in \`openapi/deprecated-operations.json\``,
+      );
+      breaking.push(
+        breakingChange(key, {
+          in: "operation",
+          field: "",
+          kind: "removed",
+          says: `was removed (\`${nameOf(n)}\` stays as a deprecated method until version ${removeIn})`,
+        }),
+      );
+      keep(n, key, "removed");
+    }
+    Reflect.deleteProperty(overlayOps, key);
+  }
+  lines.push("");
+
+  const renames: string[] = [];
+  for (const key of common) {
+    const before = oldNaming(key);
+    const after = newNaming(key);
+    if (!before?.server) continue;
+    if (after?.server && nameOf(after) === nameOf(before)) continue;
+    if (handWritten(newOps, key)) {
+      const now = after
+        ? `${nameOf(after)}${after.server ? "" : " (not a server operation)"}`
+        : "unnamed";
+      renames.push(`- \`${key}\`: \`${nameOf(before)}\` is now \`${now}\` upstream; ${follow}`);
+      continue;
+    }
+    if (newServerNames.has(nameOf(before))) continue; // another operation provides the name now
+    if (!after) {
+      // The generator fails until the operation is named again, so this cannot ship silently.
+      renames.push(
+        `- \`${key}\` lost its SDK naming: add \`${nameOf(before)}\` back to \`openapi/overlay.json\` (the generator fails until it is named)`,
+      );
+    } else if (!after.server) {
+      renames.push(
+        `- \`${key}\` (\`${nameOf(before)}\`) is no longer a server operation (auth ${after.auth ?? "-"}); kept as a deprecated method until version ${removeIn}`,
+      );
+      deprecations.push(
+        `\`${nameOf(before)}\` (${key}) now needs ${after.auth ?? "-"}, which server SDKs do not expose; kept as a deprecated method until version ${removeIn}`,
+      );
+      keep(before, key, "removed");
+    } else {
+      renames.push(
+        `- \`${key}\`: \`${nameOf(before)}\` renamed to \`${nameOf(after)}\`; the old name stays as a deprecated alias until version ${removeIn}`,
+      );
+      deprecations.push(
+        `\`${nameOf(before)}\` was renamed upstream to \`${nameOf(after)}\` (${key}); the old name is a deprecated alias until version ${removeIn}`,
+      );
+      keep(before, key, "renamed", nameOf(after));
+    }
+  }
+  if (renames.length) feature = true;
+  lines.push(`## Renamed methods (${renames.length})`, ...renames, "");
+
+  const moves: string[] = [];
+  for (const method of [...oldServerNames.keys()].filter((m) => newServerNames.has(m)).sort()) {
+    const oldKey = oldServerNames.get(method)!;
+    const newKey = newServerNames.get(method)!;
+    if (oldKey === newKey) continue;
+    const [oldName, old] = oldOps.get(oldKey)!;
+    const [newName, next] = newOps.get(newKey)!;
+    const change = describeChange(oldDocs.get(oldName)!, old, newDocs.get(newName)!, next);
+    const isBreaking = change.breaking.length > 0;
+    const notes = change.docsOnly ? ["same parameters, body and response"] : change.notes;
+    const detail = notes.join("; ");
+    const marker = isBreaking ? " **(breaking)**" : "";
+    // The method's types now follow the new operation: report what can break them there.
+    for (const f of change.breaking) breaking.push(breakingChange(newKey, f));
+    if (newOps.has(oldKey)) {
+      moves.push(
+        `- \`${method}\`${marker} now calls \`${newKey}\` instead of \`${oldKey}\` (which is still in the API): ${detail}`,
+      );
+    } else {
+      moves.push(`- \`${method}\`${marker} moved from \`${oldKey}\` to \`${newKey}\`: ${detail}`);
+    }
+  }
+  if (moves.length) feature = true;
+  lines.push(`## Moved or reassigned methods (${moves.length})`, ...moves, "");
+
+  for (const method of Object.keys(deprecatedMethods).sort()) {
+    if (newServerNames.has(method) && !kept.includes(method)) {
+      Reflect.deleteProperty(deprecatedMethods, method);
+      lines.push(
+        `- \`${method}\` is provided again by \`${newServerNames.get(method)!}\`; its deprecation entry was dropped.`,
+      );
+    }
+  }
+
+  const changes: string[] = [];
+  // Compared once per document: components can be megabytes.
+  const sameComponents = new Map<string, boolean>();
+  for (const name of input.downloads.keys())
+    sameComponents.set(name, same(oldDocs.get(name)!.components, newDocs.get(name)!.components));
+  for (const key of common) {
+    const [oldName, oldOp] = oldOps.get(key)!;
+    const [newName, newOp] = newOps.get(key)!;
+    const before = oldNaming(key);
+    const after = newNaming(key);
+    // Upstream taking over the overlay's naming as it is changes nothing in the SDK.
+    const sameNaming = same(before ?? null, after ?? null);
+    const old = sameNaming ? withoutNaming(oldOp) : oldOp;
+    const next = sameNaming ? withoutNaming(newOp) : newOp;
+    const sameOp = same(old, next);
+    const oldDoc = oldDocs.get(oldName)!;
+    const newDoc = newDocs.get(newName)!;
+    if (sameOp && oldName === newName && sameComponents.get(oldName)) continue;
+    const described = describeChange(oldDoc, old, newDoc, next);
+    let { notes } = described;
+    if (!exposed(before) && !exposed(after)) {
+      // No SDK method calls it, so nothing here can break or change the SDK.
+      if (!sameOp)
+        changes.push(
+          `- \`${key}\` (not exposed by server SDKs): ${notes.map((n) => n.replace(/ \(breaking\)$/, "")).join("; ")}`,
+        );
+      continue;
+    }
+    let docsOnly = described.docsOnly;
+    // Error responses, security and the like are not documentation either, also when
+    // only a component they reference (a response, a parameter...) changed.
+    if (docsOnly && !same(observable(oldDoc, old), observable(newDoc, next))) {
+      notes = ["other request or response details changed"];
+      docsOnly = false;
+    }
+    // A method that keeps its name but changes scope or credentials takes other
+    // arguments or needs another client option.
+    if (before?.server && after?.server && nameOf(before) === nameOf(after)) {
+      for (const field of ["scope", "auth"] as const) {
+        const was = (before as unknown as JsonObject)[field] ?? null;
+        const now = (after as unknown as JsonObject)[field] ?? null;
+        if (was !== now) {
+          notes = [
+            `x-didit-sdk ${field} ${JSON.stringify(was)} -> ${JSON.stringify(now)}`,
+            ...notes,
+          ];
+          docsOnly = false;
+        }
+      }
+    }
+    if (docsOnly) notes = [DOCS_ONLY];
+    // An unchanged operation whose components changed only in what documents them: the
+    // Schemas section lists them.
+    if (sameOp && docsOnly) continue;
+    if (!docsOnly) feature = true;
+    const isBreaking = described.breaking.length > 0;
+    changes.push(`- \`${key}\`${isBreaking ? " **(breaking)**" : ""}: ${notes.join("; ")}`);
+    for (const f of described.breaking) breaking.push(breakingChange(key, f));
+  }
+  lines.push(`## Changed operations (${changes.length})`, ...changes, "");
+
+  // Components a deprecated method still uses keep their types.
+  const stillUsed = new Set<string>();
+  for (const entry of Object.values(deprecatedMethods)) {
+    if (isObject(entry.components))
+      for (const name of Object.keys(entry.components)) stillUsed.add(name);
+  }
+
+  lines.push("## Schemas");
+  for (const name of input.downloads.keys()) {
+    const schemasOf = (doc: JsonObject): Record<string, Json> => {
+      const components = isObject(doc.components) ? doc.components : {};
+      return isObject(components.schemas) ? components.schemas : {};
+    };
+    const oldSchemas = schemasOf(oldDocs.get(name)!);
+    const newSchemas = schemasOf(newDocs.get(name)!);
+    const gone = Object.keys(oldSchemas)
+      .filter((k) => !(k in newSchemas))
+      .sort();
+    const keptSchemas = gone.filter((schema) => stillUsed.has(schema));
+    const groups: [string, string[]][] = [
+      [
+        "added",
+        Object.keys(newSchemas)
+          .filter((k) => !(k in oldSchemas))
+          .sort(),
+      ],
+      ["removed (its type leaves the SDK)", gone.filter((schema) => !stillUsed.has(schema))],
+      ["removed upstream, type kept for the deprecated methods that use it", keptSchemas],
+      [
+        "changed",
+        Object.keys(oldSchemas)
+          .filter((k) => k in newSchemas && !same(shape(oldSchemas[k]), shape(newSchemas[k])))
+          .sort(),
+      ],
+      [
+        "descriptions or examples changed",
+        Object.keys(oldSchemas)
+          .filter(
+            (k) =>
+              k in newSchemas &&
+              !same(oldSchemas[k], newSchemas[k]) &&
+              same(shape(oldSchemas[k]), shape(newSchemas[k])),
+          )
+          .sort(),
+      ],
+    ];
+    for (const [label, names] of groups) {
+      if (!names.length) continue;
+      if (label !== "descriptions or examples changed") feature = true;
+      lines.push(`- ${name} ${label}: ${names.map((n) => `\`${n}\``).join(", ")}`);
+    }
+  }
+  lines.push("");
+
+  const dropped: string[] = [];
+  const differing: string[] = [];
+  for (const key of Object.keys(overlayOps)) {
+    const entry = newOps.get(key);
+    const upstream = entry?.[1]["x-didit-sdk"];
+    if (upstream === undefined) continue;
+    if (!same(upstream, overlayOps[key]))
+      differing.push(`- \`${key}\`: upstream x-didit-sdk differs from the overlay; upstream wins.`);
+    dropped.push(key);
+    Reflect.deleteProperty(overlayOps, key);
+  }
+  if (dropped.length) {
+    lines.push(
+      "## Overlay",
+      ...differing,
+      `Dropped ${dropped.length} overlay entries that upstream now carries.`,
+      "",
+    );
+  }
+
+  // One entry per change (several success responses can share one), sorted by operation,
+  // field and kind, so every repository lists the same.
+  const order = (b: BreakingChange): string[] => [b.operation, b.field, b.kind, b.in];
+  const listed = new Map<string, BreakingChange>();
+  for (const b of breaking) listed.set(JSON.stringify([...order(b), b.text]), b);
+  const breakingChanges = [...listed.values()].sort((x, y) => {
+    const a = order(x);
+    const b = order(y);
+    const i = a.findIndex((part, index) => part !== b[index]);
+    return i < 0 ? 0 : a[i]! < b[i]! ? -1 : 1;
+  });
+  lines.unshift(
+    "## Breaking changes",
+    breakingChanges.length
+      ? breakingChanges.map((b) => `- ${b.text}`).join("\n")
+      : "None detected.",
+    "",
+    "## Deprecated methods",
+    deprecations.length ? deprecations.map((d) => `- ${d}`).join("\n") : "None.",
+    "",
+  );
+  const type: SyncType = breakingChanges.length || feature ? "feat" : "chore";
+
+  const writes = new Map<string, Uint8Array>();
+  for (const [name, data] of input.downloads) writes.set(name, data);
+  const source = json(input.files.get("SOURCE.json"), {});
+  for (const [name, data] of input.downloads) {
+    const previous = isObject(source[name]) ? source[name] : {};
+    source[name] = {
+      url: UPSTREAM[name] ?? previous.url ?? "",
+      sha256: createHash("sha256").update(data).digest("hex"),
+      fetched_at: `${input.now.toISOString().slice(0, 19)}Z`,
+    };
+  }
+  // Same layout as the seeded files (one-space indent, no trailing newline), so diffs stay small.
+  writes.set("SOURCE.json", encoder.encode(JSON.stringify(source, null, 1)));
+  overlay.operations = overlayOps;
+  writes.set("overlay.json", encoder.encode(JSON.stringify(overlay, null, 1)));
+  writes.set(
+    "deprecated-operations.json",
+    encoder.encode(`${JSON.stringify(deprecated, null, 1)}\n`),
+  );
+  return {
+    changed: true,
+    type,
+    breaking: breakingChanges,
+    summary: `${lines.join("\n").trimEnd()}\n`,
+    writes,
+  };
+}
+
+/** `op` without its `x-didit-sdk`, for comparing operations whose naming did not change. */
+function withoutNaming(op: JsonObject): JsonObject {
+  const { "x-didit-sdk": _naming, ...rest } = op;
+  return rest;
+}
