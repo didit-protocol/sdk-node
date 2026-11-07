@@ -21,6 +21,8 @@ import type { GitHub } from "release-please";
 import { describe, expect, it } from "vitest";
 
 import {
+  commitMessage,
+  normalized,
   RELEASE_NOTES_HEADING,
   releaseSection,
   sync,
@@ -67,23 +69,31 @@ function syncPair(before: keyof typeof PINNED, after: keyof typeof PINNED): Sync
 
 /** The changes that can break typed code in the 2026-11-04 API change: (operation, field, kind). */
 const EXPECTED_2026_11_04 = [
-  ["GET /v3/session/{sessionId}/decision/", "registry_checks[].company.registry_data", "now-null"],
-  ["GET /v3/session/{sessionId}/decision/", "registry_checks[].ownership_structure", "now-null"],
-  ["GET /v3/session/{sessionId}/decision/", "signatures[].confirmation.channel", "now-null"],
-  ["POST /v3/email/risk/", "email.email_intelligence.reason_codes[]", "string->object"],
-  ["POST /v3/email/risk/", "email.enrichment.reason_codes[]", "string->object"],
-  ["POST /v3/kyb/select/", "kyb_registry.registry_data", "now-null"],
-  ["POST /v3/kyb/shareholders/", "kyb_registry.registry_data", "now-null"],
-  ["POST /v3/kyb/ubo/", "kyb_registry.registry_data", "now-null"],
-  ["POST /v3/phone/risk/", "phone.enrichment.reason_codes[]", "string->object"],
-  ["POST /v3/phone/risk/", "phone.phone_intelligence.reason_codes[]", "string->object"],
-  ["POST /v3/session/import-shared/", "registry_checks[].company.registry_data", "now-null"],
-  ["POST /v3/session/import-shared/", "registry_checks[].ownership_structure", "now-null"],
-  ["POST /v3/session/import-shared/", "signatures[].confirmation.channel", "now-null"],
+  [
+    "GET /v3/session/{sessionId}/decision/",
+    "registry_checks[].company.registry_data",
+    "can now be null",
+  ],
+  [
+    "GET /v3/session/{sessionId}/decision/",
+    "registry_checks[].ownership_structure",
+    "can now be null",
+  ],
+  ["GET /v3/session/{sessionId}/decision/", "signatures[].confirmation.channel", "can now be null"],
+  ["POST /v3/email/risk/", "email.email_intelligence.reason_codes[]", "type string -> object"],
+  ["POST /v3/email/risk/", "email.enrichment.reason_codes[]", "type string -> object"],
+  ["POST /v3/kyb/select/", "kyb_registry.registry_data", "can now be null"],
+  ["POST /v3/kyb/shareholders/", "kyb_registry.registry_data", "can now be null"],
+  ["POST /v3/kyb/ubo/", "kyb_registry.registry_data", "can now be null"],
+  ["POST /v3/phone/risk/", "phone.enrichment.reason_codes[]", "type string -> object"],
+  ["POST /v3/phone/risk/", "phone.phone_intelligence.reason_codes[]", "type string -> object"],
+  ["POST /v3/session/import-shared/", "registry_checks[].company.registry_data", "can now be null"],
+  ["POST /v3/session/import-shared/", "registry_checks[].ownership_structure", "can now be null"],
+  ["POST /v3/session/import-shared/", "signatures[].confirmation.channel", "can now be null"],
   [
     "POST /v3/session/{sessionId}/signatures/{nodeId}/validate/",
     "signatures[].confirmation.channel",
-    "now-null",
+    "can now be null",
   ],
 ];
 
@@ -103,6 +113,9 @@ describe("spec sync classification of real upstream changes", () => {
     expect(syncTitle(result.type, DATE)).toBe("feat(spec): sync API spec 2026-11-07");
     expect(result.breaking.map((b) => [b.operation, b.field, b.kind])).toEqual(EXPECTED_2026_11_04);
     expect(result.breaking.every((b) => b.in === "response")).toBe(true);
+    expect(normalized(result.breaking[0]!)).toBe(
+      "GET /v3/session/{sessionId}/decision/ response registry_checks[].company.registry_data: can now be null",
+    );
     // The body opens with the list, one line per change.
     const lines = result.summary.split("\n");
     expect(lines[0]).toBe("## Breaking changes");
@@ -227,9 +240,15 @@ function syncPullRequest(result: SyncResult): PullRequest {
   };
 }
 
-/** Squash and merge: one commit, with the pull request title. */
-function squashed(pr: PullRequest): Commit[] {
-  return [{ sha: pr.sha, message: `${pr.title} (#${pr.number})`, files: [], pullRequest: pr }];
+/**
+ * Squash and merge: one commit, with the pull request title, or with `message` (the
+ * sync commit's) as its message.
+ */
+function squashed(pr: PullRequest, message?: string): Commit[] {
+  const text = message
+    ? message.replace(/\n/, ` (#${pr.number})\n`)
+    : `${pr.title} (#${pr.number})`;
+  return [{ sha: pr.sha, message: text, files: [], pullRequest: pr }];
 }
 
 /** Create a merge commit: GitHub associates the pull request with both commits. */
@@ -293,6 +312,30 @@ describe.skipIf(NODE_MAJOR < 20)("release-please with release-please-config.json
     // release-please orders the lines of a section itself.
     expect([...listed].sort()).toEqual(result.breaking.map((b) => b.text).sort());
     expect(listed).toHaveLength(EXPECTED_2026_11_04.length);
+  });
+
+  it("lists every change from the sync commit's message when the block does not fit the description", async () => {
+    const result = syncPair("2026-11-04-before", "2026-11-04-after");
+    const pr = syncPullRequest(result);
+    // What the workflow writes for a sync with too many changes to fit: no override block.
+    pr.body = pr.body.replace(
+      /\n## Release\n[\s\S]*$/,
+      releaseSection(result.type, result.breaking, DATE, 100),
+    );
+    expect(pr.body).not.toContain("BEGIN_COMMIT_OVERRIDE");
+    const release = await nextRelease(
+      squashed(pr, commitMessage(result.type, result.breaking, DATE)),
+    );
+    expect(release?.version).toBe(minor);
+    const notes = release!.notes;
+    expect(notes).not.toContain("BREAKING");
+    expect(notes).toContain("### Features\n\n* **spec:** sync API spec 2026-11-07 (");
+    const section = notes.slice(notes.indexOf(`### ${RELEASE_NOTES_HEADING}\n`));
+    const listed = section
+      .split("\n")
+      .filter((line) => line.startsWith("* **spec:** "))
+      .map((line) => line.slice("* **spec:** ".length).replace(/ \(\[a{7}\]\(.*\)\)$/, ""));
+    expect([...listed].sort()).toEqual(result.breaking.map((b) => b.text).sort());
   });
 
   it("releases nothing for the 2026-11-06 documentation-only change", async () => {

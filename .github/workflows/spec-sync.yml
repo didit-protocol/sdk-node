@@ -10,8 +10,11 @@
 # typed code; for a feat(spec) sync it ends with a BEGIN_COMMIT_OVERRIDE block that
 # release-please reads instead of the commits, with one api(spec) entry per such
 # change, which release-please-config.json lists under "API changes that can break typed
-# code". The summary in the body is cut to fit GitHub's limit for a pull request
-# description; the full summary is in the job summary of the run.
+# code". Every such change reaches the release notes, with no cap (DESIGN.md section
+# 3.1): the sync commit's message carries them all too, and when the block does not fit
+# the description, the description says so and release-please reads that message from
+# the squashed commit. The summary in the body is cut to fit GitHub's limit for a pull
+# request description; the full summary is in the job summary of the run.
 #
 # Secret scan: the files the sync commits are scanned with gitleaks before anything is
 # pushed, because a finding on the sync branch would fail the full-history scan of
@@ -61,10 +64,11 @@ jobs:
       FORCE_COLOR: "1"
     steps:
       - name: Prepare
-        # The summary and the release section live outside the checkout so that they are never committed.
+        # The summary, the release section and the commit message live outside the checkout so that they are never committed.
         run: |
           echo "SUMMARY=$RUNNER_TEMP/spec-sync-summary.md" >> "$GITHUB_ENV"
           echo "RELEASE=$RUNNER_TEMP/spec-sync-release.md" >> "$GITHUB_ENV"
+          echo "MESSAGE=$RUNNER_TEMP/spec-sync-message.txt" >> "$GITHUB_ENV"
       - name: Check out the repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -110,9 +114,10 @@ jobs:
         # title and the date to $GITHUB_OUTPUT; a markdown summary that opens with the
         # changes that can break typed code, then the added, removed and changed
         # operations and schemas, to $SUMMARY; the release section (empty for chore) to
-        # $RELEASE (together cut to fit a pull request description); and the full
-        # summary to the job summary.
-        run: pnpm spec-sync --summary "$SUMMARY" --release "$RELEASE"
+        # $RELEASE (together cut to fit a pull request description); the sync commit's
+        # message, with every api(spec) line, to $MESSAGE; and the full summary to the
+        # job summary.
+        run: pnpm spec-sync --summary "$SUMMARY" --release "$RELEASE" --message "$MESSAGE"
       - name: Regenerate the SDK and run the checks
         id: checks
         if: steps.sync.outputs.changed == 'true'
@@ -181,6 +186,20 @@ jobs:
             echo "::error::chore/spec-sync moved from '${SEEN}' to '${head}' while this run was checking its changes; nothing was pushed. Run the spec sync again."
             exit 1
           fi
+      - name: Commit the sync
+        if: steps.sync.outputs.changed == 'true'
+        # The title, then one nested api(spec) commit per change that can break typed code,
+        # with no cap: git reads the message from its file, because an action input is an
+        # environment variable, which Linux limits to 128 KiB. create-pull-request pushes
+        # this commit as it is. Only the add-paths below are committed.
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git add -- api.md openapi src/resources src/types tests/generated
+          git diff --cached --quiet || git commit --quiet --file "$MESSAGE"
       - name: Open or update the spec sync pull request
         id: pr
         if: steps.sync.outputs.changed == 'true'
@@ -190,6 +209,7 @@ jobs:
           branch: chore/spec-sync
           delete-branch: true
           title: ${{ steps.sync.outputs.title }}
+          # The sync is committed above; this message is for changes left uncommitted (none).
           commit-message: ${{ steps.sync.outputs.title }}
           body-path: ${{ env.SUMMARY }}
           # A sync that fails a check still opens the pull request, as a draft, so the fix
