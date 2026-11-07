@@ -658,10 +658,10 @@ describe("changes that can break typed code", () => {
     const result = classify(before, after);
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "request", "count", "integer->number"],
-      ["POST /v3/things/", "query", "limit", "integer->string"],
-      ["POST /v3/things/", "response", "score", "number->integer"],
-      ["POST /v3/things/", "request", "tags[]", "string->integer"],
+      ["POST /v3/things/", "request", "count", "type integer -> number"],
+      ["POST /v3/things/", "query", "limit", "type integer -> string"],
+      ["POST /v3/things/", "response", "score", "type number -> integer"],
+      ["POST /v3/things/", "request", "tags[]", "type string -> integer"],
     ]);
     expect(result.breaking[0]!.text).toBe(
       "`POST /v3/things/` request field `count` changed type from integer to number",
@@ -671,13 +671,19 @@ describe("changes that can break typed code", () => {
     );
   });
 
-  it("lists a type change through a string format with its own type or a union", () => {
+  it("lists a type change through a string format with its own type, a union or no type", () => {
     const before = openapi({
       "/v3/things/": {
         post: thing(
           "create",
           object({ file: { type: "string" } }),
-          object({ at: { type: "string" }, value: { type: "string" }, since: { type: "string" } }),
+          object({
+            at: { type: "string" },
+            on: { type: "string", format: "date" },
+            value: { type: "string" },
+            since: { type: "string" },
+            meta: {},
+          }),
         ),
       },
     });
@@ -688,9 +694,11 @@ describe("changes that can break typed code", () => {
           object({ file: { type: "string", format: "binary" } }),
           object({
             at: { type: "string", format: "date-time" },
+            on: { type: "string" },
             value: { oneOf: [{ type: "integer" }, { type: "boolean" }] },
             // A union of the same type is the same type.
             since: { anyOf: [{ type: "string" }, { type: "string", pattern: "^[0-9]+$" }] },
+            meta: { type: "object" },
           }),
         ),
       },
@@ -698,12 +706,17 @@ describe("changes that can break typed code", () => {
     const result = classify(before, after);
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "response", "at", "string->string(date-time)"],
-      ["POST /v3/things/", "request", "file", "string->string(binary)"],
-      ["POST /v3/things/", "response", "value", "string->boolean/integer"],
+      ["POST /v3/things/", "response", "at", "type string -> string (date-time)"],
+      ["POST /v3/things/", "request", "file", "type string -> string (binary)"],
+      ["POST /v3/things/", "response", "meta", "type any -> object"],
+      ["POST /v3/things/", "response", "on", "type string (date) -> string"],
+      ["POST /v3/things/", "response", "value", "type string -> boolean|integer"],
     ]);
     expect(result.breaking[0]!.text).toBe(
-      "`POST /v3/things/` response field `at` changed type from string to string(date-time)",
+      "`POST /v3/things/` response field `at` changed type from string to string (date-time)",
+    );
+    expect(result.breaking[4]!.text).toBe(
+      "`POST /v3/things/` response field `value` changed type from string to boolean or integer",
     );
   });
 
@@ -750,14 +763,15 @@ describe("changes that can break typed code", () => {
     );
     const result = classify(before, after);
     expect(places(result.breaking)).toEqual([
-      ["GET /v3/things/{id}/", "response", "checks[].channel", "now-null"],
-      ["GET /v3/things/{id}/", "response", "checks[].owner", "now-null"],
-      ["GET /v3/things/{id}/", "response", "checks[].registry_data", "now-null"],
-      ["GET /v3/things/{id}/", "response", "checks[].status", "now-null"],
-      ["GET /v3/things/{id}/", "query", "q", "now-null"],
-      ["POST /v3/things/", "request", "note", "now-null"],
+      ["GET /v3/things/{id}/", "response", "checks[].channel", "can now be null"],
+      ["GET /v3/things/{id}/", "response", "checks[].owner", "can now be null"],
+      ["GET /v3/things/{id}/", "response", "checks[].registry_data", "can now be null"],
+      ["GET /v3/things/{id}/", "response", "checks[].status", "can now be null"],
     ]);
-    expect(result.summary).toContain("parameter q (query): can now be null (breaking)");
+    // A request that accepts null only widens what a caller may send: listed, not counted.
+    expect(result.summary).toContain("parameter q (query): can now be null\n");
+    expect(result.summary).toContain("body.note: can now be null");
+    expect(result.summary).not.toContain("body.note: can now be null (breaking)");
     expect(result.summary).not.toContain("checks[].owner: removed");
   });
 
@@ -785,25 +799,35 @@ describe("changes that can break typed code", () => {
     });
     const result = classify(before, after);
     expect(places(result.breaking)).toEqual([
-      ["DELETE /v3/things/{id}/", "operation", "", "removed"],
+      ["DELETE /v3/things/{id}/", "operation", "", "operation removed"],
       ["POST /v3/things/", "response", "id", "removed"],
-      ["POST /v3/things/", "request", "kind", "enum-removed"],
+      ["POST /v3/things/", "request", "kind", 'enum value "y" removed'],
       ["POST /v3/things/", "request", "legacy", "removed"],
-      ["POST /v3/things/", "response", "status", "enum-removed"],
+      ["POST /v3/things/", "query", "old", "removed"],
+      ["POST /v3/things/", "response", "status", 'enum value "c" removed'],
     ]);
     expect(result.breaking.map((b) => b.text)).toEqual([
       "`DELETE /v3/things/{id}/` was removed (`things.delete` stays as a deprecated method until version 2.3.0)",
       "`POST /v3/things/` response field `id` was removed",
       '`POST /v3/things/` request field `kind` no longer has the enum value `"y"`',
       "`POST /v3/things/` request field `legacy` was removed",
+      "`POST /v3/things/` query parameter `old` was removed",
       '`POST /v3/things/` response field `status` no longer has the enum value `"c"`',
     ]);
-    // A removed parameter and an added enum value are not on the list.
-    expect(result.summary).toContain("parameter removed: old (query)");
+    expect(result.breaking.map(normalized)).toEqual([
+      "DELETE /v3/things/{id}/: operation removed",
+      "POST /v3/things/ response id: removed",
+      'POST /v3/things/ request body kind: enum value "y" removed',
+      "POST /v3/things/ request body legacy: removed",
+      "POST /v3/things/ query old: removed",
+      'POST /v3/things/ response status: enum value "c" removed',
+    ]);
+    // An added enum value is not on the list: enums are open.
+    expect(result.summary).toContain("parameter removed: old (query) (breaking)");
     expect(result.summary).toContain('response.status: values added ["d"]');
   });
 
-  it("lists a newly required parameter or request field", () => {
+  it("lists a newly required parameter, request field or body, and a response field no longer required", () => {
     const before = openapi({
       "/v3/things/": {
         post: thing(
@@ -830,18 +854,27 @@ describe("changes that can break typed code", () => {
         ),
       },
     });
+    ((after.paths as Doc)["/v3/things/"] as { post: { requestBody: Doc } }).post.requestBody.required =
+      true;
     const result = classify(before, after);
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "query", "mode", "now-required"],
-      ["POST /v3/things/", "request", "name", "now-required"],
-      ["POST /v3/things/", "request", "phone", "now-required"],
-      ["POST /v3/things/", "header", "x-tenant", "now-required"],
+      ["POST /v3/things/", "request", "", "body now required"],
+      ["POST /v3/things/", "response", "id", "no longer required"],
+      ["POST /v3/things/", "query", "mode", "now required"],
+      ["POST /v3/things/", "request", "name", "now required"],
+      ["POST /v3/things/", "request", "phone", "now required"],
+      ["POST /v3/things/", "header", "x-tenant", "now required"],
     ]);
-    expect(result.summary).toContain("body.email: now optional");
-    expect(result.summary).toContain("response.id: no longer always present");
+    expect(normalized(result.breaking[0]!)).toBe("POST /v3/things/: body now required");
+    expect(result.breaking[0]!.text).toBe("`POST /v3/things/` the request body is now required");
+    expect(result.breaking[1]!.text).toBe(
+      "`POST /v3/things/` response field `id` is no longer required (it can be missing)",
+    );
+    // A request field that stops being required only widens what a caller may send.
+    expect(result.summary).toContain("body.email: now optional\n");
   });
 
-  it("lists a removed oneOf or anyOf variant, but not an added one", () => {
+  it("lists a removed oneOf or anyOf variant as a type change, in a response and a request", () => {
     const value = (variants: Doc[]): Doc => object({ value: { oneOf: variants } });
     const before = openapi({
       "/v3/things/": {
@@ -862,10 +895,40 @@ describe("changes that can break typed code", () => {
       },
     });
     const result = classify(before, after);
+    // A type change counts in either direction, also where it widens a request.
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "response", "value", "variant-removed"],
+      ["POST /v3/things/", "response", "value", "type integer|string -> string"],
+      ["POST /v3/things/", "request", "value", "type string -> integer|string"],
     ]);
-    expect(result.summary).toContain("body.value: 1 oneOf variant(s) added");
+    expect(result.breaking[0]!.text).toBe(
+      "`POST /v3/things/` response field `value` lost 1 of its oneOf variants (changed type from integer or string to string)",
+    );
+  });
+
+  it("pairs union variants, so a change inside one counts even when others are added or reordered", () => {
+    const card = (last4: string): Doc =>
+      object({ kind: { type: "string", enum: ["card"] }, last4: { type: last4 } }, ["kind"]);
+    const bank = object({ kind: { type: "string", enum: ["bank"] }, iban: { type: "string" } }, [
+      "kind",
+    ]);
+    const wallet = object({ kind: { type: "string", enum: ["wallet"] }, address: { type: "string" } });
+    const before = openapi({
+      "/v3/things/": { post: thing("create", object({}), { oneOf: [card("string"), bank] }) },
+    });
+    const after = openapi({
+      "/v3/things/": {
+        post: thing("create", object({}), { oneOf: [bank, wallet, { ...card("integer"), title: "Card" }] }),
+      },
+    });
+    const result = classify(before, after);
+    expect(result.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ response (oneOf 3).last4: type string -> integer",
+    ]);
+    const changed = result.summary.slice(result.summary.indexOf("## Changed operations"));
+    expect(changed).toContain("response: 1 oneOf variant(s) added");
+    expect(changed).toContain("response: oneOf variants reordered");
+    // The title names the variant's generated type: listed, not counted.
+    expect(changed).toContain("response(oneOf 3): variant type renamed from a numbered name to Card");
   });
 
   it("lists everything else in the summary only, and releases it as a feature", () => {
@@ -984,7 +1047,7 @@ describe("changes that can break typed code", () => {
     const result = classify(before, after);
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "response", "description", "string->integer"],
+      ["POST /v3/things/", "response", "description", "type string -> integer"],
       ["POST /v3/things/", "response", "x-id", "removed"],
     ]);
     // Only the description of the field named description changed: documentation.
@@ -1013,7 +1076,7 @@ describe("changes that can break typed code", () => {
     const result = classify(op({ type: "string" }), op({ type: "integer" }));
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "request", "count", "string->integer"],
+      ["POST /v3/things/", "request", "count", "type string -> integer"],
     ]);
   });
 
@@ -1047,12 +1110,12 @@ describe("changes that can break typed code", () => {
     const result = classify(before, after);
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "request", "email", "now-required"],
-      ["POST /v3/things/", "response", "id", "string->integer"],
+      ["POST /v3/things/", "request", "email", "now required"],
+      ["POST /v3/things/", "response", "id", "type string -> integer"],
     ]);
   });
 
-  it("compares every success response, and lists a change they share once", () => {
+  it("compares every success response, lists a change they share once, and counts an added one without a body", () => {
     const op = (ok: Doc, accepted: Doc, extra: Doc = {}): Doc =>
       openapi({
         "/v3/things/": {
@@ -1077,11 +1140,36 @@ describe("changes that can break typed code", () => {
     });
     const result = classify(before, after);
     expect(places(result.breaking)).toEqual([
-      ["POST /v3/things/", "response", "id", "string->integer"],
-      ["POST /v3/things/", "response", "status", "string->integer"],
+      ["POST /v3/things/", "response", "", "can now be null"],
+      ["POST /v3/things/", "response", "id", "type string -> integer"],
+      ["POST /v3/things/", "response", "status", "type string -> integer"],
     ]);
     expect(result.summary).toContain("response 202.status: type string -> integer (breaking)");
-    expect(result.summary).toContain("response 207 added");
+    // The method returns every 2xx body: one without a body makes it nullable.
+    expect(result.summary).toContain("response: can now be null (status 207 has no body) (breaking)");
+    expect(result.breaking[0]!.text).toBe(
+      "`POST /v3/things/` the response can now be null (success status 207 has no body)",
+    );
+  });
+
+  it("counts a removed success status whose body no other one returns as a type change", () => {
+    const op = (responses: Doc): Doc =>
+      openapi({ "/v3/things/": { post: { ...thing("create", object({}), {}), responses } } });
+    const body = (schema: Doc): Doc => ({
+      description: "ok",
+      content: { "application/json": { schema } },
+    });
+    const before = op({ "200": body(object({ id: { type: "string" } })), "202": body({ type: "string" }) });
+    const result = classify(before, op({ "200": body(object({ id: { type: "string" } })) }));
+    expect(result.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ response: type object|string -> object",
+    ]);
+    // When no success status returns a body any more, the method returns null.
+    const empty = classify(before, op({ "204": { description: "none" } }));
+    expect(empty.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ response: can now be null",
+      "POST /v3/things/ response: type object|string -> null",
+    ]);
   });
 });
 
@@ -1112,7 +1200,7 @@ describe("the hand-written Authentication document", () => {
     const result = classify(base(), base(), [["authentication.json", before, after]]);
     expect(result.type).toBe("feat");
     expect(places(result.breaking)).toEqual([
-      ["authentication DELETE /session/", "operation", "", "removed"],
+      ["authentication DELETE /session/", "operation", "", "operation removed"],
     ]);
     const follow =
       "the hand-written `authentication` module must follow (its contract test fails until it does)";
@@ -1144,7 +1232,7 @@ describe("the release section and title", () => {
     operation: `GET /v3/things/${n}/`,
     in: "response",
     field: "value",
-    kind: "now-null",
+    kind: "can now be null",
     text: `\`GET /v3/things/${n}/\` response field \`value\` can now be null`,
   });
 
@@ -1166,6 +1254,7 @@ describe("the release section and title", () => {
     expect(block).toBe(
       [
         "feat(spec): sync API spec 2026-11-07",
+        "",
         "BEGIN_NESTED_COMMIT",
         "api(spec): `GET /v3/things/1/` response field `value` can now be null",
         "END_NESTED_COMMIT",
@@ -1180,17 +1269,24 @@ describe("the release section and title", () => {
     expect(section.split("BEGIN_COMMIT_OVERRIDE")).toHaveLength(2);
     expect(section).not.toMatch(/BREAKING[ -]CHANGE|!:/);
     expect(releaseSection("feat", [], "2026-11-07")).not.toContain("BEGIN_NESTED_COMMIT");
+    // The block is the sync commit's message.
+    expect(block).toBe(commitMessage("feat", [change(1), change(2)], "2026-11-07").trimEnd());
   });
 
-  it("stays within its limit, counting the changes that do not fit", () => {
+  it("lists every change, with no cap: a block too long for the description leaves it to the commit message", () => {
     const many = Array.from({ length: 500 }, (_, i) => change(i));
+    const message = commitMessage("feat", many, "2026-11-07");
+    expect(message.split("BEGIN_NESTED_COMMIT\napi(spec): ")).toHaveLength(501);
+    expect(message).toMatch(/^feat\(spec\): sync API spec 2026-11-07\n\n/);
+    expect(message).not.toMatch(/BREAKING[ -]CHANGE|!:|more changes/);
+    // 500 changes fit the default limit, in the description's block.
+    expect(releaseSection("feat", many, "2026-11-07")).toContain(message.trimEnd());
     const section = releaseSection("feat", many, "2026-11-07", 5_000);
     expect(section.length).toBeLessThanOrEqual(5_000);
-    const nested = section.split("BEGIN_NESTED_COMMIT").length - 1;
-    expect(nested).toBeLessThan(500);
-    expect(section).toContain(
-      `api(spec): and ${500 - nested + 1} more changes that can break typed code, listed in the spec sync pull request\nEND_NESTED_COMMIT\nEND_COMMIT_OVERRIDE`,
-    );
-    expect(releaseSection("feat", many, "2026-11-07").length).toBeLessThanOrEqual(20_000);
+    expect(section).not.toContain("BEGIN_COMMIT_OVERRIDE");
+    expect(section).not.toContain("BEGIN_NESTED_COMMIT");
+    expect(section).toContain("The 500 changes that can break typed code do not fit this description");
+    expect(section).toContain("keep the message of this branch's sync commit as the commit message");
+    expect(commitMessage("chore", [], "2026-11-07")).toBe("chore(spec): sync API spec 2026-11-07\n");
   });
 });
