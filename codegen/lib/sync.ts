@@ -1114,7 +1114,7 @@ export function releaseSection(
   if (block.length <= max) return block;
   return [
     ...intro,
-    `The ${breaking.length} changes that can break typed code do not fit this description, so it has no BEGIN_COMMIT_OVERRIDE block and release-please reads the merged commit instead. Merge with "Squash and merge" and keep the message of this branch's sync commit as the commit message: its first line releases a minor version, and it lists every change as its own \`${BREAKING_TYPE}(spec)\` nested commit under "${RELEASE_NOTES_HEADING}" (docs/DESIGN.md section 13).`,
+    `The ${breaking.length} changes that can break typed code do not fit this description, so it has no commit override block and release-please reads the merged commit instead. Merge with "Squash and merge" and keep the message of this branch's sync commit as the commit message: its first line releases a minor version, and it lists every change as its own \`${BREAKING_TYPE}(spec)\` nested commit under "${RELEASE_NOTES_HEADING}" (docs/DESIGN.md section 13).`,
     "",
   ].join("\n");
 }

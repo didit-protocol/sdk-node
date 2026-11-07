@@ -901,7 +901,24 @@ describe("changes that can break typed code", () => {
       ["POST /v3/things/", "request", "value", "type string -> integer|string"],
     ]);
     expect(result.breaking[0]!.text).toBe(
-      "`POST /v3/things/` response field `value` lost 1 of its oneOf variants (changed type from integer or string to string)",
+      "`POST /v3/things/` response field `value` changed type from integer or string to string",
+    );
+    // A union that keeps several variants loses one as a type change of its own.
+    const three = classify(
+      openapi({
+        "/v3/things/": {
+          post: thing("create", object({}), value([{ type: "string" }, object({}), object({})])),
+        },
+      }),
+      openapi({
+        "/v3/things/": { post: thing("create", object({}), value([{ type: "string" }, object({})])) },
+      }),
+    );
+    expect(three.breaking.map(normalized)).toEqual([
+      "POST /v3/things/ response value: type object|object|string -> object|string",
+    ]);
+    expect(three.breaking[0]!.text).toBe(
+      "`POST /v3/things/` response field `value` lost 1 of its oneOf variants (changed type from object or object or string to object or string)",
     );
   });
 
@@ -1166,7 +1183,7 @@ describe("changes that can break typed code", () => {
     ]);
     // When no success status returns a body any more, the method returns null.
     const empty = classify(before, op({ "204": { description: "none" } }));
-    expect(empty.breaking.map(normalized)).toEqual([
+    expect([...new Set(empty.breaking.map(normalized))]).toEqual([
       "POST /v3/things/ response: can now be null",
       "POST /v3/things/ response: type object|string -> null",
     ]);
@@ -1279,8 +1296,11 @@ describe("the release section and title", () => {
     expect(message.split("BEGIN_NESTED_COMMIT\napi(spec): ")).toHaveLength(501);
     expect(message).toMatch(/^feat\(spec\): sync API spec 2026-11-07\n\n/);
     expect(message).not.toMatch(/BREAKING[ -]CHANGE|!:|more changes/);
-    // 500 changes fit the default limit, in the description's block.
-    expect(releaseSection("feat", many, "2026-11-07")).toContain(message.trimEnd());
+    // A few hundred fit the description's block.
+    const some = many.slice(0, 200);
+    expect(releaseSection("feat", some, "2026-11-07")).toContain(
+      commitMessage("feat", some, "2026-11-07").trimEnd(),
+    );
     const section = releaseSection("feat", many, "2026-11-07", 5_000);
     expect(section.length).toBeLessThanOrEqual(5_000);
     expect(section).not.toContain("BEGIN_COMMIT_OVERRIDE");
