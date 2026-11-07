@@ -7048,6 +7048,8 @@ export interface SessionDecisionDocumentVerificationsItemsDocumentMetadataOverla
   detected?: boolean;
   /** Whether the PDF could be analyzed. */
   analyzed?: boolean;
+  /** Present and true only when the file could not be checked in full. What was checked keeps its findings where it can, and the document raises the unproven text replacement warning. */
+  analysis_incomplete?: boolean;
   /** Forensic signals that fired, such as duplicate_font_subset or glyph_fragmentation. */
   signals?: string[];
   /** Suspected manipulated areas in PDF page coordinates. */
@@ -8837,6 +8839,8 @@ export interface SessionDecisionPoaVerificationsDocumentMetadataOverlayManipulat
   detected?: boolean;
   /** Whether the PDF could be analyzed. */
   analyzed?: boolean;
+  /** Present and true only when the file could not be checked in full. What was checked keeps its findings where it can, and the document raises the unproven text replacement warning. */
+  analysis_incomplete?: boolean;
   /** Forensic signals that fired, such as duplicate_font_subset or glyph_fragmentation. */
   signals?: string[];
   /** Suspected manipulated areas in PDF page coordinates. */
