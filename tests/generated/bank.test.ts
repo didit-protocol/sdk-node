@@ -17,7 +17,7 @@ describe("bank", () => {
       json: responseExample("POST /v3/bank/account-check/"),
     });
     const result = await client.bank.accountCheck({
-      country: "GBR",
+      country: "NGA",
       account: {},
       holder: { full_name: "Maria Oliveira" },
     });
@@ -31,7 +31,7 @@ describe("bank", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({
-      country: "GBR",
+      country: "NGA",
       account: {},
       holder: { full_name: "Maria Oliveira" },
     });
