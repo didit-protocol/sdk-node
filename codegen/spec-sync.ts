@@ -5,19 +5,23 @@
 // Downloads https://docs.didit.me/openapi-25.json, openapi-auth.json and
 // openapi-authentication.json and, when any of them changed, updates openapi/
 // (see codegen/lib/sync.ts). Writes changed=true|false, type=feat|chore, the
-// number of changes that can break typed code (breaking=N), the pull request title
-// and date to $GITHUB_OUTPUT when set. The generator, not this script, regenerates
-// the code. --summary FILE gets the summary for the pull request body and
-// --release FILE the release section that ends it (the BEGIN_COMMIT_OVERRIDE block,
-// empty for chore); together they stay within MAX_SUMMARY characters, and the full
-// summary goes to the job summary ($GITHUB_STEP_SUMMARY) when set.
+// number of changes that can break typed code (breaking=N), the pull request title,
+// the sync commit's message (message, with one nested api(spec) commit per such
+// change, every one of them) and the date to $GITHUB_OUTPUT when set. The generator,
+// not this script, regenerates the code. --summary FILE gets the summary for the pull
+// request body and --release FILE the release section that ends it (the
+// BEGIN_COMMIT_OVERRIDE block, or a note when that does not fit; empty for chore);
+// together they stay within MAX_SUMMARY characters, and the full summary goes to the
+// job summary ($GITHUB_STEP_SUMMARY) when set.
 
+import { randomUUID } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
   boundSummary,
+  commitMessage,
   MAX_SUMMARY,
   releaseSection,
   SpecSyncError,
@@ -110,6 +114,8 @@ async function main(): Promise<void> {
   }
   const output = process.env.GITHUB_OUTPUT;
   if (output) {
+    // A multi-line output needs a delimiter that the message cannot contain.
+    const delimiter = `EOF_${randomUUID()}`;
     appendFileSync(
       output,
       [
@@ -117,6 +123,9 @@ async function main(): Promise<void> {
         `type=${result.type}`,
         `breaking=${result.breaking.length}`,
         `title=${syncTitle(result.type, date)}`,
+        `message<<${delimiter}`,
+        commitMessage(result.type, result.breaking, date).trimEnd(),
+        delimiter,
         `date=${date}`,
         "",
       ].join("\n"),
