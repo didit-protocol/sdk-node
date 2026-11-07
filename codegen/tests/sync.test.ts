@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   boundSummary,
   checkOpenAPI,
+  commitMessage,
   detach,
   nextMinor,
+  normalized,
   releaseSection,
   removalVersion,
   SpecSyncError,
@@ -133,7 +135,7 @@ describe("spec sync", () => {
         operation: "GET /v3/items/{id}/",
         in: "operation",
         field: "",
-        kind: "removed",
+        kind: "operation removed",
         text: "`GET /v3/items/{id}/` was removed (`items.retrieve` stays as a deprecated method until version 0.5.0)",
       },
     ]);
@@ -213,6 +215,11 @@ describe("spec sync", () => {
     };
     const result = run(next);
     expect(result.summary).toContain("is no longer a server operation (auth device_token)");
+    // Its method goes from server SDKs, which counts like a removed operation.
+    expect(result.breaking.map(normalized)).toEqual(["GET /v3/items/{id}/: operation removed"]);
+    expect(result.breaking[0]!.text).toBe(
+      "`GET /v3/items/{id}/` is no longer a server operation: it now needs device_token (`items.retrieve` stays as a deprecated method until version 0.5.0)",
+    );
     expect(
       (written(result, "deprecated-operations.json").methods as Record<string, Doc>)[
         "items.retrieve"
@@ -245,10 +252,10 @@ describe("spec sync", () => {
     const result = run(next);
     expect(result.type).toBe("feat");
     expect(result.breaking.map((b) => [b.operation, b.in, b.field, b.kind])).toEqual([
-      ["GET /v3/items/", "response", "[].id", "string->integer"],
+      ["GET /v3/items/", "response", "[].id", "type string -> integer"],
       ["GET /v3/items/", "response", "[].name", "removed"],
-      ["GET /v3/items/", "query", "status", "now-required"],
-      ["GET /v3/items/{id}/", "response", "id", "string->integer"],
+      ["GET /v3/items/", "query", "status", "now required"],
+      ["GET /v3/items/{id}/", "response", "id", "type string -> integer"],
       ["GET /v3/items/{id}/", "response", "name", "removed"],
     ]);
     expect(result.summary).toMatch(
@@ -383,7 +390,7 @@ describe("spec sync", () => {
     expect(text).not.toContain("sample");
   });
 
-  it("releases nothing for changes to operations that server SDKs do not expose", () => {
+  it("lists changes to operations that server SDKs do not expose, never counting them", () => {
     const hidden = (name: string): Doc => ({
       ...json({}),
       "x-didit-sdk": { resource: "pickup", method: name, auth: "device_token", server: false },
@@ -409,7 +416,8 @@ describe("spec sync", () => {
     ]);
     const result = sync({ files, downloads, now: NOW, version: "0.3.1" });
     expect(result.changed).toBe(true);
-    expect(result.type).toBe("chore");
+    // A caller can observe them (DESIGN section 3.1), but no server SDK method calls them.
+    expect(result.type).toBe("feat");
     expect(result.summary).toContain("## Breaking changes\nNone detected.");
     expect(result.summary).toContain(
       "`GET /v3/pickup/` (not exposed by server SDKs): parameter added: token (query), required",
