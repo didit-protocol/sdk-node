@@ -120,3 +120,24 @@ jobs:
             export NPM_CONFIG_USERCONFIG="$RUNNER_TEMP/.npmrc"
           fi
           npm publish --provenance --access public
+
+  # The release is done only when the registry serves it (docs/DESIGN.md section 13); this job
+  # fails loudly when it does not. It runs nothing from the release and holds no credentials.
+  registry:
+    name: npm serves the release
+    needs: [release-please, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - name: Check out the scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Wait until npm serves the version
+        run: bash .github/scripts/wait-for-registry.sh npm @didit-protocol/sdk-node "$TAG" 30
