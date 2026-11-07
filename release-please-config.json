@@ -11,7 +11,7 @@
       "extra-files": ["src/core/version.ts"],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
-        { "type": "api-break", "section": "API changes that can break typed code" },
+        { "type": "api", "section": "API changes that can break typed code" },
         { "type": "fix", "section": "Bug Fixes" },
         { "type": "perf", "section": "Performance Improvements" },
         { "type": "revert", "section": "Reverts" },

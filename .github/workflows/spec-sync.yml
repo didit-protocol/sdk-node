@@ -8,7 +8,7 @@
 # "chore(spec)" when only documentation changed, which releases nothing on its own. Never
 # "!" and never a "BREAKING CHANGE:" footer. The body opens with the changes that can break
 # typed code; for a feat(spec) sync it ends with a BEGIN_COMMIT_OVERRIDE block that
-# release-please reads instead of the commits, with one api-break(spec) entry per such
+# release-please reads instead of the commits, with one api(spec) entry per such
 # change, which release-please-config.json lists under "API changes that can break typed
 # code". The summary in the body is cut to fit GitHub's limit for a pull request
 # description; the full summary is in the job summary of the run.
