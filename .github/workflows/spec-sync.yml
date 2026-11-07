@@ -10,8 +10,11 @@
 # typed code; for a feat(spec) sync it ends with a BEGIN_COMMIT_OVERRIDE block that
 # release-please reads instead of the commits, with one api(spec) entry per such
 # change, which release-please-config.json lists under "API changes that can break typed
-# code". The summary in the body is cut to fit GitHub's limit for a pull request
-# description; the full summary is in the job summary of the run.
+# code". Every such change reaches the release notes, with no cap (DESIGN.md section
+# 3.1): the sync commit's message carries them all too, and when the block does not fit
+# the description, the description says so and release-please reads that message from
+# the squashed commit. The summary in the body is cut to fit GitHub's limit for a pull
+# request description; the full summary is in the job summary of the run.
 #
 # Secret scan: the files the sync commits are scanned with gitleaks before anything is
 # pushed, because a finding on the sync branch would fail the full-history scan of
@@ -107,11 +110,11 @@ jobs:
         id: sync
         if: steps.guard.outputs.skip != 'true'
         # Writes changed=true|false, type=feat|chore, breaking=<count>, the pull request
-        # title and the date to $GITHUB_OUTPUT; a markdown summary that opens with the
-        # changes that can break typed code, then the added, removed and changed
-        # operations and schemas, to $SUMMARY; the release section (empty for chore) to
-        # $RELEASE (together cut to fit a pull request description); and the full
-        # summary to the job summary.
+        # title, the commit message and the date to $GITHUB_OUTPUT; a markdown summary
+        # that opens with the changes that can break typed code, then the added, removed
+        # and changed operations and schemas, to $SUMMARY; the release section (empty for
+        # chore) to $RELEASE (together cut to fit a pull request description); and the
+        # full summary to the job summary.
         run: pnpm spec-sync --summary "$SUMMARY" --release "$RELEASE"
       - name: Regenerate the SDK and run the checks
         id: checks
@@ -190,7 +193,8 @@ jobs:
           branch: chore/spec-sync
           delete-branch: true
           title: ${{ steps.sync.outputs.title }}
-          commit-message: ${{ steps.sync.outputs.title }}
+          # The title, then one nested api(spec) commit per change that can break typed code.
+          commit-message: ${{ steps.sync.outputs.message }}
           body-path: ${{ env.SUMMARY }}
           # A sync that fails a check still opens the pull request, as a draft, so the fix
           # (usually an openapi/overlay.json entry) can be pushed to the same branch.

@@ -1,3 +1,6 @@
 # The spec sync fixtures are pinned by SHA-256 (codegen/tests/classification.test.ts):
 # check them out byte for byte on every platform, without line-ending conversion.
 codegen/tests/fixtures/spec-sync/*.json -text
+# The shared breaking-change vectors are a byte-for-byte copy of sdk-python's, pinned by
+# SHA-256 (codegen/tests/breaking-vectors.test.ts).
+openapi/breaking-vectors.json -text
