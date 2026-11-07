@@ -6564,7 +6564,7 @@ export interface SessionDecision {
   document_ai_documents?: SessionDecisionDocumentAiDocuments[] | null;
   /** **Array of questionnaire response reports** - always a JSON array, never a singular `questionnaire` object. `null` until at least one questionnaire step has produced data. Each item is the full report, including `node_id`, the questionnaire metadata, sections with form elements, and the user's answers. */
   questionnaire_responses?: SessionDecisionQuestionnaireResponses[] | null;
-  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `statement` or `microdeposits` fallback, and `none` when the person continued without a bank before any attempt was evaluated (`continued_without_bank`). See [Bank verification methods](/core-technology/bank-verification/verification-methods). Bank Verification is not enabled in production yet, so this stays `null` on production sessions until it is. */
+  /** Bank Verification results, one item per Bank Verification step, for User and Business Verification. `null` until a step produces one. Each item's `method` says how the account was verified: `open_banking` (bank sign-in) or `account_lookup` (account check), or a `statement` or `microdeposits` fallback, and `none` when the person continued without a bank before any attempt was evaluated (`continued_without_bank`). See [Bank verification methods](/core-technology/bank-verification/verification-methods). */
   bank_verifications?: BankVerificationResult[] | null;
   /** E-signature results, one item per signer and signature step, for User and Business Verification. Present only when the workflow has an E-signature step; an empty array until a signer reaches it. See the [E-signature report](/core-technology/electronic-signature/report-electronic-signature). */
   signatures?: SignatureResult[];
@@ -7048,6 +7048,8 @@ export interface SessionDecisionDocumentVerificationsItemsDocumentMetadataOverla
   detected?: boolean;
   /** Whether the PDF could be analyzed. */
   analyzed?: boolean;
+  /** Present and true only when the file could not be checked in full. What was checked keeps its findings where it can, and the document raises the unproven text replacement warning. */
+  analysis_incomplete?: boolean;
   /** Forensic signals that fired, such as duplicate_font_subset or glyph_fragmentation. */
   signals?: string[];
   /** Suspected manipulated areas in PDF page coordinates. */
@@ -8837,6 +8839,8 @@ export interface SessionDecisionPoaVerificationsDocumentMetadataOverlayManipulat
   detected?: boolean;
   /** Whether the PDF could be analyzed. */
   analyzed?: boolean;
+  /** Present and true only when the file could not be checked in full. What was checked keeps its findings where it can, and the document raises the unproven text replacement warning. */
+  analysis_incomplete?: boolean;
   /** Forensic signals that fired, such as duplicate_font_subset or glyph_fragmentation. */
   signals?: string[];
   /** Suspected manipulated areas in PDF page coordinates. */
