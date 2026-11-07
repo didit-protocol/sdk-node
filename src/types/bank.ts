@@ -3,7 +3,7 @@
 import type { BankAccountCheckHolder } from "./components.js";
 
 export interface BankAccountCheckParams {
-  /** The account's country, as an ISO 3166-1 alpha-3 code, for example `GBR`. Lowercase is accepted. */
+  /** The account's country, as an ISO 3166-1 alpha-3 code, for example `NGA`. Lowercase is accepted. */
   country: string;
   /** The account the way its country writes it: an `iban`, or an `account_number` with the bank or branch code the country needs (`sort_code`, `routing_number`, `transit_institution`, `bsb`, `ifsc`, `bank_code` or `bic`). Mexico takes a `clabe` and Argentina a `cbu_cvu`, which already name the bank. A business account adds a `registration_id` where the country asks for one. Spaces, dashes and dots are ignored. Keys the country's check does not use are ignored; a key it needs and does not get is a `400` that names it. */
   account: BankAccountCheckParamsAccount;
