@@ -1,6 +1,6 @@
 // Sync openapi/ with the published API contract (docs/DESIGN.md section 3.1).
 //
-//   node codegen/spec-sync.ts [--summary FILE] [--release FILE] [--from-dir DIR]
+//   node codegen/spec-sync.ts [--summary FILE] [--release FILE] [--message FILE] [--from-dir DIR]
 //
 // Downloads https://docs.didit.me/openapi-25.json, openapi-auth.json and
 // openapi-authentication.json and, when any of them changed, updates openapi/
@@ -9,8 +9,11 @@
 // and date to $GITHUB_OUTPUT when set. The generator, not this script, regenerates
 // the code. --summary FILE gets the summary for the pull request body and
 // --release FILE the release section that ends it (the BEGIN_COMMIT_OVERRIDE block,
-// empty for chore); together they stay within MAX_SUMMARY characters, and the full
-// summary goes to the job summary ($GITHUB_STEP_SUMMARY) when set.
+// or a note when that does not fit; empty for chore); together they stay within
+// MAX_SUMMARY characters, and the full summary goes to the job summary
+// ($GITHUB_STEP_SUMMARY) when set. --message FILE gets the sync commit's message, with
+// one nested api(spec) commit per such change, every one of them (empty when nothing
+// changed): a file, because the message has no length limit.
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -18,6 +21,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   boundSummary,
+  commitMessage,
   MAX_SUMMARY,
   releaseSection,
   SpecSyncError,
@@ -58,6 +62,7 @@ async function main(): Promise<void> {
   const fromDir = argument("--from-dir");
   const summaryPath = argument("--summary");
   const releasePath = argument("--release");
+  const messagePath = argument("--message");
   const downloads = new Map<string, Uint8Array>();
   try {
     for (const [name, url] of Object.entries(UPSTREAM)) {
@@ -92,6 +97,11 @@ async function main(): Promise<void> {
   const date = now.toISOString().slice(0, 10);
   const release = result.changed ? releaseSection(result.type, result.breaking, date) : "";
   if (releasePath) writeFileSync(releasePath, release);
+  if (messagePath)
+    writeFileSync(
+      messagePath,
+      result.changed ? commitMessage(result.type, result.breaking, date) : "",
+    );
   if (summaryPath) {
     writeFileSync(
       summaryPath,
