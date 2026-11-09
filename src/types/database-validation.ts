@@ -170,7 +170,7 @@ export interface DatabaseValidationValidateParams {
   landline?: string;
   /** Email address for identity-verification services. */
   email?: string;
-  /** ISO 3166-1 alpha-2 country of residence. Used by global identity-enrichment services (e.g. `glb_identity_enrichment`) to focus the lookup. */
+  /** ISO 3166-1 alpha-2 country of residence. It was used only by the retired global identity-enrichment service (`glb_identity_enrichment`), which Didit no longer offers. */
   country_of_residence?: string;
   /** What a `partial_match` does to `database_validation.status`. Defaults to `NO_ACTION` (status stays `Approved`, with a warning). */
   partial_match_action?: "DECLINE" | "NO_ACTION" | (string & {});
