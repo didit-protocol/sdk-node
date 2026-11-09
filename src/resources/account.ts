@@ -227,7 +227,7 @@ export class Account extends APIResource {
   /**
    * Verify Email and Issue Credentials
    *
-   * Step 2 of onboarding. Exchanges the 6-char code for a verified account, a default org+app, and a JWT pair. Persist the returned `api_key`.
+   * Step 2 of onboarding. Exchanges the 6-char code for a verified account, a default org+app, and a JWT pair. Persist the returned `api_key`. An account that already has an authenticator app or a passkey gets the same second-factor step as the login instead: `2fa_required: true` and a `temp_token`, with no tokens and no application keys.
    *
    * `POST /programmatic/verify-email/`
    */

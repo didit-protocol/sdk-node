@@ -12143,6 +12143,14 @@ export interface VerifyEmailResponse {
   organization?: OrganizationSummary;
   /** Minimal application shape returned inline by `POST /programmatic/verify-email/`. Persist the `api_key` immediately. */
   application?: ApplicationCredentialsSummary;
+  /** Present and `true` when the account already has an authenticator app or a passkey. The response then carries `temp_token` instead of tokens and application keys. */
+  "2fa_required"?: boolean;
+  /** Short-lived token for the second-factor step, sent only with `2fa_required`. It is not an access token. */
+  temp_token?: string;
+  /** With `2fa_required`: whether the account has an authenticator app. */
+  has_authenticator?: boolean;
+  /** With `2fa_required`: whether the account has a passkey. */
+  has_passkeys?: boolean;
 }
 
 export interface WalletAddressEntry {
