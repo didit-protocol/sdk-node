@@ -9,9 +9,15 @@ import type {
   BillingTopUpParams,
   BillingTopUpResponse,
 } from "../types/billing.js";
+import type { BillingTopUpCharge } from "../types/components.js";
 
 const BILLING_RETRIEVE_BALANCE: OperationSpec = { method: "GET", path: "/v3/billing/balance/" };
-const BILLING_TOP_UP: OperationSpec = { method: "POST", path: "/v3/billing/top-up/", body: "json" };
+const BILLING_TOP_UP: OperationSpec = {
+  method: "POST",
+  path: "/v3/billing/top-up/",
+  body: "json",
+  dates: "BillingTopUpCharge",
+};
 
 /** `billing` */
 export class Billing extends APIResource {
@@ -29,11 +35,29 @@ export class Billing extends APIResource {
   /**
    * Top up credits
    *
-   * Add credits via a hosted Stripe Checkout session (**\$50 to \$20,000** per top-up). Top-ups are available on the Free, Growth and Scale plans, added at face value with no discount or bonus, and last 12 months; Enterprise annual contracts cannot top up. Redirect the customer to the returned `checkout_session_url`.
+   * Add credits to the organization's balance (**\$50 to \$20,000** per top-up). Top-ups are available on the Free, Growth and Scale plans, added at face value with no discount or bonus, and last 12 months; Enterprise annual contracts cannot top up.
+   *
+   * Two payment methods, chosen with `payment_method`:
+   *
+   * - `checkout` (default): creates a hosted Stripe Checkout session. Redirect the customer to the returned `checkout_session_url` (`200`).
+   * - `saved_card`: charges the organization's saved primary card off-session, now, at the normal self-serve amounts. Send an `Idempotency-Key` header (required for this method). It answers `201` when the card was charged, and `202` when a request with the same key is still being processed.
+   *
+   * **Agent top-ups (`saved_card`).** One switch controls them: "Connected AI agents can top up with your saved card". It is off by default and only a person signed in to the console can turn it on (Billing > Payment methods), never an API key or an agent. While it is on, agents and API keys can top up with the primary saved card. When it is off, the request returns `403` `agent_top_up_not_enabled` with a link a person can use to top up in the console.
+   *
+   * The balance is credited once the payment is confirmed, usually within seconds, and tax is added to the amount charged when it applies, so `total` can be higher than `credit_amount`. Read `GET /v3/billing/balance/` to confirm.
+   *
+   * **Idempotency.** Retrying with the same `Idempotency-Key` and the same amount returns the same top-up and never charges twice. The same key with another amount returns `409` `idempotency_key_conflict`.
+   *
+   * Every error of a `saved_card` request carries a `code` and a `detail`, and most also a `next_step` (read it only when it is present). When the step needs a person (for example `authentication_required`, where the card's bank asks the cardholder to approve and nothing is charged), `next_step.url` is a signed link to the console that opens the Top up dialog with the amount filled in and says which agent asked; nothing is charged until the person pays. Each top-up is marked with the agent's name in billing history and in the ordinary receipt email.
    *
    * `POST /v3/billing/top-up/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
-  topUp(params: BillingTopUpParams, options?: RequestOptions): APIPromise<BillingTopUpResponse> {
+  topUp(
+    params: BillingTopUpParams,
+    options?: RequestOptions,
+  ): APIPromise<BillingTopUpResponse | BillingTopUpCharge> {
     return this._client.request(BILLING_TOP_UP, [], params, options);
   }
 }

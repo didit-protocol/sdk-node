@@ -40,6 +40,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   AddressValidationResponse: { p: { created_at: 1 } },
   AgeEstimationEstimateResponse: { p: { created_at: 1 } },
+  AgentTopUp: { p: { created_at: 1 } },
   AmlMonitoringRetrieveJobResponse: { p: { created_at: 1, completed_at: 1 } },
   AmlRetrieveDatasetFreshnessResponse: { p: { dataset_freshness: "AMLDatasetFreshness" } },
   AmlScreenResponse: {
@@ -57,6 +58,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       updated_at: 1,
     },
   },
+  BillingTopUpCharge: { p: { top_up: "AgentTopUp" } },
   BiometricRetention: { p: { deletes_at: 1 } },
   BiometricTemplatesListResponse: {
     p: { results: { i: { p: { retained_at: 1, expires_at: 1, purged_at: 1 } } } },

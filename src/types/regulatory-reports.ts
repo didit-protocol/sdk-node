@@ -4,10 +4,11 @@ export interface RegulatoryReportsCreateParams {
   case: string;
   template: string;
   /** Required unless a template is given; the template's report_type is used otherwise. */
-  report_type?: "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | (string & {});
+  report_type?:
+    "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | "FFR" | "PNMR" | (string & {});
   /** Required unless a template is given. */
   jurisdiction?: string;
-  /** Transactions to attach; defaults to the case's linked transactions. */
+  /** Transactions to attach; defaults to the case's linked transactions. For FFR and PNMR reports it defaults to none and none are required. */
   transactions?: string[] | null;
   rentity_id?: string | null;
   rentity_branch?: string | null;
@@ -48,7 +49,8 @@ export interface RegulatoryReportsListParams {
   /** Filter by status. */
   status?: "DRAFT" | "VALIDATED" | "FINALIZED" | (string & {});
   /** Filter by report type. */
-  report_type?: "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | (string & {});
+  report_type?:
+    "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | "FFR" | "PNMR" | (string & {});
   /** Filter to reports on this case. */
   case?: string;
 }
