@@ -6085,7 +6085,7 @@ export interface PhoneVerificationCheckResponsePhoneLifecycle {
   type?: string;
   /** When the event happened. */
   timestamp?: Date;
-  /** Event-specific payload. Send events: `{status, reason, channel, actual_channel}` (`actual_channel` is filled once delivery is confirmed). Delivery events: `{channel, status}`. Code-entry events: `{code_tried, status}`. Final-status events: `null`, or `{reason}` when declined or in review. */
+  /** Event-specific payload. Send events: `{status, reason, channel, actual_channel, attempt, delivery_status}` - `actual_channel` is filled once delivery is confirmed, `attempt` is the 0-based index of the send (the order of the send events), and `delivery_status` is `delivered`, `undeliverable` or `unknown` (no report arrived before the verification ended); it is absent while a report can still arrive. Delivery events: `{channel, status, attempt, reason}` - `attempt` is the send it belongs to, and `reason` (on `PHONE_DELIVERY_UNDELIVERABLE` only) is `expired`, `rejected`, `unreachable`, `blocked` or `unknown` for a message, and `unreachable_number`, `no_answer`, `busy` or `undeliverable` for a call. Code-entry events: `{code_tried, status}`. Final-status events: `null`, or `{reason}` when declined or in review. */
   details?: Record<string, unknown> | null;
   /** USD amount billed for this event. Non-zero only on send events (the delivery price); 0 for code entries, delivery confirmations, and status events. */
   fee?: number;
@@ -8688,17 +8688,22 @@ export interface SessionDecisionPhoneVerificationsCarrier {
 export interface SessionDecisionPhoneVerificationsLifecycle {
   type?: string;
   timestamp?: Date;
-  /** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
+  /** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`, `attempt` (the send's 0-based index, matching the order of the send events) and `delivery_status` (`delivered`, `undeliverable`, or `unknown` once no report can still arrive; absent while one can); delivery events carry `channel`, `status`, `attempt` and, on `PHONE_DELIVERY_UNDELIVERABLE`, `reason` (`expired`, `rejected`, `unreachable`, `blocked` or `unknown` for a message; `unreachable_number`, `no_answer`, `busy` or `undeliverable` for a call - always a fixed word, never a provider status or error code); code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
   details?: SessionDecisionPhoneVerificationsLifecycleDetails | null;
   fee?: number;
 }
 
-/** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`; delivery events carry `channel`, `status`; code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
+/** Event-specific payload. Send events carry `status`, `reason`, `channel`, `actual_channel`, `attempt` (the send's 0-based index, matching the order of the send events) and `delivery_status` (`delivered`, `undeliverable`, or `unknown` once no report can still arrive; absent while one can); delivery events carry `channel`, `status`, `attempt` and, on `PHONE_DELIVERY_UNDELIVERABLE`, `reason` (`expired`, `rejected`, `unreachable`, `blocked` or `unknown` for a message; `unreachable_number`, `no_answer`, `busy` or `undeliverable` for a call - always a fixed word, never a provider status or error code); code-check events carry `code_tried`, `status`; final status events carry `reason` - or `null` when there is no reason to report (e.g. `PHONE_VERIFICATION_APPROVED`). */
 export interface SessionDecisionPhoneVerificationsLifecycleDetails {
   status?: string;
+  /** Send events: why the send was blocked (`invalid_phone_number`, `repeated_attempts`, `suspicious`, `spam`, `unknown`), `null` otherwise. Delivery events on `PHONE_DELIVERY_UNDELIVERABLE`: `expired`, `rejected`, `unreachable`, `blocked` or `unknown` for a message, and `unreachable_number`, `no_answer`, `busy` or `undeliverable` for a call - a fixed customer-safe word, never the provider's status or error code. */
   reason?: string | null;
   channel?: string | null;
   actual_channel?: string | null;
+  /** Send events and delivery events: the 0-based index of the send attempt the event belongs to, in the order of the send events. */
+  attempt?: number | null;
+  /** Send events: how the send ended. `unknown` once no delivery report can still arrive (the verification finished without one); absent while one can. */
+  delivery_status?: "delivered" | "undeliverable" | "unknown" | (string & {}) | null;
   code_tried?: string;
 }
 
