@@ -16,7 +16,7 @@ export interface AccountApplicationsCreateParams {
   privacy_url?: string;
   /** Internal description for the application (not shown to end users). */
   description?: string;
-  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney) and `mx` (Mexico) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
   data_location?: ApplicationDataLocation;
 }
 
@@ -41,7 +41,7 @@ export interface AccountApplicationsUpdateParams {
   privacy_url?: string;
   /** Internal description for the application. */
   description?: string;
-  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney) and `mx` (Mexico) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
   data_location?: ApplicationDataLocation;
 }
 
