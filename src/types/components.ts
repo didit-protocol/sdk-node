@@ -660,6 +660,54 @@ export interface AddressValidationResultAddress {
   country?: string | null;
 }
 
+/** The agent that made a top-up, derived by Didit from the credential used and never from the request body. */
+export interface AgentIdentity {
+  /** `api_key` is a full-access API key, `mcp_connection` is an MCP client signed in with Log in with Didit, and `member_token` is a member's programmatic token (used by the local MCP server). */
+  type: "api_key" | "mcp_connection" | "member_token" | (string & {});
+  /** For `api_key`, the key's uuid, or `primary:<application uuid>` for an application's primary secret. For `mcp_connection`, the grant id. For `member_token`, the member's email. */
+  id: string;
+  /** Human-readable name shown in billing history, for example the key's label (`Primary` for the primary secret) or the member's email. */
+  label: string;
+}
+
+/** A top-up made with the organization's saved card. */
+export interface AgentTopUp {
+  /** Top-up identifier. */
+  id: string;
+  /** `paid`: the card was charged. `open`: the payment is still being confirmed. `declined`: nothing was charged. */
+  status: "paid" | "open" | "declined" | (string & {});
+  /** USD added to the balance once the payment is confirmed, as a decimal string. */
+  credit_amount: string;
+  /** USD amount before tax, as a decimal string. `null` until the invoice exists. */
+  subtotal: string | null;
+  /** USD tax added when it applies, as a decimal string. `0.00` when no tax applies. */
+  tax: string | null;
+  /** USD charged to the card, tax included, as a decimal string. */
+  total: string | null;
+  /** Lowercase ISO 4217 currency code, `usd`. */
+  currency: string | null;
+  /** The saved card that was charged. */
+  card: AgentTopUpCard | null;
+  /** The agent that made a top-up, derived by Didit from the credential used and never from the request body. */
+  agent: AgentIdentity;
+  /** When the top-up was requested (UTC, ISO 8601). */
+  created_at: Date;
+}
+
+/** The saved card that was charged. */
+export interface AgentTopUpCard {
+  /** Card brand, for example `visa`. */
+  brand: string;
+  /** Last four digits of the card number. */
+  last4: string;
+}
+
+/** Whether agents can top up this organization with its saved card. One switch, "Connected AI agents can top up with your saved card", off by default. */
+export interface AgentTopUpSettings {
+  /** `true` once a person signed in to the console turned on "Connected AI agents can top up with your saved card" in Billing > Payment methods. Off by default. */
+  enabled: boolean;
+}
+
 /** Full application record. `uuid`, `client_id`, and `api_key` never change after creation. `data_location` doesn't either, except once on the live application created with your organization, before it is used (see the update request). */
 export interface Application {
   /** Application UUID. Use as `{app_id}` in subsequent calls. */
@@ -1421,6 +1469,16 @@ export interface BankVerificationResultRoute {
   provider_connection_id?: string | null;
   /** The data the connection asked for, for example `ownership` or `balances`. */
   requested_scopes?: string[];
+}
+
+/** Result of a top-up charged to the organization's saved card. */
+export interface BillingTopUpCharge {
+  /** `paid`: the card was charged and the credit follows within seconds. `processing`: a request with the same `Idempotency-Key` is still being processed; retry with the same key. */
+  outcome: "paid" | "processing" | (string & {});
+  /** A top-up made with the organization's saved card. */
+  top_up: AgentTopUp;
+  /** On a 202: why the top-up is still being processed. Retry with the same `Idempotency-Key`. */
+  detail?: string;
 }
 
 /** When the live biometric data of this session is deleted. */
@@ -6202,9 +6260,10 @@ export interface RegulatoryReportDetail {
   uuid?: string;
   case_uuid?: string;
   case_number?: string | null;
-  report_type?: "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | (string & {});
+  report_type?:
+    "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | "FFR" | "PNMR" | (string & {});
   report_type_display?: string;
-  /** goAML report code derived from report_type, e.g. STR, CTR, BCR. */
+  /** goAML report code derived from report_type and jurisdiction, e.g. STR, CTR, BCR, FFR, PNMR. For jurisdiction AE, the UAE FIU's codes: STR, SAR, CNMRA for FFR and PNMRA for PNMR. */
   report_code?: string;
   report_number?: string | null;
   status?: "DRAFT" | "VALIDATED" | "FINALIZED" | (string & {});
@@ -6266,7 +6325,8 @@ export interface ReportTemplateDetail {
   name?: string;
   /** ISO 3166-1 alpha-2 country code. */
   jurisdiction?: string;
-  report_type?: "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | (string & {});
+  report_type?:
+    "SAR" | "STR" | "CTR" | "TTR" | "UTR" | "IFT" | "CBR" | "TFR" | "FFR" | "PNMR" | (string & {});
   report_type_display?: string;
   /** Reusable goAML header defaults. Template-level obligatory fields: rentity_id, submission_code, and currency_code_local (3-letter). Optional: enabled_fields (which optional report blocks to include) plus reporting_person, location, reason, and action defaults. Per-filing header fields (action, submission_date, transactions, jurisdiction) are enforced when the report is validated or finalized, not on the template. */
   field_config?: Record<string, unknown>;

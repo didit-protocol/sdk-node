@@ -68,10 +68,10 @@ Every method of `@didit-protocol/sdk-node`: 382 methods, generated from `openapi
 
 ## `didit.billing`
 
-| Method                                            | HTTP                       | Returns                          | Notes |
-| ------------------------------------------------- | -------------------------- | -------------------------------- | ----- |
-| `didit.billing.retrieveBalance()`                 | `GET /v3/billing/balance/` | `BillingRetrieveBalanceResponse` |       |
-| `didit.billing.topUp(params: BillingTopUpParams)` | `POST /v3/billing/top-up/` | `BillingTopUpResponse`           |       |
+| Method                                            | HTTP                       | Returns                                      | Notes            |
+| ------------------------------------------------- | -------------------------- | -------------------------------------------- | ---------------- |
+| `didit.billing.retrieveBalance()`                 | `GET /v3/billing/balance/` | `BillingRetrieveBalanceResponse`             |                  |
+| `didit.billing.topUp(params: BillingTopUpParams)` | `POST /v3/billing/top-up/` | `BillingTopUpResponse \| BillingTopUpCharge` | `idempotencyKey` |
 
 ## `didit.biometricTemplates`
 
