@@ -12537,7 +12537,7 @@ export type WebhookEventType =
 /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
 export type WebhookSubscribedEvents = WebhookEventType[];
 
-/** The fields below are typed; the object also carries every other column of the workflow configuration (feature toggles, thresholds, warning actions, allowed documents, callbacks) as additional properties. Fields that do not apply to the `workflow_type` are `null`. */
+/** The fields below are typed; the object also carries every other column of the workflow configuration (feature toggles, thresholds, warning actions, allowed documents, callbacks) as additional properties. Fields that do not apply to the `workflow_type` are `null`. For a workflow built from a `workflow_graph`, `face_match_score_decline_threshold` and `face_match_score_review_threshold` report the thresholds its Face Match step applies: the step's own values, or the defaults `30` and `60` when the step sets none (the step's `config` in `workflow_graph` states the same values). When the workflow has several Face Match steps with different thresholds, read each step's `config`. */
 export interface WorkflowDetail {
   /** Per-version identifier (`settings_uuid`). Every version of a workflow has its own. */
   uuid?: string;
