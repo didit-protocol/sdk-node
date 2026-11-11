@@ -181,6 +181,7 @@ function textList(value: unknown, name: string): string[] {
  * Strings shorter than this are not secrets: field names such as `id` and values such as
  * `public-key` would otherwise erase error codes like `invalid_grant` (docs/DESIGN.md section 10).
  */
+// Sensitive values are 16+ chars: user handles are 16-byte ids (22 base64url), credential ids 16+ bytes.
 const MIN_SECRET_LENGTH = 16;
 
 /** Every string of at least 16 characters of a passkey assertion, object keys and values at any depth, to redact from errors. */
