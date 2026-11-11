@@ -2606,6 +2606,8 @@ export interface CustomerMessagingPaginatedCaseRequestList {
  * * `business_document` - business_document
  * * `confirm_details` - confirm_details
  * * `review_in_progress` - review_in_progress
+ * * `source_of_funds` - Request a document showing the source of payment funds.
+ * * `purpose_of_payment` - Request a document explaining the payment purpose. Both are available for person and business cases.
  */
 export type CustomerMessagingPurposeEnum =
   | "identity_document"
@@ -2613,6 +2615,8 @@ export type CustomerMessagingPurposeEnum =
   | "business_document"
   | "confirm_details"
   | "review_in_progress"
+  | "source_of_funds"
+  | "purpose_of_payment"
   | (string & {});
 
 /**
@@ -2621,6 +2625,8 @@ export type CustomerMessagingPurposeEnum =
  * * `business_document` - business_document
  * * `confirm_details` - confirm_details
  * * `review_in_progress` - review_in_progress
+ * * `source_of_funds` - Request a document showing the source of payment funds.
+ * * `purpose_of_payment` - Request a document explaining the payment purpose. Both are available for person and business cases.
  */
 export type CustomerMessagingPurposesEnum =
   | "identity_document"
@@ -2628,6 +2634,8 @@ export type CustomerMessagingPurposesEnum =
   | "business_document"
   | "confirm_details"
   | "review_in_progress"
+  | "source_of_funds"
+  | "purpose_of_payment"
   | (string & {});
 
 /** * `ISL` - ISL */
@@ -9961,6 +9969,12 @@ export interface SignatureResultDocuments {
   /** Same as `id`. */
   uuid?: string;
   title?: string;
+  /** Language of the document version selected for this signing attempt, not necessarily the requested interface language. A complete translation matching the signer language (or session language when unset) is selected; otherwise the original is used. Null when the selected version has no language set. Frozen when the attempt starts; once signed, this is the language actually signed. */
+  language?: string | null;
+  /** UUID of the source document revision copied into this signing attempt, including when a translated variant is selected. Distinct from id, which identifies the signer's document copy. Frozen when the attempt starts. */
+  source_revision?: string;
+  /** UUID of the selected translated variant, or null when the original document is selected. Frozen with the document copy when the attempt starts; later language or translation changes do not replace it. */
+  translation_id?: string | null;
   file_name?: string;
   /** Pages of the document signed. For Word, of the converted PDF. */
   pages?: number;
@@ -10506,6 +10520,77 @@ export interface TransactionDetailTags {
   source?: "didit" | "custom" | (string & {});
 }
 
+/** Travel Rule summary on a transaction list item. Includes latest delivery but omits deliveries and deliveries_truncated. */
+export interface TransactionListTravelRule {
+  uuid?: string;
+  status?: string;
+  protocol?: string | null;
+  required?: boolean;
+  obligations_count?: number;
+  /** Originator party. For an inbound transfer the counterparty's values are masked until ownership is confirmed. */
+  originator_data?: Record<string, unknown>;
+  /** Beneficiary party. For an inbound transfer the counterparty's values are masked until ownership is confirmed. */
+  beneficiary_data?: Record<string, unknown>;
+  /** The name comparison that decided the transfer (score and strictness). Null until one ran. The compared names are masked together with the parties. */
+  name_match?: Record<string, unknown> | null;
+  /** Field-by-field comparison of the transfer's party data with what the other side knows about the wallet holder. It names fields and results, never values, so it stays readable while the counterparty's data is masked. Null until a comparison ran. */
+  data_match?: TravelRuleDataMatch | null;
+  /** Shortcut for `data_match.mismatched_fields`. Empty when nothing differs. */
+  mismatched_fields?: string[];
+  /** Audit record of the moment the counterparty's data was unmasked. Null while the data is still masked, and for outbound transfers. */
+  data_unmasked?: TravelRuleDataUnmasked | null;
+  /** True while the counterparty's personal data is masked in this response. */
+  data_masked?: boolean;
+  metadata?: Record<string, unknown>;
+  /** Which side of the exchange this transfer is. */
+  direction?: "INBOUND" | "OUTBOUND" | (string & {});
+  /** The rail the transfer went over: `INTERNAL`, `TRP`, `GTR`, `TRUST`, `VERIFYVASP`, `SYGNA` or `EMAIL` (`TEST_VASP` on a sandbox application, when the Didit Test VASP answered), or `null` until a rail is chosen. */
+  rail?: string | null;
+  /** The counterparty's directory entry, or `null` when the transfer links none. */
+  counterparty_vasp?: TransactionListTravelRuleCounterpartyVasp | null;
+  /** The newest message the transfer owes another party. `null` when it has owed none, for example below `threshold_amount` or for a declared self-hosted wallet. */
+  delivery?: TravelRuleDelivery | null;
+  /** How Didit looked for the counterparty, one entry per step that ran. Empty when no discovery ran, for example on an inbound transfer. */
+  discovery?: TravelRuleDiscoveryStep[];
+  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
+  reason?: string;
+  /** What moves the transfer on; `[]` for any status but `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE`. `email_undeliverable` offers `update_compliance_email`, then `resend`. `delivery_failed` offers `resend`. A discovery reason offers `select_counterparty_vasp`, `declare_self_hosted`, `add_vasp_hint` and `resend`. */
+  next_actions?: TravelRuleNextAction[];
+  /** How the transfer's chain names its two wallets, when that is more than one address paying another. Empty (`{}`) for an account-chain transfer (EVM, Solana, Tron), where the two addresses are the wallets. Matching, routing and the address book read the wallets from here first. */
+  chain_details?: TravelRuleChainDetails;
+  /** Null when required is true. Otherwise below_threshold, the recorded chain exemption (for example LIGHTNING_NO_PAYEE_IDENTIFIER, LIGHTNING_BOLT12_BLINDED_PAYEE or LIGHTNING_LNURL_NAMES_NO_PAYEE), or unknown for legacy transfers without a recorded reason. */
+  not_required_reason?: string | null;
+  /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
+  proof_state?:
+    "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
+}
+
+/** The counterparty's directory entry, or `null` when the transfer links none. */
+export interface TransactionListTravelRuleCounterpartyVasp {
+  name?: string;
+  lei?: string;
+  /** Due-diligence score from 0 to 100, where higher is better. Same scale as in the VASP directory. */
+  dd_score?: number;
+  /** Per-component contributions to dd_score, one object per component as in the VASP directory (jurisdiction, verification, protocol, lei, history, essentials, responsiveness), each {points, max, reason, detail}. {} until the counterparty has been assessed. */
+  dd_score_breakdown?: Record<
+    string,
+    TransactionListTravelRuleCounterpartyVaspDdScoreBreakdownValue
+  >;
+  /** When the due-diligence assessment last ran. Null until the counterparty has been assessed. */
+  dd_assessed_at?: Date | null;
+}
+
+export interface TransactionListTravelRuleCounterpartyVaspDdScoreBreakdownValue {
+  /** Points awarded for this component. */
+  points?: number;
+  /** Maximum points this component can award. */
+  max?: number;
+  /** Machine-readable code of the component's verdict. */
+  reason?: string;
+  /** Human-readable reason for the awarded points. */
+  detail?: string;
+}
+
 /** One note on a monitored transaction's review timeline. */
 export interface TransactionNote {
   /** Note identifier. */
@@ -10621,12 +10706,18 @@ export interface TransactionRuleAggregation {
 
 export interface TransactionRuleBacktestResult {
   /** Transactions evaluated (most recent first, capped). */
-  evaluated?: number;
+  evaluated: number;
   /** Transactions the configuration would have matched. */
-  matched?: number;
+  matched: number;
   /** Distinct subjects (by vendor_data) among the matches. */
-  affected_entities?: number;
-  period_days?: number;
+  affected_entities: number;
+  period_days: number;
+  /** True only when additional transactions in the requested period were omitted by the replay cap. */
+  truncated: boolean;
+  /** Active rules matching the candidate hits, excluding rule_id. Empty when none matched within the comparison bounds. */
+  overlapping_rules: TransactionRuleOverlap[];
+  /** True when the overlap comparison is partial: more than 50 eligible active rules, more than 1000 rule/transaction comparisons, or a truncated replay with candidate hits and eligible rules. False when there are no candidate hits or no eligible rules, even if truncated is true. Counts are not exhaustive when true. */
+  overlapping_rules_truncated: boolean;
 }
 
 /** A condition reads only the transaction being evaluated - it never filters the aggregation window. */
@@ -10737,6 +10828,17 @@ export interface TransactionRuleLibraryEntry {
   is_installed?: boolean;
 }
 
+export interface TransactionRuleOverlap {
+  /** Other active rule that matched candidate hits. */
+  rule_id: string;
+  /** Title of the overlapping rule. */
+  name: string;
+  /** All actions configured on the overlapping rule. */
+  actions: TransactionRuleAction[];
+  /** Candidate matches also matched by this rule within the comparison bounds. May be partial when overlapping_rules_truncated is true. */
+  overlap_count: number;
+}
+
 /** Which transactions the rule applies to. Only these three keys are accepted. */
 export interface TransactionRuleScope {
   /** Restrict to transaction types, e.g. finance, kyc, travel_rule, user_event. Empty or missing = no restriction. */
@@ -10831,7 +10933,7 @@ export interface TransactionSummaryTags {
   source?: "didit" | "custom" | (string & {});
 }
 
-/** A transaction's Travel Rule transfer, as `GET /v3/transactions/{transaction_id}/`, the `201` of `POST /v3/transactions/` and each row of `GET /v3/transactions/` return it. `direction`, `rail`, `counterparty_vasp`, `delivery`, `discovery`, `reason` and `next_actions` have the same shape as on `PATCH /v3/transactions/{transaction_id}/travel-rule/`, so one read of a transaction says why its transfer is stuck and what moves it on. */
+/** Travel Rule transfer on transaction detail and creation responses. Includes latest delivery and bounded delivery history. Transaction lists omit the history fields. */
 export interface TransactionTravelRule {
   uuid?: string;
   status?: string;
@@ -10869,6 +10971,10 @@ export interface TransactionTravelRule {
   next_actions?: TravelRuleNextAction[];
   /** How the transfer's chain names its two wallets, when that is more than one address paying another. Empty (`{}`) for an account-chain transfer (EVM, Solana, Tron), where the two addresses are the wallets. Matching, routing and the address book read the wallets from here first. */
   chain_details?: TravelRuleChainDetails;
+  /** Newest 100 delivery entries, presented oldest first (creation time, then identifier). Empty when no messages exist. Use the paginated delivery endpoint for complete history. */
+  deliveries?: TravelRuleDeliveryLogEntry[];
+  /** True when older entries were omitted from deliveries. Follow GET /v3/transactions/{transaction_id}/travel-rule/deliveries/ for the complete history. */
+  deliveries_truncated?: boolean;
   /** Null when required is true. Otherwise below_threshold, the recorded chain exemption (for example LIGHTNING_NO_PAYEE_IDENTIFIER, LIGHTNING_BOLT12_BLINDED_PAYEE or LIGHTNING_LNURL_NAMES_NO_PAYEE), or unknown for legacy transfers without a recorded reason. */
   not_required_reason?: string | null;
   /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
@@ -11165,6 +11271,35 @@ export interface TravelRuleDelivery {
   next_attempt_at: Date | null;
   /** When the other side took the message. */
   delivered_at: Date | null;
+}
+
+/** One supplier-neutral entry in the delivery history. */
+export interface TravelRuleDeliveryLogEntry {
+  /** Delivery identifier. */
+  uuid: string;
+  /** What the message carries. `SEND`: the transfer's first message to the counterparty (outbound; the rail is chosen when it is sent). `ANSWER`: your accept or decline, owed to the network that asked (inbound). `TXID`: the on-chain transaction hash, after you finish the transfer. `CANCEL`: the cancellation, after you cancel it. `POLL`: a status query to a network that offers one, repeated every 5 minutes while the transfer waits on the counterparty. */
+  kind: "SEND" | "ANSWER" | "TXID" | "CANCEL" | "POLL" | (string & {});
+  /** Current delivery status. */
+  status: "QUEUED" | "SENDING" | "RETRYING" | "DELIVERED" | "FAILED" | (string & {});
+  /** Supplier-neutral transport type; null until selected. */
+  rail: "EMAIL" | "TRP" | "INTERNAL" | "NETWORK" | (string & {}) | null;
+  /** When the delivery was created. */
+  created_at: Date;
+  /** When delivery completed, or null. */
+  delivered_at: Date | null;
+  /** Human-readable message kind and delivery status. Does not expose transport payloads or raw errors. */
+  detail_lines: string[];
+}
+
+export interface TravelRuleDeliveryLogPage {
+  /** Count normally capped at 100; it is not a reliable total for larger histories. Follow next until null, regardless of count. */
+  count: number;
+  /** Next page URL, or null. */
+  next: string | null;
+  /** Previous page URL, or null. */
+  previous: string | null;
+  /** Entries ordered oldest first by creation time, then identifier. */
+  results: TravelRuleDeliveryLogEntry[];
 }
 
 /** One step of the counterparty discovery Didit ran for an outbound transfer, in the order it ran them. The first step that names a VASP with a route ends the chain. */
@@ -11672,6 +11807,10 @@ export interface TravelRuleTransferDetail {
   next_actions?: TravelRuleNextAction[];
   /** How the transfer's chain names its two wallets, when that is more than one address paying another. Empty (`{}`) for an account-chain transfer (EVM, Solana, Tron), where the two addresses are the wallets. Matching, routing and the address book read the wallets from here first. */
   chain_details?: TravelRuleChainDetails;
+  /** Newest 100 delivery entries, presented oldest first (creation time, then identifier). Empty when no messages exist. Use the paginated delivery endpoint for complete history. */
+  deliveries?: TravelRuleDeliveryLogEntry[];
+  /** True when older entries were omitted from deliveries. Follow GET /v3/transactions/{transaction_id}/travel-rule/deliveries/ for the complete history. */
+  deliveries_truncated?: boolean;
   /** Null when required is true. Otherwise below_threshold, the recorded chain exemption (for example LIGHTNING_NO_PAYEE_IDENTIFIER, LIGHTNING_BOLT12_BLINDED_PAYEE or LIGHTNING_LNURL_NAMES_NO_PAYEE), or unknown for legacy transfers without a recorded reason. */
   not_required_reason?: string | null;
   /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */

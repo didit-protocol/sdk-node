@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 383 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 384 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -596,13 +596,14 @@ Every method of `@didit-protocol/sdk-node`: 383 methods, generated from `openapi
 
 ## `didit.transactions.travelRule`
 
-| Method                                                                                                                | HTTP                                                            | Returns                             | Notes |
-| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------- | ----- |
-| `didit.transactions.travelRule.confirmOwnership(transactionId, params: TransactionsTravelRuleConfirmOwnershipParams)` | `POST /v3/transactions/{transaction_id}/travel-rule/ownership/` | `TravelRuleTransferDetail`          |       |
-| `didit.transactions.travelRule.createMessage(transactionId, params?: TransactionsTravelRuleCreateMessageParams)`      | `POST /v3/transactions/{transaction_id}/travel-rule/messages/`  | `TravelRuleMessage`                 |       |
-| `didit.transactions.travelRule.listMessages(transactionId)`                                                           | `GET /v3/transactions/{transaction_id}/travel-rule/messages/`   | `TravelRuleMessage[]`               |       |
-| `didit.transactions.travelRule.triggerTestVaspInbound(params: TransactionsTravelRuleTriggerTestVaspInboundParams)`    | `POST /v3/travel-rule/test-vasp/inbound/`                       | `TravelRuleTestVaspInboundResponse` |       |
-| `didit.transactions.travelRule.updateTransfer(transactionId, params?: TransactionsTravelRuleUpdateTransferParams)`    | `PATCH /v3/transactions/{transaction_id}/travel-rule/`          | `TravelRuleTransferDetail`          |       |
+| Method                                                                                                                | HTTP                                                            | Returns                              | Notes |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------ | ----- |
+| `didit.transactions.travelRule.confirmOwnership(transactionId, params: TransactionsTravelRuleConfirmOwnershipParams)` | `POST /v3/transactions/{transaction_id}/travel-rule/ownership/` | `TravelRuleTransferDetail`           |       |
+| `didit.transactions.travelRule.createMessage(transactionId, params?: TransactionsTravelRuleCreateMessageParams)`      | `POST /v3/transactions/{transaction_id}/travel-rule/messages/`  | `TravelRuleMessage`                  |       |
+| `didit.transactions.travelRule.listDeliveries(transactionId, params?: TransactionsTravelRuleListDeliveriesParams)`    | `GET /v3/transactions/{transaction_id}/travel-rule/deliveries/` | page of `TravelRuleDeliveryLogEntry` |       |
+| `didit.transactions.travelRule.listMessages(transactionId)`                                                           | `GET /v3/transactions/{transaction_id}/travel-rule/messages/`   | `TravelRuleMessage[]`                |       |
+| `didit.transactions.travelRule.triggerTestVaspInbound(params: TransactionsTravelRuleTriggerTestVaspInboundParams)`    | `POST /v3/travel-rule/test-vasp/inbound/`                       | `TravelRuleTestVaspInboundResponse`  |       |
+| `didit.transactions.travelRule.updateTransfer(transactionId, params?: TransactionsTravelRuleUpdateTransferParams)`    | `PATCH /v3/transactions/{transaction_id}/travel-rule/`          | `TravelRuleTransferDetail`           |       |
 
 ## `didit.travelRule`
 

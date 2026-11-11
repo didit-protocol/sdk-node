@@ -534,6 +534,14 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       action_required: "TransactionWalletOwnershipAction",
     },
   },
+  TransactionListTravelRule: {
+    p: {
+      data_unmasked: "TravelRuleDataUnmasked",
+      counterparty_vasp: { p: { dd_assessed_at: 1 } },
+      delivery: "TravelRuleDelivery",
+      discovery: { i: "TravelRuleDiscoveryStep" },
+    },
+  },
   TransactionNote: { p: { created_at: 1 } },
   TransactionRuleDetail: { p: { latest_triggered_at: 1, created_at: 1, updated_at: 1 } },
   TransactionSummary: { p: { txn_date: 1, created_at: 1 } },
@@ -543,6 +551,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       counterparty_vasp: { p: { dd_assessed_at: 1 } },
       delivery: "TravelRuleDelivery",
       discovery: { i: "TravelRuleDiscoveryStep" },
+      deliveries: { i: "TravelRuleDeliveryLogEntry" },
     },
   },
   TransactionWalletOwnershipAction: { p: { expires_at: 1 } },
@@ -550,7 +559,9 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TransactionsListRelatedResponse: { p: { results: { i: "TransactionSummary" } } },
   TransactionsListResponse: {
     p: {
-      results: { i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionTravelRule" } } },
+      results: {
+        i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionListTravelRule" } },
+      },
     },
   },
   TransactionsNotesListResponse: { p: { results: { i: "TransactionNote" } } },
@@ -572,6 +583,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleCounterpartyScreeningStatus: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleDataUnmasked: { p: { at: 1 } },
   TravelRuleDelivery: { p: { next_attempt_at: 1, delivered_at: 1 } },
+  TravelRuleDeliveryLogEntry: { p: { created_at: 1, delivered_at: 1 } },
+  TravelRuleDeliveryLogPage: { p: { results: { i: "TravelRuleDeliveryLogEntry" } } },
   TravelRuleDiscoveryStep: { p: { at: 1 } },
   TravelRuleInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
   TravelRuleListVaspsResponse: { p: { results: { i: "VaspDirectoryEntry" } } },
@@ -632,6 +645,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       created_at: 1,
       delivery: "TravelRuleDelivery",
       discovery: { i: "TravelRuleDiscoveryStep" },
+      deliveries: { i: "TravelRuleDeliveryLogEntry" },
     },
   },
   TravelRuleTransferRow: { p: { txn_date: 1, deadline_at: 1, created_at: 1 } },
