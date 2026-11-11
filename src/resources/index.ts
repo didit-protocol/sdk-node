@@ -38,6 +38,7 @@ import { ProofOfAddress } from "./proof-of-address.js";
 import { Questionnaires } from "./questionnaires.js";
 import { RegulatoryReports } from "./regulatory-reports.js";
 import { ReportTemplates } from "./report-templates.js";
+import { Sandbox } from "./sandbox.js";
 import { Sessions } from "./sessions.js";
 import { Transactions } from "./transactions.js";
 import { TravelRule } from "./travel-rule.js";
@@ -84,6 +85,7 @@ export abstract class DiditResources extends APIClient {
   readonly questionnaires: Questionnaires = new Questionnaires(this);
   readonly regulatoryReports: RegulatoryReports = new RegulatoryReports(this);
   readonly reportTemplates: ReportTemplates = new ReportTemplates(this);
+  readonly sandbox: Sandbox = new Sandbox(this);
   readonly sessions: Sessions = new Sessions(this);
   readonly transactions: Transactions = new Transactions(this);
   readonly travelRule: TravelRule = new TravelRule(this);
@@ -138,6 +140,7 @@ export { ProofOfAddress } from "./proof-of-address.js";
 export { Questionnaires } from "./questionnaires.js";
 export { RegulatoryReports } from "./regulatory-reports.js";
 export { ReportTemplates } from "./report-templates.js";
+export { Sandbox } from "./sandbox.js";
 export {
   Sessions,
   SessionsImports,

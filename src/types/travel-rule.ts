@@ -236,6 +236,8 @@ export interface TravelRuleUpdateSettingsParams {
   legal_name?: string;
   lei?: string;
   jurisdiction?: string;
+  /** Your VASP profile's own jurisdiction, up to 3 characters (for example `GB` or `USA`), shown to other Didit customers in the VASP directory. Independent of `jurisdiction`, which sets the regulatory regime Didit stamps on your transfers. Send an empty string to clear it; the directory then shows `jurisdiction`. */
+  vasp_jurisdiction?: string;
   /** `CONTAINS` accepts one name whose words all appear in the other. */
   name_matching_strictness?: "NONE" | "STRICT" | "CONTAINS" | "DEFAULT" | "FUZZY" | (string & {});
   confirmation_timeout_hours?: number;
