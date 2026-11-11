@@ -215,3 +215,65 @@ export interface StepUpNotRequired {
   required: false;
   [field: string]: unknown;
 }
+
+/** What an agent may be granted. */
+export type AgentScope = "read" | "act";
+
+/** The person's decision on an agent request. */
+export type AgentConsentDecision = "approve" | "deny";
+
+/** JSON-serialised `AuthenticatorAssertionResponse`, binary fields as base64url. */
+export interface AgentAuthenticatorResponse {
+  clientDataJSON: string;
+  authenticatorData: string;
+  signature: string;
+  userHandle?: string | null;
+}
+
+/** JSON-serialised result of `navigator.credentials.get()`; never send a raw `PublicKeyCredential`. */
+export interface AgentPasskeyAssertion {
+  id: string;
+  rawId: string;
+  type: "public-key";
+  response: AgentAuthenticatorResponse;
+  clientExtensionResults?: Record<string, unknown>;
+}
+
+/** An enrolled passkey the approval may use; decode `id` to bytes for the browser. */
+export interface AgentCredentialDescriptor {
+  id: string;
+  type: string;
+  [field: string]: unknown;
+}
+
+/** WebAuthn request options: pass as `publicKey` to `navigator.credentials.get()` after decoding binary fields. */
+export interface AgentWebAuthnOptions {
+  challenge: string;
+  rpId: string;
+  timeout?: number;
+  userVerification: "required";
+  allowCredentials: AgentCredentialDescriptor[];
+}
+
+/** The answer of `createAgentApprovalOptions`. */
+export interface AgentApprovalOptions {
+  options: AgentWebAuthnOptions;
+  [field: string]: unknown;
+}
+
+/** Approval: the agent exchanges `code` (single use, 60 seconds) itself; no token is returned. */
+export interface AgentConsentApproved {
+  code: string;
+  redirect_uri: string;
+  state: string;
+  [field: string]: unknown;
+}
+
+/** The person declined; no code is issued. */
+export interface AgentConsentDenied {
+  status: "denied";
+  [field: string]: unknown;
+}
+
+/** The answer of `submitAgentConsent`; there is no shared discriminator, test `"code" in result`. */
+export type AgentConsentResult = AgentConsentApproved | AgentConsentDenied;

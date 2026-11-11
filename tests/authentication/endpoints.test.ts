@@ -558,6 +558,145 @@ describe("createStepUp and retrieveStepUp", () => {
   });
 });
 
+describe("submitAgentConsent and createAgentApprovalOptions", () => {
+  const CHALLENGE = synthetic("agent-request-challenge");
+  const ASSERTION = {
+    id: "credential-id",
+    rawId: "credential-raw-id",
+    type: "public-key" as const,
+    response: {
+      clientDataJSON: synthetic("client-data"),
+      authenticatorData: synthetic("authenticator-data"),
+      signature: synthetic("signature"),
+      userHandle: null,
+    },
+  };
+
+  it("approves with an assertion and narrowed scopes (200)", async () => {
+    const approved = { code: "agent-code", redirect_uri: "https://agent.example/cb", state: "st" };
+    issuer.reply("POST", "/agents/consent/", 200, approved);
+    const result = await auth.submitAgentConsent(ACCESS_TOKEN, {
+      challenge: CHALLENGE,
+      decision: "approve",
+      assertion: ASSERTION,
+      scopes: ["read"],
+      organizationIds: [IDENTITY_ID],
+      lifetime: 86400,
+    });
+    expect(result).toEqual(approved);
+    expect("code" in result).toBe(true);
+    const request = issuer.last("/agents/consent/");
+    expect([request.method, request.url.toString()]).toEqual(["POST", `${ISSUER}/agents/consent/`]);
+    expect(request.headers.get("authorization")).toBe(`Bearer ${ACCESS_TOKEN}`);
+    expect(request.headers.get("content-type")).toBe("application/json");
+    expect(JSON.parse(request.body!)).toEqual({
+      challenge: CHALLENGE,
+      decision: "approve",
+      assertion: ASSERTION,
+      scopes: ["read"],
+      organization_ids: [IDENTITY_ID],
+      lifetime: 86400,
+    });
+  });
+
+  it("denies without an assertion (200)", async () => {
+    issuer.reply("POST", "/agents/consent/", 200, { status: "denied" });
+    const result = await auth.submitAgentConsent(ACCESS_TOKEN, {
+      challenge: CHALLENGE,
+      decision: "deny",
+    });
+    expect(result).toEqual({ status: "denied" });
+    expect("code" in result).toBe(false);
+    expect(JSON.parse(issuer.last("/agents/consent/").body!)).toEqual({
+      challenge: CHALLENGE,
+      decision: "deny",
+    });
+  });
+
+  it("returns WebAuthn options for the pending request", async () => {
+    const options = {
+      challenge: "c3ludGhldGlj",
+      rpId: "acme.auth.didit.me",
+      timeout: 60000,
+      userVerification: "required",
+      allowCredentials: [{ id: "Y3JlZA", type: "public-key" }],
+    };
+    issuer.reply("POST", "/agents/consent/passkey/", 200, { options });
+    const result = await auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: CHALLENGE });
+    expect(result.options).toEqual(options);
+    const request = issuer.last("/agents/consent/passkey/");
+    expect([request.method, request.url.toString()]).toEqual([
+      "POST",
+      `${ISSUER}/agents/consent/passkey/`,
+    ]);
+    expect(request.headers.get("authorization")).toBe(`Bearer ${ACCESS_TOKEN}`);
+    expect(JSON.parse(request.body!)).toEqual({ challenge: CHALLENGE });
+  });
+
+  it("maps 400 invalid_grant and 403 passkey_required, once each (POST is not retried)", async () => {
+    issuer.reply("POST", "/agents/consent/", 400, { error: "invalid_grant" });
+    const invalid = await rejection(
+      auth.submitAgentConsent(ACCESS_TOKEN, { challenge: CHALLENGE, decision: "approve" }),
+    );
+    expect(invalid).toBeInstanceOf(BadRequestError);
+    expect(invalid.message).toContain("invalid_grant");
+    issuer.reply("POST", "/agents/consent/", 403, { error: "passkey_required" });
+    const forbidden = await rejection(
+      auth.submitAgentConsent(ACCESS_TOKEN, { challenge: CHALLENGE, decision: "approve" }),
+    );
+    expect(forbidden).toBeInstanceOf(PermissionDeniedError);
+    expect(forbidden.message).toContain("passkey_required");
+    expect(issuer.count("/agents/consent/")).toBe(2);
+    issuer.reply("POST", "/agents/consent/passkey/", 503, { detail: "unavailable" });
+    expect(
+      await rejection(auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: CHALLENGE })),
+    ).toBeInstanceOf(InternalServerError);
+    expect(issuer.count("/agents/consent/passkey/")).toBe(1);
+  });
+
+  it("redacts an echoed challenge, assertion and token from errors", async () => {
+    issuer.reply("POST", "/agents/consent/", 400, {
+      detail: `bad ${CHALLENGE} ${ASSERTION.response.signature} ${ACCESS_TOKEN}`,
+    });
+    const error = await rejection(
+      auth.submitAgentConsent(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+        decision: "approve",
+        assertion: ASSERTION,
+      }),
+    );
+    for (const secret of [CHALLENGE, ASSERTION.response.signature, ACCESS_TOKEN]) {
+      expect(error.message).not.toContain(secret);
+      expect(JSON.stringify(error)).not.toContain(secret);
+    }
+  });
+
+  it("refuses bad arguments before any request", async () => {
+    const bad: unknown[] = [
+      { challenge: "", decision: "approve" },
+      { challenge: CHALLENGE, decision: "maybe" },
+      { challenge: CHALLENGE },
+      { challenge: CHALLENGE, decision: "approve", scopes: "read" },
+      { challenge: CHALLENGE, decision: "approve", organizationIds: [1] },
+      { challenge: CHALLENGE, decision: "approve", lifetime: 1.5 },
+      { challenge: CHALLENGE, decision: "approve", assertion: "x" },
+      undefined,
+    ];
+    for (const params of bad) {
+      expect(
+        await rejection(auth.submitAgentConsent(ACCESS_TOKEN, params as never)),
+      ).toBeInstanceOf(TypeError);
+    }
+    expect(
+      await rejection(auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: "" })),
+    ).toBeInstanceOf(TypeError);
+    expect(
+      await rejection(auth.createAgentApprovalOptions("", { challenge: CHALLENGE })),
+    ).toBeInstanceOf(TypeError);
+    expect(issuer.requests).toEqual([]);
+  });
+});
+
 describe("transport failures", () => {
   it("maps a network failure to APIConnectionError without the token", async () => {
     const attempts: string[] = [];
