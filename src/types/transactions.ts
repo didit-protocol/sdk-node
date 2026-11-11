@@ -2,6 +2,7 @@
 
 import type { Uploadable } from "../core/uploads.js";
 import type {
+  TransactionListTravelRule,
   TransactionNote,
   TransactionRuleAction,
   TransactionRuleAggregation,
@@ -10,7 +11,6 @@ import type {
   TransactionRuleLibraryEntry,
   TransactionRuleScope,
   TransactionSummary,
-  TransactionTravelRule,
   TravelRuleUtxo,
 } from "./components.js";
 
@@ -397,8 +397,8 @@ export interface TransactionsListResponseResults {
   assigned_to_name?: string | null;
   /** Status of the transaction's Travel Rule transfer (for example `COMPLETED`), or `null` when it has none. */
   travel_rule_status?: string | null;
-  /** The transaction's Travel Rule transfer, the same block as `travel_rule` on `GET /v3/transactions/{transaction_id}/`, or `null` when the transaction has none. */
-  travel_rule?: TransactionTravelRule | null;
+  /** Travel Rule summary with latest delivery, or null when absent. Unlike transaction detail, this block omits deliveries and deliveries_truncated. */
+  travel_rule?: TransactionListTravelRule | null;
 }
 
 export interface TransactionsListResponseResultsTags {
@@ -442,6 +442,8 @@ export interface TransactionsRulesBacktestParams {
   /** Which transactions the rule applies to. Only these three keys are accepted. */
   scope?: TransactionRuleScope;
   period_days?: number;
+  /** Optional ID of the rule being edited. Excludes that rule from overlap comparisons; does not change the candidate configuration. */
+  rule_id?: string;
 }
 
 /** Creates a CUSTOM rule. Rules in ACTIVE mode take effect immediately for new transactions - create in TEST mode and backtest first. */
@@ -564,6 +566,13 @@ export interface TransactionsTravelRuleCreateMessageParams {
   reply_to?: string | null;
   /** Multipart only. Up to 5 files of 10 MB each. */
   files?: Uploadable[];
+}
+
+export interface TransactionsTravelRuleListDeliveriesParams {
+  /** Entries per page. Defaults to 100 and larger values are capped at 100; a value above 1,000,000 returns `400`. */
+  limit?: number;
+  /** Number of entries to skip, up to 1,000,000. A larger value returns `400`. */
+  offset?: number;
 }
 
 export interface TransactionsTravelRuleTriggerTestVaspInboundParams {

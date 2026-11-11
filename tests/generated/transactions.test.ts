@@ -476,6 +476,31 @@ describe("transactions", () => {
     );
   });
 
+  it("transactions.travel_rule.list_deliveries: GET /v3/transactions/{transaction_id}/travel-rule/deliveries/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "GET /v3/transactions/{transaction_id}/travel-rule/deliveries/",
+        "page",
+      ),
+    });
+    const page = await client.transactions.travelRule.listDeliveries("transaction-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/transaction-id-1/travel-rule/deliveries/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/transactions/{transaction_id}/travel-rule/deliveries/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
   it("transactions.travel_rule.list_messages: GET /v3/transactions/{transaction_id}/travel-rule/messages/", async () => {
     const { client, calls } = mockClient({
       status: 200,

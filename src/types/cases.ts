@@ -390,10 +390,13 @@ export interface CasesRequestsCreateParams {
    * * `business_document` - business_document
    * * `confirm_details` - confirm_details
    * * `review_in_progress` - review_in_progress
+   * * `source_of_funds` - Request a document showing the source of payment funds.
+   * * `purpose_of_payment` - Request a document explaining the payment purpose. Both are available for person and business cases.
    */
   purpose: CustomerMessagingPurposeEnum;
   language?: CustomerMessagingLanguageEnum;
   request_id: string;
+  /** Use the expiry covered by the preview token. Source-of-funds and purpose-of-payment requests allow up to 14 days; other purposes allow up to seven days. The default remains seven days. Changing the expiry without a matching preview is rejected. */
   expires_at: string | Date;
   preview_token: string;
 }
@@ -415,6 +418,8 @@ export interface CasesRequestsPreviewParams {
    * * `business_document` - business_document
    * * `confirm_details` - confirm_details
    * * `review_in_progress` - review_in_progress
+   * * `source_of_funds` - Request a document showing the source of payment funds.
+   * * `purpose_of_payment` - Request a document explaining the payment purpose. Both are available for person and business cases.
    */
   purpose: CustomerMessagingPurposeEnum;
   language?: CustomerMessagingLanguageEnum;

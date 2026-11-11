@@ -14,6 +14,8 @@ import type {
   TransactionRuleInstallResult,
   TransactionRuleLibraryEntry,
   TransactionSummary,
+  TravelRuleDeliveryLogEntry,
+  TravelRuleDeliveryLogPage,
   TravelRuleMessage,
   TravelRuleTestVaspInboundResponse,
   TravelRuleTransferDetail,
@@ -43,6 +45,7 @@ import type {
   TransactionsRulesUpdateParams,
   TransactionsTravelRuleConfirmOwnershipParams,
   TransactionsTravelRuleCreateMessageParams,
+  TransactionsTravelRuleListDeliveriesParams,
   TransactionsTravelRuleTriggerTestVaspInboundParams,
   TransactionsTravelRuleUpdateTransferParams,
 } from "../types/transactions.js";
@@ -119,6 +122,12 @@ const TRANSACTIONS_TRAVEL_RULE_CREATE_MESSAGE: OperationSpec = {
   body: "json",
   dates: "TravelRuleMessage",
 };
+const TRANSACTIONS_TRAVEL_RULE_LIST_DELIVERIES: OperationSpec = {
+  method: "GET",
+  path: "/v3/transactions/{transaction_id}/travel-rule/deliveries/",
+  query: ["limit", "offset"],
+  dates: "TravelRuleDeliveryLogPage",
+};
 const TRANSACTIONS_TRAVEL_RULE_LIST_MESSAGES: OperationSpec = {
   method: "GET",
   path: "/v3/transactions/{transaction_id}/travel-rule/messages/",
@@ -168,7 +177,9 @@ const TRANSACTIONS_LIST: OperationSpec = {
   query: ["limit", "offset", "travel_rule_status", "assignee"],
   dates: {
     p: {
-      results: { i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionTravelRule" } } },
+      results: {
+        i: { p: { txn_date: 1, created_at: 1, travel_rule: "TransactionListTravelRule" } },
+      },
     },
   },
 };
@@ -411,6 +422,28 @@ export class TransactionsTravelRule extends APIResource {
   ): APIPromise<TravelRuleMessage> {
     return this._client.request(
       TRANSACTIONS_TRAVEL_RULE_CREATE_MESSAGE,
+      [transactionId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * List Travel Rule delivery history
+   *
+   * Read the complete delivery history for a transaction, oldest first. Requires transaction read permission. Unlike the newest 100 entries embedded in detail, this endpoint paginates the full history. See [delivery history](/management-api/travel-rule/list-deliveries).
+   *
+   * `GET /v3/transactions/{transaction_id}/travel-rule/deliveries/`
+   *
+   * @param transactionId Didit-stable transaction UUID that owns the transfer.
+   */
+  listDeliveries(
+    transactionId: string,
+    params: TransactionsTravelRuleListDeliveriesParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleDeliveryLogPage, TravelRuleDeliveryLogEntry> {
+    return this._client.requestPage(
+      TRANSACTIONS_TRAVEL_RULE_LIST_DELIVERIES,
       [transactionId],
       params,
       options,
