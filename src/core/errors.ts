@@ -365,6 +365,7 @@ export function sanitizeResponse(
     try {
       body = JSON.stringify(redactStructured(JSON.parse(text) as unknown, secrets));
     } catch {
+      // Not JSON, or nested past the stack (RangeError on parse or walk): not JSON.
       body = REDACTED;
     }
   }

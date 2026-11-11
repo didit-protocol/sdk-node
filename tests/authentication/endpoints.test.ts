@@ -921,6 +921,12 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(error.headers?.get("x-request-id")).toBe("[redacted]");
     });
 
+    it("treats a very deeply nested body as not JSON", async () => {
+      replyRaw(400, "[".repeat(10000) + "]".repeat(10000), "application/json");
+      const error = await consent({ id: "short" });
+      expect(error.body).toBe("[redacted]");
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {
