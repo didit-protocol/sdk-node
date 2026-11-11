@@ -1011,6 +1011,22 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(result).toEqual({ status: "denied" });
     });
 
+    it("keeps a secret echoed in Content-Type out of a malformed 2xx message", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response("not json", {
+            status: 200,
+            headers: { "content-type": `text/${credential}` },
+          }),
+      );
+      const error = await consent({ id: credential });
+      expect(error.constructor.name).toBe("APIResponseValidationError");
+      expect(error.message).not.toContain(credential);
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {

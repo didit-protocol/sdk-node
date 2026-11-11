@@ -184,7 +184,7 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   } catch {
     // Not chained: the parser's message quotes the start of the body, which may
     // hold a token.
-    const type = responseHeaders.get("content-type") ?? "no content type";
+    const type = errorHeaders.get("content-type") ?? "no content type";
     throw new APIResponseValidationError(
       `Expected a JSON response from ${method} ${path}, got ${type}.`,
       status,
