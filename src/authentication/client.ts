@@ -528,7 +528,9 @@ export class Authentication {
     if (assertion !== undefined && assertion !== null) {
       if (!isRecord(assertion)) throw new TypeError("assertion must be an object.");
       body.assertion = assertion;
-      secrets.push(...assertionSecrets(assertion));
+      // Read from the JSON the request carries (same encoder, decoded back), whatever the caller nested
+      // in the assertion: class instances, toJSON objects, Dates.
+      secrets.push(...assertionSecrets(JSON.parse(JSON.stringify(assertion)) as unknown));
     }
     const scopes: unknown = given.scopes;
     if (scopes !== undefined && scopes !== null) body.scopes = textList(scopes, "scopes");

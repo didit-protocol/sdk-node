@@ -819,6 +819,19 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(shown(error)).not.toContain(long);
     });
 
+    it("redacts a string inside a nested object that serialises itself", async () => {
+      const nested = "nested-credential-string-0123456789";
+      class Extension {
+        toJSON(): unknown {
+          return { credProps: { deep: [{ value: nested }] } };
+        }
+      }
+      issuer.reply("POST", "/agents/consent/", 400, { error: "invalid_grant", echo: nested });
+      const error = await consent({ id: "short", clientExtensionResults: new Extension() });
+      expect(error.body).toEqual({ error: "invalid_grant", echo: "[redacted]" });
+      expect(shown(error)).not.toContain(nested);
+    });
+
     it("redacts a secret echoed with other JSON escape spellings", async () => {
       replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9-padding0123456"}', "application/json");
       const error = await consent({ id: "a/b+\u00e9-padding0123456" });
