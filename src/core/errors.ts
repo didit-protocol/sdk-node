@@ -343,33 +343,30 @@ export function redactStructured(value: unknown, secrets: readonly string[]): un
 }
 
 /**
- * The APIStatusError of an answer that may echo secrets (the agent consent calls), built from the
- * redacted response only. `text` is the raw body: when it parses as JSON the parsed value is
- * redacted structurally, otherwise (an HTML error page, a body cut at the size limit) the body is
- * the string `[redacted]` and the raw text is kept nowhere. The message derives from the redacted
- * body, and a header value that contains a secret is replaced whole.
+ * The response of a call whose answer may echo secrets (the agent consent calls), sanitized once on
+ * receipt: each header whose name contains a secret is dropped, the other values are redacted, and
+ * the body text is the JSON redacted structurally (`redactStructured`), or `[redacted]` when it is
+ * not JSON, was cut at the size limit or is empty. Every error of these calls is built from this
+ * response only.
  */
-export function makeRedactedStatusError(
-  status: number,
-  text: string,
+export function sanitizeResponse(
   headers: Headers,
+  text: string,
   secrets: readonly string[],
-): APIStatusError {
-  let body: unknown = REDACTED; // an empty body is not JSON
+): { headers: Headers; text: string } {
+  const clean = new Headers();
+  headers.forEach((value, name) => {
+    if (redactStructured(name, secrets) === name) {
+      clean.append(name, redactStructured(value, secrets) as string);
+    }
+  });
+  let body = REDACTED; // an empty body is not JSON
   if (text) {
     try {
-      body = redactStructured(JSON.parse(text) as unknown, secrets);
+      body = JSON.stringify(redactStructured(JSON.parse(text) as unknown, secrets));
     } catch {
       body = REDACTED;
     }
   }
-  const detail = errorDetail(body);
-  const message = detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
-  const ErrorClass =
-    STATUS_ERRORS[status] ?? (status >= 500 ? InternalServerError : APIStatusError);
-  const clean = new Headers();
-  headers.forEach((value, name) => {
-    clean.append(name, redactStructured(value, secrets) as string);
-  });
-  return new ErrorClass(message, status, body, clean);
+  return { headers: clean, text: body };
 }

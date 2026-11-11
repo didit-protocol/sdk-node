@@ -884,6 +884,43 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(JSON.stringify([...(error.headers?.entries() ?? [])])).not.toContain(credential);
     });
 
+    it("drops a header named after a secret", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              [`x-${credential}`]: credential,
+              "x-keep": "fine",
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.headers?.get("x-keep")).toBe("fine");
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])])).not.toContain(credential);
+    });
+
+    it("keeps the request id redacted on a malformed 2xx body", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(`not json ${credential}`, {
+            status: 200,
+            headers: { "content-type": "text/html", "x-request-id": `req-${credential}` },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.constructor.name).toBe("APIResponseValidationError");
+      expect(error.message).not.toContain(credential);
+      expect(error.headers?.get("x-request-id")).toBe("[redacted]");
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {

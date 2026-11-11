@@ -7,7 +7,7 @@ import {
   APIConnectionError,
   APIResponseValidationError,
   APITimeoutError,
-  makeRedactedStatusError,
+  sanitizeResponse,
   makeStatusError,
   requestIdOf,
 } from "../core/errors.js";
@@ -156,13 +156,20 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   } finally {
     clearTimeout(timer);
   }
+  if (request.structuredRedaction) {
+    // Sanitized once, on receipt: every error of this call is built from this response only.
+    ({ headers: responseHeaders, text } = sanitizeResponse(
+      responseHeaders,
+      text,
+      request.secrets ?? [],
+    ));
+  }
   log(status, responseHeaders);
 
   if (status < 200 || status > 299) {
-    if (request.structuredRedaction) {
-      throw makeRedactedStatusError(status, text, responseHeaders, request.secrets ?? []);
-    }
-    throw makeStatusError(status, bodyOf(text), responseHeaders, request.secrets ?? []);
+    // A structured call's response is already sanitized: nothing is replaced again.
+    const secrets = request.structuredRedaction ? [] : (request.secrets ?? []);
+    throw makeStatusError(status, bodyOf(text), responseHeaders, secrets);
   }
   if (status === 204 || !text) return { status, headers: responseHeaders, data: null };
   try {
