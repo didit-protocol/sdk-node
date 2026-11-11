@@ -158,7 +158,7 @@ describe("account", () => {
 
   it("account.register: POST /programmatic/register/", async () => {
     const { client, calls } = mockClient({
-      status: 201,
+      status: 200,
       json: responseExample("account POST /programmatic/register/"),
     });
     const result = await client.account.register({

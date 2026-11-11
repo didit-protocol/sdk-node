@@ -733,6 +733,8 @@ export interface Application {
   data_location?: ApplicationDataLocation;
   /** The application's products. Always all three, in this order: `identity`, `transactions`, `authentication`. A new application has `identity` enabled with every module on, and `transactions` and `authentication` disabled. Read-only: a `products` key in a create or update body is ignored. */
   products?: ApplicationProduct[];
+  /** The application's environment. A `live` application bills every verification session and check created with its key. A `sandbox` application mocks every check and is never billed, so it is where you test (each sandbox application can create 500 test sessions every 24 hours). Read this field to pick the application: never infer the environment from the name. */
+  mode?: "live" | "sandbox" | (string & {});
 }
 
 export interface ApplicationAnalyticsCountryCount {
@@ -1154,6 +1156,8 @@ export interface ApplicationCredentialsSummary {
   api_key?: string;
   /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
   data_location?: ApplicationDataLocation;
+  /** The application's environment. A `live` application bills every verification session and check created with its key. A `sandbox` application mocks every check and is never billed, so it is where you test (each sandbox application can create 500 test sessions every 24 hours). Read this field to pick the application: never infer the environment from the name. */
+  mode?: "live" | "sandbox" | (string & {});
 }
 
 /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
@@ -12206,8 +12210,10 @@ export interface VerifyEmailResponse {
   expires_in?: number;
   /** Minimal organization shape returned inline by `POST /programmatic/verify-email/`. */
   organization?: OrganizationSummary;
-  /** Minimal application shape returned inline by `POST /programmatic/verify-email/`. Persist the `api_key` immediately. */
+  /** The organization's live application (`mode: live`): the credentials a production integration ships with. Every check created with its key is billed from the organization's balance. */
   application?: ApplicationCredentialsSummary;
+  /** The organization's sandbox application (`mode: sandbox`). Use its `api_key` to build and test the integration for free: every check is mocked and never billed. Switch to the live `application` key to go live. */
+  sandbox_application?: ApplicationCredentialsSummary | null;
   /** Present and `true` when the account already has an authenticator app or a passkey. The response then carries `temp_token` instead of tokens and application keys. */
   "2fa_required"?: boolean;
   /** Short-lived token for the second-factor step, sent only with `2fa_required`. It is not an access token. */
