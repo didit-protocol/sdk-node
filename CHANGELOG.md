@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.1](https://github.com/didit-protocol/sdk-node/compare/v2.11.0...v2.11.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **authentication:** redact every string of the consent assertion from errors ([#57](https://github.com/didit-protocol/sdk-node/issues/57)) ([c89ff1b](https://github.com/didit-protocol/sdk-node/commit/c89ff1b66fc97f3a0e7637d01e1e9c9d8b8c5ef9))
+
 ## [2.11.0](https://github.com/didit-protocol/sdk-node/compare/v2.10.0...v2.11.0) (2026-11-11)
 
 
