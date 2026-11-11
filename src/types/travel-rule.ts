@@ -270,6 +270,8 @@ export interface TravelRuleUpdateSettingsParams {
   non_responsive_policy?: "" | "HOLD" | "REJECT" | "PROCEED" | (string & {});
   /** Networks opted out of platform membership. Does not disable your connected own memberships or provision unavailable networks. */
   disabled_networks?: ("GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | (string & {}))[];
+  /** VASP licence or registration reference. Empty when not supplied. */
+  licence?: string;
 }
 
 export interface TravelRuleUpdateVaspDecisionParams {
@@ -342,6 +344,8 @@ export interface TravelRuleWalletProofsListResponse {
 export interface TravelRuleWorkspaceClaimParams {
   /** The directory entry this workspace is. Read ids from `GET /v3/travel-rule/vasps/`. */
   vasp_id: string;
+  /** Optional licence or registration reference, up to 255 characters; empty clears it. Omission preserves it for the same directory entry and clears it when claiming a different entry. Applied to the VASP profile only when the claim is granted. */
+  licence?: string;
 }
 
 export interface TravelRuleWorkspaceConfirmDomainParams {
