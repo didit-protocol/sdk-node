@@ -971,6 +971,21 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect((error as Error).cause).toBeUndefined();
     });
 
+    it("turns a body that fails mid-read into a fixed connection error", async () => {
+      issuer.route("POST", "/agents/consent/", () => {
+        const body = new ReadableStream({
+          start(controller) {
+            controller.error(new Error("credential-string-0123456789 broken stream"));
+          },
+        });
+        return new Response(body, { status: 200 });
+      });
+      const error = await consent({ id: "x" });
+      expect(error.constructor.name).toBe("APIConnectionError");
+      expect(`${error.message}${String(error)}`).not.toContain("credential-string");
+      expect((error as Error).cause).toBeUndefined();
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {
