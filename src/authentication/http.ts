@@ -7,6 +7,7 @@ import {
   APIConnectionError,
   APIResponseValidationError,
   APITimeoutError,
+  makeRedactedStatusError,
   makeStatusError,
   requestIdOf,
 } from "../core/errors.js";
@@ -25,6 +26,8 @@ export interface IssuerRequest {
   json?: Record<string, unknown>;
   /** Values removed from error messages and bodies: tokens, codes and verifiers. */
   secrets?: readonly string[];
+  /** Build errors from the redacted parsed body, never from its raw text (agent consent calls). */
+  structuredRedaction?: boolean;
 }
 
 /** A 2xx answer: the parsed JSON body, or `null` for an empty body. */
@@ -152,6 +155,9 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   log(status, responseHeaders);
 
   if (status < 200 || status > 299) {
+    if (request.structuredRedaction) {
+      throw makeRedactedStatusError(status, text, responseHeaders, request.secrets ?? []);
+    }
     throw makeStatusError(status, bodyOf(text), responseHeaders, request.secrets ?? []);
   }
   if (status === 204 || !text) return { status, headers: responseHeaders, data: null };

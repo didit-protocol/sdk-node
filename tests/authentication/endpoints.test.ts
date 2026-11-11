@@ -752,6 +752,88 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
     expect(leaks(await rejection(call()))).toEqual([]);
   });
 
+  describe("structural redaction of agent consent errors", () => {
+    const consent = async (
+      assertion: Record<string, unknown>,
+    ): Promise<Error & { body?: unknown; status?: number }> =>
+      await rejection(
+        auth.submitAgentConsent(ACCESS_TOKEN, {
+          challenge: CHALLENGE,
+          decision: "approve",
+          assertion: assertion as never,
+        }),
+      );
+    const shown = (error: Error & { body?: unknown }): string =>
+      [error.message, String(error), JSON.stringify(error), JSON.stringify(error.body)].join("\n");
+    const replyRaw = (status: number, text: string, type: string): void => {
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () => new Response(text, { status, headers: { "content-type": type } }),
+      );
+    };
+
+    it("leaves no fragment of a secret that another secret prefixes", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "bad abcdef and abc",
+        other: "abcdef",
+      });
+      const error = await consent({ id: "abc", signature: "abcdef" });
+      expect(error.body).toEqual({ detail: "[redacted]", other: "[redacted]" });
+      expect(shown(error)).not.toMatch(/abc|def/);
+    });
+
+    it("redacts the whole string that contains a secret", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "bad assertion xyzSECRETxyz",
+        keep: "fine",
+      });
+      const error = await consent({ id: "SECRET" });
+      expect(error.body).toEqual({ detail: "[redacted]", keep: "fine" });
+      expect(error.message).toMatch(/^HTTP 400: \[redacted\]/);
+    });
+
+    it("redacts a secret used as an object key and numbers colliding keys", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "no",
+        "echo-SECRET-1": "a",
+        "echo-SECRET-2": "b",
+      });
+      const error = await consent({ id: "SECRET" });
+      expect(error.body).toEqual({ detail: "no", "[redacted]": "a", "[redacted]2": "b" });
+      expect(shown(error)).not.toContain("SECRET");
+    });
+
+    it("redacts a secret echoed with other JSON escape spellings", async () => {
+      replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9"}', "application/json");
+      const error = await consent({ id: "a/b+\u00e9" });
+      expect(error.body).toEqual({ detail: "x", echo: "[redacted]" });
+      expect(shown(error)).not.toMatch(/a\/b|00E9|\u00e9/);
+    });
+
+    it("replaces a body that is not JSON with [redacted]", async () => {
+      replyRaw(502, `<html>Bad gateway ${CHALLENGE}</html>`, "text/html");
+      const error = await consent({ id: "x" });
+      expect(error.body).toBe("[redacted]");
+      expect(shown(error)).not.toContain(CHALLENGE);
+    });
+
+    it("redacts a secret that sits past the length cap of a long body", async () => {
+      replyRaw(400, `${"x".repeat(600)} ${CHALLENGE}`, "text/plain");
+      const error = await consent({ id: "x" });
+      expect(error.body).toBe("[redacted]");
+      expect(shown(error)).not.toContain(CHALLENGE);
+    });
+
+    it("applies to the options call too", async () => {
+      issuer.reply("POST", "/agents/consent/passkey/", 400, { detail: `bad ${CHALLENGE}` });
+      const error = (await rejection(
+        auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: CHALLENGE }),
+      )) as Error & { body?: unknown };
+      expect(error.body).toEqual({ detail: "[redacted]" });
+    });
+  });
+
   it("refuses bad arguments before any request", async () => {
     const bad: unknown[] = [
       { challenge: "", decision: "approve" },

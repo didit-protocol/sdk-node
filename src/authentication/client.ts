@@ -177,11 +177,16 @@ function textList(value: unknown, name: string): string[] {
   return [...(value as string[])];
 }
 
-/** Every non-empty string value of a passkey assertion, at any depth, to redact from errors. */
+/** Every non-empty string of a passkey assertion, object keys and values at any depth, to redact from errors. */
 function assertionSecrets(value: unknown): string[] {
   if (typeof value === "string") return value.length > 0 ? [value] : [];
   if (Array.isArray(value)) return value.flatMap(assertionSecrets);
-  if (isRecord(value)) return Object.values(value).flatMap(assertionSecrets);
+  if (isRecord(value)) {
+    return Object.entries(value).flatMap(([key, item]) => [
+      ...assertionSecrets(key),
+      ...assertionSecrets(item),
+    ]);
+  }
   return [];
 }
 
@@ -532,7 +537,12 @@ export class Authentication {
       }
       body.lifetime = lifetime;
     }
-    const call = { ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token), json: body, secrets };
+    const call = {
+      ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token),
+      json: body,
+      secrets,
+      structuredRedaction: true,
+    };
     return (await this.#object(call)) as AgentConsentResult;
   }
 
@@ -553,6 +563,7 @@ export class Authentication {
       ...this.#bearerCall("POST", AGENT_CONSENT_PASSKEY_PATH, token),
       json: { challenge },
       secrets: [token, challenge],
+      structuredRedaction: true,
     };
     return (await this.#object(call)) as AgentApprovalOptions;
   }

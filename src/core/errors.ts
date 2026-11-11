@@ -303,3 +303,64 @@ export function makeStatusError(
     STATUS_ERRORS[status] ?? (status >= 500 ? InternalServerError : APIStatusError);
   return new ErrorClass(message, status, cleanBody, redactHeaders(headers, secrets));
 }
+
+const REDACTED = "[redacted]";
+
+/**
+ * Redact a parsed JSON value structurally: every string, object key or value, that contains a
+ * secret anywhere in it becomes `[redacted]` as a whole. Strings are compared as decoded, so the
+ * spelling of the raw text does not matter. A redacted key that collides with another key is
+ * numbered (`[redacted]`, `[redacted]2`, ...).
+ */
+export function redactStructured(value: unknown, secrets: readonly string[]): unknown {
+  const active = secrets.filter((s) => s.length > 0);
+  const text = (input: string): string =>
+    active.some((secret) => input.includes(secret)) ? REDACTED : input;
+  const scrub = (input: unknown): unknown => {
+    if (typeof input === "string") return text(input);
+    if (Array.isArray(input)) return input.map(scrub);
+    if (isRecord(input)) {
+      const out = new Map<string, unknown>();
+      for (const [key, item] of Object.entries(input)) {
+        let name = text(key);
+        for (let n = 2; out.has(name); n++) name = `${REDACTED}${n}`;
+        out.set(name, scrub(item));
+      }
+      return Object.fromEntries(out);
+    }
+    return input;
+  };
+  return scrub(value);
+}
+
+/**
+ * The APIStatusError of an answer that may echo secrets (the agent consent calls), built from the
+ * redacted response only. `text` is the raw body: when it parses as JSON the parsed value is
+ * redacted structurally, otherwise (an HTML error page, a body cut at the size limit) the body is
+ * the string `[redacted]` and the raw text is kept nowhere. The message derives from the redacted
+ * body, and a header value that contains a secret is replaced whole.
+ */
+export function makeRedactedStatusError(
+  status: number,
+  text: string,
+  headers: Headers,
+  secrets: readonly string[],
+): APIStatusError {
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = redactStructured(JSON.parse(text) as unknown, secrets);
+    } catch {
+      body = REDACTED;
+    }
+  }
+  const detail = errorDetail(body);
+  const message = detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
+  const ErrorClass =
+    STATUS_ERRORS[status] ?? (status >= 500 ? InternalServerError : APIStatusError);
+  const clean = new Headers();
+  headers.forEach((value, name) => {
+    clean.append(name, redactStructured(value, secrets) as string);
+  });
+  return new ErrorClass(message, status, body, clean);
+}
