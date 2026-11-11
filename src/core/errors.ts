@@ -321,9 +321,18 @@ export function redactStructured(value: unknown, secrets: readonly string[]): un
     if (Array.isArray(input)) return input.map(scrub);
     if (isRecord(input)) {
       const out = new Map<string, unknown>();
+      // Reserve every safe key name first, so a placeholder never takes one.
+      const taken = new Set(Object.keys(input).filter((key) => text(key) === key));
+      let next = 1;
       for (const [key, item] of Object.entries(input)) {
-        let name = text(key);
-        for (let n = 2; out.has(name); n++) name = `${REDACTED}${n}`;
+        let name = key;
+        if (text(key) !== key) {
+          do {
+            name = next === 1 ? REDACTED : `${REDACTED}${next}`;
+            next++;
+          } while (taken.has(name));
+          taken.add(name);
+        }
         out.set(name, scrub(item));
       }
       return Object.fromEntries(out);
@@ -346,7 +355,7 @@ export function makeRedactedStatusError(
   headers: Headers,
   secrets: readonly string[],
 ): APIStatusError {
-  let body: unknown = null;
+  let body: unknown = REDACTED; // an empty body is not JSON
   if (text) {
     try {
       body = redactStructured(JSON.parse(text) as unknown, secrets);

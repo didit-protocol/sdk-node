@@ -119,11 +119,15 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
       log(null, null, "timeout");
       return new APITimeoutError(
         `The issuer did not answer ${method} ${path} within ${transport.timeout} ms.`,
-        { cause },
+        // A request that carries secrets keeps no cause: a transport may quote the serialized body in it.
+        request.structuredRedaction ? undefined : { cause },
       );
     }
     log(null, null, "connection_error");
-    return new APIConnectionError(`Could not reach the issuer for ${method} ${path}.`, { cause });
+    return new APIConnectionError(
+      `Could not reach the issuer for ${method} ${path}.`,
+      request.structuredRedaction ? undefined : { cause },
+    );
   };
 
   let status: number;

@@ -848,6 +848,56 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(shown(error)).not.toContain(sent);
     });
 
+    it("turns an empty body into [redacted]", async () => {
+      replyRaw(502, "", "text/plain");
+      const error = await consent({ id: "short" });
+      expect(error.body).toBe("[redacted]");
+    });
+
+    it("keeps a safe key named [redacted] after a secret key", async () => {
+      replyRaw(400, '{"a-SECRET-0123456789abcdef":"x","[redacted]":"safe"}', "application/json");
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
+      expect(error.body).toEqual({ "[redacted]2": "x", "[redacted]": "safe" });
+    });
+
+    it("redacts the request id and headers", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              "x-request-id": `req-${credential}`,
+              "x-echo": credential,
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & {
+        requestId?: string | null;
+        headers?: Headers;
+      };
+      expect(error.requestId).toBe("[redacted]");
+      expect(error.message).not.toContain(credential);
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])])).not.toContain(credential);
+    });
+
+    it("keeps no transport text or cause on a connection failure", async () => {
+      const credential = 'cred"ential\\string-0123456789';
+      issuer.route("POST", "/agents/consent/", () => {
+        throw new TypeError(`write failed: ${JSON.stringify({ id: credential })}`);
+      });
+      const error = await consent({ id: credential });
+      const chain: string[] = [];
+      for (let e: unknown = error; e instanceof Error; e = e.cause)
+        chain.push(`${e.message}\n${String(e)}`);
+      expect(error.constructor.name).toBe("APIConnectionError");
+      expect(chain.join("\n")).not.toMatch(/ential|write failed/);
+      expect((error as Error).cause).toBeUndefined();
+    });
+
     it("redacts a secret echoed with other JSON escape spellings", async () => {
       replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9-padding0123456"}', "application/json");
       const error = await consent({ id: "a/b+\u00e9-padding0123456" });
