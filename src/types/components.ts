@@ -10869,6 +10869,11 @@ export interface TransactionTravelRule {
   next_actions?: TravelRuleNextAction[];
   /** How the transfer's chain names its two wallets, when that is more than one address paying another. Empty (`{}`) for an account-chain transfer (EVM, Solana, Tron), where the two addresses are the wallets. Matching, routing and the address book read the wallets from here first. */
   chain_details?: TravelRuleChainDetails;
+  /** Null when required is true. Otherwise below_threshold, the recorded chain exemption (for example LIGHTNING_NO_PAYEE_IDENTIFIER, LIGHTNING_BOLT12_BLINDED_PAYEE or LIGHTNING_LNURL_NAMES_NO_PAYEE), or unknown for legacy transfers without a recorded reason. */
+  not_required_reason?: string | null;
+  /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
+  proof_state?:
+    "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
 }
 
 /** The counterparty's directory entry, or `null` when the transfer links none. */
@@ -11552,6 +11557,8 @@ export interface TravelRuleSettingsDetail {
   networks?: TravelRuleSettingsDetailNetworks;
   /** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. */
   didit_network?: TravelRuleSettingsDetailDiditNetwork;
+  /** VASP licence or registration reference. Empty when not supplied. */
+  licence?: string;
 }
 
 /** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. */
@@ -11665,6 +11672,11 @@ export interface TravelRuleTransferDetail {
   next_actions?: TravelRuleNextAction[];
   /** How the transfer's chain names its two wallets, when that is more than one address paying another. Empty (`{}`) for an account-chain transfer (EVM, Solana, Tron), where the two addresses are the wallets. Matching, routing and the address book read the wallets from here first. */
   chain_details?: TravelRuleChainDetails;
+  /** Null when required is true. Otherwise below_threshold, the recorded chain exemption (for example LIGHTNING_NO_PAYEE_IDENTIFIER, LIGHTNING_BOLT12_BLINDED_PAYEE or LIGHTNING_LNURL_NAMES_NO_PAYEE), or unknown for legacy transfers without a recorded reason. */
+  not_required_reason?: string | null;
+  /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
+  proof_state?:
+    "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
 }
 
 export interface TravelRuleTransferDetailCounterpartyVasp {
@@ -11860,6 +11872,10 @@ export interface TravelRuleWorkspace {
   /** Whether the Didit network lists this VASP and, when not, each condition it still misses. */
   didit_network?: Record<string, unknown>;
   settings?: TravelRuleSettingsDetail;
+  /** Own-account outbound quote, or null when a flat Travel Rule quote is unavailable. Does not enable billing. */
+  outbound_price?: TravelRuleWorkspaceOutboundPrice | null;
+  /** Current profile licence for a granted claim, otherwise the submitted claim licence. Empty when not supplied. */
+  licence?: string;
 }
 
 export interface TravelRuleWorkspaceClaim {
@@ -11870,6 +11886,10 @@ export interface TravelRuleWorkspaceClaim {
   review_note?: string;
   vasp_id?: string | null;
   vasp_name?: string;
+  /** Licence submitted with the claim. Empty when not supplied. */
+  licence?: string;
+  /** Structured rejection reason. Empty when none was recorded; a new claim or approval clears it. Read review_note for the explanation. */
+  rejection_reason?: "" | "domain_mismatch" | "other" | (string & {});
 }
 
 export interface TravelRuleWorkspaceDomain {
@@ -11885,6 +11905,22 @@ export interface TravelRuleWorkspaceDomainCodeResponse {
   status?: "unverified" | "code_sent" | "verified" | (string & {});
   /** The TXT record to publish for the DNS proof. Empty until a proof has been started. */
   txt?: TravelRuleWorkspaceTxtRecord;
+}
+
+/** Own-account outbound quote, or null when a flat Travel Rule quote is unavailable. Does not enable billing. */
+export interface TravelRuleWorkspaceOutboundPrice {
+  /** List unit price as a decimal string. */
+  list_price: string;
+  /** Account unit price as a decimal string; null when the account contract does not price this usage. */
+  effective_price: string | null;
+  /** Quote currency for this account. */
+  currency: string;
+  /** Plan discount percentage; zero for a contract quote. */
+  discount_pct: number;
+  /** Product that owns the usage. */
+  product: string;
+  /** Whether the quote comes from the plan or account contract. */
+  source: "plan" | "contract" | (string & {});
 }
 
 /** The TXT record to publish for the DNS proof. Empty until a proof has been started. */
@@ -12508,7 +12544,7 @@ export interface WalletAddressImportReportRows {
 }
 
 export interface WalletScreeningResult {
-  /** Provider that performed the screening (e.g. `merklescience`, `crystal`). */
+  /** Provider that performed the screening (e.g. `merklescience`, `crystal`). When the provider you connected in the Marketplace rejected or failed the screening and that connection's fallback to Didit is on, this names Didit's managed screening, not the provider you connected, and `fallback_from_provider` names the provider that failed. */
   provider: string;
   /** Always `WALLET_SCREENING` for this endpoint. */
   screening_type: "WALLET_SCREENING" | (string & {});
@@ -12560,6 +12596,10 @@ export interface WalletScreeningResult {
   dominant_risk_category: string | null;
   /** Ranked explanation of `risk_score`: what produced this verdict. Providers grade an address on their own model and return only a verdict (Merkle Science returns an integer 0-5), so the score alone is not actionable. Ordered high-risk first, then by the value that moved through each driver, capped at the five strongest; `source_of_funds` and `destination_of_funds` always carry the complete breakdown. A high `risk_score` with no `is_high_risk` entry means the provider reported no sanctions or attributed-entity match and graded the address purely on its own exposure model - `summary` states this explicitly. */
   risk_factors?: WalletScreeningResultRiskFactors[];
+  /** Set when the provider you connected in the Marketplace rejected or failed this screening and it ran on Didit's managed provider instead, because that connection's **Fall back to Didit** setting is on: the key of the provider that failed (`crystal`, `chainalysis`, `elliptic` or `trmlabs`). The screening is billed at the managed rate and the failed call is not billed. `null` on every other screening. */
+  fallback_from_provider?: string | null;
+  /** Why the provider you connected failed, when `fallback_from_provider` is set, for example `Your Crystal account has reached its call limit. Raise the limit with Crystal to screen with it again.` `null` on every other screening. */
+  fallback_reason?: string | null;
   /** The provider's own payload. Its shape is provider-specific and can change without notice: read the normalised fields instead of parsing it. */
   raw_response?: Record<string, unknown>;
   /** Opaque HMAC-SHA256 signature over this exact result, scoped to your application. Not meaningful on its own - repost the full response body, unmodified and including this field, to `POST /v3/wallet-screening/pdf/` to render it as a PDF. The PDF endpoint rejects the request with `400` if `report_signature` is missing or if any signed field (e.g. `risk_score`, `severity`, `sanctions_hit`) was edited before repost. */
