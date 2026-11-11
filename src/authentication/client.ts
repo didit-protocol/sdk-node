@@ -177,9 +177,15 @@ function textList(value: unknown, name: string): string[] {
   return [...(value as string[])];
 }
 
-/** Every non-empty string of a passkey assertion, object keys and values at any depth, to redact from errors. */
+/**
+ * Strings shorter than this are not secrets: field names such as `id` and values such as
+ * `public-key` would otherwise erase error codes like `invalid_grant` (docs/DESIGN.md section 10).
+ */
+const MIN_SECRET_LENGTH = 16;
+
+/** Every string of at least 16 characters of a passkey assertion, object keys and values at any depth, to redact from errors. */
 function assertionSecrets(value: unknown): string[] {
-  if (typeof value === "string") return value.length > 0 ? [value] : [];
+  if (typeof value === "string") return value.length >= MIN_SECRET_LENGTH ? [value] : [];
   if (Array.isArray(value)) return value.flatMap(assertionSecrets);
   if (isRecord(value)) {
     return Object.entries(value).flatMap(([key, item]) => [

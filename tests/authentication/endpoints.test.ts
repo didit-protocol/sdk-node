@@ -673,16 +673,16 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
 
   it("redacts every assertion string, at any depth, from 400 and malformed 200 answers", async () => {
     const marks = {
-      id: 'mark-id-"q"\\1',
-      rawId: "mark-raw-id-2",
-      clientDataJSON: "mark-client-data-3",
-      authenticatorData: "mark-authenticator-data-4",
-      signature: "mark-signature-5",
-      userHandle: "mark-user-handle-6",
-      extra: "mark-response-extra-7",
-      ext: "mark-extension-8",
-      deep: "mark-extension-deep-9",
-      listed: "mark-extension-listed-10",
+      id: 'mark-id-"q"\\1-padpad0123',
+      rawId: "mark-raw-id-2-padpad0123",
+      clientDataJSON: "mark-client-data-3-padpad0123",
+      authenticatorData: "mark-authenticator-data-4-padpad0123",
+      signature: "mark-signature-5-padpad0123",
+      userHandle: "mark-user-handle-6-padpad0123",
+      extra: "mark-response-extra-7-padpad0123",
+      ext: "mark-extension-8-padpad0123",
+      deep: "mark-extension-deep-9-padpad0123",
+      listed: "mark-extension-listed-10-padpad0123",
     };
     const assertion = {
       id: marks.id,
@@ -775,20 +775,23 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
 
     it("leaves no fragment of a secret that another secret prefixes", async () => {
       issuer.reply("POST", "/agents/consent/", 400, {
-        detail: "bad abcdef and abc",
-        other: "abcdef",
+        detail: "bad abcCREDENTIALID0123456 and abcCREDENTIALID0123",
+        other: "abcCREDENTIALID0123456",
       });
-      const error = await consent({ id: "abc", signature: "abcdef" });
+      const error = await consent({
+        id: "abcCREDENTIALID0123",
+        signature: "abcCREDENTIALID0123456",
+      });
       expect(error.body).toEqual({ detail: "[redacted]", other: "[redacted]" });
-      expect(shown(error)).not.toMatch(/abc|def/);
+      expect(shown(error)).not.toMatch(/abcCRED|456/);
     });
 
     it("redacts the whole string that contains a secret", async () => {
       issuer.reply("POST", "/agents/consent/", 400, {
-        detail: "bad assertion xyzSECRETxyz",
+        detail: "bad assertion xyzSECRET-0123456789abcdefxyz",
         keep: "fine",
       });
-      const error = await consent({ id: "SECRET" });
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
       expect(error.body).toEqual({ detail: "[redacted]", keep: "fine" });
       expect(error.message).toMatch(/^HTTP 400: \[redacted\]/);
     });
@@ -796,19 +799,31 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
     it("redacts a secret used as an object key and numbers colliding keys", async () => {
       issuer.reply("POST", "/agents/consent/", 400, {
         detail: "no",
-        "echo-SECRET-1": "a",
-        "echo-SECRET-2": "b",
+        "echo-SECRET-0123456789abcdef-1": "a",
+        "echo-SECRET-0123456789abcdef-2": "b",
       });
-      const error = await consent({ id: "SECRET" });
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
       expect(error.body).toEqual({ detail: "no", "[redacted]": "a", "[redacted]2": "b" });
-      expect(shown(error)).not.toContain("SECRET");
+      expect(shown(error)).not.toContain("SECRET-0123456789abcdef");
+    });
+
+    it("keeps an error code and short assertion strings readable while redacting long values", async () => {
+      const long = "Y3JlZGVudGlhbC1pZC0xMjM0NTY3ODkw";
+      issuer.reply("POST", "/agents/consent/", 400, {
+        error: "invalid_grant",
+        detail: `id public-key ${long}`,
+      });
+      const error = await consent({ id: long, type: "public-key" });
+      expect(error.body).toEqual({ error: "invalid_grant", detail: "[redacted]" });
+      expect(shown(error)).toContain("invalid_grant");
+      expect(shown(error)).not.toContain(long);
     });
 
     it("redacts a secret echoed with other JSON escape spellings", async () => {
-      replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9"}', "application/json");
-      const error = await consent({ id: "a/b+\u00e9" });
+      replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9-padding0123456"}', "application/json");
+      const error = await consent({ id: "a/b+\u00e9-padding0123456" });
       expect(error.body).toEqual({ detail: "x", echo: "[redacted]" });
-      expect(shown(error)).not.toMatch(/a\/b|00E9|\u00e9/);
+      expect(shown(error)).not.toMatch(/a\/b|00E9|\u00e9|padding0123456/);
     });
 
     it("replaces a body that is not JSON with [redacted]", async () => {
