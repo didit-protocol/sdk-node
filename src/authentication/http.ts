@@ -165,7 +165,8 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
     ? sanitizeResponse(responseHeaders, text, secrets)
     : null;
   const errorHeaders = sanitized?.headers ?? responseHeaders;
-  log(status, status >= 200 && status <= 299 ? responseHeaders : errorHeaders);
+  // The log line never records a raw request id of a consent call, on any status.
+  log(status, errorHeaders);
 
   if (status < 200 || status > 299) {
     // A sanitized copy is already redacted: nothing is replaced again.

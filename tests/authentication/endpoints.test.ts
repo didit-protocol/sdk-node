@@ -986,6 +986,31 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect((error as Error).cause).toBeUndefined();
     });
 
+    it("never logs a raw request id of a consent call", async () => {
+      const credential = "credential-string-0123456789";
+      const lines: string[] = [];
+      const logged = issuer.client({
+        logLevel: "debug",
+        logger: { debug: (line) => lines.push(line) },
+      });
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(JSON.stringify({ status: "denied" }), {
+            status: 200,
+            headers: { "content-type": "application/json", "x-request-id": `req-${credential}` },
+          }),
+      );
+      const result = await logged.submitAgentConsent(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+        decision: "deny",
+        assertion: { id: credential } as never,
+      });
+      expect(lines.join("\n")).not.toContain(credential);
+      expect(result).toEqual({ status: "denied" });
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {
