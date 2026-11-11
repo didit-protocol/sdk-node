@@ -307,6 +307,7 @@ try {
 - `refresh(refreshToken)`: serialise refreshes for one session; reusing a consumed refresh token revokes the session.
 - `getSession(accessToken)` for an instant revocation check, `revokeSession(accessToken)`.
 - `createStepUp(accessToken, { action, amount?, currency?, returnTo? })` and `retrieveStepUp(accessToken, id)`: act only on status `approved`. The issuer currently requires `returnTo` and answers 400 without it.
+- `submitAgentConsent(accessToken, { challenge, decision, assertion?, scopes?, organizationIds?, lifetime? })` approves or denies an agent request (approval returns `{ code, redirect_uri, state }`, denial `{ status: "denied" }`; test `"code" in result`) and `createAgentApprovalOptions(accessToken, { challenge })` returns the WebAuthn `options` for the fresh passkey assertion a humans-only application requires (403 `passkey_required` without it). Neither is retried; the challenge and assertion are never logged.
 
 Authentication is in early access and reaches production with the 2026-11-01 Didit release.
 

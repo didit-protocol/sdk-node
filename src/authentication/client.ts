@@ -19,6 +19,11 @@ import { normaliseIssuer, parsePublishableKey } from "./issuer.js";
 import { checkClaims, parseToken, shown, type ParsedToken, type TokenKind } from "./jwt.js";
 import type {
   AccessTokenClaims,
+  AgentApprovalOptions,
+  AgentConsentDecision,
+  AgentConsentResult,
+  AgentPasskeyAssertion,
+  AgentScope,
   AuthenticationSession,
   IdTokenClaims,
   StepUp,
@@ -34,6 +39,8 @@ const JWKS_PATH = ".well-known/jwks.json";
 const TOKEN_PATH = "token/";
 const SESSION_PATH = "session/";
 const STEP_UP_PATH = "step-up/";
+const AGENT_CONSENT_PATH = "agents/consent/";
+const AGENT_CONSENT_PASSKEY_PATH = "agents/consent/passkey/";
 // Sent as written, so only plain ASCII decimals ("1500.00"): no exponents,
 // separators, other digits or NaN, which the issuer would read differently.
 const DECIMAL_TEXT = /^-?[0-9]+(\.[0-9]+)?$/;
@@ -120,6 +127,27 @@ export interface CreateStepUpParams {
   returnTo?: string;
 }
 
+/** Arguments of `submitAgentConsent`. */
+export interface SubmitAgentConsentParams {
+  /** The pending agent request secret (never logged or echoed in errors). */
+  challenge: string;
+  /** `approve` or `deny`. */
+  decision: AgentConsentDecision;
+  /**
+   * The fresh passkey assertion from `navigator.credentials.get()`, JSON
+   * serialised with binary fields as base64url. Required to approve when the
+   * application is humans-only (the issuer answers 403 `passkey_required`
+   * without it); denial needs none. Never logged.
+   */
+  assertion?: AgentPasskeyAssertion;
+  /** Narrow the requested scopes (`read`, `act`); omitted means all requested. */
+  scopes?: readonly AgentScope[];
+  /** Organizations of the person the grant covers; omitted means none. */
+  organizationIds?: readonly string[];
+  /** Grant lifetime in seconds (86400, 604800 or 2592000), limited by application policy. */
+  lifetime?: number;
+}
+
 /** The fields of an options object; a JavaScript caller may pass nothing where one is required. */
 function fieldsOf<T extends object>(value: T | undefined): Partial<T> {
   return value ?? {};
@@ -140,6 +168,26 @@ function bearerToken(value: unknown, name: string): string {
     }
   }
   return token;
+}
+
+function textList(value: unknown, name: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new TypeError(`${name} must be a list of strings.`);
+  }
+  return [...(value as string[])];
+}
+
+/** The string values of a passkey assertion worth redacting from error messages. */
+function assertionSecrets(assertion: Record<string, unknown>): string[] {
+  const response = isRecord(assertion.response) ? assertion.response : {};
+  return [
+    assertion.id,
+    assertion.rawId,
+    response.clientDataJSON,
+    response.authenticatorData,
+    response.signature,
+    response.userHandle,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
 }
 
 function optionalText(value: unknown, name: string): string | undefined {
@@ -444,6 +492,74 @@ export class Authentication {
     const token = bearerToken(accessToken, "accessToken");
     const path = `${STEP_UP_PATH}${pathSegment(id, "id")}/`;
     return (await this.#object(this.#bearerCall("GET", path, token))) as StepUp;
+  }
+
+  /**
+   * Approve or deny an agent's access request (`POST agents/consent/`) with a
+   * token of the signed-in person. Approval returns `{ code, redirect_uri,
+   * state }` (the agent exchanges the single-use code, valid 60 seconds, itself;
+   * no token is returned here); denial returns `{ status: "denied" }`. Tell them
+   * apart with `"code" in result`. A POST: never retried. The `challenge` and
+   * the `assertion` are never logged and are removed from error messages.
+   * Typical failures: 400 `invalid_grant` (unknown or expired request) and 403
+   * `passkey_required` (humans-only application: call
+   * `createAgentApprovalOptions`, run the passkey ceremony, pass the assertion).
+   */
+  async submitAgentConsent(
+    accessToken: string,
+    params: SubmitAgentConsentParams,
+  ): Promise<AgentConsentResult> {
+    const token = bearerToken(accessToken, "accessToken");
+    const given = fieldsOf(params);
+    const challenge = requiredText(given.challenge, "challenge");
+    const decision = requiredText(given.decision, "decision");
+    if (decision !== "approve" && decision !== "deny") {
+      throw new TypeError('decision must be "approve" or "deny".');
+    }
+    const body: Record<string, unknown> = { challenge, decision };
+    const secrets = [token, challenge];
+    const assertion: unknown = given.assertion;
+    if (assertion !== undefined && assertion !== null) {
+      if (!isRecord(assertion)) throw new TypeError("assertion must be an object.");
+      body.assertion = assertion;
+      secrets.push(...assertionSecrets(assertion));
+    }
+    const scopes: unknown = given.scopes;
+    if (scopes !== undefined && scopes !== null) body.scopes = textList(scopes, "scopes");
+    const organizationIds: unknown = given.organizationIds;
+    if (organizationIds !== undefined && organizationIds !== null) {
+      body.organization_ids = textList(organizationIds, "organizationIds");
+    }
+    const lifetime: unknown = given.lifetime;
+    if (lifetime !== undefined && lifetime !== null) {
+      if (typeof lifetime !== "number" || !Number.isInteger(lifetime)) {
+        throw new TypeError("lifetime must be an integer number of seconds.");
+      }
+      body.lifetime = lifetime;
+    }
+    const call = { ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token), json: body, secrets };
+    return (await this.#object(call)) as AgentConsentResult;
+  }
+
+  /**
+   * Get WebAuthn request options bound to a pending agent request
+   * (`POST agents/consent/passkey/`) with a token of the signed-in person. Pass
+   * `options` to `navigator.credentials.get()` (decode the base64url fields),
+   * then send the result as `assertion` to `submitAgentConsent`. A POST: never
+   * retried; the `challenge` is never logged.
+   */
+  async createAgentApprovalOptions(
+    accessToken: string,
+    params: { challenge: string },
+  ): Promise<AgentApprovalOptions> {
+    const token = bearerToken(accessToken, "accessToken");
+    const challenge = requiredText(fieldsOf(params).challenge, "challenge");
+    const call = {
+      ...this.#bearerCall("POST", AGENT_CONSENT_PASSKEY_PATH, token),
+      json: { challenge },
+      secrets: [token, challenge],
+    };
+    return (await this.#object(call)) as AgentApprovalOptions;
   }
 
   // Requests ------------------------------------------------------------------

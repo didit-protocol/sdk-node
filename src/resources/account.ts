@@ -101,6 +101,8 @@ export class AccountApplications extends APIResource {
    *
    * Create an application inside an organization, in the data location you choose (`data_location`, the European Union by default; it can't be changed afterwards). The response includes `api_key`; persist it now (recoverable via GET). Requires owner/admin JWT.
    *
+   * Set initiate_login_uri to your HTTPS sign-in page on the exact website_url hostname, or an empty string to disable admin-sent sign-in links. Changing website_url also revalidates the saved sign-in URI. Invalid values return 400 with an initiate_login_uri field error; hostname and URI policy failures use https_url_on_registered_website_required.
+   *
    * `POST /organizations/me/{org_id}/applications/`
    *
    * @param orgId UUID of the organization. Look it up with `GET /organizations/me/`.
@@ -148,6 +150,8 @@ export class AccountApplications extends APIResource {
    * Update Application
    *
    * Update application metadata (name, URLs, redirect URIs). `api_key` and `client_id` are never rotated. `products` is read-only: a `products` key in the body is ignored. `data_location` can't be changed after the application is created, except once on the live application created with your organization, while it is unused (see the request body). Requires owner/admin JWT.
+   *
+   * Set initiate_login_uri to your HTTPS sign-in page on the exact website_url hostname, or an empty string to disable admin-sent sign-in links. Changing website_url also revalidates the saved sign-in URI. Invalid values return 400 with an initiate_login_uri field error; hostname and URI policy failures use https_url_on_registered_website_required.
    *
    * `PATCH /organizations/me/{org_id}/applications/{app_id}/`
    *

@@ -136,6 +136,19 @@ const PROVIDED: Record<string, { by: string; call: (auth: Authentication) => Pro
     by: "retrieveStepUp",
     call: (auth) => auth.retrieveStepUp(ACCESS_TOKEN, STEP_UP_ID),
   },
+  submit_agent_consent: {
+    by: "submitAgentConsent",
+    call: (auth) =>
+      auth.submitAgentConsent(ACCESS_TOKEN, {
+        challenge: "agent-request-secret",
+        decision: "deny",
+      }),
+  },
+  create_agent_approval_options: {
+    by: "createAgentApprovalOptions",
+    call: (auth) =>
+      auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: "agent-request-secret" }),
+  },
 };
 
 /** Public methods that verify tokens offline, with the discovery document and keys above. */
@@ -148,6 +161,8 @@ function stubIssuer(): FakeIssuer {
   issuer.reply("GET", "/session/", 200, { sid: "s" });
   issuer.reply("DELETE", "/session/", 204);
   issuer.reply("POST", "/step-up/", 201, STEP_UP);
+  issuer.reply("POST", "/agents/consent/", 200, { status: "denied" });
+  issuer.reply("POST", "/agents/consent/passkey/", 200, { options: {} });
   issuer.route("GET", `/step-up/${STEP_UP_ID}/`, () => json(200, STEP_UP));
   return issuer;
 }

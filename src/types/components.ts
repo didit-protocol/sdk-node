@@ -735,6 +735,8 @@ export interface Application {
   products?: ApplicationProduct[];
   /** The application's environment. A `live` application bills every verification session and check created with its key. A `sandbox` application mocks every check and is never billed, so it is where you test (each sandbox application can create 500 test sessions every 24 hours). Read this field to pick the application: never infer the environment from the name. */
   mode?: "live" | "sandbox" | (string & {});
+  /** Application sign-in URL for an admin-sent sign-in link. Optional; an empty string disables sending. A nonempty value must use HTTPS and the exact hostname of website_url (subdomains must match), with no userinfo, query, fragment or whitespace and no port other than 443. The server also revalidates the saved URI when website_url changes; update or clear initiate_login_uri in the same PATCH if needed. The hosted handoff adds iss and login_hint, but creates no session or tokens. See /authentication/sign-in-methods#admin-sent-sign-in-link. */
+  initiate_login_uri?: ApplicationInitiateLoginURI;
 }
 
 export interface ApplicationAnalyticsCountryCount {
@@ -1162,6 +1164,9 @@ export interface ApplicationCredentialsSummary {
 
 /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
 export type ApplicationDataLocation = "eu" | "au" | "mx" | "ae" | (string & {});
+
+/** Application sign-in URL for an admin-sent sign-in link. Optional; an empty string disables sending. A nonempty value must use HTTPS and the exact hostname of website_url (subdomains must match), with no userinfo, query, fragment or whitespace and no port other than 443. The server also revalidates the saved URI when website_url changes; update or clear initiate_login_uri in the same PATCH if needed. The hosted handoff adds iss and login_hint, but creates no session or tokens. See /authentication/sign-in-methods#admin-sent-sign-in-link. */
+export type ApplicationInitiateLoginURI = string;
 
 /** One product of an application and its state. Read-only: the application endpoints return it and ignore it in a request body. */
 export interface ApplicationProduct {
@@ -6528,6 +6533,146 @@ export interface RoutingPublicationRoutingCondition {
   value: unknown;
 }
 
+export interface SandboxDeliveryConventions {
+  email_optin: SandboxDeliveryConventionsEmailOptin;
+  phone_otp_code: SandboxOtpConvention;
+  email_otp_code: SandboxOtpConvention;
+}
+
+export interface SandboxDeliveryConventionsEmailOptin {
+  /** How sandbox email delivery opt-in works. */
+  description: string;
+  /** Recipient address patterns that make sandbox deliver the email. */
+  patterns: SandboxDeliveryConventionsEmailOptinPatterns[];
+}
+
+export interface SandboxDeliveryConventionsEmailOptinPatterns {
+  /** The pattern to match. */
+  pattern: string;
+  /** An address that matches the pattern. */
+  example: string;
+}
+
+export interface SandboxMagicValue {
+  /** The risk the value stamps on the session. */
+  risk: string;
+  /** The feature that raises the risk. */
+  feature: string;
+  /** The session input field the value belongs to. */
+  input_field: string;
+  /** The value to send for that input field. */
+  magic_value: string;
+  /** What the value simulates. */
+  description: string;
+}
+
+export interface SandboxOtpConvention {
+  /** What the sandbox accepts. */
+  description: string;
+  /** The code to check with. */
+  value: string;
+}
+
+export interface SandboxRiskCase {
+  /** The risk code. */
+  risk: string;
+  /** The feature that owns the risk. */
+  feature: string;
+  /** The decision path the status is read from, for example `aml.status`. */
+  status_path: string;
+  /** The status the risk resolves to when no rule changes it. */
+  default_status: string;
+}
+
+export interface SandboxSampleDocument {
+  /** The sample slug that selects this document, or `null` for the default document. */
+  sandbox_sample: string | null;
+  /** The document the sandbox OCR mock returns. */
+  document_name: string;
+  /** Whether this is the document returned when no sample is selected. */
+  is_default: boolean;
+  /** Extracted given name, for `expected_details`. */
+  first_name?: string | null;
+  /** Extracted surname, for `expected_details`. */
+  last_name?: string | null;
+  /** Extracted date of birth, for `expected_details`. */
+  date_of_birth?: string | null;
+  /** Extracted sex code, for `expected_details`. */
+  gender?: string | null;
+  /** Extracted nationality code, for `expected_details`. */
+  nationality?: string | null;
+  /** Extracted issuing country code, for `expected_details`. */
+  id_country?: string | null;
+  /** Extracted document number, for `expected_details`. */
+  identification_number?: string | null;
+}
+
+export interface SandboxSampleIdentity {
+  /** Date of birth shared by the sample documents. */
+  date_of_birth: string;
+  /** Date of issue shared by the sample documents. */
+  date_of_issue: string;
+  /** Date of expiry shared by the sample documents. */
+  date_of_expiry: string;
+  /** The pinned sandbox documents and the exact identity each one extracts. */
+  documents: SandboxSampleDocument[];
+}
+
+export interface SandboxScenario {
+  /** Scenario slug, accepted by `sandbox_scenario` at session create and by `POST /v3/session/{sessionId}/sandbox/arm/`. */
+  slug: string;
+  /** Human-readable scenario name. */
+  title: string;
+  /** What the scenario makes the session do. */
+  description: string;
+  /** The session status the scenario settles on. */
+  default_status: "Approved" | "Declined" | "In Review" | (string & {});
+  /** The workflow feature steps that produce the scenario. Empty when the scenario needs no feature step. */
+  steps: string[];
+  /** The picker group the scenario is listed under. */
+  group:
+    | "id_document"
+    | "selfie"
+    | "phone_email"
+    | "address"
+    | "questionnaire"
+    | "database"
+    | "aml"
+    | "bank"
+    | "location"
+    | "signature"
+    | "company"
+    | "other"
+    | (string & {});
+  /** The session input field values that arm the scenario, keyed by input field name. */
+  magic_inputs: Record<string, string>;
+  /** The registry entries the scenario's magic inputs resolve to. */
+  warnings: SandboxScenarioWarning[];
+}
+
+export interface SandboxScenarioCatalog {
+  /** The session scenarios Didit can arm. A session credential narrows this list to the scenarios its workflow can produce. */
+  scenarios: SandboxScenario[];
+  /** Every magic value in the registry, with the risk and feature it triggers. */
+  magic_values: SandboxMagicValue[];
+  /** Every risk a sandbox session can be stamped with, and the status it maps to. */
+  risk_cases: SandboxRiskCase[];
+  sample_identity: SandboxSampleIdentity;
+  delivery_conventions: SandboxDeliveryConventions;
+  travel_rule: SandboxTestVasp;
+}
+
+export interface SandboxScenarioWarning {
+  /** The risk the magic value stamps on the session. */
+  risk: string;
+  /** The feature that raises the risk. */
+  feature: string;
+  /** The session input field carrying the magic value. */
+  input_field: string;
+  /** The value that triggers the risk. */
+  magic_value: string;
+}
+
 export interface SandboxSimulateResponse {
   session_id: string;
   /** The session's status before the simulation. */
@@ -6551,6 +6696,82 @@ export interface SandboxSimulateResponse {
   risk: string | null;
   /** The `send_webhooks` value the simulation applied. */
   send_webhooks: boolean;
+}
+
+export interface SandboxTestVasp {
+  /** The Test VASP's legal name. A beneficiary name of this value, or `Didit Test VASP <suffix>`, selects a scenario. */
+  legal_name: string;
+  /** A well-formed test LEI that is not registered with GLEIF. */
+  lei: string;
+  /** The Test VASP's jurisdiction. */
+  jurisdiction: string;
+  /** The Test VASP's compliance address, under a `.test` domain. Sandbox never mails it. */
+  compliance_email: string;
+  /** The Test VASP's travel address, under a `.test` host. It is never reachable. */
+  travel_address: string;
+  /** The participant code the Test VASP is known by on each network. No message is ever sent to one. */
+  network_codes: Record<string, string>;
+  /** The rails the Test VASP answers over. `TEST_VASP` runs in process inside Didit, with no network or email transport. */
+  routes: ("TEST_VASP" | (string & {}))[];
+  /** The chain of the Test VASP's wallet addresses. */
+  chain: string;
+  /** How long the `timeout` scenario leaves the transfer waiting before the overdue sweeper expires it. */
+  timeout_window_seconds: number;
+  /** The scenario used when no trigger names one. */
+  default_scenario:
+    | "accept"
+    | "decline"
+    | "name_mismatch"
+    | "not_reachable"
+    | "timeout"
+    | "self_hosted"
+    | (string & {});
+  /** The scenarios `POST /v3/travel-rule/test-vasp/inbound/` accepts. */
+  inbound_scenarios: ("accept" | "name_mismatch" | (string & {}))[];
+  /** Every Test VASP scenario, with its trigger values and the status it ends at. */
+  scenarios: SandboxTestVaspScenario[];
+}
+
+export interface SandboxTestVaspScenario {
+  /** Scenario slug. */
+  slug:
+    | "accept"
+    | "decline"
+    | "name_mismatch"
+    | "not_reachable"
+    | "timeout"
+    | "self_hosted"
+    | (string & {});
+  /** The rail this scenario answers over. It is always `TEST_VASP`, which runs in process inside Didit. */
+  route: "TEST_VASP" | (string & {});
+  /** Human-readable scenario name. */
+  title: string;
+  /** What the Test VASP does in this scenario. */
+  description: string;
+  /** The beneficiary legal name that triggers this scenario. */
+  beneficiary_name: string;
+  /** The beneficiary wallet address that triggers this scenario, compared case-insensitively. */
+  beneficiary_wallet_address: string;
+  /** The chain of `beneficiary_wallet_address`. */
+  chain: string;
+  /** The status the exchange ends at. */
+  travel_rule_status:
+    | "AWAITING_COUNTERPARTY"
+    | "ON_HOLD"
+    | "COMPLETED"
+    | "FINISHED"
+    | "CANCELLED"
+    | "EXPIRED"
+    | "COUNTERPARTY_MISMATCHED_DATA"
+    | "COUNTERPARTY_VASP_NOT_FOUND"
+    | "COUNTERPARTY_VASP_NOT_REACHABLE"
+    | "UNCONFIRMED_OWNERSHIP"
+    | "COUNTERPARTY_VASP_GENERAL_DECLINE"
+    | "NOT_ENOUGH_COUNTERPARTY_DATA"
+    | "NOT_APPLICABLE"
+    | (string & {});
+  /** Whether the Test VASP answers at all. `false` makes the real delivery queue retry and then fail the transfer. */
+  answers: boolean;
 }
 
 export interface SessionDecision {
@@ -11277,8 +11498,10 @@ export interface TravelRuleNextAction {
 export interface TravelRuleSettingsDetail {
   /** Whether the managed Travel Rule negotiation flow is active for outbound `travelRule` transactions on this application. */
   is_enabled?: boolean;
-  /** Your VASP's operating jurisdiction code. Default `"EU"`. Didit maps it to the regime it stamps on your Travel Rule transactions as `travel_rule_regime` (for example `EU` or an EU member code becomes `eu`), which transaction rules can key on. Other Didit customers see it as your jurisdiction in the VASP directory once the Didit network lists your profile. */
+  /** Your VASP's regulatory regime code. Default `"EU"`. Didit maps it to the regime it stamps on your Travel Rule transactions as `travel_rule_regime` (for example `EU` or an EU member code becomes `eu`), which transaction rules can key on, and it decides which data fields the exchange must share. Other Didit customers see `vasp_jurisdiction` in the VASP directory; while `vasp_jurisdiction` is empty, the directory shows this value instead. */
   jurisdiction?: string;
+  /** Your VASP profile's own jurisdiction, up to 3 characters (for example `GB` or `USA`), shown to other Didit customers in the VASP directory. It is independent of `jurisdiction`, the regulatory regime Didit stamps on your transfers; while `vasp_jurisdiction` is empty, the directory shows `jurisdiction`. Empty until you set it. */
+  vasp_jurisdiction?: string;
   /** How strictly beneficiary names must match before a transfer can reach COMPLETED. `CONTAINS` accepts one name whose words all appear in the other. */
   name_matching_strictness?: "NONE" | "STRICT" | "CONTAINS" | "DEFAULT" | "FUZZY" | (string & {});
   /** Hours an AWAITING_COUNTERPARTY transfer may remain unconfirmed before the periodic sweeper expires it. Default 48. */
@@ -11537,6 +11760,10 @@ export interface TravelRuleTransferRow {
   beneficiary_wallet_type?: "vasp" | "self_hosted" | "own" | (string & {});
   /** The other side of a deposit you matched to an announced transfer by hand. */
   matched_transaction_id?: string | null;
+  /** The sandbox scenario that answered this transfer, only when `rail` is `TEST_VASP` (for example `accept`, `decline` or `name_mismatch`). `null` for every other transfer, including a live one. */
+  scenario?: string | null;
+  /** How many webhook delivery attempts Didit recorded for this transfer's transaction, across every event type. Each retry and each manual resend is a separate attempt and counts. Scoped to the calling application; deleted transactions are not counted. */
+  webhooks_count?: number;
   /** When the transfer expires if it is still waiting on its counterparty. Set on every transfer you create with `POST /v3/transactions/` that needs an exchange, outbound or inbound. Null below the threshold, on a Lightning payment the Travel Rule does not apply to, and on inbound transfers Didit creates when a counterparty reaches you (an inbound TRP inquiry, a network message or the INTERNAL inbound leg). */
   deadline_at?: Date | null;
   created_at?: Date;

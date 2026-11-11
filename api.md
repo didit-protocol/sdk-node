@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 382 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 383 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -466,6 +466,12 @@ Every method of `@didit-protocol/sdk-node`: 382 methods, generated from `openapi
 | `didit.reportTemplates.list(params?: ReportTemplatesListParams)`                   | `GET /v3/organization/{organization_id}/application/{application_id}/report-templates/`                    | page of `ReportTemplateDetail` | application scoped |
 | `didit.reportTemplates.retrieve(templateUuid)`                                     | `GET /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`    | `ReportTemplateDetail`         | application scoped |
 | `didit.reportTemplates.update(templateUuid, params?: ReportTemplatesUpdateParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`  | `ReportTemplateDetail`         | application scoped |
+
+## `didit.sandbox`
+
+| Method                          | HTTP                         | Returns                  | Notes |
+| ------------------------------- | ---------------------------- | ------------------------ | ----- |
+| `didit.sandbox.listScenarios()` | `GET /v1/sandbox/scenarios/` | `SandboxScenarioCatalog` |       |
 
 ## `didit.sessions`
 
