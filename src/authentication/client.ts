@@ -528,9 +528,6 @@ export class Authentication {
     if (assertion !== undefined && assertion !== null) {
       if (!isRecord(assertion)) throw new TypeError("assertion must be an object.");
       body.assertion = assertion;
-      // Read from the JSON the request carries (same encoder, decoded back), whatever the caller nested
-      // in the assertion: class instances, toJSON objects, Dates.
-      secrets.push(...assertionSecrets(JSON.parse(JSON.stringify(assertion)) as unknown));
     }
     const scopes: unknown = given.scopes;
     if (scopes !== undefined && scopes !== null) body.scopes = textList(scopes, "scopes");
@@ -545,9 +542,13 @@ export class Authentication {
       }
       body.lifetime = lifetime;
     }
+    // Encoded exactly once: the plain body decoded from these bytes is what is sent, and the secrets are
+    // read from it, so a caller's object (class instance, toJSON) is never serialized a second time.
+    const sent = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+    secrets.push(...assertionSecrets(sent.assertion));
     const call = {
       ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token),
-      json: body,
+      json: sent,
       secrets,
       structuredRedaction: true,
     };

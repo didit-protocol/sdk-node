@@ -832,6 +832,22 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(shown(error)).not.toContain(nested);
     });
 
+    it("reads the secrets from the bytes sent, not from a second serialization", async () => {
+      const sent = "credential-string-actually-sent-0123";
+      let calls = 0;
+      const extension = {
+        toJSON(): unknown {
+          calls += 1;
+          if (calls > 1) throw new Error("serialized twice");
+          return { credProps: { value: sent } };
+        },
+      };
+      issuer.reply("POST", "/agents/consent/", 400, { error: "invalid_grant", echo: sent });
+      const error = await consent({ id: "short", clientExtensionResults: extension });
+      expect(error.body).toEqual({ error: "invalid_grant", echo: "[redacted]" });
+      expect(shown(error)).not.toContain(sent);
+    });
+
     it("redacts a secret echoed with other JSON escape spellings", async () => {
       replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9-padding0123456"}', "application/json");
       const error = await consent({ id: "a/b+\u00e9-padding0123456" });
