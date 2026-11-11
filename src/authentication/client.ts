@@ -177,17 +177,12 @@ function textList(value: unknown, name: string): string[] {
   return [...(value as string[])];
 }
 
-/** The string values of a passkey assertion worth redacting from error messages. */
-function assertionSecrets(assertion: Record<string, unknown>): string[] {
-  const response = isRecord(assertion.response) ? assertion.response : {};
-  return [
-    assertion.id,
-    assertion.rawId,
-    response.clientDataJSON,
-    response.authenticatorData,
-    response.signature,
-    response.userHandle,
-  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+/** Every non-empty string value of a passkey assertion, at any depth, to redact from errors. */
+function assertionSecrets(value: unknown): string[] {
+  if (typeof value === "string") return value.length > 0 ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap(assertionSecrets);
+  if (isRecord(value)) return Object.values(value).flatMap(assertionSecrets);
+  return [];
 }
 
 function optionalText(value: unknown, name: string): string | undefined {

@@ -671,6 +671,87 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
     }
   });
 
+  it("redacts every assertion string, at any depth, from 400 and malformed 200 answers", async () => {
+    const marks = {
+      id: 'mark-id-"q"\\1',
+      rawId: "mark-raw-id-2",
+      clientDataJSON: "mark-client-data-3",
+      authenticatorData: "mark-authenticator-data-4",
+      signature: "mark-signature-5",
+      userHandle: "mark-user-handle-6",
+      extra: "mark-response-extra-7",
+      ext: "mark-extension-8",
+      deep: "mark-extension-deep-9",
+      listed: "mark-extension-listed-10",
+    };
+    const assertion = {
+      id: marks.id,
+      rawId: marks.rawId,
+      type: "public-key" as const,
+      response: {
+        clientDataJSON: marks.clientDataJSON,
+        authenticatorData: marks.authenticatorData,
+        signature: marks.signature,
+        userHandle: marks.userHandle,
+        transports: marks.extra,
+      },
+      clientExtensionResults: {
+        credProps: { rk: marks.ext, nested: { deeper: [marks.deep, { x: marks.listed }] } },
+      },
+    };
+    const secrets = [CHALLENGE, ACCESS_TOKEN, ...Object.values(marks)];
+    const call = (): Promise<unknown> =>
+      auth.submitAgentConsent(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+        decision: "approve",
+        assertion: assertion,
+      });
+    const leaks = (error: Error): string[] => {
+      const retained = [
+        error.message,
+        String(error),
+        JSON.stringify(error),
+        JSON.stringify((error as { body?: unknown }).body ?? null),
+        JSON.stringify([...((error as { headers?: Headers }).headers?.entries() ?? [])]),
+      ].join("\n");
+      return secrets.filter(
+        (secret) =>
+          retained.includes(secret) || retained.includes(JSON.stringify(secret).slice(1, -1)),
+      );
+    };
+    // 400 JSON body echoing the challenge, the token and the whole assertion.
+    issuer.reply("POST", "/agents/consent/", 400, {
+      detail: `bad ${CHALLENGE} ${ACCESS_TOKEN}`,
+      echo: assertion,
+      error: "passkey_required",
+    });
+    const json400 = await rejection(call());
+    expect(leaks(json400)).toEqual([]);
+    expect(JSON.stringify((json400 as unknown as { body: unknown }).body)).toContain(
+      "passkey_required",
+    );
+    // 400 raw text body carrying the JSON-escaped assertion.
+    issuer.route(
+      "POST",
+      "/agents/consent/",
+      () =>
+        new Response(`failed: ${JSON.stringify({ challenge: CHALLENGE, assertion })}`, {
+          status: 400,
+          headers: { "content-type": "text/plain" },
+        }),
+    );
+    expect(leaks(await rejection(call()))).toEqual([]);
+    // Malformed 200 (not JSON, then not an object).
+    issuer.route(
+      "POST",
+      "/agents/consent/",
+      () => new Response(`oops ${JSON.stringify(assertion)} ${CHALLENGE}`, { status: 200 }),
+    );
+    expect(leaks(await rejection(call()))).toEqual([]);
+    issuer.reply("POST", "/agents/consent/", 200, [assertion, CHALLENGE]);
+    expect(leaks(await rejection(call()))).toEqual([]);
+  });
+
   it("refuses bad arguments before any request", async () => {
     const bad: unknown[] = [
       { challenge: "", decision: "approve" },

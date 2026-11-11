@@ -239,9 +239,9 @@ function errorDetail(body: unknown): string | null {
   return null;
 }
 
-/** A secret as it may be echoed back: as sent, percent-encoded, or form-encoded. */
+/** A secret as it may be echoed back: as sent, percent-encoded, form-encoded or JSON-escaped. */
 function spellings(secret: string): string[] {
-  const out = new Set([secret]);
+  const out = new Set([secret, JSON.stringify(secret).slice(1, -1)]);
   try {
     out.add(encodeURIComponent(secret));
     out.add(new URLSearchParams({ s: secret }).toString().slice(2));
