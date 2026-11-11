@@ -959,6 +959,18 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       );
     });
 
+    it("gives a fixed-message error when a nested toJSON throws", async () => {
+      const extension = {
+        toJSON(): unknown {
+          throw new Error(`credential-string-0123456789 ${CHALLENGE}`);
+        },
+      };
+      const error = await consent({ id: "x", clientExtensionResults: extension });
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error.message).toBe("Could not encode the agent consent request.");
+      expect((error as Error).cause).toBeUndefined();
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {

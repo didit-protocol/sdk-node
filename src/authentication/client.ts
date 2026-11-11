@@ -545,7 +545,13 @@ export class Authentication {
     }
     // Encoded exactly once: the plain body decoded from these bytes is what is sent, and the secrets are
     // read from it, so a caller's object (class instance, toJSON) is never serialized a second time.
-    const sent = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+    let sent: Record<string, unknown>;
+    try {
+      sent = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+    } catch {
+      // A toJSON may put the challenge or a credential in its message: fixed message, no cause.
+      throw new TypeError("Could not encode the agent consent request.");
+    }
     secrets.push(...assertionSecrets(sent.assertion));
     const call = {
       ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token),
