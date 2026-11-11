@@ -927,6 +927,38 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(error.body).toBe("[redacted]");
     });
 
+    it("returns a successful approval-options response unchanged", async () => {
+      issuer.reply("POST", "/agents/consent/passkey/", 200, {
+        options: { challenge: CHALLENGE, rpId: "acme.auth.didit.me" },
+      });
+      const result = (await auth.createAgentApprovalOptions(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+      })) as { options: { challenge: string } };
+      expect(result.options.challenge).toBe(CHALLENGE);
+    });
+
+    it("matches header names case-insensitively", async () => {
+      const credential = "CredentialString-AbCdEf0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              [`X-Echo-${credential}`]: "v",
+              "x-keep": "fine",
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.headers?.get("x-keep")).toBe("fine");
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])]).toLowerCase()).not.toContain(
+        "credentialstring",
+      );
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {

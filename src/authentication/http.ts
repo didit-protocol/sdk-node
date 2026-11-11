@@ -34,6 +34,8 @@ export interface IssuerRequest {
 export interface IssuerResponse {
   status: number;
   headers: Headers;
+  /** The headers an error built from this response may carry (sanitized for consent calls). */
+  errorHeaders: Headers;
   data: unknown;
 }
 
@@ -156,24 +158,28 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   } finally {
     clearTimeout(timer);
   }
-  if (request.structuredRedaction) {
-    // Sanitized once, on receipt: every error of this call is built from this response only.
-    ({ headers: responseHeaders, text } = sanitizeResponse(
-      responseHeaders,
-      text,
-      request.secrets ?? [],
-    ));
-  }
-  log(status, responseHeaders);
+  // A successful response reaches the caller unchanged; every error of a consent call is built from a
+  // sanitized copy only.
+  const secrets = request.secrets ?? [];
+  const sanitized = request.structuredRedaction
+    ? sanitizeResponse(responseHeaders, text, secrets)
+    : null;
+  const errorHeaders = sanitized?.headers ?? responseHeaders;
+  log(status, status >= 200 && status <= 299 ? responseHeaders : errorHeaders);
 
   if (status < 200 || status > 299) {
-    // A structured call's response is already sanitized: nothing is replaced again.
-    const secrets = request.structuredRedaction ? [] : (request.secrets ?? []);
-    throw makeStatusError(status, bodyOf(text), responseHeaders, secrets);
+    // A sanitized copy is already redacted: nothing is replaced again.
+    throw makeStatusError(
+      status,
+      bodyOf(sanitized?.text ?? text),
+      errorHeaders,
+      sanitized ? [] : secrets,
+    );
   }
-  if (status === 204 || !text) return { status, headers: responseHeaders, data: null };
+  if (status === 204 || !text)
+    return { status, headers: responseHeaders, errorHeaders, data: null };
   try {
-    return { status, headers: responseHeaders, data: JSON.parse(text) as unknown };
+    return { status, headers: responseHeaders, errorHeaders, data: JSON.parse(text) as unknown };
   } catch {
     // Not chained: the parser's message quotes the start of the body, which may
     // hold a token.
@@ -181,7 +187,7 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
     throw new APIResponseValidationError(
       `Expected a JSON response from ${method} ${path}, got ${type}.`,
       status,
-      responseHeaders,
+      errorHeaders,
     );
   }
 }

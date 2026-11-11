@@ -598,7 +598,7 @@ export class Authentication {
       throw new APIResponseValidationError(
         `Expected a JSON object from ${call.method} ${pathOf(call.url)}.`,
         response.status,
-        response.headers,
+        response.errorHeaders,
       );
     }
     return response.data;

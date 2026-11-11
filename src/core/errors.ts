@@ -356,7 +356,9 @@ export function sanitizeResponse(
 ): { headers: Headers; text: string } {
   const clean = new Headers();
   headers.forEach((value, name) => {
-    if (redactStructured(name, secrets) === name) {
+    // Header names are case-insensitive (and Headers lowercases them): compare case-folded.
+    const folded = name.toLowerCase();
+    if (!secrets.some((secret) => secret && folded.includes(secret.toLowerCase()))) {
       clean.append(name, redactStructured(value, secrets) as string);
     }
   });
