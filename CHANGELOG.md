@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.13.0](https://github.com/didit-protocol/sdk-node/compare/v2.12.0...v2.13.0) (2026-11-11)
+
+
+### Features
+
+* **spec:** sync API spec 2026-11-11 ([776db4b](https://github.com/didit-protocol/sdk-node/commit/776db4bbc576e9784c8eba371b04c65cc5362ed1))
+
 ## [2.12.0](https://github.com/didit-protocol/sdk-node/compare/v2.11.1...v2.12.0) (2026-11-11)
 
 
