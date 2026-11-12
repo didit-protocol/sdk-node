@@ -673,16 +673,16 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
 
   it("redacts every assertion string, at any depth, from 400 and malformed 200 answers", async () => {
     const marks = {
-      id: 'mark-id-"q"\\1',
-      rawId: "mark-raw-id-2",
-      clientDataJSON: "mark-client-data-3",
-      authenticatorData: "mark-authenticator-data-4",
-      signature: "mark-signature-5",
-      userHandle: "mark-user-handle-6",
-      extra: "mark-response-extra-7",
-      ext: "mark-extension-8",
-      deep: "mark-extension-deep-9",
-      listed: "mark-extension-listed-10",
+      id: 'mark-id-"q"\\1-padpad0123',
+      rawId: "mark-raw-id-2-padpad0123",
+      clientDataJSON: "mark-client-data-3-padpad0123",
+      authenticatorData: "mark-authenticator-data-4-padpad0123",
+      signature: "mark-signature-5-padpad0123",
+      userHandle: "mark-user-handle-6-padpad0123",
+      extra: "mark-response-extra-7-padpad0123",
+      ext: "mark-extension-8-padpad0123",
+      deep: "mark-extension-deep-9-padpad0123",
+      listed: "mark-extension-listed-10-padpad0123",
     };
     const assertion = {
       id: marks.id,
@@ -750,6 +750,341 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
     expect(leaks(await rejection(call()))).toEqual([]);
     issuer.reply("POST", "/agents/consent/", 200, [assertion, CHALLENGE]);
     expect(leaks(await rejection(call()))).toEqual([]);
+  });
+
+  describe("structural redaction of agent consent errors", () => {
+    const consent = async (
+      assertion: Record<string, unknown>,
+    ): Promise<Error & { body?: unknown; status?: number }> =>
+      await rejection(
+        auth.submitAgentConsent(ACCESS_TOKEN, {
+          challenge: CHALLENGE,
+          decision: "approve",
+          assertion: assertion as never,
+        }),
+      );
+    const shown = (error: Error & { body?: unknown }): string =>
+      [error.message, String(error), JSON.stringify(error), JSON.stringify(error.body)].join("\n");
+    const replyRaw = (status: number, text: string, type: string): void => {
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () => new Response(text, { status, headers: { "content-type": type } }),
+      );
+    };
+
+    it("leaves no fragment of a secret that another secret prefixes", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "bad abcCREDENTIALID0123456 and abcCREDENTIALID0123",
+        other: "abcCREDENTIALID0123456",
+      });
+      const error = await consent({
+        id: "abcCREDENTIALID0123",
+        signature: "abcCREDENTIALID0123456",
+      });
+      expect(error.body).toEqual({ detail: "[redacted]", other: "[redacted]" });
+      expect(shown(error)).not.toMatch(/abcCRED|456/);
+    });
+
+    it("redacts the whole string that contains a secret", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "bad assertion xyzSECRET-0123456789abcdefxyz",
+        keep: "fine",
+      });
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
+      expect(error.body).toEqual({ detail: "[redacted]", keep: "fine" });
+      expect(error.message).toMatch(/^HTTP 400: \[redacted\]/);
+    });
+
+    it("redacts a secret used as an object key and numbers colliding keys", async () => {
+      issuer.reply("POST", "/agents/consent/", 400, {
+        detail: "no",
+        "echo-SECRET-0123456789abcdef-1": "a",
+        "echo-SECRET-0123456789abcdef-2": "b",
+      });
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
+      expect(error.body).toEqual({ detail: "no", "[redacted]": "a", "[redacted]2": "b" });
+      expect(shown(error)).not.toContain("SECRET-0123456789abcdef");
+    });
+
+    it("keeps an error code and short assertion strings readable while redacting long values", async () => {
+      const long = "Y3JlZGVudGlhbC1pZC0xMjM0NTY3ODkw";
+      issuer.reply("POST", "/agents/consent/", 400, {
+        error: "invalid_grant",
+        detail: `id public-key ${long}`,
+      });
+      const error = await consent({ id: long, type: "public-key" });
+      expect(error.body).toEqual({ error: "invalid_grant", detail: "[redacted]" });
+      expect(shown(error)).toContain("invalid_grant");
+      expect(shown(error)).not.toContain(long);
+    });
+
+    it("redacts a string inside a nested object that serialises itself", async () => {
+      const nested = "nested-credential-string-0123456789";
+      class Extension {
+        toJSON(): unknown {
+          return { credProps: { deep: [{ value: nested }] } };
+        }
+      }
+      issuer.reply("POST", "/agents/consent/", 400, { error: "invalid_grant", echo: nested });
+      const error = await consent({ id: "short", clientExtensionResults: new Extension() });
+      expect(error.body).toEqual({ error: "invalid_grant", echo: "[redacted]" });
+      expect(shown(error)).not.toContain(nested);
+    });
+
+    it("reads the secrets from the bytes sent, not from a second serialization", async () => {
+      const sent = "credential-string-actually-sent-0123";
+      let calls = 0;
+      const extension = {
+        toJSON(): unknown {
+          calls += 1;
+          if (calls > 1) throw new Error("serialized twice");
+          return { credProps: { value: sent } };
+        },
+      };
+      issuer.reply("POST", "/agents/consent/", 400, { error: "invalid_grant", echo: sent });
+      const error = await consent({ id: "short", clientExtensionResults: extension });
+      expect(error.body).toEqual({ error: "invalid_grant", echo: "[redacted]" });
+      expect(shown(error)).not.toContain(sent);
+    });
+
+    it("turns an empty body into [redacted]", async () => {
+      replyRaw(502, "", "text/plain");
+      const error = await consent({ id: "short" });
+      expect(error.body).toBe("[redacted]");
+    });
+
+    it("keeps a safe key named [redacted] after a secret key", async () => {
+      replyRaw(400, '{"a-SECRET-0123456789abcdef":"x","[redacted]":"safe"}', "application/json");
+      const error = await consent({ id: "SECRET-0123456789abcdef" });
+      expect(error.body).toEqual({ "[redacted]2": "x", "[redacted]": "safe" });
+    });
+
+    it("redacts the request id and headers", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              "x-request-id": `req-${credential}`,
+              "x-echo": credential,
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & {
+        requestId?: string | null;
+        headers?: Headers;
+      };
+      expect(error.requestId).toBe("[redacted]");
+      expect(error.message).not.toContain(credential);
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])])).not.toContain(credential);
+    });
+
+    it("drops a header named after a secret", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              [`x-${credential}`]: credential,
+              "x-keep": "fine",
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.headers?.get("x-keep")).toBe("fine");
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])])).not.toContain(credential);
+    });
+
+    it("keeps the request id redacted on a malformed 2xx body", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(`not json ${credential}`, {
+            status: 200,
+            headers: { "content-type": "text/html", "x-request-id": `req-${credential}` },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.constructor.name).toBe("APIResponseValidationError");
+      expect(error.message).not.toContain(credential);
+      expect(error.headers?.get("x-request-id")).toBe("[redacted]");
+    });
+
+    it("treats a very deeply nested body as not JSON", async () => {
+      replyRaw(400, "[".repeat(10000) + "]".repeat(10000), "application/json");
+      const error = await consent({ id: "short" });
+      expect(error.body).toBe("[redacted]");
+    });
+
+    it("returns a successful approval-options response unchanged", async () => {
+      issuer.reply("POST", "/agents/consent/passkey/", 200, {
+        options: { challenge: CHALLENGE, rpId: "acme.auth.didit.me" },
+      });
+      const result = (await auth.createAgentApprovalOptions(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+      })) as { options: { challenge: string } };
+      expect(result.options.challenge).toBe(CHALLENGE);
+    });
+
+    it("matches header names case-insensitively", async () => {
+      const credential = "CredentialString-AbCdEf0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response('{"error":"invalid_grant"}', {
+            status: 400,
+            headers: {
+              "content-type": "application/json",
+              [`X-Echo-${credential}`]: "v",
+              "x-keep": "fine",
+            },
+          }),
+      );
+      const error = (await consent({ id: credential })) as Error & { headers?: Headers };
+      expect(error.headers?.get("x-keep")).toBe("fine");
+      expect(JSON.stringify([...(error.headers?.entries() ?? [])]).toLowerCase()).not.toContain(
+        "credentialstring",
+      );
+    });
+
+    it("gives a fixed-message error when a nested toJSON throws", async () => {
+      const extension = {
+        toJSON(): unknown {
+          throw new Error(`credential-string-0123456789 ${CHALLENGE}`);
+        },
+      };
+      const error = await consent({ id: "x", clientExtensionResults: extension });
+      expect(error).toBeInstanceOf(TypeError);
+      expect(error.message).toBe("Could not encode the agent consent request.");
+      expect((error as Error).cause).toBeUndefined();
+    });
+
+    it("turns a body that fails mid-read into a fixed connection error", async () => {
+      issuer.route("POST", "/agents/consent/", () => {
+        const body = new ReadableStream({
+          start(controller) {
+            controller.error(new Error("credential-string-0123456789 broken stream"));
+          },
+        });
+        return new Response(body, { status: 200 });
+      });
+      const error = await consent({ id: "x" });
+      expect(error.constructor.name).toBe("APIConnectionError");
+      expect(`${error.message}${String(error)}`).not.toContain("credential-string");
+      expect((error as Error).cause).toBeUndefined();
+    });
+
+    it("never logs a raw request id of a consent call", async () => {
+      const credential = "credential-string-0123456789";
+      const lines: string[] = [];
+      const logged = issuer.client({
+        logLevel: "debug",
+        logger: { debug: (line) => lines.push(line) },
+      });
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(JSON.stringify({ status: "denied" }), {
+            status: 200,
+            headers: { "content-type": "application/json", "x-request-id": `req-${credential}` },
+          }),
+      );
+      const result = await logged.submitAgentConsent(ACCESS_TOKEN, {
+        challenge: CHALLENGE,
+        decision: "deny",
+        assertion: { id: credential } as never,
+      });
+      expect(lines.join("\n")).not.toContain(credential);
+      expect(result).toEqual({ status: "denied" });
+    });
+
+    it("keeps a secret echoed in Content-Type out of a malformed 2xx message", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response("not json", {
+            status: 200,
+            headers: { "content-type": `text/${credential}` },
+          }),
+      );
+      const error = await consent({ id: credential });
+      expect(error.constructor.name).toBe("APIResponseValidationError");
+      expect(error.message).not.toContain(credential);
+    });
+
+    it("keeps no parser error as the cause of a malformed 2xx", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(`{not json ${credential}`, {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      );
+      const error = await consent({ id: credential });
+      expect((error as Error).cause).toBeUndefined();
+      expect(`${error.message}${String(error)}`).not.toContain(credential);
+    });
+
+    it("keeps no transport text or cause on a connection failure", async () => {
+      const credential = 'cred"ential\\string-0123456789';
+      issuer.route("POST", "/agents/consent/", () => {
+        throw new TypeError(`write failed: ${JSON.stringify({ id: credential })}`);
+      });
+      const error = await consent({ id: credential });
+      const chain: string[] = [];
+      for (let e: unknown = error; e instanceof Error; e = e.cause)
+        chain.push(`${e.message}\n${String(e)}`);
+      expect(error.constructor.name).toBe("APIConnectionError");
+      expect(chain.join("\n")).not.toMatch(/ential|write failed/);
+      expect((error as Error).cause).toBeUndefined();
+    });
+
+    it("redacts a secret echoed with other JSON escape spellings", async () => {
+      replyRaw(400, '{"detail":"x","echo":"a\\/b+\\u00E9-padding0123456"}', "application/json");
+      const error = await consent({ id: "a/b+\u00e9-padding0123456" });
+      expect(error.body).toEqual({ detail: "x", echo: "[redacted]" });
+      expect(shown(error)).not.toMatch(/a\/b|00E9|\u00e9|padding0123456/);
+    });
+
+    it("replaces a body that is not JSON with [redacted]", async () => {
+      replyRaw(502, `<html>Bad gateway ${CHALLENGE}</html>`, "text/html");
+      const error = await consent({ id: "x" });
+      expect(error.body).toBe("[redacted]");
+      expect(shown(error)).not.toContain(CHALLENGE);
+    });
+
+    it("redacts a secret that sits past the length cap of a long body", async () => {
+      replyRaw(400, `${"x".repeat(600)} ${CHALLENGE}`, "text/plain");
+      const error = await consent({ id: "x" });
+      expect(error.body).toBe("[redacted]");
+      expect(shown(error)).not.toContain(CHALLENGE);
+    });
+
+    it("applies to the options call too", async () => {
+      issuer.reply("POST", "/agents/consent/passkey/", 400, { detail: `bad ${CHALLENGE}` });
+      const error = (await rejection(
+        auth.createAgentApprovalOptions(ACCESS_TOKEN, { challenge: CHALLENGE }),
+      )) as Error & { body?: unknown };
+      expect(error.body).toEqual({ detail: "[redacted]" });
+    });
   });
 
   it("refuses bad arguments before any request", async () => {

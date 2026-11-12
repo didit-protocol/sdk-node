@@ -303,3 +303,73 @@ export function makeStatusError(
     STATUS_ERRORS[status] ?? (status >= 500 ? InternalServerError : APIStatusError);
   return new ErrorClass(message, status, cleanBody, redactHeaders(headers, secrets));
 }
+
+const REDACTED = "[redacted]";
+
+/**
+ * Redact a parsed JSON value structurally: every string, object key or value, that contains a
+ * secret anywhere in it becomes `[redacted]` as a whole. Strings are compared as decoded, so the
+ * spelling of the raw text does not matter. A redacted key that collides with another key is
+ * numbered (`[redacted]`, `[redacted]2`, ...).
+ */
+export function redactStructured(value: unknown, secrets: readonly string[]): unknown {
+  const active = secrets.filter((s) => s.length > 0);
+  const text = (input: string): string =>
+    active.some((secret) => input.includes(secret)) ? REDACTED : input;
+  const scrub = (input: unknown): unknown => {
+    if (typeof input === "string") return text(input);
+    if (Array.isArray(input)) return input.map(scrub);
+    if (isRecord(input)) {
+      const out = new Map<string, unknown>();
+      // Reserve every safe key name first, so a placeholder never takes one.
+      const taken = new Set(Object.keys(input).filter((key) => text(key) === key));
+      let next = 1;
+      for (const [key, item] of Object.entries(input)) {
+        let name = key;
+        if (text(key) !== key) {
+          do {
+            name = next === 1 ? REDACTED : `${REDACTED}${next}`;
+            next++;
+          } while (taken.has(name));
+          taken.add(name);
+        }
+        out.set(name, scrub(item));
+      }
+      return Object.fromEntries(out);
+    }
+    return input;
+  };
+  return scrub(value);
+}
+
+/**
+ * The response of a call whose answer may echo secrets (the agent consent calls), sanitized once on
+ * receipt: each header whose name contains a secret is dropped, the other values are redacted, and
+ * the body text is the JSON redacted structurally (`redactStructured`), or `[redacted]` when it is
+ * not JSON, was cut at the size limit or is empty. Every error of these calls is built from this
+ * response only.
+ */
+export function sanitizeResponse(
+  headers: Headers,
+  text: string,
+  secrets: readonly string[],
+): { headers: Headers; text: string } {
+  const clean = new Headers();
+  headers.forEach((value, name) => {
+    // Header names are case-insensitive (and Headers lowercases them): compare case-folded.
+    const folded = name.toLowerCase();
+    if (!secrets.some((secret) => secret && folded.includes(secret.toLowerCase()))) {
+      clean.append(name, redactStructured(value, secrets) as string);
+    }
+  });
+  let body = REDACTED; // an empty body is not JSON
+  if (text) {
+    try {
+      body = JSON.stringify(redactStructured(JSON.parse(text) as unknown, secrets));
+    } catch {
+      // Not JSON, or nested past the stack (RangeError on parse or walk): not JSON.
+      body = REDACTED;
+    }
+  }
+  return { headers: clean, text: body };
+}

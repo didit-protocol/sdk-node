@@ -7,6 +7,7 @@ import {
   APIConnectionError,
   APIResponseValidationError,
   APITimeoutError,
+  sanitizeResponse,
   makeStatusError,
   requestIdOf,
 } from "../core/errors.js";
@@ -25,12 +26,16 @@ export interface IssuerRequest {
   json?: Record<string, unknown>;
   /** Values removed from error messages and bodies: tokens, codes and verifiers. */
   secrets?: readonly string[];
+  /** Build errors from the redacted parsed body, never from its raw text (agent consent calls). */
+  structuredRedaction?: boolean;
 }
 
 /** A 2xx answer: the parsed JSON body, or `null` for an empty body. */
 export interface IssuerResponse {
   status: number;
   headers: Headers;
+  /** The headers an error built from this response may carry (sanitized for consent calls). */
+  errorHeaders: Headers;
   data: unknown;
 }
 
@@ -116,11 +121,15 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
       log(null, null, "timeout");
       return new APITimeoutError(
         `The issuer did not answer ${method} ${path} within ${transport.timeout} ms.`,
-        { cause },
+        // A request that carries secrets keeps no cause: a transport may quote the serialized body in it.
+        request.structuredRedaction ? undefined : { cause },
       );
     }
     log(null, null, "connection_error");
-    return new APIConnectionError(`Could not reach the issuer for ${method} ${path}.`, { cause });
+    return new APIConnectionError(
+      `Could not reach the issuer for ${method} ${path}.`,
+      request.structuredRedaction ? undefined : { cause },
+    );
   };
 
   let status: number;
@@ -149,22 +158,37 @@ export async function send(transport: Transport, request: IssuerRequest): Promis
   } finally {
     clearTimeout(timer);
   }
-  log(status, responseHeaders);
+  // A successful response reaches the caller unchanged; every error of a consent call is built from a
+  // sanitized copy only.
+  const secrets = request.secrets ?? [];
+  const sanitized = request.structuredRedaction
+    ? sanitizeResponse(responseHeaders, text, secrets)
+    : null;
+  const errorHeaders = sanitized?.headers ?? responseHeaders;
+  // The log line never records a raw request id of a consent call, on any status.
+  log(status, errorHeaders);
 
   if (status < 200 || status > 299) {
-    throw makeStatusError(status, bodyOf(text), responseHeaders, request.secrets ?? []);
+    // A sanitized copy is already redacted: nothing is replaced again.
+    throw makeStatusError(
+      status,
+      bodyOf(sanitized?.text ?? text),
+      errorHeaders,
+      sanitized ? [] : secrets,
+    );
   }
-  if (status === 204 || !text) return { status, headers: responseHeaders, data: null };
+  if (status === 204 || !text)
+    return { status, headers: responseHeaders, errorHeaders, data: null };
   try {
-    return { status, headers: responseHeaders, data: JSON.parse(text) as unknown };
+    return { status, headers: responseHeaders, errorHeaders, data: JSON.parse(text) as unknown };
   } catch {
     // Not chained: the parser's message quotes the start of the body, which may
     // hold a token.
-    const type = responseHeaders.get("content-type") ?? "no content type";
+    const type = errorHeaders.get("content-type") ?? "no content type";
     throw new APIResponseValidationError(
       `Expected a JSON response from ${method} ${path}, got ${type}.`,
       status,
-      responseHeaders,
+      errorHeaders,
     );
   }
 }

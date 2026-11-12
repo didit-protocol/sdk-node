@@ -177,11 +177,23 @@ function textList(value: unknown, name: string): string[] {
   return [...(value as string[])];
 }
 
-/** Every non-empty string value of a passkey assertion, at any depth, to redact from errors. */
+/**
+ * Strings shorter than this are not secrets: field names such as `id` and values such as
+ * `public-key` would otherwise erase error codes like `invalid_grant` (docs/DESIGN.md section 10).
+ */
+// Sensitive values are 16+ chars: user handles are 16-byte ids (22 base64url), credential ids 16+ bytes.
+const MIN_SECRET_LENGTH = 16;
+
+/** Every string of at least 16 characters of a passkey assertion, object keys and values at any depth, to redact from errors. */
 function assertionSecrets(value: unknown): string[] {
-  if (typeof value === "string") return value.length > 0 ? [value] : [];
+  if (typeof value === "string") return value.length >= MIN_SECRET_LENGTH ? [value] : [];
   if (Array.isArray(value)) return value.flatMap(assertionSecrets);
-  if (isRecord(value)) return Object.values(value).flatMap(assertionSecrets);
+  if (isRecord(value)) {
+    return Object.entries(value).flatMap(([key, item]) => [
+      ...assertionSecrets(key),
+      ...assertionSecrets(item),
+    ]);
+  }
   return [];
 }
 
@@ -517,7 +529,6 @@ export class Authentication {
     if (assertion !== undefined && assertion !== null) {
       if (!isRecord(assertion)) throw new TypeError("assertion must be an object.");
       body.assertion = assertion;
-      secrets.push(...assertionSecrets(assertion));
     }
     const scopes: unknown = given.scopes;
     if (scopes !== undefined && scopes !== null) body.scopes = textList(scopes, "scopes");
@@ -532,7 +543,22 @@ export class Authentication {
       }
       body.lifetime = lifetime;
     }
-    const call = { ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token), json: body, secrets };
+    // Encoded exactly once: the plain body decoded from these bytes is what is sent, and the secrets are
+    // read from it, so a caller's object (class instance, toJSON) is never serialized a second time.
+    let sent: Record<string, unknown>;
+    try {
+      sent = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+    } catch {
+      // A toJSON may put the challenge or a credential in its message: fixed message, no cause.
+      throw new TypeError("Could not encode the agent consent request.");
+    }
+    secrets.push(...assertionSecrets(sent.assertion));
+    const call = {
+      ...this.#bearerCall("POST", AGENT_CONSENT_PATH, token),
+      json: sent,
+      secrets,
+      structuredRedaction: true,
+    };
     return (await this.#object(call)) as AgentConsentResult;
   }
 
@@ -553,6 +579,7 @@ export class Authentication {
       ...this.#bearerCall("POST", AGENT_CONSENT_PASSKEY_PATH, token),
       json: { challenge },
       secrets: [token, challenge],
+      structuredRedaction: true,
     };
     return (await this.#object(call)) as AgentApprovalOptions;
   }
@@ -577,7 +604,7 @@ export class Authentication {
       throw new APIResponseValidationError(
         `Expected a JSON object from ${call.method} ${pathOf(call.url)}.`,
         response.status,
-        response.headers,
+        response.errorHeaders,
       );
     }
     return response.data;
