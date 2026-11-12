@@ -208,11 +208,13 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
   let bodyProps: Record<string, Json> = {};
   let bodyRequired = new Set<string>();
   let bodySchema: JsonObject | undefined;
+  let bodyRef: Json;
   if (requestBody) {
     const content = isObject(requestBody.content) ? requestBody.content : {};
     const merged = mergeBody(op, content);
     bodyMode = merged.mode;
     fileFields = merged.files;
+    bodyRef = merged.schema;
     const root = spec.resolveObject(merged.schema);
     const ex = exampleOf(merged.media, root);
     hasBodyExample = ex.has;
@@ -283,7 +285,10 @@ export function buildMethod(op: Operation, builder: TypeBuilder): Method {
     if (bodySchema?.description) combined.description = bodySchema.description;
     if (bodySchema && "additionalProperties" in bodySchema)
       combined.additionalProperties = bodySchema.additionalProperties;
-    params = builder.type(spec, combined, paramsName, module, "param");
+    const reused = queryParams.length
+      ? undefined
+      : builder.wholeBodyComponent(spec, bodyRef, paramsName);
+    params = reused ?? builder.type(spec, combined, paramsName, module, "param");
     paramsRequired = fields.some((f) => f.required);
   }
 

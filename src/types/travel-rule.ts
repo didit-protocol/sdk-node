@@ -36,6 +36,19 @@ export interface TravelRuleCounterpartyContactsListResponse {
   results?: TravelRuleCounterpartyContact[];
 }
 
+export interface TravelRuleCreateVaspParams {
+  /** VASP name, trimmed; must not be empty. */
+  name: string;
+  /** Compliance email saved as an application-private contact and used for an optional invitation. */
+  email: string;
+  /** Optional LEI, normalized to uppercase. */
+  lei?: string;
+  /** Optional ISO 3166 alpha-2 or alpha-3 country code, normalized to uppercase. */
+  jurisdiction?: string;
+  /** Send an invitation to the supplied email. */
+  invite?: boolean;
+}
+
 export interface TravelRuleCreateWidgetSessionParams {
   /** The wallet address to verify. Optional; when empty, the address must be supplied when a proof is started. */
   wallet_address?: string;
@@ -166,6 +179,8 @@ export interface TravelRuleSendVaspQuestionnaireParams {
 }
 
 export interface TravelRuleTransfersListParams {
+  /** Exact transfer or transaction UUID, or a case-insensitive fragment of txn_id, either side's declared or resolved wallet address, or VASP name. Whitespace is trimmed; only the first 255 characters are searched. Combines with the other filters. */
+  search?: string;
   /** INBOUND, OUTBOUND, or both comma-separated. Case-sensitive. */
   direction?: string;
   /** One or more transfer statuses, comma-separated. */

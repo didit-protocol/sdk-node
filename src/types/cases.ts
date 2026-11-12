@@ -3,6 +3,7 @@
 import type { Uploadable } from "../core/uploads.js";
 import type {
   CaseActionActionEnum,
+  CaseBlueprintAppliesTo,
   CaseBlueprintListItem,
   CaseContentConfig,
   CaseDuplicateCaseFraudSourceContextRequest,
@@ -15,6 +16,7 @@ import type {
   CaseRoutingCondition,
   CaseRoutingRule,
   CaseRoutingRuleCreate,
+  CasesLinksCreateParams,
   CustomerMessagingCaseRequest,
   CustomerMessagingLanguageEnum,
   CustomerMessagingPurposeEnum,
@@ -42,6 +44,11 @@ export interface CasesAssignParams {
   assignee_name?: string | null;
 }
 
+export interface CasesBlueprintsAiDraftParams {
+  /** Nonblank description of the review policy to propose. */
+  prompt: string;
+}
+
 export interface CasesBlueprintsCreateParams {
   /** Max 24 characters, e.g. "AML investigation". */
   name: string;
@@ -58,13 +65,15 @@ export interface CasesBlueprintsCreateParams {
   /** Setting this enables 4-eyes review: resolutions on this blueprint stage on the checker blueprint's queue. */
   four_eyes_checker_blueprint?: string | null;
   require_resolution_note?: boolean;
-  /** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
   content_config?: CaseContentConfig;
   is_active?: boolean;
   /** Default deadline for newly opened cases. Existing case deadlines are unchanged. */
   default_deadline_hours?: number | null;
   /** Set false to save a never-published draft. The record remains inactive at version 0 until the draft is explicitly published. Omitting this field preserves immediate creation for existing integrations. */
   publish?: boolean;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
 }
 
 export interface CasesBlueprintsDiscardDraftParams {
@@ -102,7 +111,7 @@ export interface CasesBlueprintsListPresetsResponseResults {
     "screening_hit" | "aml_investigation" | "suspicious_activity" | "kyc" | (string & {});
   name?: string;
   description?: string;
-  /** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
   content_config?: CaseContentConfig;
   installed?: boolean;
 }
@@ -142,13 +151,15 @@ export interface CasesBlueprintsUpdateParams {
   /** Setting this enables 4-eyes review: resolutions on this blueprint stage on the checker blueprint's queue. */
   four_eyes_checker_blueprint?: string | null;
   require_resolution_note?: boolean;
-  /** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
   content_config?: CaseContentConfig;
   is_active?: boolean;
   /** Default deadline for newly opened cases. Existing case deadlines are unchanged. */
   default_deadline_hours?: number | null;
   /** The version opened by the editor. A stale version returns 409 without changing the review policy. */
   expected_version?: number;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
 }
 
 export interface CasesBulkAssignParams {
@@ -183,10 +194,10 @@ export interface CasesCreateParams {
   priority?: "LOW" | "MEDIUM" | "HIGH" | (string & {});
   due_at?: string | Date | null;
   tags?: string[];
-  /** Required unless links is provided; the case's exactly-one subject. */
+  /** Exactly one user or business. Supply explicitly when any network link is supplied, even alongside other link types; otherwise may be derived from links. */
   subject?: CasesCreateParamsSubject;
-  /** Sessions/business sessions/transactions to attach on creation, e.g. [{"entity_type": "transaction", "entity_uuid": "..."}]. When subject is omitted, the subject is derived from the first link's owner. */
-  links?: Record<string, unknown>[];
+  /** Up to 500 session, business_session, transaction or network links; at most 20 when review_duplicates=true. When any network link is present, subject must be supplied explicitly. Otherwise the subject may be derived from a linked record. */
+  links?: CasesLinksCreateParams[];
   /** User UUID to assign immediately. */
   assigned_to?: string | null;
   /** Recheck existing investigations before creating the case. When true, a subject with existing cases requires a nonblank separate_incident_reason. The console always enables this protection. Omitting it preserves existing API behavior. */
@@ -195,7 +206,7 @@ export interface CasesCreateParams {
   source_context?: CaseDuplicateCaseFraudSourceContextRequest;
 }
 
-/** Required unless links is provided; the case's exactly-one subject. */
+/** Exactly one user or business. Supply explicitly when any network link is supplied, even alongside other link types; otherwise may be derived from links. */
 export interface CasesCreateParamsSubject {
   type?: "user" | "business" | (string & {});
   uuid?: string;
@@ -205,11 +216,6 @@ export interface CasesFindDuplicatesParams {
   subject?: CaseDuplicateCaseSubjectInputRequest;
   links?: CaseDuplicateCaseLinkCreateRequest[];
   offset?: number;
-}
-
-export interface CasesLinksCreateParams {
-  entity_type: "session" | "business_session" | "transaction" | (string & {});
-  entity_uuid: string;
 }
 
 export interface CasesListActionReceiptsParams {

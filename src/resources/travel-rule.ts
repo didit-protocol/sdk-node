@@ -32,6 +32,7 @@ import type {
   TravelRuleCounterpartyContactsCreateParams,
   TravelRuleCounterpartyContactsListParams,
   TravelRuleCounterpartyContactsListResponse,
+  TravelRuleCreateVaspParams,
   TravelRuleCreateWidgetSessionParams,
   TravelRuleListVaspsParams,
   TravelRuleListVaspsResponse,
@@ -107,6 +108,7 @@ const TRAVEL_RULE_TRANSFERS_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/transfers/",
   query: [
+    "search",
     "direction",
     "status",
     "rail",
@@ -219,6 +221,12 @@ const TRAVEL_RULE_CLEAR_VASP_DECISION: OperationSpec = {
   method: "DELETE",
   path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
   dates: "TravelRuleCounterpartyDecisionResponse",
+};
+const TRAVEL_RULE_CREATE_VASP: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/vasps/",
+  body: "json",
+  dates: "VaspDirectoryEntry",
 };
 const TRAVEL_RULE_CREATE_WIDGET_SESSION: OperationSpec = {
   method: "POST",
@@ -700,6 +708,20 @@ export class TravelRule extends APIResource {
   }
 
   /**
+   * Create a private VASP directory entry
+   *
+   * Add a VASP privately to your application and optionally invite it. Requires write access to transactions. The response uses source=added_by_you. A matching visible name or LEI returns 409 with the existing vasp_id. See [Search the directory](/management-api/travel-rule/search-vasps).
+   *
+   * `POST /v3/travel-rule/vasps/`
+   */
+  createVasp(
+    params: TravelRuleCreateVaspParams,
+    options?: RequestOptions,
+  ): APIPromise<VaspDirectoryEntry> {
+    return this._client.request(TRAVEL_RULE_CREATE_VASP, [], params, options);
+  }
+
+  /**
    * Mint a wallet-ownership widget session
    *
    * Mint a hosted wallet-ownership widget URL/token. Send the customer to the returned url to prove control of a wallet (message signing, Satoshi test, screenshot, or self-declaration). The widget is web-only in this release - open the url in the system browser or a custom tab, never inside a mobile SDK webview.
@@ -732,7 +754,7 @@ export class TravelRule extends APIResource {
   /**
    * Search the VASP directory
    *
-   * Paginated, name-sorted search of the VASP directory: the shared directory entries, which Didit builds from the ESMA interim MiCA register, the public TRISA directory, the global LEI register and its own curation, plus the members of the Didit network. Each row carries the routes your application has to it today. Your own application's profile is never listed. Rows also carry the shared due-diligence assessment and your application's own decision, entity screening and questionnaires.
+   * Paginated, name-sorted search of the VASP directory: the shared directory entries, which Didit builds from the ESMA interim MiCA register, the public TRISA directory, the global LEI register and its own curation, plus the members of the Didit network. Each row carries the routes your application has to it today. Your own application's profile is never listed. Rows also carry the shared due-diligence assessment and your application's own decision, entity screening and questionnaires. Includes entries your application added privately. The optional source field distinguishes their provenance; kind=didit member results may omit source.
    *
    * `GET /v3/travel-rule/vasps/`
    */

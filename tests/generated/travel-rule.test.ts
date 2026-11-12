@@ -93,6 +93,25 @@ describe("travel_rule", () => {
     expect(page.hasNextPage()).toBe(false);
   });
 
+  it("travel_rule.create_vasp: POST /v3/travel-rule/vasps/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/travel-rule/vasps/"),
+    });
+    const result = await client.travelRule.createVasp({ name: "value", email: "user@example.com" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ name: "value", email: "user@example.com" });
+    expectMatchesExample(result, responseExample("POST /v3/travel-rule/vasps/"));
+  });
+
   it("travel_rule.create_widget_session: POST /v3/travel-rule/widget-session/", async () => {
     const { client, calls } = mockClient({
       status: 201,

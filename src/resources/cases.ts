@@ -8,6 +8,7 @@ import { APIResource } from "../core/resource.js";
 import type {
   CasesApplyEntityActionParams,
   CasesAssignParams,
+  CasesBlueprintsAiDraftParams,
   CasesBlueprintsCreateParams,
   CasesBlueprintsDiscardDraftParams,
   CasesBlueprintsInstallPresetsParams,
@@ -23,7 +24,6 @@ import type {
   CasesChecklistToggleItemParams,
   CasesCreateParams,
   CasesFindDuplicatesParams,
-  CasesLinksCreateParams,
   CasesListActionReceiptsParams,
   CasesListEventsParams,
   CasesListEventsResponse,
@@ -69,6 +69,7 @@ import type {
   CaseActionCaseActionReceipt,
   CaseActionCaseActionReceiptPage,
   CaseActionCaseEntityActionResult,
+  CaseBlueprintAiDraftResponse,
   CaseBlueprintDetail,
   CaseBlueprintListItem,
   CaseBlueprintPresetInstallResult,
@@ -89,6 +90,7 @@ import type {
   CaseReviewTeam,
   CaseRoutingPreview,
   CaseRoutingRule,
+  CasesLinksCreateParams,
   CustomerMessagingCaseRequest,
   CustomerMessagingCaseRequestOptions,
   CustomerMessagingCaseRequestPreviewResponse,
@@ -102,6 +104,12 @@ import type {
   RoutingPublicationPolicyRevision,
 } from "../types/components.js";
 
+const CASES_BLUEPRINTS_AI_DRAFT: OperationSpec = {
+  method: "POST",
+  path: "/v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/",
+  scope: "application",
+  body: "json",
+};
 const CASES_BLUEPRINTS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/organization/{organization_id}/application/{application_id}/cases/blueprints/",
@@ -579,9 +587,23 @@ const CASES_UPDATE: OperationSpec = {
 /** `cases.blueprints` */
 export class CasesBlueprints extends APIResource {
   /**
+   * Draft case blueprint with AI
+   *
+   * Generate an unsaved blueprint proposal. Requires write:cases. Returns a draft object, not a blueprint UUID; no blueprint or saved policy draft is created. Review the proposal, choose assignees and any teams, approvals or routing, then create or update a blueprint separately. Invalid generated content or generation failure returns 503. See [blueprint AI drafts](/management-api/case-blueprints/ai-draft).
+   *
+   * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/`
+   */
+  aiDraft(
+    params: CasesBlueprintsAiDraftParams,
+    options?: RequestOptions,
+  ): APIPromise<CaseBlueprintAiDraftResponse> {
+    return this._client.request(CASES_BLUEPRINTS_AI_DRAFT, [], params, options);
+  }
+
+  /**
    * Create blueprint
    *
-   * Create a case blueprint: general settings (assignment, escalation, transfer, 4-eyes pairing) plus content_config, the six sections that drive the case page. Set publish=false to create an unpublished draft; Publish creates its first live version. Discarding a never-published draft deletes it.
+   * Create a case blueprint: general settings (assignment, escalation, transfer, 4-eyes pairing) plus content_config, the six sections that drive the case page. Set publish=false to create an unpublished draft; Publish creates its first live version. Discarding a never-published draft deletes it. applies_to accepts the six case-type values. content_config.stages.items[].worked_by is an optional active review-team UUID from this application. These settings are preserved in case policy snapshots; later edits do not change existing snapshots.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/`
    */
@@ -734,7 +756,7 @@ export class CasesBlueprints extends APIResource {
   /**
    * Update blueprint
    *
-   * Partially update a blueprint's general settings or content_config.
+   * Partially update a blueprint's general settings or content_config. applies_to accepts the six case-type values. content_config.stages.items[].worked_by is an optional active review-team UUID from this application. These settings are preserved in case policy snapshots; later edits do not change existing snapshots.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/`
    *
@@ -789,7 +811,7 @@ export class CasesLinks extends APIResource {
   /**
    * Add case link
    *
-   * Attach a session, business session, or transaction to the case. Rejected with 400 if the entity belongs to a different subject than the case.
+   * Attach a session, business session, transaction, or network to the case. Rejected with 400 if the entity belongs to a different subject than the case. Network links require write:cases plus read:networks, Networks access and investigation access for the network scope. The network must be visible and contain the case subject. Manually adding links to network-generated cases is not allowed.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/links/`
    *
@@ -1363,7 +1385,7 @@ export class Cases extends APIResource {
   /**
    * Create case
    *
-   * Create a case anchored to exactly one subject (a user or a business), directly or by deriving the subject from an attached session/transaction link. Source is always `MANUAL` for API-created cases.
+   * Create a case anchored to exactly one subject (a user or a business), directly or by deriving the subject from an attached session/transaction link. Source is always `MANUAL` for API-created cases. Network links require write:cases plus read:networks, Networks access and investigation access for the network scope. The network must be visible and contain the case subject. Manually adding links to network-generated cases is not allowed. An explicit subject is required whenever links includes a network.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/`
    */
