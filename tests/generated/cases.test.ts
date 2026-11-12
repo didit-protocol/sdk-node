@@ -97,6 +97,38 @@ describe("cases", () => {
     );
   });
 
+  it("cases.blueprints.ai_draft: POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/",
+      ),
+    });
+    const result = await client.cases.blueprints.aiDraft({
+      prompt: "Draft an AML review policy with triage and evidence review stages.",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/cases/blueprints/ai-draft/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({
+      prompt: "Draft an AML review policy with triage and evidence review stages.",
+    });
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/",
+      ),
+    );
+  });
+
   it("cases.blueprints.create: POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/", async () => {
     const { client, calls } = mockClient({
       status: 201,

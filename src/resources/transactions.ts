@@ -19,6 +19,7 @@ import type {
   TravelRuleMessage,
   TravelRuleTestVaspInboundResponse,
   TravelRuleTransferDetail,
+  TravelRuleUserLinkResponse,
 } from "../types/components.js";
 import type {
   TransactionsBatchDeleteParamsAllTransactions,
@@ -45,6 +46,7 @@ import type {
   TransactionsRulesUpdateParams,
   TransactionsTravelRuleConfirmOwnershipParams,
   TransactionsTravelRuleCreateMessageParams,
+  TransactionsTravelRuleCreateUserLinkParams,
   TransactionsTravelRuleListDeliveriesParams,
   TransactionsTravelRuleTriggerTestVaspInboundParams,
   TransactionsTravelRuleUpdateTransferParams,
@@ -121,6 +123,12 @@ const TRANSACTIONS_TRAVEL_RULE_CREATE_MESSAGE: OperationSpec = {
   path: "/v3/transactions/{transaction_id}/travel-rule/messages/",
   body: "json",
   dates: "TravelRuleMessage",
+};
+const TRANSACTIONS_TRAVEL_RULE_CREATE_USER_LINK: OperationSpec = {
+  method: "POST",
+  path: "/v3/transactions/{transaction_id}/travel-rule/user-link/",
+  body: "json",
+  dates: "TravelRuleUserLinkResponse",
 };
 const TRANSACTIONS_TRAVEL_RULE_LIST_DELIVERIES: OperationSpec = {
   method: "GET",
@@ -429,6 +437,28 @@ export class TransactionsTravelRule extends APIResource {
   }
 
   /**
+   * Create or email a Travel Rule end-user link
+   *
+   * Issue a new link and revoke previous open links for this transfer. Requires write access to transactions and an outbound transfer in AWAITING_COUNTERPARTY, COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, UNCONFIRMED_OWNERSHIP or ON_HOLD. channel=email uses the end user's Didit-record email and verification-session language when available. A send failure returns the link with emailed_to empty; email_available reports address availability, not delivery. See [User links](/management-api/travel-rule/create-user-link).
+   *
+   * `POST /v3/transactions/{transaction_id}/travel-rule/user-link/`
+   *
+   * @param transactionId Didit-stable transaction UUID that owns the transfer.
+   */
+  createUserLink(
+    transactionId: string,
+    params: TransactionsTravelRuleCreateUserLinkParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleUserLinkResponse> {
+    return this._client.request(
+      TRANSACTIONS_TRAVEL_RULE_CREATE_USER_LINK,
+      [transactionId],
+      params,
+      options,
+    );
+  }
+
+  /**
    * List Travel Rule delivery history
    *
    * Read the complete delivery history for a transaction, oldest first. Requires transaction read permission. Unlike the newest 100 entries embedded in detail, this endpoint paginates the full history. See [delivery history](/management-api/travel-rule/list-deliveries).
@@ -488,9 +518,9 @@ export class TransactionsTravelRule extends APIResource {
   }
 
   /**
-   * Finish, cancel, resend, or update the originator wallet of a Travel Rule transfer
+   * Update a Travel Rule transfer
    *
-   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way. `{"action": "beneficiary_vasp", "beneficiary_vasp": "<directory VASP id>"}` names the counterparty yourself when discovery could not, on an outbound transfer in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE or NOT_ENOUGH_COUNTERPARTY_DATA: the transfer is routed to that VASP and sent again.
+   * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way. `{"action": "beneficiary_vasp", "beneficiary_vasp": "<directory VASP id>"}` names the counterparty yourself when discovery could not, on an outbound transfer in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE or NOT_ENOUGH_COUNTERPARTY_DATA: the transfer is routed to that VASP and sent again. Cancellation accepts an optional reason and returns cancel_reason and cancelled_by. Resend accepts notify_on_answer; omission preserves the saved preference, initially false. Resend invalidates the previous counterparty pickup link. action=add_vasp_hint requires name, accepts lei and country, saves the hint and re-runs discovery under the same outbound/status restrictions as resend. update_compliance_email also accepts vasp_name and saves the address as an application-private contact when the transfer has a known directory VASP.
    *
    * `PATCH /v3/transactions/{transaction_id}/travel-rule/`
    *

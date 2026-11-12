@@ -270,6 +270,22 @@ export class TypeBuilder {
     return value;
   }
 
+  /**
+   * The component an operation's request body is exactly (`$ref`) when its type
+   * name is already the operation's derived params name: that component IS the
+   * params type, so it is reused instead of declaring a second type of that name.
+   */
+  wholeBodyComponent(spec: Spec, body: Json, paramsName: string): TypeRef | undefined {
+    if (!isObject(body) || typeof body.$ref !== "string") return undefined;
+    if (!body.$ref.startsWith("#/components/schemas/")) return undefined;
+    const name = body.$ref.slice("#/components/schemas/".length);
+    if (spec.components[name] === undefined) return undefined;
+    const key = this.canonical({ spec, name });
+    if (this.componentTypeName(key) !== paramsName) return undefined;
+    const out = this.component(spec, name, "param");
+    return out.expr === paramsName ? out : undefined;
+  }
+
   component(spec: Spec, name: string, mode: Mode): TypeRef {
     const key = this.canonical({ spec, name });
     const schema = key.spec.components[key.name];

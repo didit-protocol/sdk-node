@@ -1773,6 +1773,39 @@ export interface CaseAssignee {
   email?: string;
 }
 
+/** Unsaved, validated proposal. Fields are optional; review the result and select assignees, teams and routing before saving. */
+export interface CaseBlueprintAiDraft {
+  /** Max 24 characters, e.g. "AML investigation". */
+  name?: string;
+  description?: string | null;
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
+  content_config?: CaseContentConfig;
+  require_resolution_note?: boolean;
+  assignment_method?: "MANUAL" | "AUTOMATIC" | (string & {});
+  /** Automatic-mode threshold: "fewer than N cases of this blueprint assigned". */
+  max_active_cases?: number | null;
+  /** Default deadline for newly opened cases. Existing case deadlines are unchanged. */
+  default_deadline_hours?: number | null;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
+}
+
+export interface CaseBlueprintAiDraftResponse {
+  /** Unsaved, validated proposal. Fields are optional; review the result and select assignees, teams and routing before saving. */
+  draft: CaseBlueprintAiDraft;
+}
+
+/** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+export type CaseBlueprintAppliesTo = (
+  | "GENERAL"
+  | "VERIFICATION_REVIEW"
+  | "BUSINESS_REVIEW"
+  | "AML"
+  | "TRANSACTION_MONITORING"
+  | "DUPLICATES"
+  | (string & {})
+)[];
+
 export interface CaseBlueprintDetail {
   uuid?: string;
   name?: string;
@@ -1790,8 +1823,8 @@ export interface CaseBlueprintDetail {
   escalation_blueprint_name?: string | null;
   four_eyes_checker_blueprint?: string | null;
   four_eyes_checker_blueprint_name?: string | null;
-  /** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
-  content_config?: CaseBlueprintDetailContentConfig;
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
+  content_config?: CaseContentConfig;
   /** Connectors currently routing new cases into this blueprint. */
   creation_sources?: CaseBlueprintDetailCreationSources[];
   /** Other blueprints whose Escalation target points at this one. */
@@ -1799,60 +1832,10 @@ export interface CaseBlueprintDetail {
   updated_at?: Date;
   version?: number;
   default_deadline_hours?: number | null;
-}
-
-/** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
-export interface CaseBlueprintDetailContentConfig {
-  checklist?: CaseBlueprintDetailContentConfigChecklist;
-  aml_control?: CaseBlueprintDetailContentConfigAmlControl;
-  identity?: CaseBlueprintDetailContentConfigIdentity;
-  verifications?: CaseBlueprintDetailContentConfigVerifications;
-  reporting?: CaseBlueprintDetailContentConfigReporting;
-  financial?: CaseBlueprintDetailContentConfigFinancial;
-}
-
-export interface CaseBlueprintDetailContentConfigAmlControl {
-  enabled?: boolean;
-  financial?: boolean;
-  identity?: boolean;
-}
-
-export interface CaseBlueprintDetailContentConfigChecklist {
-  enabled?: boolean;
-  /** When true, a case can be resolved with incomplete checklist items. */
-  optional?: boolean;
-  items?: CaseBlueprintDetailContentConfigChecklistItems[];
-}
-
-export interface CaseBlueprintDetailContentConfigChecklistItems {
-  label?: string;
-  order?: number;
-}
-
-export interface CaseBlueprintDetailContentConfigFinancial {
-  enabled?: boolean;
-  payment_methods?: boolean;
-  transactions?: boolean;
-}
-
-export interface CaseBlueprintDetailContentConfigIdentity {
-  enabled?: boolean;
-  personal_information?: boolean;
-  applicant_tags?: boolean;
-  contact_information?: boolean;
-  risk_overview?: boolean;
-  poi_documents?: boolean;
-  poa_documents?: boolean;
-}
-
-export interface CaseBlueprintDetailContentConfigReporting {
-  enabled?: boolean;
-  fiu_reports?: boolean;
-}
-
-export interface CaseBlueprintDetailContentConfigVerifications {
-  enabled?: boolean;
-  summary?: boolean;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
+  /** Configured stages, or the default stages when none are configured. */
+  stages?: CaseBlueprintStageDefinition[];
 }
 
 export interface CaseBlueprintDetailCreationSources {
@@ -1881,11 +1864,29 @@ export interface CaseBlueprintListItem {
   created_at?: Date;
   version?: number;
   default_deadline_hours?: number | null;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
+  /** Configured stages, or the default stages when none are configured. */
+  stages?: CaseBlueprintStageDefinition[];
 }
 
 export interface CaseBlueprintPresetInstallResult {
   created?: string[];
 }
+
+export interface CaseBlueprintStage {
+  /** Unique within the policy. Omit to derive from the label. The key resolved is reserved. */
+  key?: string;
+  /** Nonblank stage label. */
+  label: string;
+  /** Stage SLA in hours, or null for no SLA. */
+  sla_hours?: number | null;
+  /** Optional review-team UUID. A non-null value must identify an active team in this application. Omit or use null for no stage team. */
+  worked_by?: string | null;
+}
+
+/** Normalized stage definition. worked_by is returned only when configured. */
+export type CaseBlueprintStageDefinition = CaseBlueprintStage;
 
 export interface CaseBlueprintSummary {
   uuid?: string;
@@ -1949,7 +1950,7 @@ export interface CaseCollaborationPaginatedCaseNoteList {
   results: CaseCollaborationCaseNote[];
 }
 
-/** The six togglable sections that drive which tabs and fields appear on the case page. Unknown sections or keys are rejected. */
+/** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
 export interface CaseContentConfig {
   checklist?: CaseContentConfigChecklist;
   aml_control?: CaseContentConfigAmlControl;
@@ -1957,6 +1958,8 @@ export interface CaseContentConfig {
   verifications?: CaseContentConfigVerifications;
   reporting?: CaseContentConfigReporting;
   financial?: CaseContentConfigFinancial;
+  /** Ordered review stages. Omitted or empty items use the default Triage, Evidence review and Decision stages. */
+  stages?: CaseContentConfigStages;
 }
 
 export interface CaseContentConfigAmlControl {
@@ -1996,6 +1999,12 @@ export interface CaseContentConfigIdentity {
 export interface CaseContentConfigReporting {
   enabled?: boolean;
   fiu_reports?: boolean;
+}
+
+/** Ordered review stages. Omitted or empty items use the default Triage, Evidence review and Decision stages. */
+export interface CaseContentConfigStages {
+  /** At most ten stages with distinct keys. Resolving a case is a status change, not a stage. */
+  items?: CaseBlueprintStage[];
 }
 
 export interface CaseContentConfigVerifications {
@@ -2102,6 +2111,7 @@ export interface CaseDuplicateCaseLinkCreateRequest {
    * * `session` - Session
    * * `business_session` - Business Session
    * * `transaction` - Transaction
+   * * `network` - Network containing the selected case subject
    */
   entity_type: CaseDuplicateEntityTypeEnum;
   entity_uuid: string;
@@ -2120,9 +2130,10 @@ export interface CaseDuplicateCaseSubjectInputRequest {
  * * `session` - Session
  * * `business_session` - Business Session
  * * `transaction` - Transaction
+ * * `network` - Network containing the selected case subject
  */
 export type CaseDuplicateEntityTypeEnum =
-  "session" | "business_session" | "transaction" | (string & {});
+  "session" | "business_session" | "transaction" | "network" | (string & {});
 
 /**
  * * `LOW` - Low
@@ -2188,9 +2199,10 @@ export interface CaseEvent {
 
 export interface CaseLink {
   uuid?: string;
-  linked_entity_type?: "session" | "business_session" | "transaction" | (string & {}) | null;
+  linked_entity_type?:
+    "session" | "business_session" | "transaction" | "network" | (string & {}) | null;
   linked_entity_uuid?: string | null;
-  /** session_id/session_number/status for session and business_session links; uuid/txn_id/status for transaction links. */
+  /** session_id/session_number/status for session and business_session links; uuid/txn_id/status for transaction links. Network links return only {"uuid": "<network-uuid>"}, without network member details. */
   linked_entity_summary?: Record<string, unknown> | null;
   created_at?: Date;
 }
@@ -2299,7 +2311,8 @@ export interface CasePublicationCaseBlueprint {
   four_eyes_checker_blueprint?: string | null;
   four_eyes_checker_blueprint_name: string;
   require_resolution_note?: boolean;
-  content_config?: unknown;
+  /** Case content sections and optional review stages. Unknown sections or keys are rejected. Cases retain the policy snapshot accepted when opened; later blueprint edits do not rewrite it. */
+  content_config?: CaseContentConfig;
   version?: number;
   default_deadline_hours?: number | null;
   is_active?: boolean;
@@ -2308,6 +2321,10 @@ export interface CasePublicationCaseBlueprint {
   receives_escalation_from: Record<string, unknown>[];
   created_at: Date;
   updated_at: Date;
+  /** Case types this blueprint describes. Optional on create and update; new blueprints default to an empty list. Stored in the accepted case policy snapshot. */
+  applies_to?: CaseBlueprintAppliesTo;
+  /** Configured stages, or the default stages when none are configured. */
+  stages?: CaseBlueprintStageDefinition[];
 }
 
 export interface CasePublicationPaginatedPolicyRevisionList {
@@ -2443,6 +2460,12 @@ export interface CaseSubject {
 export interface CaseTeamSummary {
   uuid?: string;
   name?: string;
+}
+
+export interface CasesLinksCreateParams {
+  /** Type of record to attach. A network must be visible and contain the selected case subject. */
+  entity_type: "session" | "business_session" | "transaction" | "network" | (string & {});
+  entity_uuid: string;
 }
 
 /** A blocklist, allowlist or custom list of one application. */
@@ -8294,7 +8317,21 @@ export interface SessionDecisionKeyPeopleChecks {
   submitted?: SessionDecisionKeyPeopleChecksSubmitted;
   /** Aggregate UBO KYC progress, or null when no UBOs have linked KYC sessions. */
   ubo_kyc_summary?: SessionDecisionKeyPeopleChecksUboKycSummary | null;
+  /** The company's own declaration that it is listed on a stock exchange, or owned by a listed company, made on the Key People screen instead of naming a beneficial owner. Present in every `key_people_checks` entry unless the workflow's Returned data settings leave it out, and `null` unless the company made the declaration, which it can only do where the workflow allows it (`kyb_key_people_allow_listed_company_declaration`). Didit does not check the declaration against a stock exchange: the workflow's `kyb_key_people_listed_company_action` decides the Key People outcome (Review by default) and the `KYB_LISTED_COMPANY_DECLARED` warning is added. The company must still name at least one person who manages or represents it (director, non-executive director, chairman, representative, authorized signatory or company officer). */
+  listed_company_declaration?: SessionDecisionKeyPeopleChecksListedCompanyDeclaration | null;
   warnings?: Record<string, unknown>[];
+}
+
+/** The company's own declaration that it is listed on a stock exchange, or owned by a listed company, made on the Key People screen instead of naming a beneficial owner. Present in every `key_people_checks` entry unless the workflow's Returned data settings leave it out, and `null` unless the company made the declaration, which it can only do where the workflow allows it (`kyb_key_people_allow_listed_company_declaration`). Didit does not check the declaration against a stock exchange: the workflow's `kyb_key_people_listed_company_action` decides the Key People outcome (Review by default) and the `KYB_LISTED_COMPANY_DECLARED` warning is added. The company must still name at least one person who manages or represents it (director, non-executive director, chairman, representative, authorized signatory or company officer). */
+export interface SessionDecisionKeyPeopleChecksListedCompanyDeclaration {
+  /** `listed_company`: the company itself is listed on a stock exchange. `subsidiary_of_listed_company`: the company is owned by a listed company. */
+  type: "listed_company" | "subsidiary_of_listed_company" | (string & {});
+  /** Name of the stock exchange, as typed by the company (for example `London Stock Exchange`). `null` when left empty. */
+  stock_exchange: string | null;
+  /** ISIN of the listed security: 12 characters, upper-case, no spaces, with a valid check digit (for example `GBEXAMPLE002`). `null` when left empty. */
+  isin: string | null;
+  /** Name of the listed parent company. Only set when `type` is `subsidiary_of_listed_company`; `null` otherwise. */
+  listed_parent_company_name: string | null;
 }
 
 /** Parties discovered via the registry check. */
@@ -10563,6 +10600,8 @@ export interface TransactionListTravelRule {
   /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
   proof_state?:
     "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
+  /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
+  user_choice?: TravelRuleUserChoice | null;
 }
 
 /** The counterparty's directory entry, or `null` when the transfer links none. */
@@ -10980,6 +11019,8 @@ export interface TransactionTravelRule {
   /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
   proof_state?:
     "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
+  /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
+  user_choice?: TravelRuleUserChoice | null;
 }
 
 /** The counterparty's directory entry, or `null` when the transfer links none. */
@@ -11816,6 +11857,15 @@ export interface TravelRuleTransferDetail {
   /** not_required when the transfer is not required; otherwise confirmed or not_confirmed follows ownership_confirmed. With no verdict, requested means an active outbound ownership widget matches this transfer and subject; otherwise not_requested. A request is not completed proof. */
   proof_state?:
     "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
+  /** Recorded cancellation reason, empty when unspecified. */
+  cancel_reason?:
+    "" | "user_cancelled" | "wrong_wallet" | "compliance_decision" | "other" | (string & {});
+  /** Recorded cancellation actor, or an empty string when none is recorded. */
+  cancelled_by?: string;
+  /** Saved team notification preference. Initially false. */
+  notify_on_answer?: boolean;
+  /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
+  user_choice?: TravelRuleUserChoice | null;
 }
 
 export interface TravelRuleTransferDetailCounterpartyVasp {
@@ -11918,6 +11968,32 @@ export interface TravelRuleTransferRow {
   /** When the transfer expires if it is still waiting on its counterparty. Set on every transfer you create with `POST /v3/transactions/` that needs an exchange, outbound or inbound. Null below the threshold, on a Lightning payment the Travel Rule does not apply to, and on inbound transfers Didit creates when a counterparty reaches you (an inbound TRP inquiry, a network message or the INTERNAL inbound leg). */
   deadline_at?: Date | null;
   created_at?: Date;
+}
+
+export interface TravelRuleUserChoice {
+  /** True when explicit user choice was requested. */
+  active: boolean;
+  /** True with no selected directory VASP while status is AWAITING_COUNTERPARTY, COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE or UNCONFIRMED_OWNERSHIP. */
+  waiting: boolean;
+  /** Latest open end-user link, or an empty string when none is available. */
+  end_user_link: string;
+  /** Expiry of the open link, or null. */
+  link_expires_at: Date | null;
+  /** Recorded recipient of the user-choice email, or an empty string. */
+  emailed_to: string;
+  /** Recorded availability of an end-user email for user choice. */
+  email_available: boolean;
+}
+
+export interface TravelRuleUserLinkResponse {
+  /** New end-user link. Previous open links for this transfer are revoked. */
+  end_user_link: string;
+  /** Link expiry. */
+  expires_at: Date;
+  /** Recipient when sending succeeded, otherwise an empty string. An email failure still returns a usable link. */
+  emailed_to: string;
+  /** Whether the end user has an email on their Didit record. */
+  email_available: boolean;
 }
 
 /** The inputs and outputs of a UTXO transfer (BTC, LTC, BCH, DOGE). Only accepted on those chains: on any other chain it is a `400`. From them Didit infers the originator wallet (the declared one, else the input address that contributed the most) and the beneficiary output (the declared one, else the only output that does not pay an input address back as change, else the one output paying the transfer amount). The result is on the transfer's `chain_details`. */
@@ -12434,7 +12510,7 @@ export interface UserSessionListItemTopWarnings {
 export interface VaspDirectoryEntry {
   /** The entry's id, for GET /v3/travel-rule/vasps/{vasp_id}/. */
   id?: string;
-  /** directory for an entry of the shared directory; didit for a member of the Didit network. */
+  /** directory for a shared or application-private directory entry; didit for a Didit network member. */
   kind?: "directory" | "didit" | (string & {});
   name?: string;
   lei?: string;
@@ -12482,6 +12558,8 @@ export interface VaspDirectoryEntry {
   entity_screening?: TravelRuleCounterpartyScreening | null;
   /** Your application's due-diligence questionnaires with this VASP, newest first. Private to your application. */
   questionnaires?: TravelRuleCounterpartyQuestionnaire[];
+  /** directory for a shared directory entry, added_by_you for your application-private entry, or didit_network for a directory entry linked to a Didit customer. Separate kind=didit member results may omit this field; use kind to identify them. */
+  source?: "didit_network" | "directory" | "added_by_you" | (string & {});
 }
 
 export interface VaspDirectoryEntryAliases {

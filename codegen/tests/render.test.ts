@@ -332,3 +332,66 @@ describe("render errors", () => {
     expect(() => render(load(dir))).toThrow(/both named XGetResponseA/);
   });
 });
+
+describe("a component that is an operation's whole request body", () => {
+  const LINK = {
+    type: "object",
+    required: ["entity_type"],
+    properties: { entity_type: { type: "string" }, entity_uuid: { type: "string" } },
+  };
+  const OK = json({ type: "object", properties: { id: { type: "string" } } });
+
+  function body(schema: unknown) {
+    return { requestBody: { required: true, content: { "application/json": { schema } } } };
+  }
+
+  function generate(schemas: Record<string, unknown>, linkBody: unknown) {
+    const dir = specDir({
+      verification: openapi(
+        {
+          "/v3/links/": { post: { ...body(linkBody), ...OK } },
+          "/v3/things/": {
+            post: {
+              ...body({
+                type: "object",
+                properties: {
+                  links: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/LinksCreateParams" },
+                  },
+                },
+              }),
+              ...OK,
+            },
+          },
+        },
+        schemas,
+      ),
+      overlay: {
+        "POST /v3/links/": naming("links", "create"),
+        "POST /v3/things/": naming("things", "create"),
+      },
+    });
+    return render(load(dir)).files;
+  }
+
+  it("is the params type: declared once, in components, used by the method", () => {
+    const files = generate(
+      { LinksCreateParams: LINK },
+      { $ref: "#/components/schemas/LinksCreateParams" },
+    );
+    const all = [...files.entries()].filter(([path]) => path.startsWith("src/types/"));
+    const declared = all.filter(([, text]) => /export interface LinksCreateParams\b/.test(text));
+    expect(declared.map(([path]) => path)).toEqual(["src/types/components.ts"]);
+    expect(files.get("src/resources/links.ts")).toContain("LinksCreateParams");
+  });
+
+  it("still refuses two different types with one name", () => {
+    expect(() =>
+      generate(
+        { LinksCreateParams: LINK },
+        { type: "object", properties: { other: { type: "string" } } },
+      ),
+    ).toThrow(/Two different types are both named LinksCreateParams/);
+  });
+});

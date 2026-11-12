@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 384 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 387 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -148,6 +148,7 @@ Every method of `@didit-protocol/sdk-node`: 384 methods, generated from `openapi
 
 | Method                                                                                          | HTTP                                                                                                              | Returns                                 | Notes              |
 | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------ |
+| `didit.cases.blueprints.aiDraft(params: CasesBlueprintsAiDraftParams)`                          | `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/`                 | `CaseBlueprintAiDraftResponse`          | application scoped |
 | `didit.cases.blueprints.create(params: CasesBlueprintsCreateParams)`                            | `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/`                          | `CaseBlueprintDetail`                   | application scoped |
 | `didit.cases.blueprints.delete(blueprintUuid)`                                                  | `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/`       | nothing                                 | application scoped |
 | `didit.cases.blueprints.discardDraft(blueprintUuid, params: CasesBlueprintsDiscardDraftParams)` | `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/draft/` | nothing                                 | application scoped |
@@ -600,6 +601,7 @@ Every method of `@didit-protocol/sdk-node`: 384 methods, generated from `openapi
 | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------ | ----- |
 | `didit.transactions.travelRule.confirmOwnership(transactionId, params: TransactionsTravelRuleConfirmOwnershipParams)` | `POST /v3/transactions/{transaction_id}/travel-rule/ownership/` | `TravelRuleTransferDetail`           |       |
 | `didit.transactions.travelRule.createMessage(transactionId, params?: TransactionsTravelRuleCreateMessageParams)`      | `POST /v3/transactions/{transaction_id}/travel-rule/messages/`  | `TravelRuleMessage`                  |       |
+| `didit.transactions.travelRule.createUserLink(transactionId, params?: TransactionsTravelRuleCreateUserLinkParams)`    | `POST /v3/transactions/{transaction_id}/travel-rule/user-link/` | `TravelRuleUserLinkResponse`         |       |
 | `didit.transactions.travelRule.listDeliveries(transactionId, params?: TransactionsTravelRuleListDeliveriesParams)`    | `GET /v3/transactions/{transaction_id}/travel-rule/deliveries/` | page of `TravelRuleDeliveryLogEntry` |       |
 | `didit.transactions.travelRule.listMessages(transactionId)`                                                           | `GET /v3/transactions/{transaction_id}/travel-rule/messages/`   | `TravelRuleMessage[]`                |       |
 | `didit.transactions.travelRule.triggerTestVaspInbound(params: TransactionsTravelRuleTriggerTestVaspInboundParams)`    | `POST /v3/travel-rule/test-vasp/inbound/`                       | `TravelRuleTestVaspInboundResponse`  |       |
@@ -610,6 +612,7 @@ Every method of `@didit-protocol/sdk-node`: 384 methods, generated from `openapi
 | Method                                                                                           | HTTP                                                           | Returns                                             | Notes |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | --------------------------------------------------- | ----- |
 | `didit.travelRule.clearVaspDecision(vaspId)`                                                     | `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`             | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.createVasp(params: TravelRuleCreateVaspParams)`                                | `POST /v3/travel-rule/vasps/`                                  | `VaspDirectoryEntry`                                |       |
 | `didit.travelRule.createWidgetSession(params?: TravelRuleCreateWidgetSessionParams)`             | `POST /v3/travel-rule/widget-session/`                         | `TravelRuleWidgetSessionResponse`                   |       |
 | `didit.travelRule.listVaspQuestionnaires(vaspId)`                                                | `GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/`          | `TravelRuleCounterpartyQuestionnaireList`           |       |
 | `didit.travelRule.listVasps(params?: TravelRuleListVaspsParams)`                                 | `GET /v3/travel-rule/vasps/`                                   | page of `VaspDirectoryEntry`                        |       |

@@ -284,6 +284,8 @@ export interface TransactionsCreateParamsTravelRuleDetails {
   beneficiary?: Record<string, unknown>;
   /** The `originator` and `beneficiary` blocks wrapped in one IVMS 101 object (`IVMS101` is accepted too). Top-level blocks win over the wrapper's. */
   ivms101?: Record<string, unknown>;
+  /** discovery uses automatic counterparty discovery. user asks the end user to choose, issues a link and attempts email when their Didit record has an address. Cannot be combined with beneficiary_data.counterparty_vasp_name or counterparty_vasp_lei. Read user_choice in the response; link or email failure does not fail creation. */
+  counterparty_choice?: "discovery" | "user" | (string & {});
 }
 
 export interface TransactionsCreateSdkTokenParams {
@@ -568,6 +570,11 @@ export interface TransactionsTravelRuleCreateMessageParams {
   files?: Uploadable[];
 }
 
+export interface TransactionsTravelRuleCreateUserLinkParams {
+  /** link returns a new link; email also attempts to send it to the end user's Didit-record email. */
+  channel?: "link" | "email" | (string & {});
+}
+
 export interface TransactionsTravelRuleListDeliveriesParams {
   /** Entries per page. Defaults to 100 and larger values are capped at 100; a value above 1,000,000 returns `400`. */
   limit?: number;
@@ -590,19 +597,20 @@ export interface TransactionsTravelRuleTriggerTestVaspInboundParams {
   reference?: string;
 }
 
-/** Provide exactly one of: payment_txn_id (finish), action=cancel, action=resend, action=update_compliance_email with compliance_email, action=update_originator_wallet with wallet_address, or action=beneficiary_vasp with beneficiary_vasp. */
+/** Provide exactly one of: payment_txn_id (finish), action=cancel, action=resend, action=update_compliance_email with compliance_email, action=update_originator_wallet with wallet_address, or action=beneficiary_vasp with beneficiary_vasp. Alternatively, provide action=add_vasp_hint with name and optional lei and country. */
 export interface TransactionsTravelRuleUpdateTransferParams {
   /** The on-chain transaction hash. Requires the transfer to be an outbound transfer in COMPLETED status. */
   payment_txn_id?: string;
-  /** "cancel" cancels a non-terminal transfer. "resend" re-runs routing for an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA. "update_compliance_email" replaces the compliance email the request goes to, on an outbound transfer in one of those three statuses; send "resend" afterwards. "update_originator_wallet" records the wallet the funds actually left from (`wallet_address`, `memo`). "beneficiary_vasp" names the counterparty VASP yourself (requires `beneficiary_vasp`) for an outbound transfer in one of those statuses: it is routed to that VASP and sent again. */
+  /** "cancel" cancels a non-terminal transfer. "resend" re-runs routing for an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA. "update_compliance_email" replaces the compliance email the request goes to, on an outbound transfer in one of those three statuses; send "resend" afterwards. "update_originator_wallet" records the wallet the funds actually left from (`wallet_address`, `memo`). "beneficiary_vasp" names the counterparty VASP yourself (requires `beneficiary_vasp`) for an outbound transfer in one of those statuses: it is routed to that VASP and sent again. "add_vasp_hint" saves a counterparty name and optional LEI and country, then re-runs discovery on an outbound transfer in a resendable status. */
   action?:
     | "cancel"
     | "resend"
     | "update_compliance_email"
     | "update_originator_wallet"
     | "beneficiary_vasp"
+    | "add_vasp_hint"
     | (string & {});
-  /** Required with `action: update_compliance_email`. Kept as this transfer's `beneficiary_data.counterparty_vasp_email`: it belongs to this transfer only and joins no directory entry and no contact list. */
+  /** Required with action=update_compliance_email. Saved in beneficiary_data.counterparty_vasp_email. If the transfer has a known directory VASP, also saved as your application-private contact for that VASP. */
   compliance_email?: string;
   /** With `action: update_originator_wallet`: the wallet the funds left from. When the transfer's UTXO inputs are known it must be one of them. */
   wallet_address?: string;
@@ -610,4 +618,16 @@ export interface TransactionsTravelRuleUpdateTransferParams {
   memo?: string;
   /** Required with action=beneficiary_vasp: the `id` of a directory VASP, from `GET /v3/travel-rule/vasps/`. Your choice outranks every automatic discovery step, which never overrides it. */
   beneficiary_vasp?: string;
+  /** With action=cancel: your cancellation reason. Omitted or empty means unspecified. */
+  reason?: "" | "user_cancelled" | "wrong_wallet" | "compliance_decision" | "other" | (string & {});
+  /** With action=resend: whether your team should be notified when the counterparty answers. Initially false; omission preserves the saved preference. */
+  notify_on_answer?: boolean;
+  /** Required with action=add_vasp_hint. Counterparty VASP name. */
+  name?: string;
+  /** With action=add_vasp_hint: optional LEI, normalized to uppercase. Empty clears the previous LEI hint. */
+  lei?: string;
+  /** With action=add_vasp_hint: optional country hint, normalized to uppercase. Empty clears the previous country hint. */
+  country?: string;
+  /** With action=update_compliance_email: optional counterparty name saved with the address when nonempty. */
+  vasp_name?: string;
 }

@@ -476,6 +476,28 @@ describe("transactions", () => {
     );
   });
 
+  it("transactions.travel_rule.create_user_link: POST /v3/transactions/{transaction_id}/travel-rule/user-link/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/transactions/{transaction_id}/travel-rule/user-link/"),
+    });
+    const result = await client.transactions.travelRule.createUserLink("transaction-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/transactions/transaction-id-1/travel-rule/user-link/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/transactions/{transaction_id}/travel-rule/user-link/"),
+    );
+  });
+
   it("transactions.travel_rule.list_deliveries: GET /v3/transactions/{transaction_id}/travel-rule/deliveries/", async () => {
     const { client, calls } = mockClient({
       status: 200,
