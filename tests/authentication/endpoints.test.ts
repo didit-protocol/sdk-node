@@ -1027,6 +1027,22 @@ describe("submitAgentConsent and createAgentApprovalOptions", () => {
       expect(error.message).not.toContain(credential);
     });
 
+    it("keeps no parser error as the cause of a malformed 2xx", async () => {
+      const credential = "credential-string-0123456789";
+      issuer.route(
+        "POST",
+        "/agents/consent/",
+        () =>
+          new Response(`{not json ${credential}`, {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      );
+      const error = await consent({ id: credential });
+      expect((error as Error).cause).toBeUndefined();
+      expect(`${error.message}${String(error)}`).not.toContain(credential);
+    });
+
     it("keeps no transport text or cause on a connection failure", async () => {
       const credential = 'cred"ential\\string-0123456789';
       issuer.route("POST", "/agents/consent/", () => {
