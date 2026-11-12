@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.14.0](https://github.com/didit-protocol/sdk-node/compare/v2.13.1...v2.14.0) (2026-11-12)
+
+
+### Features
+
+* **spec:** sync API spec 2026-11-12 ([a76e279](https://github.com/didit-protocol/sdk-node/commit/a76e2799a6f73f3fc9b33ac019c06de35f12d6f8))
+
+
+### API changes that can break typed code
+
+* **spec:** `POST /v3/organization/{organization_id}/application/{application_id}/cases/` request field `links[].entity_type` was added and is required ([a76e279](https://github.com/didit-protocol/sdk-node/commit/a76e2799a6f73f3fc9b33ac019c06de35f12d6f8))
+* **spec:** `POST /v3/organization/{organization_id}/application/{application_id}/cases/` request field `links[].entity_uuid` was added and is required ([a76e279](https://github.com/didit-protocol/sdk-node/commit/a76e2799a6f73f3fc9b33ac019c06de35f12d6f8))
+* **spec:** `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/publish/` response field `content_config` changed type from any to object ([a76e279](https://github.com/didit-protocol/sdk-node/commit/a76e2799a6f73f3fc9b33ac019c06de35f12d6f8))
+
 ## [2.13.1](https://github.com/didit-protocol/sdk-node/compare/v2.13.0...v2.13.1) (2026-11-12)
 
 
