@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.13.1](https://github.com/didit-protocol/sdk-node/compare/v2.13.0...v2.13.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **authentication:** a failure to encode a consent request has a fixed message ([7f3abae](https://github.com/didit-protocol/sdk-node/commit/7f3abae8e96b410dbafd4739955d85e466b424c5))
+* **authentication:** a malformed 2xx consent error keeps no parser exception as its cause ([1431828](https://github.com/didit-protocol/sdk-node/commit/14318281c148b5270f202341b3f009d18c78496f))
+* **authentication:** a malformed 2xx consent message reads the content type from the sanitized response ([cf8e825](https://github.com/didit-protocol/sdk-node/commit/cf8e82571ea264bbdb1499da612986bbfc12107e))
+* **authentication:** collect consent secrets from the JSON the request carries ([e88d44a](https://github.com/didit-protocol/sdk-node/commit/e88d44a2b751b2fdf74f31bb9c0f1ab540c55e8f))
+* **authentication:** read consent secrets from the bytes that were sent ([7d39bfe](https://github.com/didit-protocol/sdk-node/commit/7d39bfe555a891b08891d3f4a9016c36352f9aeb))
+* **authentication:** redact the parsed agent-consent response structurally ([7f765d2](https://github.com/didit-protocol/sdk-node/commit/7f765d2ecf43bbd1aae6a9b8f71ae8a753a547de))
+* **authentication:** redact the parsed agent-consent response, not its raw text ([39b40ca](https://github.com/didit-protocol/sdk-node/commit/39b40cae2a76e0e3501db3d07f7e21eb7385cf01))
+* **authentication:** sanitize the whole consent response once on receipt ([4904ffd](https://github.com/didit-protocol/sdk-node/commit/4904ffda40242117276f0e0f99e12f953a68267b))
+* **authentication:** successful consent responses reach the caller unchanged; fold header-name case ([396ad57](https://github.com/didit-protocol/sdk-node/commit/396ad57cc2071dfd6079e8ba65e1ea104585ff98))
+* **authentication:** the debug log of a consent call never records a raw request id ([14a74b1](https://github.com/didit-protocol/sdk-node/commit/14a74b1656cf39a8aa962a52ca32675d6d4f9991))
+* **authentication:** treat only assertion strings of 16+ characters as secrets ([9c753e7](https://github.com/didit-protocol/sdk-node/commit/9c753e70fd081205c1a7d58a2936f11ada0ea76d))
+* **authentication:** withhold transport causes, redact empty bodies, keep safe key names ([c919bbc](https://github.com/didit-protocol/sdk-node/commit/c919bbc9771e26159c9f2fe733ca0390ef61d42f))
+
 ## [2.13.0](https://github.com/didit-protocol/sdk-node/compare/v2.12.0...v2.13.0) (2026-11-11)
 
 
