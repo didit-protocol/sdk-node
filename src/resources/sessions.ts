@@ -250,7 +250,12 @@ const SESSIONS_CANCEL_FEATURE_OVERRIDE: OperationSpec = {
   path: "/v3/session/{sessionId}/features/overrides/{overrideId}/cancel/",
   dates: "FeatureStatusOverride",
 };
-const SESSIONS_CREATE: OperationSpec = { method: "POST", path: "/v3/session/", body: "json" };
+const SESSIONS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/",
+  body: "json",
+  dates: { p: { expires_at: 1 } },
+};
 const SESSIONS_CREATE_KYB_PARTY_DRAFT: OperationSpec = {
   method: "POST",
   path: "/v3/session/{sessionId}/kyb/parties/drafts/",
@@ -1003,9 +1008,9 @@ export class Sessions extends APIResource {
    *
    * Call this from your backend (never the browser - the API key is a secret) whenever a user or business needs to be verified: at signup, before a sensitive action, or when re-verification is required. Prerequisites: a published workflow (created in the Console [Workflows](https://docs.didit.me/console/workflows) page) and an application API key with available credits. Sandbox applications bypass the credit check.
    *
-   * **Idempotency:** when `vendor_data` is provided and an unfinished session (`Not Started`, `In Progress`, `Resubmitted`, or `Awaiting User`) with the same `vendor_data` already exists on the workflow's **current latest published version** (and that session already has a hosted verification URL), the existing session is returned (still `201`) instead of creating a duplicate - with its `callback` and `metadata` updated to the newly provided values. An unfinished session created on an older version of the workflow (one that has since been republished) is **not** reused; a new session pinned to the latest published version is created instead. Sessions in `Approved`, `Declined`, `In Review`, `Expired`, `Abandoned`, or `Kyc Expired` are never reused.
+   * **Idempotency:** for a User Verification workflow, when `vendor_data` is provided and an unfinished session (`Not Started`, `In Progress`, `Resubmitted`, or `Awaiting User`) with the same `vendor_data` already exists on the workflow's **current latest published version** (and that session already has a hosted verification URL), the existing session is returned (still `201`) instead of creating a duplicate - with its `callback` and `metadata` updated to the newly provided values. An unfinished session created on an older version of the workflow (one that has since been republished) is **not** reused; a new session pinned to the latest published version is created instead. Sessions in `Approved`, `Declined`, `In Review`, `Expired`, `Abandoned`, or `Kyc Expired` are never reused. A Business Verification workflow creates a new session on every call.
    *
-   * **Side effects:** the hosted verification URL is generated and stored; if `contact_details.send_notification_emails` is `true` and an email is provided, a verification invite email is sent. The session expires after the workflow's configured session expiration time. For KYB workflows, `contact_details.phone` and `expected_details` are ignored.
+   * **Side effects:** the hosted verification URL is generated and stored; if `contact_details.send_notification_emails` is `true` and an email is provided, a verification invite email is sent. The session expires after `session_expiration_time` seconds when the request sets it, otherwise after the workflow's configured session expiration time. For KYB workflows, `contact_details.phone` and `expected_details` are ignored.
    *
    * `POST /v3/session/`
    */
