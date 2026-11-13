@@ -455,6 +455,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { results: { i: { p: { biometric_template_expires_at: 1 } } } },
   },
   SessionsCreateKybPartyDraftResponse: { p: { created_at: 1, updated_at: 1 } },
+  SessionsCreateResponse: { p: { expires_at: 1 } },
   SessionsDeleteResponse: { p: { biometric_template_expires_at: 1 } },
   SessionsImportsListActiveJobsResponse: { p: { results: { i: "ImportJobSummary" } } },
   SessionsImportsListErrorsResponse: { p: { results: { i: "SessionImportError" } } },

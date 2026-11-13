@@ -644,6 +644,19 @@ export interface AddressValidationResult {
   formatted_address: string | null;
   latitude: number | null;
   longitude: number | null;
+  /** The kind of delivery point the address is, for United States and Canadian addresses: `street`, `po_box` (a PO box or lock box), `high_rise` (a high-rise or business complex), `rural_route`, `general_delivery`, `firm` (a firm or company address) or `building`. `null` for addresses in other countries, when the address has no type on record, and when `status` is `unavailable`. */
+  address_type:
+    | "street"
+    | "po_box"
+    | "high_rise"
+    | "rural_route"
+    | "general_delivery"
+    | "firm"
+    | "building"
+    | (string & {})
+    | null;
+  /** `true` when the address is a residence, `false` when it is a business. `null` when this is unknown, when it is not available for the address's country, and when `status` is `unavailable`. Available for addresses in the United States, Great Britain, the Netherlands and Ireland. */
+  is_residential: boolean | null;
 }
 
 /** The normalised address. `null` when `status` is `unavailable`. */
@@ -729,7 +742,7 @@ export interface Application {
   /** Internal description for the application (not shown to end users). */
   description?: string | null;
   created_at?: Date;
-  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico), `ae` (United Arab Emirates) and `us` (United States, N. Virginia) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
   data_location?: ApplicationDataLocation;
   /** The application's products. Always all three, in this order: `identity`, `transactions`, `authentication`. A new application has `identity` enabled with every module on, and `transactions` and `authentication` disabled. Read-only: a `products` key in a create or update body is ignored. */
   products?: ApplicationProduct[];
@@ -1156,14 +1169,14 @@ export interface ApplicationCredentialsSummary {
   client_id?: string;
   /** Use this as `x-api-key` on every verification API call. New keys start with `sk_live_` (live application) or `sk_test_` (sandbox application), followed by 43 URL-safe characters (letters, digits, `-` and `_`). Keys created before this format have no prefix and keep working unchanged. */
   api_key?: string;
-  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+  /** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico), `ae` (United Arab Emirates) and `us` (United States, N. Virginia) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
   data_location?: ApplicationDataLocation;
   /** The application's environment. A `live` application bills every verification session and check created with its key. A `sandbox` application mocks every check and is never billed, so it is where you test (each sandbox application can create 500 test sessions every 24 hours). Read this field to pick the application: never infer the environment from the name. */
   mode?: "live" | "sandbox" | (string & {});
 }
 
-/** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico) and `ae` (United Arab Emirates) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
-export type ApplicationDataLocation = "eu" | "au" | "mx" | "ae" | (string & {});
+/** Where the application's verification data is stored and processed, chosen when the application is created. `eu` is the European Union (Ireland), the default. `au` (Australia, Sydney), `mx` (Mexico), `ae` (United Arab Emirates) and `us` (United States, N. Virginia) are coming soon: a request that names them answers 400 `This data location is not available yet.` An organization's Sandbox application is always in the European Union. */
+export type ApplicationDataLocation = "eu" | "au" | "mx" | "ae" | "us" | (string & {});
 
 /** Application sign-in URL for an admin-sent sign-in link. Optional; an empty string disables sending. A nonempty value must use HTTPS and the exact hostname of website_url (subdomains must match), with no userinfo, query, fragment or whitespace and no port other than 443. The server also revalidates the saved URI when website_url changes; update or clear initiate_login_uri in the same PATCH if needed. The hosted handoff adds iss and login_hint, but creates no session or tokens. See /authentication/sign-in-methods#admin-sent-sign-in-link. */
 export type ApplicationInitiateLoginURI = string;
@@ -1208,6 +1221,8 @@ export interface BankAccountCheckResponse {
   result: "match" | "close_match" | "no_match" | "cannot_verify" | (string & {});
   /** Only on a `close_match`, and only when the bank returned it: the name on the account, as the bank holds it. `null` otherwise. */
   holder_name: string | null;
+  /** The 0 to 100 similarity between the holder name you sent and the name on the account: the score `result` was decided on, so you can apply your own threshold. `result` stays authoritative and is decided with the default thresholds, a `match` from 85 and a `close_match` from 70 up to 84; they are the workflow settings `bank_name_match_threshold` and `bank_partial_match_floor` in a verification session. A name with nothing in common scores `0`. `null` when no name was compared: `cannot_verify`, a `no_match` for an account that does not exist, or a bank that answered with its own verdict and no holder name or score. */
+  name_match_score: number | null;
   /** The account, masked to its last 4 characters. */
   account: string;
   /** Your own reference, as you sent it. */
