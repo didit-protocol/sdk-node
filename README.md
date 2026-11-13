@@ -214,6 +214,17 @@ Failed requests are retried up to `maxRetries` times (default 2) with exponentia
 `GET`, `HEAD`, `PUT` and `DELETE` are retried on connection errors, timeouts, 408, 429 and 5xx.
 `POST` and `PATCH` are never retried once the request may have reached the server: only on 429 or when the connection failed before anything was sent.
 
+### Idempotency
+
+Pass an `idempotencyKey` request option to make a write safe to repeat: the API runs the operation once per key and returns the first response to a repeat.
+
+```ts
+await didit.sessions.create({ workflow_id }, { idempotencyKey: "order-123" });
+```
+
+Choose the key yourself (1 to 255 characters) and send the same key when you repeat the operation; the SDK never generates one.
+With a key, POST and PATCH are retried like GET.
+
 ### Raw responses
 
 ```ts
