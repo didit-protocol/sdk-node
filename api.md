@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 387 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 389 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -660,13 +660,15 @@ Every method of `@didit-protocol/sdk-node`: 387 methods, generated from `openapi
 
 ## `didit.travelRule.walletAddresses`
 
-| Method                                                                                               | HTTP                                                    | Returns                      | Notes  |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------- | ------ |
-| `didit.travelRule.walletAddresses.bulkImport(params?: TravelRuleWalletAddressesBulkImportParams)`    | `POST /v3/travel-rule/wallet-addresses/import/`         | `WalletAddressImportReport`  | upload |
-| `didit.travelRule.walletAddresses.create(params: TravelRuleWalletAddressesCreateParams)`             | `POST /v3/travel-rule/wallet-addresses/`                | `WalletAddressEntry`         |        |
-| `didit.travelRule.walletAddresses.delete(entryUuid)`                                                 | `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/` | nothing                      |        |
-| `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                | `GET /v3/travel-rule/wallet-addresses/`                 | page of `WalletAddressEntry` |        |
-| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)` | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`  | `WalletAddressEntryUpdate`   |        |
+| Method                                                                                                             | HTTP                                                           | Returns                            | Notes  |
+| ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ---------------------------------- | ------ |
+| `didit.travelRule.walletAddresses.bulkImport(params?: TravelRuleWalletAddressesBulkImportParams)`                  | `POST /v3/travel-rule/wallet-addresses/import/`                | `WalletAddressImportReport`        | upload |
+| `didit.travelRule.walletAddresses.create(params: TravelRuleWalletAddressesCreateParams)`                           | `POST /v3/travel-rule/wallet-addresses/`                       | `WalletAddressEntry`               |        |
+| `didit.travelRule.walletAddresses.delete(entryUuid)`                                                               | `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/`        | nothing                            |        |
+| `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                              | `GET /v3/travel-rule/wallet-addresses/`                        | page of `WalletAddressEntry`       |        |
+| `didit.travelRule.walletAddresses.listTransfers(entryUuid, params?: TravelRuleWalletAddressesListTransfersParams)` | `GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/` | page of `TravelRuleWalletTransfer` |        |
+| `didit.travelRule.walletAddresses.lookup(params: TravelRuleWalletAddressesLookupParams)`                           | `GET /v3/travel-rule/wallet-addresses/lookup/`                 | `TravelRuleWalletLookup`           |        |
+| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)`               | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`         | `WalletAddressEntryUpdate`         |        |
 
 ## `didit.travelRule.walletProofs`
 

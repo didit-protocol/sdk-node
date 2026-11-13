@@ -114,7 +114,7 @@ describe("travel_rule", () => {
 
   it("travel_rule.create_widget_session: POST /v3/travel-rule/widget-session/", async () => {
     const { client, calls } = mockClient({
-      status: 201,
+      status: 200,
       json: responseExample("POST /v3/travel-rule/widget-session/"),
     });
     const result = await client.travelRule.createWidgetSession();
@@ -610,6 +610,49 @@ describe("travel_rule", () => {
       responseExample("GET /v3/travel-rule/wallet-addresses/", "page"),
     );
     expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("travel_rule.wallet_addresses.list_transfers: GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/", "page"),
+    });
+    const page = await client.travelRule.walletAddresses.listTransfers("entry-uuid-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/wallet-addresses/entry-uuid-1/transfers/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("travel_rule.wallet_addresses.lookup: GET /v3/travel-rule/wallet-addresses/lookup/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/wallet-addresses/lookup/"),
+    });
+    const result = await client.travelRule.walletAddresses.lookup({
+      address: "value",
+      chain: "value",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/wallet-addresses/lookup/");
+    expect(request.query).toEqual({ address: "value", chain: "value" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/travel-rule/wallet-addresses/lookup/"));
   });
 
   it("travel_rule.wallet_addresses.update: PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/", async () => {

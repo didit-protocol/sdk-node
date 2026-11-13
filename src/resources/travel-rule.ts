@@ -19,7 +19,9 @@ import type {
   TravelRuleNetworksOverview,
   TravelRuleSettingsDetail,
   TravelRuleTransferRow,
+  TravelRuleWalletLookup,
   TravelRuleWalletProofReview,
+  TravelRuleWalletTransfer,
   TravelRuleWidgetSessionResponse,
   TravelRuleWorkspace,
   TravelRuleWorkspaceDomainCodeResponse,
@@ -52,6 +54,9 @@ import type {
   TravelRuleWalletAddressesCreateParams,
   TravelRuleWalletAddressesListParams,
   TravelRuleWalletAddressesListResponse,
+  TravelRuleWalletAddressesListTransfersParams,
+  TravelRuleWalletAddressesListTransfersResponse,
+  TravelRuleWalletAddressesLookupParams,
   TravelRuleWalletAddressesUpdateParams,
   TravelRuleWalletProofsDecideParams,
   TravelRuleWalletProofsListParams,
@@ -167,6 +172,17 @@ const TRAVEL_RULE_WALLET_ADDRESSES_LIST: OperationSpec = {
   path: "/v3/travel-rule/wallet-addresses/",
   query: ["limit", "offset"],
   dates: { p: { results: { i: "WalletAddressEntry" } } },
+};
+const TRAVEL_RULE_WALLET_ADDRESSES_LIST_TRANSFERS: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/",
+  query: ["limit", "offset"],
+  dates: { p: { results: { i: "TravelRuleWalletTransfer" } } },
+};
+const TRAVEL_RULE_WALLET_ADDRESSES_LOOKUP: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/wallet-addresses/lookup/",
+  query: ["address", "chain", "memo"],
 };
 const TRAVEL_RULE_WALLET_ADDRESSES_UPDATE: OperationSpec = {
   method: "PATCH",
@@ -435,7 +451,7 @@ export class TravelRuleTransfers extends APIResource {
   /**
    * List Travel Rule transfers
    *
-   * Your application's Travel Rule transfers, newest first, paginated with `limit` (default 50) and `offset`. Rows carry VASP names, wallets and memos only, never person data. Comma-separated values select several. An unknown value answers 400 naming the parameter, for example `{"direction": ["Unknown value(s): inbound."]}`.
+   * Your application's Travel Rule transfers, newest first, paginated with `limit` (default 50) and `offset`. Rows carry VASP names, wallets, memos, the transaction's review decision, your own end user's name (masked exactly as the transaction detail masks it), the counterparty VASP's jurisdiction, the chain and the fiat amount; they never carry the counterparty's person data. Comma-separated values select several. An unknown value answers 400 naming the parameter, for example `{"direction": ["Unknown value(s): inbound."]}`.
    *
    * `GET /v3/travel-rule/transfers/`
    */
@@ -546,6 +562,42 @@ export class TravelRuleWalletAddresses extends APIResource {
     options?: RequestOptions,
   ): PagePromise<TravelRuleWalletAddressesListResponse, WalletAddressEntry> {
     return this._client.requestPage(TRAVEL_RULE_WALLET_ADDRESSES_LIST, [], params, options);
+  }
+
+  /**
+   * List the transfers that used a wallet address
+   *
+   * Paginated list of your Travel Rule transfers whose originator or beneficiary wallet is this address book entry, newest first. The endpoint answers 404 once the entry is deleted.
+   *
+   * `GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/`
+   *
+   * @param entryUuid entry_uuid
+   */
+  listTransfers(
+    entryUuid: string,
+    params: TravelRuleWalletAddressesListTransfersParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleWalletAddressesListTransfersResponse, TravelRuleWalletTransfer> {
+    return this._client.requestPage(
+      TRAVEL_RULE_WALLET_ADDRESSES_LIST_TRANSFERS,
+      [entryUuid],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Look up a wallet address
+   *
+   * Checks one exact address, chain and memo against your own wallet address book and then against wallets proven by other Didit Travel Rule participants. It never screens the wallet, never sends a message and never returns holder data from another application. `directory_checked` is always `false`: the lookup does not search a public directory, so `none` means the wallet is neither in your book nor proven on Didit, not that it is unknown elsewhere.
+   *
+   * `GET /v3/travel-rule/wallet-addresses/lookup/`
+   */
+  lookup(
+    params: TravelRuleWalletAddressesLookupParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleWalletLookup> {
+    return this._client.request(TRAVEL_RULE_WALLET_ADDRESSES_LOOKUP, [], params, options);
   }
 
   /**

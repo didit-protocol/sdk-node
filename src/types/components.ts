@@ -9947,11 +9947,11 @@ export interface SignatureResult {
   status?: "intro" | "review" | "code" | "signing" | "signed" | "declined" | (string & {});
   /** The step's outcome. A warning sets it through its rule; custom status rules apply after. */
   verdict?: "Not Finished" | "Approved" | "In Review" | "Declined" | (string & {});
-  /** `simple` (default) or `aes`. `qes` (Qualified Electronic Signature, QES) is an add-on that is not available yet. */
+  /** `simple` (default), `aes` or `qes` (Qualified electronic signature, QES, an add-on: a qualified trust service provider issues the signer a qualified certificate and signs after the signer enters the code it texts them). */
   level?: "simple" | "aes" | "qes" | (string & {});
-  /** `pdf` for a Simple signature, `pades` for Advanced (AES). */
+  /** `pdf` for a Simple signature, `pades` for Advanced (AES) and Qualified (QES). */
   format?: "pdf" | "pades" | (string & {});
-  /** `PAdES-B-LT` once an Advanced (AES) signature is signed, otherwise null. */
+  /** The PAdES profile of the signed documents: `PAdES-B-LT` once an Advanced (AES) or Qualified (QES) signature is signed, otherwise null. */
   profile?: string | null;
   signer?: SignatureResultSigner;
   /** The verified identity the signature relies on. Empty for a Simple signature with no verified identity. */
@@ -10006,7 +10006,9 @@ export interface SignatureResultCertificate {
 }
 
 export interface SignatureResultConfirmation {
-  /** `null` for a Simple signature, which has no code. */
+  /** Who sent the code: `didit`, or `qualified_provider` for a Qualified (QES) signature, whose code comes by SMS from the qualified trust service provider and authorizes the signer's qualified certificate. `null` for a Simple signature. */
+  sent_by?: "didit" | "qualified_provider" | (string & {}) | null;
+  /** `null` for a Simple signature, which has no code. Always `sms` for a Qualified (QES) signature. */
   channel?: "email" | "sms" | (string & {}) | null;
   /** The masked contact the code went to. */
   destination?: string | null;
@@ -10103,10 +10105,12 @@ export interface SignatureResultTimestamp {
 export interface SignatureResultValidation {
   /** `true` when every document is valid. `null` when the outcome of signing couldn't be confirmed. */
   valid?: boolean | null;
-  /** Set when `valid` is `null`: `signature_provider_outcome_unknown`. */
+  /** `signature_provider_outcome_unknown` while `valid` is `null` (the signing outcome is not known yet); `signature_provider_failed` when the qualified trust service provider ended a Qualified (QES) signing without a signature: the attempt is back at review and the signer can ask for a new code. */
   reason?: string;
   checked_at?: Date;
   documents?: SignatureResultValidationDocuments[];
+  /** The PAdES profile every signed document reached. */
+  profile?: string | null;
 }
 
 export interface SignatureResultValidationDocuments {
@@ -10119,12 +10123,28 @@ export interface SignatureResultValidationDocuments {
   /** `true` when the signing certificate chains to a trusted root. */
   trusted?: boolean;
   revoked?: boolean;
-  /** EU Trusted List check. For AES: `{"status": "not_applicable", "reason": "aes_not_qualified"}`. */
+  /** EU Trusted List check. AES: `{"status": "not_applicable", "reason": "aes_not_qualified"}`. QES: `{"status": "granted"}` when the certificate is a qualified certificate for electronic signatures issued under the qualified trust service provider's Trusted List entry, else `{"status": "not_granted", ...}`. A sandbox session's qualified level is sealed by Didit: `{"status": "not_applicable", "reason": "sandbox"}`. */
   trusted_list?: SignatureResultValidationDocumentsTrustedList;
   /** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
   certificate?: SignatureResultValidationDocumentsCertificate | null;
-  /** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
+  /** The RFC 3161 timestamp in the signature: issued by Didit for AES, by the qualified trust service provider for QES. `null` until signed, and always `null` for a Simple signature. */
   timestamp?: SignatureResultValidationDocumentsTimestamp | null;
+  /** QES: `true` only when every qualified check passed. `false` in the sandbox. */
+  qualified?: boolean;
+  /** QES: the PAdES profile of this document's signature. */
+  profile?: string | null;
+  /** QES: the checks that did not pass (empty when `valid` is `true`): the PDF signature's integrity, its chain to the qualified trust anchors, revocation, coverage of the document, the qualified time stamp, the certificate's qualified statements, the verified signer named in it, and the signed file extending exactly what was sent for signature. */
+  failed_checks?: (
+    | "integrity"
+    | "trusted"
+    | "not_revoked"
+    | "coverage"
+    | "timestamp"
+    | "qualified_certificate"
+    | "signer_named"
+    | "original_kept"
+    | (string & {})
+  )[];
 }
 
 /** The certificate the documents were signed with. `null` until signed, and always `null` for a Simple signature. */
@@ -10135,17 +10155,29 @@ export interface SignatureResultValidationDocumentsCertificate {
   serial?: string;
   valid_from?: Date;
   valid_until?: Date;
+  /** QES: which ETSI EN 319 412-5 statements the certificate carries. */
+  qualified_statements?: SignatureResultValidationDocumentsCertificateQualifiedStatements;
 }
 
-/** The RFC 3161 timestamp in the signature, issued by Didit. `null` until signed, and always `null` for a Simple signature. */
+/** QES: which ETSI EN 319 412-5 statements the certificate carries. */
+export interface SignatureResultValidationDocumentsCertificateQualifiedStatements {
+  /** An EU qualified certificate. */
+  qc_compliance?: boolean;
+  /** The key is in a qualified signature creation device. */
+  qc_sscd?: boolean;
+  /** A certificate for electronic signatures. */
+  qc_type_esign?: boolean;
+}
+
+/** The RFC 3161 timestamp in the signature: issued by Didit for AES, by the qualified trust service provider for QES. `null` until signed, and always `null` for a Simple signature. */
 export interface SignatureResultValidationDocumentsTimestamp {
   time?: Date;
-  /** Always `false` for AES. */
+  /** `false` for AES; `true` for a valid QES time stamp. */
   qualified?: boolean;
   valid?: boolean;
 }
 
-/** EU Trusted List check. For AES: `{"status": "not_applicable", "reason": "aes_not_qualified"}`. */
+/** EU Trusted List check. AES: `{"status": "not_applicable", "reason": "aes_not_qualified"}`. QES: `{"status": "granted"}` when the certificate is a qualified certificate for electronic signatures issued under the qualified trust service provider's Trusted List entry, else `{"status": "not_granted", ...}`. A sandbox session's qualified level is sealed by Didit: `{"status": "not_applicable", "reason": "sandbox"}`. */
 export interface SignatureResultValidationDocumentsTrustedList {
   status?: string;
   reason?: string;
@@ -10243,7 +10275,7 @@ export interface SimpleWorkflowFeature {
     | "KYB_KEY_PEOPLE"
     | "SIGNATURE"
     | (string & {});
-  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed) and `aes` for now, and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
+  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed), `aes` and `qes` (Qualified, an add-on that is refused with `qes_not_available` while `signature_availability.qes` is `false`), and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
   config?: Record<string, unknown>;
   /** Optional internal label for this workflow node. */
   label?: string;
@@ -11315,18 +11347,38 @@ export interface TravelRuleDelivery {
   status: "QUEUED" | "SENDING" | "RETRYING" | "DELIVERED" | "FAILED" | (string & {});
   /** The rail that carries the message. Empty until Didit has chosen one for a first message. */
   rail:
-    "INTERNAL" | "TRP" | "GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | "EMAIL" | "" | (string & {});
+    | "INTERNAL"
+    | "TRP"
+    | "GTR"
+    | "TRUST"
+    | "VERIFYVASP"
+    | "SYGNA"
+    | "EMAIL"
+    | "TEST_VASP"
+    | ""
+    | (string & {});
   /** Attempts made so far for this message. A message that is not a status poll is attempted at most 6 times. */
   attempts: number;
-  /**
-   * The kind of failure the last attempt hit, `""` when none did: for example `email undeliverable`, `trp identity endpoint unreachable` or `trp transfer inquiry delivery failed`. It never carries the counterparty's own answer, which stays on the transfer's `timeline`.
-   * When GTR answers with an error, its own status code and message are included. Response bodies are never included.
-   */
+  /** A short customer-safe reason for the last failure, `""` when there is none: `email undeliverable`, `trp identity endpoint unreachable`, `trp transfer inquiry delivery failed` or `The message could not be delivered.` It never carries the counterparty's own answer, which stays on the transfer's `timeline`, and never a response body. */
   last_error: string;
   /** When the next attempt runs while the message is `QUEUED` or `RETRYING`. */
   next_attempt_at: Date | null;
   /** When the other side took the message. */
   delivered_at: Date | null;
+  /** When the delivery last changed. */
+  updated_at: Date;
+  /** Why the last attempt failed, or null while the message has not failed. The message is a fixed customer-safe sentence: it never carries the counterparty's own text or a transport error. */
+  failure: TravelRuleDeliveryFailure | null;
+  /** Readable name of the route that carried the message: `Email`, `TRP`, `Didit`, `Didit Test VASP`, the name of a network listed in the Marketplace, or `Network` for any other network. Null until a route is chosen. */
+  route: string | null;
+}
+
+/** Why the last attempt failed, or null while the message has not failed. The message is a fixed customer-safe sentence: it never carries the counterparty's own text or a transport error. */
+export interface TravelRuleDeliveryFailure {
+  /** `email_undeliverable`: the email bounced or the address does not accept mail. `delivery_failed`: any other failure. */
+  code: "email_undeliverable" | "delivery_failed" | (string & {});
+  /** Customer-safe description of the failure. */
+  message: string;
 }
 
 /** One supplier-neutral entry in the delivery history. */
@@ -11345,6 +11397,24 @@ export interface TravelRuleDeliveryLogEntry {
   delivered_at: Date | null;
   /** Human-readable message kind and delivery status. Does not expose transport payloads or raw errors. */
   detail_lines: string[];
+  /** Attempts made so far for this message. */
+  attempts: number;
+  /** When the delivery last changed. */
+  updated_at: Date;
+  /** When the next attempt runs while the message is `QUEUED` or `RETRYING`. */
+  next_attempt_at: Date | null;
+  /** Why the last attempt failed, or null while the message has not failed. The message is a fixed customer-safe sentence: it never carries the counterparty's own text or a transport error. */
+  failure: TravelRuleDeliveryLogEntryFailure | null;
+  /** Readable name of the route that carried the message: `Email`, `TRP`, `Didit`, `Didit Test VASP`, the name of a network listed in the Marketplace, or `Network` for any other network. Null until a route is chosen. */
+  route: string | null;
+}
+
+/** Why the last attempt failed, or null while the message has not failed. The message is a fixed customer-safe sentence: it never carries the counterparty's own text or a transport error. */
+export interface TravelRuleDeliveryLogEntryFailure {
+  /** `email_undeliverable`: the email bounced or the address does not accept mail. `delivery_failed`: any other failure. */
+  code: "email_undeliverable" | "delivery_failed" | (string & {});
+  /** Customer-safe description of the failure. */
+  message: string;
 }
 
 export interface TravelRuleDeliveryLogPage {
@@ -11391,9 +11461,9 @@ export interface TravelRuleInboundResponse {
 }
 
 export interface TravelRuleManualMatchResponse {
-  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets and memos only, never the originator or beneficiary person data. */
+  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets, memos, the transaction's review decision, your own end user's name (masked exactly as the transaction detail masks it), the counterparty VASP's jurisdiction, the chain and the fiat amount. It never carries the counterparty's person data. */
   deposit: TravelRuleTransferRow;
-  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets and memos only, never the originator or beneficiary person data. */
+  /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets, memos, the transaction's review decision, your own end user's name (masked exactly as the transaction detail masks it), the counterparty VASP's jurisdiction, the chain and the fiat amount. It never carries the counterparty's person data. */
   message: TravelRuleTransferRow;
 }
 
@@ -11918,7 +11988,7 @@ export interface TravelRuleTransferDetailTimeline {
   reason?: string;
 }
 
-/** One Travel Rule transfer as the transfers list shows it: VASP names, wallets and memos only, never the originator or beneficiary person data. */
+/** One Travel Rule transfer as the transfers list shows it: VASP names, wallets, memos, the transaction's review decision, your own end user's name (masked exactly as the transaction detail masks it), the counterparty VASP's jurisdiction, the chain and the fiat amount. It never carries the counterparty's person data. */
 export interface TravelRuleTransferRow {
   /** The transfer's id. */
   id?: string;
@@ -11927,6 +11997,10 @@ export interface TravelRuleTransferRow {
   /** Your own id for the transaction. Transfers Didit books for you, such as a Didit Test VASP inbound transfer, carry a generated one. */
   txn_id?: string | null;
   txn_date?: Date;
+  /** The transaction's own review decision, which can differ from the transfer's `status`: a transfer may wait on its counterparty while its transaction is approved, or be stuck while its transaction is in review. */
+  review_status?: "APPROVED" | "IN_REVIEW" | "DECLINED" | "AWAITING_USER" | (string & {});
+  /** Your own end user (the transaction's applicant), exactly as the transaction detail stores it: masked with the first letter of each name part while the transfer's data is masked, and never the counterparty's person data. Empty when the transaction has no applicant party. */
+  person_name?: string;
   /** withdrawal: outbound. message: an inbound transfer a rail created from a counterparty's message (a TRP inquiry, the INTERNAL inbound leg, or a GTR, VerifyVASP or Sygna Bridge message). deposit: any other inbound transfer. */
   kind?: "withdrawal" | "deposit" | "message" | (string & {});
   direction?: "INBOUND" | "OUTBOUND" | (string & {});
@@ -11960,12 +12034,20 @@ export interface TravelRuleTransferRow {
     | null;
   /** The transaction's currency. */
   asset?: string;
+  /** The chain the transfer moved on, as a canonical code for example `ETH`, `BTC` or `SOL`; empty when the transfer names no chain. */
+  chain?: string;
   /** The amount as a plain decimal, for example "1.25". */
   amount?: string;
+  /** The transfer's fiat value as a plain decimal, in `fiat_currency`: Didit's calculated conversion when it has one, otherwise the amount you supplied in your own default currency. Null when neither is known, for example on a sandbox transfer with no supplied conversion. */
+  fiat_amount?: string | null;
+  /** The currency `fiat_amount` is expressed in, or null. */
+  fiat_currency?: string | null;
   /** Outbound: your VASP's legal name. Inbound: the counterparty's name, from its directory entry, the Didit network member, the TRP sender, the Didit Test VASP, or the name the transfer declared. Empty when none is known. */
   originator_vasp?: string;
   /** Outbound: the counterparty's name, worked out the same way. Inbound: your VASP's legal name. */
   beneficiary_vasp?: string;
+  /** The other VASP's jurisdiction, from its directory entry or, for a Didit network member, its profile or Travel Rule settings. Empty when the transfer names no VASP or the VASP has no jurisdiction on record. */
+  counterparty_jurisdiction?: string;
   originator_wallet?: string;
   beneficiary_wallet?: string;
   /** Memo or destination tag, empty on chains without one. */
@@ -12029,6 +12111,19 @@ export interface TravelRuleUtxoEntry {
   vout?: number | null;
 }
 
+export interface TravelRuleWalletLookup {
+  /** `book`: the wallet is in your address book (`entry_id`). `didit`: exactly one other Didit participant has proven ownership of it (`vasp_name`, `proof_state`). `ambiguous`: more than one other participant has proven it, so nothing about them is returned. `none`: no match. */
+  match: "book" | "didit" | "ambiguous" | "none" | (string & {});
+  /** Always `false`: no public directory is searched. */
+  directory_checked: boolean;
+  /** Your address book entry. Only with `match: book`. */
+  entry_id?: string;
+  /** Legal name of the participant that proved the wallet. Only with `match: didit`. */
+  vasp_name?: string;
+  /** Only with `match: didit`. */
+  proof_state?: "verified" | (string & {});
+}
+
 /** Why a wallet-ownership proof, or its last attempt, fell short of VERIFIED. Empty when nothing failed. A PENDING proof can carry one: the last attempt failed and the end user can try again. DEPOSIT_MISMATCH, DEPOSIT_STALE, TXID_REUSED and REVIEW_REJECTED close the proof as REJECTED. SIGNATURE_INVALID: the signature does not match the wallet and challenge. SIGNATURE_UNSUPPORTED_SCHEME: the wallet signed in a format Didit does not verify. DEPOSIT_NOT_FOUND, DEPOSIT_UNCONFIRMED, DEPOSIT_LOOKUP_FAILED: the test deposit is not readable or not confirmed yet; Didit keeps checking it until the test window closes. DEPOSIT_MISMATCH: the transaction does not send the expected amount from the wallet to the deposit address. DEPOSIT_STALE: the transaction predates the challenge. TXID_REUSED: the transaction already proved another wallet. CHAIN_UNSUPPORTED: the method is not available on this chain. WINDOW_EXPIRED: the test window closed. OWNERSHIP_CHANGED: the wallet's holder changed, or the wallet was deleted from your address book, after the widget session was minted. METHOD_SWITCHED: the end user picked another method before finishing this one. REVIEW_REJECTED: your reviewer rejected the screenshot. ABANDONED: the widget session lapsed before the end user finished. */
 export type TravelRuleWalletProofFailureReason =
   | ""
@@ -12076,6 +12171,27 @@ export interface TravelRuleWalletProofReview {
   /** The note sent with the decision. Empty when none. */
   review_note?: string;
   created_at?: Date;
+}
+
+export interface TravelRuleWalletTransfer {
+  /** The Travel Rule transfer. */
+  transfer_id: string;
+  status:
+    | "AWAITING_COUNTERPARTY"
+    | "ON_HOLD"
+    | "COMPLETED"
+    | "FINISHED"
+    | "CANCELLED"
+    | "EXPIRED"
+    | "COUNTERPARTY_MISMATCHED_DATA"
+    | "COUNTERPARTY_VASP_NOT_FOUND"
+    | "COUNTERPARTY_VASP_NOT_REACHABLE"
+    | "UNCONFIRMED_OWNERSHIP"
+    | "COUNTERPARTY_VASP_GENERAL_DECLINE"
+    | "NOT_ENOUGH_COUNTERPARTY_DATA"
+    | "NOT_APPLICABLE"
+    | (string & {});
+  created_at: Date;
 }
 
 export interface TravelRuleWidgetSessionResponse {
@@ -13181,7 +13297,7 @@ export interface WorkflowDetailSignatureAvailability {
   simple?: boolean;
   /** Whether Advanced (AES) can sign now. While it is `false`, saving a new step at `signature_level: "aes"` is refused with `aes_not_available`. */
   aes?: boolean;
-  /** Whether Qualified (QES) can sign now. It is `false` until a qualified provider is connected. */
+  /** Whether Qualified (QES) can be chosen now. While it is `false`, saving a new `qes` step returns `400` `qes_not_available` or `qes_provider_not_configured`. */
   qes?: boolean;
 }
 

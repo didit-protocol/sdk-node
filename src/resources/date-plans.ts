@@ -585,8 +585,10 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleCounterpartyScreeningResult: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleCounterpartyScreeningStatus: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleDataUnmasked: { p: { at: 1 } },
-  TravelRuleDelivery: { p: { next_attempt_at: 1, delivered_at: 1 } },
-  TravelRuleDeliveryLogEntry: { p: { created_at: 1, delivered_at: 1 } },
+  TravelRuleDelivery: { p: { next_attempt_at: 1, delivered_at: 1, updated_at: 1 } },
+  TravelRuleDeliveryLogEntry: {
+    p: { created_at: 1, delivered_at: 1, updated_at: 1, next_attempt_at: 1 },
+  },
   TravelRuleDeliveryLogPage: { p: { results: { i: "TravelRuleDeliveryLogEntry" } } },
   TravelRuleDiscoveryStep: { p: { at: 1 } },
   TravelRuleInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
@@ -658,8 +660,12 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleUserChoice: { p: { link_expires_at: 1 } },
   TravelRuleUserLinkResponse: { p: { expires_at: 1 } },
   TravelRuleWalletAddressesListResponse: { p: { results: { i: "WalletAddressEntry" } } },
+  TravelRuleWalletAddressesListTransfersResponse: {
+    p: { results: { i: "TravelRuleWalletTransfer" } },
+  },
   TravelRuleWalletProofReview: { p: { method_chosen_at: 1, decided_at: 1, created_at: 1 } },
   TravelRuleWalletProofsListResponse: { p: { results: { i: "TravelRuleWalletProofReview" } } },
+  TravelRuleWalletTransfer: { p: { created_at: 1 } },
   TravelRuleWidgetSessionResponse: { p: { expires_at: 1 } },
   TravelRuleWorkspace: {
     p: {

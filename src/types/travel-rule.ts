@@ -8,6 +8,7 @@ import type {
   TravelRuleTransferRow,
   TravelRuleUtxo,
   TravelRuleWalletProofReview,
+  TravelRuleWalletTransfer,
   VaspDirectoryEntry,
   WalletAddressEntry,
 } from "./components.js";
@@ -66,6 +67,12 @@ export interface TravelRuleCreateWidgetSessionParams {
   callback_url?: string;
   /** Optional. Lifetime of the minted link, in minutes. Automatically extended to cover the Satoshi test window when SATOSHI_TEST is offered. */
   expires_in_minutes?: number;
+  /** Optional. Request the ownership proof of this address book entry instead of passing `wallet_address` and `chain`. The entry must be a customer wallet with a holder (`holder_vendor_data`), an address and a chain; the saved wallet and holder are always used and a conflicting `wallet_address`, `chain`, `holder_name` or `vendor_data` is rejected. Cannot be combined with `transaction_id`. */
+  wallet_entry_id?: string;
+  /** Only with `wallet_entry_id`. `ensure` and `resend` return the entry's active link when it has one (`200`) and create one otherwise (`201`). `new` revokes the active link and creates another; it needs `request_key`. */
+  request_action?: "ensure" | "resend" | "new" | (string & {});
+  /** Only with `request_action: new`. An idempotency key: repeating the call with the same key returns the same link while it is active, and `410` once it has been revoked or has expired. */
+  request_key?: string;
 }
 
 export interface TravelRuleListVaspsParams {
@@ -326,6 +333,27 @@ export interface TravelRuleWalletAddressesListResponse {
   next?: string | null;
   previous?: string | null;
   results?: WalletAddressEntry[];
+}
+
+export interface TravelRuleWalletAddressesListTransfersParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface TravelRuleWalletAddressesListTransfersResponse {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: TravelRuleWalletTransfer[];
+}
+
+export interface TravelRuleWalletAddressesLookupParams {
+  /** The wallet address. */
+  address: string;
+  /** Chain token, for example `ETH`, `BTC` or `SOL`. */
+  chain: string;
+  /** Destination tag or memo, for chains that use one. */
+  memo?: string;
 }
 
 /** PATCH is a partial update; the response echoes only holder_name, holder_vendor_data, entity_type, travel_address, receiving_travel_address, label, and owner_type. */
