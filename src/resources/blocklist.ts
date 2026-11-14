@@ -36,6 +36,8 @@ export class Blocklist extends APIResource {
    * Blocklists the face, identity document, phone number or email address of one person verification session of the application. For each selected type, Didit takes the session's most recent record, flags it as blocklisted and adds an entry linked to the session to the matching system blocklist (`added_by: "api"`), so new sessions with a matching face, document number, phone number or email address are declined. Every selected item is checked first, so if one is missing nothing is blocklisted; repeating the call for an item already listed keeps its single entry and refreshes `blocklisted_at`. The session itself and sessions that already finished are not changed. A scoped API key needs `workflows: write`.
    *
    * `POST /v3/blocklist/add/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   add(params: BlocklistAddParams, options?: RequestOptions): APIPromise<BlocklistAddResponse> {
     return this._client.request(BLOCKLIST_ADD, [], params, options);
@@ -61,6 +63,8 @@ export class Blocklist extends APIResource {
    * Lifts the block on the face, identity document, phone number or email address of one person verification session of the application. For each selected type, Didit takes the session's most recent record, clears its blocklisted flag and deletes the system blocklist entries created from that record, so it no longer declines new sessions. Entries added to a list by value are not touched: find them with [List list entries](https://docs.didit.me/management-api/lists/list-entries) and delete them with [Delete a list entry](https://docs.didit.me/management-api/lists/delete-entry). Unblocking a record that is not blocklisted succeeds and changes nothing, and sessions that already finished are not changed. A scoped API key needs `workflows: write`.
    *
    * `POST /v3/blocklist/remove/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   remove(
     params: BlocklistRemoveParams,

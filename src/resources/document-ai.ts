@@ -34,6 +34,8 @@ export class DocumentAi extends APIResource {
    * **Persistence.** With `save_api_request=true` (default) the call is stored as an API-type session: the document, the extracted values, the field definitions and the name-match snapshot are kept, the session shows up in the Business Console, and `request_id` works with `GET /v3/session/{sessionId}/decision/`.
    *
    * `POST /v3/document-ai/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   analyze(
     params: DocumentAiAnalyzeParams,

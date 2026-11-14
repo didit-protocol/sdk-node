@@ -78,6 +78,8 @@ export class ListsEntries extends APIResource {
    *
    * `POST /v3/lists/{list_uuid}/entries/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param listUuid UUID of the list to add to. For a face you only have as an image, use Upload a face to a list instead.
    */
   create(
@@ -94,6 +96,8 @@ export class ListsEntries extends APIResource {
    * Deletes one entry from a list, system lists included. The entry stops matching at once, and deletion is irreversible: to list the value again, create a new entry. On a system face, document, phone or email blocklist, the record the entry stands for is no longer flagged as blocklisted; on the system user or business blocklist, users or businesses of the application whose `vendor_data` equals the entry's value (or whose `didit_internal_id` equals its `reference_object_uuid`) and that are `BLOCKED` return to `ACTIVE`. Sessions and transactions that already finished keep their status. A scoped API key needs `workflows: write`.
    *
    * `DELETE /v3/lists/{list_uuid}/entries/{entry_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param listUuid UUID of the list that holds the entry.
    * @param entryUuid UUID of the entry, as returned by List list entries or Create a list entry.
@@ -126,6 +130,8 @@ export class ListsEntries extends APIResource {
    *
    * `POST /v3/lists/{list_uuid}/entries/face-upload/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param listUuid UUID of a list with `entry_type: face` and `list_type: blocklist` or `allowlist`.
    */
   uploadFace(
@@ -147,6 +153,8 @@ export class Lists extends APIResource {
    * Creates an allowlist or a custom list in the application the API key belongs to. Blocklists cannot be created: Didit provisions one system blocklist per entry type, and you add to it with [Create a list entry](https://docs.didit.me/management-api/lists/create-entry). `entry_type` cannot change after creation and decides how entry values are validated and matched. Allowlist entries mark matching items as trusted (for example, a face allowlist skips the duplicated-face action) and never override a blocklist match; reference any list from a workflow or transaction rule condition with `value_type: "list"`. A scoped API key needs `workflows: write`.
    *
    * `POST /v3/lists/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(params: ListsCreateParams, options?: RequestOptions): APIPromise<ComplianceList> {
     return this._client.request(LISTS_CREATE, [], params, options);
@@ -158,6 +166,8 @@ export class Lists extends APIResource {
    * Deletes an allowlist or custom list together with its entries. Deletion is irreversible: the list and its entries no longer appear in any read, and workflow and transaction rule conditions that reference the list evaluate it as an empty list from then on. Sessions and transactions already evaluated keep their results, and the name can be reused for a new list. System lists cannot be deleted and return `400`; to empty one, [delete its entries](https://docs.didit.me/management-api/lists/delete-entry). A scoped API key needs `workflows: write`.
    *
    * `DELETE /v3/lists/{list_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param listUuid UUID of the list, as returned by List lists or Create a list.
    */
@@ -198,6 +208,8 @@ export class Lists extends APIResource {
    * Renames a list or changes its description. Only `name` and `description` are read; any other field is ignored, so `list_type` and `entry_type` keep the values they were created with. System lists cannot be modified and return `400`. The response contains only `name` and `description`: call [Get a list](https://docs.didit.me/management-api/lists/get) for the full list. A scoped API key needs `workflows: write`.
    *
    * `PATCH /v3/lists/{list_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param listUuid UUID of the list, as returned by List lists or Create a list.
    */

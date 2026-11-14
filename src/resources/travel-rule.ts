@@ -422,6 +422,8 @@ export class TravelRuleCounterpartyContacts extends APIResource {
    * Adds a private compliance address for one directory entry. Only your application sees and uses it, and the EMAIL rail writes to it before any platform contact. Adding an address the entry already has among your own contacts returns that contact.
    *
    * `POST /v3/travel-rule/counterparty-contacts/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: TravelRuleCounterpartyContactsCreateParams,
@@ -436,6 +438,8 @@ export class TravelRuleCounterpartyContacts extends APIResource {
    * Deletes one of your application's own contacts. The EMAIL rail stops writing to it at once. Platform contacts cannot be deleted.
    *
    * `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param contactUuid contact_uuid
    */
@@ -469,6 +473,8 @@ export class TravelRuleCounterpartyContacts extends APIResource {
    *
    * `PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param contactUuid contact_uuid
    */
   update(
@@ -493,6 +499,8 @@ export class TravelRuleDocuments extends APIResource {
    * Stores a PDF in your inventory so you can share it with counterparties. The file must be a PDF of at most 5 MiB. Uploading identical content of the same kind again returns the existing document. Needs the transactions write privilege.
    *
    * `POST /v3/travel-rule/documents/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: TravelRuleDocumentsCreateParams,
@@ -507,6 +515,8 @@ export class TravelRuleDocuments extends APIResource {
    * Deletes the document and every link that shared it. Deletion is irreversible and takes effect at once: shared links stop working.
    *
    * `DELETE /v3/travel-rule/documents/{document_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param documentId document_id
    */
@@ -551,6 +561,8 @@ export class TravelRuleNetworks extends APIResource {
    *
    * `POST /v3/travel-rule/networks/{network}/request/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param network The network to join through Didit's membership.
    */
   requestAccess(
@@ -593,6 +605,8 @@ export class TravelRuleNetworks extends APIResource {
    * Send the saved questionnaire to Didit's review. The saved answers must be complete: every field except lei and data_protection_contact_email, with the three attestations true. Didit approves it, asks for changes (edit and submit again) or rejects it. Networks you requested while it was pending are handed to their onboarding when it is approved.
    *
    * `POST /v3/travel-rule/networks/questionnaire/submit/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   submitQuestionnaire(options?: RequestOptions): APIPromise<TravelRuleNetworkQuestionnaire> {
     return this._client.request(TRAVEL_RULE_NETWORKS_SUBMIT_QUESTIONNAIRE, [], undefined, options);
@@ -604,6 +618,8 @@ export class TravelRuleNetworks extends APIResource {
    * Save answers to the questionnaire while it is draft or changes_requested. Saves are partial: answers you do not send are kept.
    *
    * `PUT /v3/travel-rule/networks/questionnaire/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   updateQuestionnaire(
     params: TravelRuleNetworksUpdateQuestionnaireParams = {},
@@ -653,6 +669,8 @@ export class TravelRuleUnmatchedDeposits extends APIResource {
    *
    * `POST /v3/travel-rule/unmatched/{transaction_uuid}/match/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param transactionUuid The `transaction_id` of the unmatched deposit.
    */
   match(
@@ -677,6 +695,8 @@ export class TravelRuleWalletAddresses extends APIResource {
    * Add up to 10,000 wallets to your Travel Rule address book in one call, as JSON or as a CSV file. A wallet can be sent by its address, by the SHA-256 of its lowercased address (`address_hash`) to keep the address private, or both. The import is idempotent: a wallet already in the book is reported as `existing` and left untouched, so the same file can be sent again. Each row is validated on its own, so one bad row never fails the others. A wallet imported by its hash only matches transfers to that address and can be proven with the wallet-ownership widget like any other entry.
    *
    * `POST /v3/travel-rule/wallet-addresses/import/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   bulkImport(
     params: TravelRuleWalletAddressesBulkImportParams = {},
@@ -691,6 +711,8 @@ export class TravelRuleWalletAddresses extends APIResource {
    * Add an entry to your Travel Rule wallet address book so inbound INTERNAL-rail transfers can resolve against it.
    *
    * `POST /v3/travel-rule/wallet-addresses/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: TravelRuleWalletAddressesCreateParams,
@@ -705,6 +727,8 @@ export class TravelRuleWalletAddresses extends APIResource {
    * Deletes the entry together with its ownership proofs and the screenshots they stored. It stops matching new transfers immediately and the address is freed up for re-registration. Transfers that already used the wallet keep their own record of it and read the same. Deletion is irreversible.
    *
    * `DELETE /v3/travel-rule/wallet-addresses/{entry_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param entryUuid entry_uuid
    */
@@ -774,6 +798,8 @@ export class TravelRuleWalletAddresses extends APIResource {
    *
    * `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param entryUuid entry_uuid
    */
   update(
@@ -793,6 +819,8 @@ export class TravelRuleWalletProofs extends APIResource {
    * Decide a screenshot proof from your review queue. approve verifies the proof and the address book entry and applies the ownership to the transfer the widget session was minted for, exactly as a verified signature does. A screenshot never confirms a transfer that another Didit customer sent over the INTERNAL rail: that takes a signed message or a test deposit. reject closes the proof as REJECTED with failure_reason REVIEW_REJECTED; the end user can start a new proof from the widget. The note is kept with the proof.
    *
    * `POST /v3/travel-rule/wallet-proofs/{proof_uuid}/decision/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param proofUuid proof_id from the review queue.
    */
@@ -827,6 +855,8 @@ export class TravelRuleWorkspaceResource extends APIResource {
    * Claims the directory entry this workspace is. When the work email is at a domain the entry lists, the claim is proved and applies at once: the VASP profile and Travel Rule settings are filled from the entry and Travel Rule is turned on, so the next transfer to it routes over the Didit network. Otherwise the claim waits for review (`pending_review`).
    *
    * `POST /v3/travel-rule/workspace/claim/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   claim(
     params: TravelRuleWorkspaceClaimParams,
@@ -841,6 +871,8 @@ export class TravelRuleWorkspaceResource extends APIResource {
    * Spends the emailed code and marks the email domain verified.
    *
    * `POST /v3/travel-rule/workspace/domain/confirm/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   confirmDomain(
     params: TravelRuleWorkspaceConfirmDomainParams,
@@ -855,6 +887,8 @@ export class TravelRuleWorkspaceResource extends APIResource {
    * Turns outbound Travel Rule billing on for the workspace. Receiving stays free. This cannot be turned back off through the API: contact Didit support.
    *
    * `POST /v3/travel-rule/workspace/billing/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   enableBilling(
     params: TravelRuleWorkspaceEnableBillingParams = {},
@@ -880,6 +914,8 @@ export class TravelRuleWorkspaceResource extends APIResource {
    * Emails a single-use code to the workspace's work address to prove it controls the email domain. Throttled, and a limited number of wrong attempts is accepted per code. Also returns the TXT record for the DNS alternative.
    *
    * `POST /v3/travel-rule/workspace/domain/code/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   sendDomainCode(options?: RequestOptions): APIPromise<TravelRuleWorkspaceDomainCodeResponse> {
     return this._client.request(TRAVEL_RULE_WORKSPACE_SEND_DOMAIN_CODE, [], undefined, options);
@@ -891,6 +927,8 @@ export class TravelRuleWorkspaceResource extends APIResource {
    * Checks for the `didit-tr-verify.<domain>` TXT record returned by the code endpoint and marks the domain verified when it matches. One of the two proofs, the emailed code or the TXT record, is enough.
    *
    * `POST /v3/travel-rule/workspace/domain/dns/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   verifyDomainDns(options?: RequestOptions): APIPromise<TravelRuleWorkspace> {
     return this._client.request(TRAVEL_RULE_WORKSPACE_VERIFY_DOMAIN_DNS, [], undefined, options);
@@ -918,6 +956,8 @@ export class TravelRule extends APIResource {
    *
    * `POST /v3/travel-rule/vasps/{vasp_id}/assign/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   assignVasp(
@@ -935,6 +975,8 @@ export class TravelRule extends APIResource {
    *
    * `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   clearVaspDecision(
@@ -950,6 +992,8 @@ export class TravelRule extends APIResource {
    * Add a VASP privately to your application and optionally invite it. Requires write access to transactions. The response uses source=added_by_you. A matching visible name or LEI returns 409 with the existing vasp_id. See [Search the directory](/management-api/travel-rule/search-vasps).
    *
    * `POST /v3/travel-rule/vasps/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   createVasp(
     params: TravelRuleCreateVaspParams,
@@ -964,6 +1008,8 @@ export class TravelRule extends APIResource {
    * Mint a hosted wallet-ownership widget URL/token. Send the customer to the returned url to prove control of a wallet (message signing, Satoshi test, screenshot, or self-declaration). The widget is web-only in this release - open the url in the system browser or a custom tab, never inside a mobile SDK webview.
    *
    * `POST /v3/travel-rule/widget-session/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   createWidgetSession(
     params: TravelRuleCreateWidgetSessionParams = {},
@@ -1062,6 +1108,8 @@ export class TravelRule extends APIResource {
    * Register Travel Rule data for a crypto deposit that already settled on-chain before any exchange took place. Creates an inbound travelRule transaction (or reuses an unclaimed deposit) and resolves the transfer against your wallet address book. For a newly created transaction, Didit sends transaction.created first and the travel_rule.status.updated webhooks after it.
    *
    * `POST /v3/travel-rule/inbound/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   registerInbound(
     params: TravelRuleRegisterInboundParams,
@@ -1133,6 +1181,8 @@ export class TravelRule extends APIResource {
    *
    * `PATCH /v3/travel-rule/vasps/{vasp_id}/screening/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   reviewVaspScreeningHit(
@@ -1150,6 +1200,8 @@ export class TravelRule extends APIResource {
    *
    * `POST /v3/travel-rule/vasps/{vasp_id}/screening/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   screenVasp(
@@ -1166,6 +1218,8 @@ export class TravelRule extends APIResource {
    * Emails a single-use confirmation link to your VASP profile's compliance_email. Opening the link and pressing its confirm button confirms the address, which the Didit network needs before it lists your profile. A new request replaces the previous link; the link stops working when the compliance email changes. One email per minute per address.
    *
    * `POST /v3/travel-rule/settings/compliance-email/confirmation/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   sendComplianceEmailConfirmation(
     options?: RequestOptions,
@@ -1185,6 +1239,8 @@ export class TravelRule extends APIResource {
    *
    * `POST /v3/travel-rule/vasps/{vasp_id}/questionnaires/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   sendVaspQuestionnaire(
@@ -1202,6 +1258,8 @@ export class TravelRule extends APIResource {
    *
    * `POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   shareVaspDocuments(
@@ -1218,6 +1276,8 @@ export class TravelRule extends APIResource {
    * Upsert the application's Travel Rule settings and VASP profile. Partial update - only send the fields you want to change. Setting `is_enabled: true` requires a non-blank `legal_name` (already stored or included in the same request), otherwise returns 400.
    *
    * `PUT /v3/travel-rule/settings/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   updateSettings(
     params: TravelRuleUpdateSettingsParams = {},
@@ -1232,6 +1292,8 @@ export class TravelRule extends APIResource {
    * Make or change your application's decision on a counterparty: APPROVED, RESTRICTED or BLOCKED, with an optional reason. It never changes the shared directory entry and acts only through your transaction rules (counterparty_dd_status). A decision on a brand also covers each of its entities that has no decision of its own.
    *
    * `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
@@ -1250,6 +1312,8 @@ export class TravelRule extends APIResource {
    *
    * `DELETE /v3/travel-rule/vasps/{vasp_id}/shared-documents/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    */
   withdrawVaspDocuments(vaspId: string, options?: RequestOptions): APIPromise<void> {
@@ -1262,6 +1326,8 @@ export class TravelRule extends APIResource {
    * Withdraws the request and erases the documents and answers collected with it. Its answer link stops working. Deletion is irreversible. Needs the transactions write privilege.
    *
    * `DELETE /v3/travel-rule/vasps/{vasp_id}/questionnaires/{questionnaire_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
    * @param questionnaireId questionnaire_id

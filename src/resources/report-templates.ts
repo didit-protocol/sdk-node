@@ -55,6 +55,8 @@ export class ReportTemplates extends APIResource {
    * Create a reusable per-jurisdiction, per-report-type goAML header template. Rejected with 400 if any of the template-level obligatory fields (rentity_id, submission_code, currency_code_local) is missing from field_config; an invalid template cannot be saved or used to create a report. Per-filing header fields (action, submission_date, transactions) are enforced at report validate/finalize time instead.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/report-templates/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: ReportTemplatesCreateParams,
@@ -69,6 +71,8 @@ export class ReportTemplates extends APIResource {
    * Delete a report template. Reports already created from it are unaffected.
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param templateUuid Report template UUID.
    */
@@ -109,6 +113,8 @@ export class ReportTemplates extends APIResource {
    * Partially update a report template. Re-validates obligatory goAML fields on save.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param templateUuid Report template UUID.
    */

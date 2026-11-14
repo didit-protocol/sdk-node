@@ -45,6 +45,8 @@ export class PassiveLiveness extends APIResource {
    * **Rate limit.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints; exceeding it returns `429`.
    *
    * `POST /v3/passive-liveness/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   check(
     params: PassiveLivenessCheckParams,

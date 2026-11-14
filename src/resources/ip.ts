@@ -34,6 +34,8 @@ export class Ip extends APIResource {
    * **Rate limit.** Shared write budget of 300 requests per minute per API key across POST/PATCH/DELETE endpoints (transaction creates and event ingestion have a separate budget of 600).
    *
    * `POST /v3/ip/risk/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   assessRisk(params: IpAssessRiskParams, options?: RequestOptions): APIPromise<IPRiskResponse> {
     return this._client.request(IP_ASSESS_RISK, [], params, options);

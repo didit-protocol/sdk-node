@@ -50,6 +50,8 @@ export class Questionnaires extends APIResource {
    * Create a simple linear questionnaire. Send `form_elements` in display order; branching and repeatable groups require the Console. Defaults to `published` v1.
    *
    * `POST /v3/questionnaires/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: QuestionnairesCreateParams,
@@ -64,6 +66,8 @@ export class Questionnaires extends APIResource {
    * Permanently delete one questionnaire version (no undo). Stored questionnaire responses linked to this version are deleted with it, and sessions referencing it lose the link; other versions in the same group are not deleted. Workflows that referenced it keep running but the questionnaire step can no longer load it.
    *
    * `DELETE /v3/questionnaires/{questionnaire_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param questionnaireUuid Per-version UUID of the questionnaire to delete.
    */
@@ -104,6 +108,8 @@ export class Questionnaires extends APIResource {
    * Update a questionnaire. Versioning depends on the `status` field you send and the current state of the version: (1) no `status` on a **published** version → the published version is updated in place (same `questionnaire_id`, same `version`); (2) no `status` on a **draft** → the draft is updated and immediately published; (3) `status: "published"` on a **published** version → a NEW published version is created under the same `questionnaire_group_id` (new `questionnaire_id`, `version` + 1) and returned, and any existing draft in the group is deleted; (4) `status: "draft"` keeps a draft as a draft (autosave) but is rejected with 400 on a published version (`"Cannot revert a published version to draft."`).
    *
    * `PATCH /v3/questionnaires/{questionnaire_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param questionnaireUuid Per-version UUID of the questionnaire to update.
    */

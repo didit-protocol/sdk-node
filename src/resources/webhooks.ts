@@ -140,6 +140,8 @@ export class WebhooksDestinations extends APIResource {
    * Create a webhook destination. The response includes the auto-generated `secret_shared_key` HMAC signing secret (also readable later via `GET /v3/webhook/destinations/{destination_uuid}/`). Always send `subscribed_events` with at least one event (no wildcards): an explicit empty list is rejected with 400, and omitting the field creates a destination subscribed to nothing, which never receives a webhook. The `(application, url)` pair must be unique among the application's destinations.
    *
    * `POST /v3/webhook/destinations/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: WebhooksDestinationsCreateParams,
@@ -154,6 +156,8 @@ export class WebhooksDestinations extends APIResource {
    * Permanently delete a webhook destination, its signing secret and its entire delivery log. This cannot be undone. No new webhook is sent to the destination's URL; other destinations subscribed to the same events keep receiving them. Afterwards the destination no longer appears in `GET /v3/webhook/destinations/`, and every route under `/v3/webhook/destinations/{destination_uuid}/`, including its deliveries, a delivery's detail and its resend, answers 404. The application's legacy `webhook_url` is set to the URL of the oldest remaining enabled destination, or cleared when no enabled destination is left. Calling DELETE again returns 404.
    *
    * `DELETE /v3/webhook/destinations/{destination_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param destinationUuid UUID of the destination to delete.
    */
@@ -227,6 +231,8 @@ export class WebhooksDestinations extends APIResource {
    * Send a past delivery again, for example after your endpoint was down. Didit takes the stored payload, sets a fresh `timestamp`, signs it again with the destination's current `secret_shared_key` (`X-Signature`, `X-Signature-V2`, `X-Signature-Simple` and `X-Timestamp`) and posts it to the delivery's `request_url`, even if the destination's URL has changed since or the destination is disabled. `event_id` and the rest of the payload are unchanged, so deduplicate on `event_id`. The call waits up to 5 seconds for your endpoint and returns the new delivery with `200` whatever your endpoint answered: read `response_status`. A resend is not retried automatically, every call sends again and creates a new delivery, and the request has no body. A scoped API key needs `webhooks: write` and `decisions: read`; a key limited to some workflows or to approved sessions cannot use this endpoint.
    *
    * `POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param destinationUuid UUID of the destination the delivery was sent to.
    * @param deliveryUuid UUID of the delivery to resend: the `uuid` of an entry returned by `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`.
@@ -317,6 +323,8 @@ export class WebhooksDestinations extends APIResource {
    *
    * `PATCH /v3/webhook/destinations/{destination_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param destinationUuid UUID of the destination to update.
    */
   update(
@@ -349,6 +357,8 @@ export class Webhooks extends WebhookHelpers {
    * Partially update application-level settings: the legacy webhook URL, version and secret, the data and biometric-template retention policy, and the Digital ID wallet return hosts. Send only the fields to change; the response is the full configuration, the same shape as `GET /v3/webhook/`. Destinations are not managed here: create, update and delete them with the `/v3/webhook/destinations/` endpoints, and do not send an `endpoints` field to this endpoint. A `data_retention_months` change also applies to existing sessions, and sessions it deletes cannot be restored; read [Data retention](https://docs.didit.me/console/data-retention) first. A scoped API key needs `webhooks: write`.
    *
    * `PATCH /v3/webhook/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   updateConfig(
     params: WebhooksUpdateConfigParams = {},

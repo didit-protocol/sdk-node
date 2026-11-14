@@ -34,6 +34,8 @@ export class FraudChecks extends APIResource {
    * These profiles support identifier checks. Selfie-based identity binding (`biometric_identity`) requires profile version `2026-09-14.2` and a Brazilian CPF; it runs only with the user's consent and when your organization is entitled to it. Earlier versions report it as `not_available_in_profile_version`. Modules that cannot run are reported as skipped with a deterministic reason; a source that could not answer is never reported as an identity mismatch.
    *
    * `POST /v3/fraud/checks/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: FraudChecksCreateParams,
@@ -48,6 +50,8 @@ export class FraudChecks extends APIResource {
    * Validate selected checks and estimate their price without executing, creating a session or billing.
    *
    * `POST /v3/fraud/checks/plan/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   plan(params: FraudChecksPlanParams, options?: RequestOptions): APIPromise<FraudCheckPlan> {
     return this._client.request(FRAUD_CHECKS_PLAN, [], params, options);

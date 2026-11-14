@@ -113,6 +113,8 @@ export class Businesses extends APIResource {
    * **Filed regulatory reports:** if the selected data is in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each report with `uuid`, `report_number`, `report_type` and `case_uuid`. Delete the reports, then repeat the request.
    *
    * `POST /v3/businesses/delete/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   batchDelete(
     params: BusinessesBatchDeleteParams = {},
@@ -124,9 +126,11 @@ export class Businesses extends APIResource {
   /**
    * Create business
    *
-   * Pre-create a [business](/entities/businesses) *without* a KYB session. All fields are optional, but you should always send `vendor_data` - without it the record cannot be linked to sessions or transactions. When provided, `vendor_data` must be unique among non-deleted businesses (exact match; conflicts return 400). Not idempotent.
+   * Pre-create a [business](/entities/businesses) *without* a KYB session. All fields are optional, but you should always send `vendor_data` - without it the record cannot be linked to sessions or transactions. When provided, `vendor_data` must be unique among non-deleted businesses (exact match; conflicts return 400). Not idempotent without an `Idempotency-Key`.
    *
    * `POST /v3/businesses/create/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: BusinessesCreateParams = {},
@@ -250,6 +254,8 @@ export class Businesses extends APIResource {
    * Set `estimate_only: true` to preview counts and costs without writing anything. Selections of 20 profiles or fewer resolve inline and return `200` with the completed job; larger selections return `202` and run in the background - poll [Get AML monitoring job](#get-/v3/aml-monitoring/jobs/-job_id-/) with the returned `job_id`. Enabling is refused with `403` when the organization balance does not cover the estimate. Identifiers that match nothing are listed in `unmatched` and never fail the request: a selection that matches nothing completes as an empty job (`total` 0), the same convention as the batch delete endpoints.
    *
    * `POST /v3/businesses/aml-monitoring/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   setAmlMonitoring(
     params: BusinessesSetAmlMonitoringParams,
@@ -264,6 +270,8 @@ export class Businesses extends APIResource {
    * Business-level equivalent of the user toggle: one monitored AML screening per business, with businesses lacking any AML screening screened first (company entity). Same estimate_only, inline fast-path and async job contract.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-businesses/toggle-ongoing-monitoring/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   setOngoingMonitoring(
     params: BusinessesSetOngoingMonitoringParams,
@@ -278,6 +286,8 @@ export class Businesses extends APIResource {
    * Session-level toggle for KYB verifications, addressed by session number. Sessions without an AML screening get one created and attached to the session itself. Same estimate_only, inline fast-path and async job contract as the user-level endpoints. Replaces the legacy synchronous behavior that skipped sessions without an AML screening.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/businesses/toggle-ongoing-monitoring/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   setSessionOngoingMonitoring(
     params: BusinessesSetSessionOngoingMonitoringParams,
@@ -292,6 +302,8 @@ export class Businesses extends APIResource {
    * Partial update of a business: `display_name`, `legal_name`, `registration_number`, `country_code`, `status`, `metadata`. `metadata` fully replaces. Setting `status` to `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Every edit is recorded in the company's activity: a status change with the optional `reason`, and a change to `display_name`, `legal_name`, `registration_number`, `country_code` or `metadata` as a profile update.
    *
    * `PATCH /v3/businesses/{vendor_data}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param vendorData Your unique identifier for the business (free-form string, NOT a UUID).
    */
@@ -309,6 +321,8 @@ export class Businesses extends APIResource {
    * Flip only the lifecycle `status` of a business: `ACTIVE`, `FLAGGED` or `BLOCKED` (not session statuses). `BLOCKED` adds the `vendor_data` to the system blocklist; moving away from `BLOCKED` removes that entry. Each change is recorded in the company's activity, with the optional `reason`. Sending the current status changes nothing and records no `reason`. The `business.status.updated` webhook does not carry `reason`.
    *
    * `PATCH /v3/businesses/{vendor_data}/update-status/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param vendorData Your unique identifier for the business (free-form string, NOT a UUID).
    */

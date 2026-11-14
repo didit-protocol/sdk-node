@@ -27,13 +27,15 @@ export class Bank extends APIResource {
    *
    * **Billing.** Each check the bank answers is billed once at the Account check price of the account's country, whatever the result: a `no_match`, an account that does not exist and a `cannot_verify` are billed too. A request answered with an error is never billed.
    *
-   * **Every request is a new check.** There is no idempotency key and no endpoint to read a check back, so a retried request runs, and is billed, again. Store the response.
+   * **Retries.** Send an `Idempotency-Key` header: the same key and body return the first response, with the same `request_id`, and the check runs and is billed once. Without a key, every request is a new check and no endpoint to read a check back, so a retried request runs, and is billed, again. Store the response.
    *
    * **Sandbox.** Use a sandbox API key with the sample account details. A sandbox key calls no bank and is charged nothing. The last 4 characters of the IBAN, else of the account number, choose the answer: `0001` a `close_match` with a `holder_name`, `0002` a `close_match` without one (`name_match_score` 78), `0003` a `no_match` (`name_match_score` 0), `0006` a `no_match` for an account that does not exist (`name_match_score` null), `0004` `cannot_verify`, `0005` a `503` and `0009` a `400`. Any other ending is a `match` (`name_match_score` 100).
    *
    * **API keys.** A scoped API key needs write access to sessions.
    *
    * `POST /v3/bank/account-check/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   accountCheck(
     params: BankAccountCheckParams,

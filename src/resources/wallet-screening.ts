@@ -28,6 +28,8 @@ export class WalletScreening extends APIResource {
    * Run on-demand AML screening for a single crypto wallet/address without creating a transaction. Resolves your application's configured blockchain analytics provider, screens the address synchronously, and returns the normalised risk result. LIGHTNING is available only with an Elliptic or Chainalysis BYOK connection added through Marketplace. Nothing is written to the transactions table. One AML monitoring usage is billed per successful screening (sandbox applications are not billed).
    *
    * `POST /v3/wallet-screening/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   screen(
     params: WalletScreeningScreenParams,

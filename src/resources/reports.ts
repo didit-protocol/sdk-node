@@ -65,6 +65,8 @@ export class Reports extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/reports/{report_uuid}/retry/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param reportUuid Report uuid.
    */
   retry(
