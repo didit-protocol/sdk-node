@@ -569,6 +569,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   TransactionsNotesListResponse: { p: { results: { i: "TransactionNote" } } },
   TransactionsRulesListResponse: { p: { results: { i: "TransactionRuleDetail" } } },
+  TravelRuleAssignVaspResponse: { p: { assignee: "TravelRuleVaspAssignee" } },
   TravelRuleCounterpartyContact: { p: { verified_at: 1, invalid_at: 1, created_at: 1 } },
   TravelRuleCounterpartyContactsListResponse: {
     p: { results: { i: "TravelRuleCounterpartyContact" } },
@@ -581,7 +582,9 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleCounterpartyQuestionnaireList: {
     p: { questionnaires: { i: "TravelRuleCounterpartyQuestionnaire" } },
   },
-  TravelRuleCounterpartyScreening: { p: { screened_at: 1 } },
+  TravelRuleCounterpartyScreening: {
+    p: { screened_at: 1, hits: { i: { p: { review: { p: { reviewed_at: 1 } } } } } },
+  },
   TravelRuleCounterpartyScreeningResult: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleCounterpartyScreeningStatus: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleDataUnmasked: { p: { at: 1 } },
@@ -628,6 +631,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       },
     },
   },
+  TravelRuleReviewVaspScreeningHitResponse: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleSettingsDetail: {
     p: {
       networks: {
@@ -659,6 +663,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleUnmatchedDepositsListResponse: { p: { results: { i: "TravelRuleTransferRow" } } },
   TravelRuleUserChoice: { p: { link_expires_at: 1 } },
   TravelRuleUserLinkResponse: { p: { expires_at: 1 } },
+  TravelRuleVaspAssignee: { p: { assigned_at: 1 } },
   TravelRuleWalletAddressesListResponse: { p: { results: { i: "WalletAddressEntry" } } },
   TravelRuleWalletAddressesListTransfersResponse: {
     p: { results: { i: "TravelRuleWalletTransfer" } },
@@ -716,6 +721,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       decision: "TravelRuleCounterpartyDecision",
       entity_screening: "TravelRuleCounterpartyScreening",
       questionnaires: { i: "TravelRuleCounterpartyQuestionnaire" },
+      assignee: "TravelRuleVaspAssignee",
     },
   },
   WalletAddressEntry: { p: { created_at: 1 } },

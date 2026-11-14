@@ -11,6 +11,25 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("travel_rule", () => {
+  it("travel_rule.assign_vasp: POST /v3/travel-rule/vasps/{vasp_id}/assign/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/travel-rule/vasps/{vasp_id}/assign/"),
+    });
+    const result = await client.travelRule.assignVasp("vasp-id-1", { assignee_email: "value" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/assign/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ assignee_email: "value" });
+    expectMatchesExample(result, responseExample("POST /v3/travel-rule/vasps/{vasp_id}/assign/"));
+  });
+
   it("travel_rule.clear_vasp_decision: DELETE /v3/travel-rule/vasps/{vasp_id}/decision/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -150,6 +169,24 @@ describe("travel_rule", () => {
       result,
       responseExample("GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/"),
     );
+  });
+
+  it("travel_rule.list_vasp_reviewers: GET /v3/travel-rule/vasps/reviewers/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/vasps/reviewers/"),
+    });
+    const result = await client.travelRule.listVaspReviewers();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/reviewers/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/travel-rule/vasps/reviewers/"));
   });
 
   it("travel_rule.list_vasps: GET /v3/travel-rule/vasps/", async () => {
@@ -369,6 +406,36 @@ describe("travel_rule", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
     expectMatchesExample(result, responseExample("GET /v3/travel-rule/vasps/{vasp_id}/screening/"));
+  });
+
+  it("travel_rule.review_vasp_screening_hit: PATCH /v3/travel-rule/vasps/{vasp_id}/screening/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/travel-rule/vasps/{vasp_id}/screening/"),
+    });
+    const result = await client.travelRule.reviewVaspScreeningHit("vasp-id-1", {
+      screening_id: "00000000-0000-4000-8000-000000000001",
+      hit_id: "value",
+      review_status: "Unreviewed",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/screening/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({
+      screening_id: "00000000-0000-4000-8000-000000000001",
+      hit_id: "value",
+      review_status: "Unreviewed",
+    });
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/travel-rule/vasps/{vasp_id}/screening/"),
+    );
   });
 
   it("travel_rule.screen_vasp: POST /v3/travel-rule/vasps/{vasp_id}/screening/", async () => {

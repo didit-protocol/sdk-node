@@ -3,15 +3,30 @@
 import type { Uploadable } from "../core/uploads.js";
 import type {
   TravelRuleCounterpartyContact,
+  TravelRuleCounterpartyScreening,
   TravelRuleDataSharingFields,
   TravelRuleMatchingRules,
   TravelRuleTransferRow,
   TravelRuleUtxo,
+  TravelRuleVaspAssignee,
+  TravelRuleVaspReviewer,
   TravelRuleWalletProofReview,
   TravelRuleWalletTransfer,
   VaspDirectoryEntry,
   WalletAddressEntry,
 } from "./components.js";
+
+export interface TravelRuleAssignVaspParams {
+  /** Email of an application member. null or an empty string unassigns. */
+  assignee_email: string | null;
+}
+
+export interface TravelRuleAssignVaspResponse {
+  id?: string;
+  /** The member the VASP is assigned to, or null. The assignment is private to your application. */
+  assignee?: TravelRuleVaspAssignee | null;
+  changed?: boolean;
+}
 
 export interface TravelRuleCounterpartyContactsCreateParams {
   /** The directory entry's `id`. */
@@ -73,6 +88,10 @@ export interface TravelRuleCreateWidgetSessionParams {
   request_action?: "ensure" | "resend" | "new" | (string & {});
   /** Only with `request_action: new`. An idempotency key: repeating the call with the same key returns the same link while it is active, and `410` once it has been revoked or has expired. */
   request_key?: string;
+}
+
+export interface TravelRuleListVaspReviewersResponse {
+  results?: TravelRuleVaspReviewer[];
 }
 
 export interface TravelRuleListVaspsParams {
@@ -169,6 +188,22 @@ export interface TravelRuleRegisterInboundParamsOriginatingVasp {
   lei?: string;
   /** The sender's travel address, recorded on this transfer. */
   travel_address?: string;
+}
+
+export interface TravelRuleReviewVaspScreeningHitParams {
+  /** The screening the hit belongs to, as returned by the screening endpoints. */
+  screening_id: string;
+  /** The hit's `id`. */
+  hit_id: string;
+  review_status:
+    "Unreviewed" | "Confirmed Match" | "False Positive" | "Inconclusive" | (string & {});
+  reason?: string;
+}
+
+export interface TravelRuleReviewVaspScreeningHitResponse {
+  /** One sanctions and adverse-media screening of the counterparty entity, run for and billed to your application. Private to your application: another customer never sees it. */
+  screening?: TravelRuleCounterpartyScreening;
+  changed?: boolean;
 }
 
 export interface TravelRuleScreenVaspParams {
