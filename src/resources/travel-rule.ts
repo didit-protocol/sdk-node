@@ -30,7 +30,7 @@ import type {
   TravelRuleWorkspaceDomainCodeResponse,
   VaspDirectoryEntry,
   WalletAddressEntry,
-  WalletAddressEntryUpdate,
+  WalletAddressEntryUpdateResponse,
   WalletAddressImportReport,
 } from "../types/components.js";
 import type {
@@ -770,7 +770,7 @@ export class TravelRuleWalletAddresses extends APIResource {
   /**
    * Update wallet address holder metadata
    *
-   * Partial update of holder_name, holder_vendor_data, entity_type, and travel_address. Setting travel_address attaches a TRP routing address to the entry; invalid values are rejected with 400. The response echoes only these four fields.
+   * Partial update of holder_name, holder_vendor_data, entity_type, and travel_address. Setting travel_address attaches a TRP routing address to the entry; invalid values are rejected with 400. The response returns the updated entry: its label, owner type, receiving travel address and ownership proof summary, with the writable fields.
    *
    * `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`
    *
@@ -780,7 +780,7 @@ export class TravelRuleWalletAddresses extends APIResource {
     entryUuid: string,
     params: TravelRuleWalletAddressesUpdateParams = {},
     options?: RequestOptions,
-  ): APIPromise<WalletAddressEntryUpdate> {
+  ): APIPromise<WalletAddressEntryUpdateResponse> {
     return this._client.request(TRAVEL_RULE_WALLET_ADDRESSES_UPDATE, [entryUuid], params, options);
   }
 }
