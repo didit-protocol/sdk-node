@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.21.0](https://github.com/didit-protocol/sdk-node/compare/v2.20.0...v2.21.0) (2026-11-14)
+
+
+### Features
+
+* per-request idempotency key ([#67](https://github.com/didit-protocol/sdk-node/issues/67)) ([3c1fc78](https://github.com/didit-protocol/sdk-node/commit/3c1fc78aa5bbf8c778069ef015a965ec7a7a89b3))
+* per-request idempotency key ([#67](https://github.com/didit-protocol/sdk-node/issues/67)) ([21684f6](https://github.com/didit-protocol/sdk-node/commit/21684f692c2cff42f0071ffda27c7ae4bac2fee9))
+
 ## [2.20.0](https://github.com/didit-protocol/sdk-node/compare/v2.19.0...v2.20.0) (2026-11-14)
 
 
