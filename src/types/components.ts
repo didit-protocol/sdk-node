@@ -10745,6 +10745,8 @@ export interface TransactionListTravelRule {
     "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
   /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
   user_choice?: TravelRuleUserChoice | null;
+  /** Latest application- and subject-scoped request if it matches this transfer counterparty wallet and chain; otherwise null. A standalone request is not attached to a transfer. Request status and proof verdict are separate from the saved transfer decision. */
+  proof_request?: TravelRuleTransferProofRequest | null;
 }
 
 /** The counterparty's directory entry, or `null` when the transfer links none. */
@@ -11164,6 +11166,8 @@ export interface TransactionTravelRule {
     "not_required" | "confirmed" | "not_confirmed" | "requested" | "not_requested" | (string & {});
   /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
   user_choice?: TravelRuleUserChoice | null;
+  /** Latest application- and subject-scoped request if it matches this transfer counterparty wallet and chain; otherwise null. A standalone request is not attached to a transfer. Request status and proof verdict are separate from the saved transfer decision. */
+  proof_request?: TravelRuleTransferProofRequest | null;
 }
 
 /** The counterparty's directory entry, or `null` when the transfer links none. */
@@ -12148,6 +12152,8 @@ export interface TravelRuleTransferDetail {
   notify_on_answer?: boolean;
   /** Explicit user-choice state, or null when counterparty_choice=user was not requested. */
   user_choice?: TravelRuleUserChoice | null;
+  /** Latest application- and subject-scoped request if it matches this transfer counterparty wallet and chain; otherwise null. A standalone request is not attached to a transfer. Request status and proof verdict are separate from the saved transfer decision. */
+  proof_request?: TravelRuleTransferProofRequest | null;
 }
 
 export interface TravelRuleTransferDetailCounterpartyVasp {
@@ -12183,6 +12189,17 @@ export interface TravelRuleTransferDetailTimeline {
   name_match?: TravelRuleNameMatch | null;
   /** Present only on the entry of a transition a failed delivery caused: `email_undeliverable` or `delivery_failed`, the value the transfer's `reason` reports. */
   reason?: string;
+}
+
+export interface TravelRuleTransferProofRequest {
+  /** Identifier of the matching widget request. Does not expose its access token. */
+  request_id: string;
+  /** COMPLETED when the request was completed; otherwise EXPIRED once expires_at has passed, or PENDING. This is the request status, not the proof verdict. */
+  status: "PENDING" | "COMPLETED" | "EXPIRED" | (string & {});
+  /** Expiry of the widget request. */
+  expires_at: Date;
+  /** Latest proof submitted for this request and matching wallet/chain, or null when none exists. Null after the wallet and its proofs are deleted; the saved transfer decision stays unchanged. */
+  proof: TravelRuleWalletProof | null;
 }
 
 /** One Travel Rule transfer as the transfers list shows it: VASP names, wallets, memos, the transaction's review decision, your own end user's name (masked exactly as the transaction detail masks it), the counterparty VASP's jurisdiction, the chain and the fiat amount. It never carries the counterparty's person data. */
@@ -12339,11 +12356,78 @@ export interface TravelRuleWalletLookup {
   proof_state?: "verified" | (string & {});
 }
 
-/** Why a wallet-ownership proof, or its last attempt, fell short of VERIFIED. Empty when nothing failed. A PENDING proof can carry one: the last attempt failed and the end user can try again. DEPOSIT_MISMATCH, DEPOSIT_STALE, TXID_REUSED and REVIEW_REJECTED close the proof as REJECTED. SIGNATURE_INVALID: the signature does not match the wallet and challenge. SIGNATURE_UNSUPPORTED_SCHEME: the wallet signed in a format Didit does not verify. DEPOSIT_NOT_FOUND, DEPOSIT_UNCONFIRMED, DEPOSIT_LOOKUP_FAILED: the test deposit is not readable or not confirmed yet; Didit keeps checking it until the test window closes. DEPOSIT_MISMATCH: the transaction does not send the expected amount from the wallet to the deposit address. DEPOSIT_STALE: the transaction predates the challenge. TXID_REUSED: the transaction already proved another wallet. CHAIN_UNSUPPORTED: the method is not available on this chain. WINDOW_EXPIRED: the test window closed. OWNERSHIP_CHANGED: the wallet's holder changed, or the wallet was deleted from your address book, after the widget session was minted. METHOD_SWITCHED: the end user picked another method before finishing this one. REVIEW_REJECTED: your reviewer rejected the screenshot. ABANDONED: the widget session lapsed before the end user finished. */
+/** Current valid proof, preferring the most recently verified proof; otherwise the latest attempt. A failed retry does not replace a current valid proof. This metadata is read-only. */
+export interface TravelRuleWalletOwnershipProof {
+  /** Selected proof identifier, or null when no proof exists. */
+  proof_id: string | null;
+  /** Proof method, or null when no proof exists. */
+  method:
+    "MESSAGE_SIGNING" | "SATOSHI_TEST" | "SCREENSHOT" | "SELF_DECLARATION" | (string & {}) | null;
+  /** Proof status, or null when no proof exists. */
+  status: "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED" | (string & {}) | null;
+  /** Fixed failure code, or an empty string when no documented failure applies. Never raw diagnostic text. */
+  failure_reason: TravelRuleWalletProofFailureReason;
+  /** Most recently created proof, even when a different current valid proof is selected above. Null when no proof exists. */
+  latest_attempt: TravelRuleWalletProofSummary | null;
+  /** Current discoverability for this wallet on its stored chain and memo. Requires a current control proof, a live application with Travel Rule enabled, and a discoverable VASP profile. Does not report historical network use or guarantee future transfer acceptance. */
+  network_eligible: boolean;
+  /** NOT_LINKED when holder_vendor_data is empty; otherwise OWNERSHIP_CHANGED after reassignment without a current proof; VERIFIED for a current proof on a verified wallet; otherwise the latest REJECTED or EXPIRED status, or AWAITING_PROOF. */
+  reuse_status:
+    | "NOT_LINKED"
+    | "OWNERSHIP_CHANGED"
+    | "VERIFIED"
+    | "REJECTED"
+    | "EXPIRED"
+    | "AWAITING_PROOF"
+    | (string & {});
+}
+
+/** Proof attached to a transfer request. Supports every ownership method; screenshot-only metadata can be null. Review history, notes and decision attribution remain available. */
+export interface TravelRuleWalletProof {
+  proof_id?: string;
+  method?: "MESSAGE_SIGNING" | "SATOSHI_TEST" | "SCREENSHOT" | "SELF_DECLARATION" | (string & {});
+  status?: "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED" | (string & {});
+  wallet_address?: string;
+  /** Canonical chain identifier, e.g. ETH, BTC, SOL, TRX. */
+  chain?: string;
+  /** Holder name from the submitting widget, never a reassigned holder. Empty when the submitting widget was deleted. */
+  holder_name?: string;
+  /** Whether the address book entry is ownership-verified, by this proof or another one. */
+  is_ownership_verified?: boolean;
+  /** The transaction whose Travel Rule transfer the widget session was minted for. Null for a session minted without a transaction_id. */
+  transaction_id?: string | null;
+  file_name?: string | null;
+  content_type?: string | null;
+  /** Authorized /v3/media/preview/ URL with an expiring signed source for this proof screenshot. Returns a recompressed preview, not the original upload or an arbitrary public URL. Null when no eligible screenshot exists. Read the proof again for a fresh link. */
+  screenshot_url?: string | null;
+  /** Number of attempts made for this proof. */
+  attempts?: number;
+  /** Fixed failure code for this proof or its last attempt; empty when no documented failure applies. A PENDING proof can carry a failure code while another attempt remains possible. */
+  failure_reason?: TravelRuleWalletProofFailureReason;
+  /** When the end user chose this proof method, or null when unavailable. */
+  method_chosen_at?: Date | null;
+  decided_at?: Date | null;
+  /** Who closed the proof: review:<user identifier> for a console reviewer, review for an API-key decision, widget or sweeper when Didit closed it automatically. Empty while PENDING. */
+  decided_by?: string;
+  /** The note sent with the decision. Empty when none. */
+  review_note?: string;
+  created_at?: Date;
+  /** Application that owns the wallet and proof. */
+  application_id?: string;
+  /** User in this application matching the submitting widget vendor_data. Null when no matching current user exists, or the submitting widget was deleted. Never the reassigned wallet holder. */
+  user_id?: string | null;
+  /** Holder identifier from the submitting widget, not the current wallet holder. Empty when the submitting widget was deleted. */
+  holder_vendor_data?: string;
+  /** Exact current wallet label, including an empty string when no label is set. Not a name inferred from the holder or address. */
+  wallet_label?: string;
+}
+
+/** Why a wallet-ownership proof, or its last attempt, fell short of VERIFIED. Empty when nothing failed. A PENDING proof can carry one: the last attempt failed and the end user can try again. DEPOSIT_MISMATCH, DEPOSIT_STALE, TXID_REUSED and REVIEW_REJECTED close the proof as REJECTED. SIGNATURE_INVALID: the signature does not match the wallet and challenge. SIGNATURE_UNSUPPORTED_SCHEME: the wallet signed in a format Didit does not verify. DEPOSIT_NOT_FOUND, DEPOSIT_UNCONFIRMED, DEPOSIT_LOOKUP_FAILED: the test deposit is not readable or not confirmed yet; Didit keeps checking it until the test window closes. DEPOSIT_MISMATCH: the transaction does not send the expected amount from the wallet to the deposit address. DEPOSIT_STALE: the transaction predates the challenge. TXID_REUSED: the transaction already proved another wallet. CHAIN_UNSUPPORTED: the method is not available on this chain. WINDOW_EXPIRED: the test window closed. OWNERSHIP_CHANGED: the wallet's holder changed, or the wallet was deleted from your address book, after the widget session was minted. METHOD_SWITCHED: the end user picked another method before finishing this one. REVIEW_REJECTED: your reviewer rejected the screenshot. ABANDONED: the widget session lapsed before the end user finished. SIGNATURE_LOOKUP_FAILED: the chain could not be checked for a smart-contract wallet signature; retry verification. */
 export type TravelRuleWalletProofFailureReason =
   | ""
   | "SIGNATURE_INVALID"
   | "SIGNATURE_UNSUPPORTED_SCHEME"
+  | "SIGNATURE_LOOKUP_FAILED"
   | "DEPOSIT_NOT_FOUND"
   | "DEPOSIT_UNCONFIRMED"
   | "DEPOSIT_LOOKUP_FAILED"
@@ -12358,6 +12442,7 @@ export type TravelRuleWalletProofFailureReason =
   | "ABANDONED"
   | (string & {});
 
+/** Uploaded screenshot proof returned by the review queue and decision endpoint. Submitter attribution is independent of the current wallet holder. */
 export interface TravelRuleWalletProofReview {
   proof_id?: string;
   method?: "SCREENSHOT" | (string & {});
@@ -12365,6 +12450,7 @@ export interface TravelRuleWalletProofReview {
   wallet_address?: string;
   /** Canonical chain identifier, e.g. ETH, BTC, SOL, TRX. */
   chain?: string;
+  /** Holder name from the submitting widget, never a reassigned holder. Empty when the submitting widget was deleted. */
   holder_name?: string;
   /** Whether the address book entry is ownership-verified, by this proof or another one. */
   is_ownership_verified?: boolean;
@@ -12372,11 +12458,11 @@ export interface TravelRuleWalletProofReview {
   transaction_id?: string | null;
   file_name?: string | null;
   content_type?: string | null;
-  /** Time-limited link to the uploaded screenshot. List the queue again for a fresh link. */
+  /** Authorized /v3/media/preview/ URL with an expiring signed source for this proof screenshot. Returns a recompressed preview, not the original upload or an arbitrary public URL. Null when no eligible screenshot exists. Read the proof again for a fresh link. */
   screenshot_url?: string | null;
   /** How many files the end user uploaded for this proof. */
   attempts?: number;
-  /** REVIEW_REJECTED after a rejection, OWNERSHIP_CHANGED when the wallet changed holder or was deleted before a decision. Empty otherwise. */
+  /** Fixed failure code for this proof or its last attempt; empty when no documented failure applies. REVIEW_REJECTED identifies a rejected screenshot. History can also carry expiry, ownership-change or abandonment codes. */
   failure_reason?: TravelRuleWalletProofFailureReason;
   /** When the end user picked the screenshot method. */
   method_chosen_at?: Date | null;
@@ -12386,6 +12472,44 @@ export interface TravelRuleWalletProofReview {
   /** The note sent with the decision. Empty when none. */
   review_note?: string;
   created_at?: Date;
+  /** Application that owns the wallet and proof. */
+  application_id?: string;
+  /** User in this application matching the submitting widget vendor_data. Null when no matching current user exists, or the submitting widget was deleted. Never the reassigned wallet holder. */
+  user_id?: string | null;
+  /** Holder identifier from the submitting widget, not the current wallet holder. Empty when the submitting widget was deleted. */
+  holder_vendor_data?: string;
+  /** Exact current wallet label, including an empty string when no label is set. Not a name inferred from the holder or address. */
+  wallet_label?: string;
+}
+
+export interface TravelRuleWalletProofSummary {
+  /** Selected proof identifier, or null when no proof exists. */
+  proof_id: string | null;
+  /** Proof method, or null when no proof exists. */
+  method:
+    "MESSAGE_SIGNING" | "SATOSHI_TEST" | "SCREENSHOT" | "SELF_DECLARATION" | (string & {}) | null;
+  /** Proof status, or null when no proof exists. */
+  status: "PENDING" | "VERIFIED" | "REJECTED" | "EXPIRED" | (string & {}) | null;
+  /** Fixed failure code, or an empty string when no documented failure applies. Never raw diagnostic text. */
+  failure_reason: TravelRuleWalletProofFailureReason;
+}
+
+/** Exact totals over the entire application-scoped wallet set before limit/offset pagination. Method counts overlap and must not be summed to obtain distinct verified wallets. */
+export interface TravelRuleWalletProofTotals {
+  /** Exact number of wallet entries in the application-scoped set, including every owner type. Equal to count. */
+  wallets: number;
+  /** Number of entries whose owner_type is customer. */
+  customer_wallets: number;
+  /** Number of verified customer wallets with a current MESSAGE_SIGNING or SATOSHI_TEST proof. Each wallet counts once, even with both methods. */
+  verified_control_wallets: number;
+  /** Number of verified customer wallets with a current MESSAGE_SIGNING proof. A wallet can count under more than one method. */
+  MESSAGE_SIGNING: number;
+  /** Number of verified customer wallets with a current SATOSHI_TEST proof. A wallet can count under more than one method. */
+  SATOSHI_TEST: number;
+  /** Number of verified customer wallets with a current SCREENSHOT proof. A wallet can count under more than one method. */
+  SCREENSHOT: number;
+  /** Number of verified customer wallets with a current SELF_DECLARATION proof. A wallet can count under more than one method. */
+  SELF_DECLARATION: number;
 }
 
 export interface TravelRuleWalletTransfer {
@@ -13075,14 +13199,26 @@ export interface WalletAddressEntry {
   memo?: string;
   /** Your per-wallet travel address for this wallet: give it to the sending VASP so its TRP inquiry names this wallet. Empty for a wallet recorded as another VASP's, while Travel Rule is off, and before your VASP profile is saved. */
   receiving_travel_address?: string;
+  ownership_proof?: TravelRuleWalletOwnershipProof;
+  /** Current wallet label, exactly as saved. */
+  label?: string;
+  /** Wallet owner type. */
+  owner_type?: "customer" | "internal" | "vasp" | (string & {});
 }
 
-/** PATCH is a partial update; the response echoes only holder_name, holder_vendor_data, entity_type, travel_address, receiving_travel_address, label, and owner_type. */
-export interface WalletAddressEntryUpdate {
+/** Updated holder metadata and read-only ownership metadata. This is a partial wallet representation, not the full list/create entry. */
+export interface WalletAddressEntryUpdateResponse {
   holder_name?: string;
   holder_vendor_data?: string;
   entity_type?: string;
   travel_address?: string;
+  /** Your per-wallet travel address for this wallet: give it to the sending VASP so its TRP inquiry names this wallet. Empty for a wallet recorded as another VASP's, while Travel Rule is off, and before your VASP profile is saved. */
+  receiving_travel_address?: string;
+  /** Current wallet label, exactly as saved. */
+  label?: string;
+  /** Wallet owner type. */
+  owner_type?: "customer" | "internal" | "vasp" | (string & {});
+  ownership_proof?: TravelRuleWalletOwnershipProof;
 }
 
 /** What happened to each row of an import, in the order sent. */

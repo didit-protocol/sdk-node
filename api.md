@@ -694,7 +694,7 @@ Every method of `@didit-protocol/sdk-node`: 406 methods, generated from `openapi
 | `didit.travelRule.walletAddresses.list(params?: TravelRuleWalletAddressesListParams)`                              | `GET /v3/travel-rule/wallet-addresses/`                        | page of `WalletAddressEntry`       |        |
 | `didit.travelRule.walletAddresses.listTransfers(entryUuid, params?: TravelRuleWalletAddressesListTransfersParams)` | `GET /v3/travel-rule/wallet-addresses/{entry_uuid}/transfers/` | page of `TravelRuleWalletTransfer` |        |
 | `didit.travelRule.walletAddresses.lookup(params: TravelRuleWalletAddressesLookupParams)`                           | `GET /v3/travel-rule/wallet-addresses/lookup/`                 | `TravelRuleWalletLookup`           |        |
-| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)`               | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`         | `WalletAddressEntryUpdate`         |        |
+| `didit.travelRule.walletAddresses.update(entryUuid, params?: TravelRuleWalletAddressesUpdateParams)`               | `PATCH /v3/travel-rule/wallet-addresses/{entry_uuid}/`         | `WalletAddressEntryUpdateResponse` |        |
 
 ## `didit.travelRule.walletProofs`
 

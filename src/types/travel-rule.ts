@@ -14,6 +14,7 @@ import type {
   TravelRuleVaspAssignee,
   TravelRuleVaspReviewer,
   TravelRuleWalletProofReview,
+  TravelRuleWalletProofTotals,
   TravelRuleWalletTransfer,
   VaspDirectoryEntry,
   WalletAddressEntry,
@@ -427,10 +428,13 @@ export interface TravelRuleWalletAddressesListParams {
 }
 
 export interface TravelRuleWalletAddressesListResponse {
+  /** Exact total of application-scoped wallets, equal to proof_totals.wallets, independent of limit and offset. */
   count?: number;
   next?: string | null;
   previous?: string | null;
   results?: WalletAddressEntry[];
+  /** Exact totals over the entire application-scoped wallet set before limit/offset pagination. Method counts overlap and must not be summed to obtain distinct verified wallets. */
+  proof_totals?: TravelRuleWalletProofTotals;
 }
 
 export interface TravelRuleWalletAddressesListTransfersParams {
@@ -454,7 +458,7 @@ export interface TravelRuleWalletAddressesLookupParams {
   memo?: string;
 }
 
-/** PATCH is a partial update; the response echoes only holder_name, holder_vendor_data, entity_type, travel_address, receiving_travel_address, label, and owner_type. */
+/** PATCH is a partial update. The response includes read-only ownership metadata; see WalletAddressEntryUpdateResponse. */
 export interface TravelRuleWalletAddressesUpdateParams {
   holder_name?: string;
   holder_vendor_data?: string;
