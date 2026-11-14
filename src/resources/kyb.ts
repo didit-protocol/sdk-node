@@ -94,6 +94,8 @@ export class Kyb extends APIResource {
    * **Pending reports.** When a report is still being prepared, or the ownership section has not been retrieved from the registry yet, the endpoint returns 202 Accepted, kyb_registry.fetch_status=pending, kyb_registry.registry_ownership_status=pending, and registry_tier_delivered=null. Keep request_id and retrieve GET /v3/session/{request_id}/decision/ until registry_checks[0].company.fetch_status is resolved. Didit completes the report automatically and charges the delivered tier once it is ready. Do not repeat the purchase while it is pending; every new POST creates a separate request.
    *
    * `POST /v3/kyb/shareholders/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   listShareholders(
     params: KybListShareholdersParams,
@@ -116,6 +118,8 @@ export class Kyb extends APIResource {
    * **Pending reports.** When a report is still being prepared, or the ownership section has not been retrieved from the registry yet, the endpoint returns 202 Accepted, kyb_registry.fetch_status=pending, kyb_registry.registry_ownership_status=pending, and registry_tier_delivered=null. Keep request_id and retrieve GET /v3/session/{request_id}/decision/ until registry_checks[0].company.fetch_status is resolved. Didit completes the report automatically and charges the delivered tier once it is ready. Do not repeat the purchase while it is pending; every new POST creates a separate request.
    *
    * `POST /v3/kyb/ubo/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   listUbos(
     params: KybListUbosParams,
@@ -146,6 +150,8 @@ export class Kyb extends APIResource {
    * **Sandbox.** Keys from sandbox applications return one static candidate without contacting any registry.
    *
    * `POST /v3/kyb/search/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   search(params: KybSearchParams, options?: RequestOptions): APIPromise<KybSearchResponse> {
     return this._client.request(KYB_SEARCH, [], params, options);
@@ -163,6 +169,8 @@ export class Kyb extends APIResource {
    * **Persistence is mandatory.** Every select creates a business session (its id is the `request_id`) so billing and retrieval can be tracked; it appears in the console. `save_api_request` is accepted for symmetry but must be `true` (the default) - sending `false` returns `400`.
    *
    * `POST /v3/kyb/select/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   select(params: KybSelectParams, options?: RequestOptions): APIPromise<KybSelectResponse> {
     return this._client.request(KYB_SELECT, [], params, options);

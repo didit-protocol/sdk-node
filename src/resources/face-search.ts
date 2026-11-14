@@ -41,6 +41,8 @@ export class FaceSearch extends APIResource {
    * **Rate limit.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints; exceeding it returns `429`.
    *
    * `POST /v3/face-search/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   search(
     params: FaceSearchSearchParams,

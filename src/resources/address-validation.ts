@@ -34,6 +34,8 @@ export class AddressValidation extends APIResource {
    * **Rate limit.** Shared write budget of 300 requests per minute per API key across POST/PATCH/DELETE endpoints (transaction creates and event ingestion have a separate budget of 600).
    *
    * `POST /v3/address-validation/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   validate(
     params: AddressValidationValidateParams,

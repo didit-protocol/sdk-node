@@ -228,6 +228,8 @@ export class TransactionsNotes extends APIResource {
    *
    * `POST /v3/transactions/{transaction_id}/notes/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param transactionId Didit transaction UUID: the `uuid` returned by `POST /v3/transactions/` and `GET /v3/transactions/`. Your own `txn_id` is not accepted.
    */
   create(
@@ -268,6 +270,8 @@ export class TransactionsRules extends APIResource {
    * Evaluate a hypothetical rule configuration against your recent transactions (most recent first, up to the backtest cap) without creating a rule or touching any transaction. Use it before activating a rule to see how often it would have matched and how many subjects it would have affected.
    *
    * `POST /v3/transactions/rules/backtest/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   backtest(
     params: TransactionsRulesBacktestParams = {},
@@ -282,6 +286,8 @@ export class TransactionsRules extends APIResource {
    * Create a CUSTOM transaction-monitoring rule. Titles are unique per application (duplicate -> 400). A `change_status` action targeting `AWAITING_USER` must carry `workflow_id`. Rules created in ACTIVE mode apply to new transactions immediately - the recommended workflow is create in TEST mode, backtest, then switch mode to ACTIVE. To change a library rule, create it as a copy: send the library rule's definition with `metadata.based_on` (its library key) and `metadata.based_on_rule_uuid`.
    *
    * `POST /v3/transactions/rules/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: TransactionsRulesCreateParams,
@@ -297,6 +303,8 @@ export class TransactionsRules extends APIResource {
    *
    * `DELETE /v3/transactions/rules/{rule_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param ruleUuid The rule's uuid from list or create.
    */
   delete(ruleUuid: string, options?: RequestOptions): APIPromise<void> {
@@ -309,6 +317,8 @@ export class TransactionsRules extends APIResource {
    * Install one or more presets onto the application, by `library_keys` or a whole `bundle`. An installed preset is active at once while transaction monitoring is on, and disabled otherwise; already-installed keys are skipped. A library rule whose conditions read data the rules engine cannot evaluate yet is withheld until it can run. A request that names one in `library_keys` answers 400 and installs nothing ("These library rules cannot run yet: their conditions read data the rules engine cannot evaluate." followed by the keys), and a `bundle` install skips it. A withheld rule comes back on its own once its conditions can be evaluated. A `library_keys` entry that is not in the library is skipped, not refused.
    *
    * `POST /v3/transactions/rules/install/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   installLibrary(
     params: TransactionsRulesInstallLibraryParams = {},
@@ -364,6 +374,8 @@ export class TransactionsRules extends APIResource {
    * Remove installed presets from the application, by `library_keys` or a whole `bundle`. Uninstalled presets stop evaluating immediately and can be reinstalled from the library at any time.
    *
    * `DELETE /v3/transactions/rules/install/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   uninstallLibrary(
     params: TransactionsRulesUninstallLibraryParams = {},
@@ -378,6 +390,8 @@ export class TransactionsRules extends APIResource {
    * Partially update a rule. Custom rules accept every configuration field. Library (PRESET) rules accept only `mode` - use it to activate, disable, or switch a preset to TEST; any other field returns 400, because Didit maintains library rules and applies their updates automatically. To change a library rule's conditions, create a custom copy with `POST /v3/transactions/rules/` using the library rule's definition and `metadata.based_on` (the library key) and `metadata.based_on_rule_uuid`, then switch the library rule off with `mode: DISABLED` so a transaction does not alert twice. An installed copy of a withheld library rule is switched off: setting its `mode` to anything but `DISABLED` answers 400 ("This library rule cannot run yet: its conditions read data the rules engine cannot evaluate.").
    *
    * `PATCH /v3/transactions/rules/{rule_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param ruleUuid The rule's uuid from list or create.
    */
@@ -398,6 +412,8 @@ export class TransactionsTravelRule extends APIResource {
    * Resolve a transfer that waits on wallet ownership: call it on your own side of the transfer when it is UNCONFIRMED_OWNERSHIP, or when it is an inbound transfer in ON_HOLD. Confirming marks the matching wallet address book entry as ownership-verified (for an inbound ON_HOLD transfer with no entry, Didit creates one from beneficiary_data.wallet_address) and runs the beneficiary name match on both sides of the transfer; denying declines both sides. An inbound transfer whose deposit already settled moves on to FINISHED when the match succeeds. When the counterparty wallet was declared self-hosted (counterparty.payment_method.method_type: unhosted_wallet), confirming records that the customer verified who controls that wallet and completes the transfer (COMPLETED) in both directions, or FINISHED for an inbound deposit whose on-chain hash is already known. The wallet verified is the counterparty's: the destination of an outbound withdrawal, or the source (originator's wallet) of an inbound deposit. If it is not in your wallet address book yet, Didit adds it as ownership-verified under the counterparty's name; if the book already holds it under a different holder name, the transfer moves to COUNTERPARTY_MISMATCHED_DATA. For an inbound TRP transfer in UNCONFIRMED_OWNERSHIP, ON_HOLD or COUNTERPARTY_MISMATCHED_DATA, Didit sends your decision to the originating VASP instead: approving returns the payment address (wallet_address, or the matched entry's address) and moves the transfer to COMPLETED, and denying declines it. The same call also decides an inbound transfer that a GTR or Sygna Bridge counterparty sent and that waits for your review (`UNCONFIRMED_OWNERSHIP`, `ON_HOLD` or `COUNTERPARTY_MISMATCHED_DATA`): `confirmed: true` approves it (pass `wallet_address` when the transfer names none) and `confirmed: false` declines it, and the network is answered after the response, with retries. VerifyVASP takes its answer when it asks, so a VerifyVASP transfer that would need your review is declined at once and cannot be decided later.
    *
    * `POST /v3/transactions/{transaction_id}/travel-rule/ownership/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param transactionId Didit-stable UUID of the transaction your application holds for this transfer: the beneficiary side's transaction on an INTERNAL-rail transfer, or the transaction you created (outbound or inbound) when the counterparty wallet was declared self-hosted.
    */
@@ -421,6 +437,8 @@ export class TransactionsTravelRule extends APIResource {
    *
    * `POST /v3/transactions/{transaction_id}/travel-rule/messages/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param transactionId Didit-stable transaction UUID that owns the transfer.
    */
   createMessage(
@@ -442,6 +460,8 @@ export class TransactionsTravelRule extends APIResource {
    * Issue a new link and revoke previous open links for this transfer. Requires write access to transactions and an outbound transfer in AWAITING_COUNTERPARTY, COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, UNCONFIRMED_OWNERSHIP or ON_HOLD. channel=email uses the end user's Didit-record email and verification-session language when available. A send failure returns the link with emailed_to empty; email_available reports address availability, not delivery. See [User links](/management-api/travel-rule/create-user-link).
    *
    * `POST /v3/transactions/{transaction_id}/travel-rule/user-link/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param transactionId Didit-stable transaction UUID that owns the transfer.
    */
@@ -504,6 +524,8 @@ export class TransactionsTravelRule extends APIResource {
    * Sandbox applications only. The Didit Test VASP sends your application an inbound Travel Rule transfer, so you can exercise the receiving side of an exchange end to end before going live. The transfer is booked and decided by the same logic a real inbound transfer from a network runs against your wallet address book, so the inbox, the decision and the wallet ownership flow behave as they do live. Nothing leaves Didit. A live application receives 400. Send the same `reference` again to get the transfer the first call booked instead of a second one.
    *
    * `POST /v3/travel-rule/test-vasp/inbound/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   triggerTestVaspInbound(
     params: TransactionsTravelRuleTriggerTestVaspInboundParams,
@@ -523,6 +545,8 @@ export class TransactionsTravelRule extends APIResource {
    * Provide `payment_txn_id` to report the on-chain hash and move an outbound COMPLETED transfer to FINISHED (its INTERNAL-rail counterpart also moves to FINISHED), `{"action": "cancel"}` to cancel a non-terminal transfer, or `{"action": "resend"}` to route an outbound transfer stuck in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE, or NOT_ENOUGH_COUNTERPARTY_DATA again (improve the counterparty data first, e.g. add a travel_address to the destination wallet entry). resend applies to outbound transfers only. `{"action": "update_compliance_email", "compliance_email": "desk@example.com"}` replaces the compliance email of an outbound transfer in one of those three statuses, the fix for `reason: email_undeliverable`: the status does not change, and the next `resend` sends the request to that address. A resend is queued, not run inside the request: the response shows the transfer back in AWAITING_COUNTERPARTY with a `resend queued` timeline entry and a queued `delivery`, and where it went arrives as a `travel_rule.status.updated` webhook. When the transfer went over GTR, VerifyVASP or Sygna Bridge, the network learns the on-chain hash or the cancellation after the response, with retries; `delivery` shows how that message stands. `{"action": "update_originator_wallet", "wallet_address": "..."}` records the wallet the funds actually left from on an outbound transfer, for example the address a UTXO withdrawal was broadcast from rather than the main wallet you declared. It changes the record only: nothing is sent to the counterparty again and the status stays. The originator becomes `chain_details.originator` with `source: updated`, the change is added to the `timeline` with the previous and the new wallet, and the INTERNAL-rail counterpart of the transfer is updated the same way. `{"action": "beneficiary_vasp", "beneficiary_vasp": "<directory VASP id>"}` names the counterparty yourself when discovery could not, on an outbound transfer in COUNTERPARTY_VASP_NOT_FOUND, COUNTERPARTY_VASP_NOT_REACHABLE or NOT_ENOUGH_COUNTERPARTY_DATA: the transfer is routed to that VASP and sent again. Cancellation accepts an optional reason and returns cancel_reason and cancelled_by. Resend accepts notify_on_answer; omission preserves the saved preference, initially false. Resend invalidates the previous counterparty pickup link. action=add_vasp_hint requires name, accepts lei and country, saves the hint and re-runs discovery under the same outbound/status restrictions as resend. update_compliance_email also accepts vasp_name and saves the address as an application-private contact when the transfer has a known directory VASP.
    *
    * `PATCH /v3/transactions/{transaction_id}/travel-rule/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param transactionId Didit-stable transaction UUID that owns the transfer.
    */
@@ -556,6 +580,8 @@ export class Transactions extends APIResource {
    * If any selected transaction is listed in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each transaction and the reports that list it. Delete those reports, then repeat the request.
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/transactions/delete/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   batchDelete(
     params:
@@ -572,6 +598,8 @@ export class Transactions extends APIResource {
    * Submit a transaction for synchronous AML/risk monitoring. The transaction is created `APPROVED`, then your rules (and crypto screening, when applicable) run inline and may flip the returned `status` to `IN_REVIEW` or `DECLINED`. **`transaction_id` is your idempotency key** (max 128 chars, unique per app); reusing it returns 400. A `transaction.created` webhook is dispatched on success for live applications. Sandbox applications are not billed and do not emit `transaction.created` or `transaction.status.updated` webhooks. Sandbox Travel Rule exchanges do emit `travel_rule.status.updated` webhooks with `environment: sandbox`. A Travel Rule transfer is stored and returned before any counterparty is contacted: `travel_rule.status` comes back `AWAITING_COUNTERPARTY` (or `NOT_APPLICABLE` below your threshold, `UNCONFIRMED_OWNERSHIP` for a declared self-hosted wallet, `COMPLETED` when the other wallet is your own verified wallet) and `travel_rule.protocol` is null. Didit then chooses the rail and sends the exchange, and every later status change of the transfer, including `COUNTERPARTY_VASP_NOT_FOUND` when no rail reaches the counterparty, arrives as a `travel_rule.status.updated` webhook. Your rules run again when the rail or the status changes.
    *
    * `POST /v3/transactions/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: TransactionsCreateParams,
@@ -586,6 +614,8 @@ export class Transactions extends APIResource {
    * Mint a short-lived scoped token your app passes to the Didit SDKs so they can submit transactions directly from the end-user's device via `POST /v1/transactions/`. The token is bound to one `vendor_data` (your user id): every transaction submitted with it has its subject identity enforced server-side from that binding, so a tampered client cannot submit on behalf of another user. Mint tokens from your backend - never ship the API key itself in an app. camelCase aliases (`vendorData`, `ttlSeconds`, `maxUses`) are also accepted.
    *
    * `POST /v3/transactions/sdk-token/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   createSdkToken(
     params: TransactionsCreateSdkTokenParams,

@@ -143,6 +143,8 @@ export class NetworksNotes extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/notes/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param networkUuid Network UUID.
    */
   create(
@@ -159,6 +161,8 @@ export class NetworksNotes extends APIResource {
    * Requires write:networks and the authenticated author of the note. Deletion is irreversible. Connected account and verification data are unaffected.
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/notes/{note_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param networkUuid Network UUID.
    * @param noteUuid note_uuid
@@ -195,6 +199,8 @@ export class Networks extends APIResource {
    * Put one of your application's tags on the network. Returns the network detail, whose `tags` lists your application's tags on the network, with `201` when the tag was added and `200` when it was already on the network. A tag that belongs to another application, or does not exist, returns 404 `Tag not found.`. Requires a full-access API key, or `write:networks` for a console member.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/add/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param networkUuid Network UUID.
    */
@@ -271,6 +277,8 @@ export class Networks extends APIResource {
    * Remove one of your application's tags from the network. Returns the network detail. 404 when the tag is not on the network, or does not belong to your application. Requires a full-access API key, or `write:networks` for a console member.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/tags/remove/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param networkUuid Network UUID.
    */

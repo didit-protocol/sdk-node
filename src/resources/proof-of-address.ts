@@ -43,6 +43,8 @@ export class ProofOfAddress extends APIResource {
    * Note: `FUTURE_ISSUE_DATE` and `POOR_DOCUMENT_QUALITY` exist in workflow sessions but are never produced by this standalone endpoint - a future-dated document is not auto-declined here.
    *
    * `POST /v3/poa/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   verify(
     params: ProofOfAddressVerifyParams,

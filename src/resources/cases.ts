@@ -592,6 +592,8 @@ export class CasesBlueprints extends APIResource {
    * Generate an unsaved blueprint proposal. Requires write:cases. Returns a draft object, not a blueprint UUID; no blueprint or saved policy draft is created. Review the proposal, choose assignees and any teams, approvals or routing, then create or update a blueprint separately. Invalid generated content or generation failure returns 503. See [blueprint AI drafts](/management-api/case-blueprints/ai-draft).
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/ai-draft/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   aiDraft(
     params: CasesBlueprintsAiDraftParams,
@@ -606,6 +608,8 @@ export class CasesBlueprints extends APIResource {
    * Create a case blueprint: general settings (assignment, escalation, transfer, 4-eyes pairing) plus content_config, the six sections that drive the case page. Set publish=false to create an unpublished draft; Publish creates its first live version. Discarding a never-published draft deletes it. applies_to accepts the six case-type values. content_config.stages.items[].worked_by is an optional active review-team UUID from this application. These settings are preserved in case policy snapshots; later edits do not change existing snapshots.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: CasesBlueprintsCreateParams,
@@ -621,6 +625,8 @@ export class CasesBlueprints extends APIResource {
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param blueprintUuid Blueprint UUID.
    */
   delete(blueprintUuid: string, options?: RequestOptions): APIPromise<void> {
@@ -629,6 +635,8 @@ export class CasesBlueprints extends APIResource {
 
   /**
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/draft/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param blueprintUuid blueprint_uuid
    */
@@ -646,6 +654,8 @@ export class CasesBlueprints extends APIResource {
    * Copy one or more presets into the application as editable blueprints. Idempotent per preset_key; omit preset_keys to install every preset not yet installed.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/presets/install/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   installPresets(
     params: CasesBlueprintsInstallPresetsParams = {},
@@ -700,6 +710,8 @@ export class CasesBlueprints extends APIResource {
   /**
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/publish/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param blueprintUuid blueprint_uuid
    */
   publish(
@@ -743,6 +755,8 @@ export class CasesBlueprints extends APIResource {
   /**
    * `PUT /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/draft/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param blueprintUuid blueprint_uuid
    */
   saveDraft(
@@ -759,6 +773,8 @@ export class CasesBlueprints extends APIResource {
    * Partially update a blueprint's general settings or content_config. applies_to accepts the six case-type values. content_config.stages.items[].worked_by is an optional active review-team UUID from this application. These settings are preserved in case policy snapshots; later edits do not change existing snapshots.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/blueprints/{blueprint_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param blueprintUuid Blueprint UUID.
    */
@@ -793,6 +809,8 @@ export class CasesChecklist extends APIResource {
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/checklist/{item_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    * @param itemUuid Checklist item UUID.
    */
@@ -815,6 +833,8 @@ export class CasesLinks extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/links/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   create(
@@ -831,6 +851,8 @@ export class CasesLinks extends APIResource {
    * Detach a linked session, business session, or transaction from the case.
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/links/{link_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    * @param linkUuid Link UUID.
@@ -860,6 +882,8 @@ export class CasesNotes extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/notes/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    */
   create(
@@ -877,6 +901,8 @@ export class CasesNotes extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/notes/presign/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   createAttachmentUpload(
@@ -889,6 +915,8 @@ export class CasesNotes extends APIResource {
 
   /**
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/notes/{note_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid case_uuid
    * @param noteUuid note_uuid
@@ -932,6 +960,8 @@ export class CasesNotes extends APIResource {
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/notes/{note_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    * @param noteUuid note_uuid
    */
@@ -953,6 +983,8 @@ export class CasesRegulatoryReports extends APIResource {
    * Create a draft FIU report for the case: DRAFT status, auto-populated from the optional template plus the case's subject, linked transactions, and narrative. Validate then finalize to produce the goAML XML and PDF. FFR (Confirmed Name Match Report, formerly the Funds Freeze Report) and PNMR (Partial Name Match Report) are activity reports: they report the case's subject, not transactions, so a draft links no transactions by default and the narrative, reason and action are written from the sanctions matches on the case's AML screenings.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/regulatory-reports/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    */
@@ -987,6 +1019,8 @@ export class CasesRequests extends APIResource {
   /**
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/cancel/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    * @param requestUuid request_uuid
    */
@@ -1002,6 +1036,8 @@ export class CasesRequests extends APIResource {
    * Confirm the exact signed preview within 15 minutes. Only fixed templates and an OTP-verified contact belonging to the case subject are accepted. The request ID makes retries idempotent. Delivery is queued; SENT, SIMULATED and UNKNOWN are distinct outcomes. An actionable request sets the case to Awaiting user. A review update leaves its status unchanged.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid case_uuid
    */
@@ -1031,6 +1067,8 @@ export class CasesRequests extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/preview/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    */
   preview(
@@ -1047,6 +1085,8 @@ export class CasesRequests extends APIResource {
    * Send a waiting customer request's email again, to the same verified recipient, with the same content. You can remind a request at most once every 24 hours. A reminder changes nothing else: the request keeps its deadline and the case keeps its status. Each reminder is logged on the case as a CUSTOMER_REQUEST event with action `reminded`. The response's `delivery_status` is how this reminder's delivery ended: SENT, SIMULATED (the email was not sent), or UNKNOWN (the email might have been accepted; it is not sent again automatically). `next_reminder_at` is when you can remind this request again. Returns 409 with a `reason` when the customer no longer has the request to answer, and 429 with `retry_at` and a `Retry-After` header when the request was reminded in the last 24 hours. Requires `write:cases`.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/requests/{request_uuid}/remind/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    * @param requestUuid Customer request UUID, from the case's request list.
@@ -1099,6 +1139,8 @@ export class CasesRoutingRules extends APIResource {
    * Requires `write:cases` for the requested application. Set publish=false to create an unpublished draft; Publish creates its first live version. Discarding a never-published draft deletes it.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: CasesRoutingRulesCreateParams,
@@ -1109,6 +1151,8 @@ export class CasesRoutingRules extends APIResource {
 
   /**
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/{record_uuid}/draft/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param recordUuid record_uuid
    */
@@ -1158,6 +1202,8 @@ export class CasesRoutingRules extends APIResource {
    * Requires `read:cases` for the requested application. Evaluates current rules or a supplied draft against current reviewer access, availability, skills and capacity. It does not save the draft or reserve reviewer capacity.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/preview/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   preview(
     params: CasesRoutingRulesPreviewParams,
@@ -1168,6 +1214,8 @@ export class CasesRoutingRules extends APIResource {
 
   /**
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/{record_uuid}/publish/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param recordUuid record_uuid
    */
@@ -1212,6 +1260,8 @@ export class CasesRoutingRules extends APIResource {
   /**
    * `PUT /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/{record_uuid}/draft/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param recordUuid record_uuid
    */
   saveDraft(
@@ -1228,6 +1278,8 @@ export class CasesRoutingRules extends APIResource {
    * Requires `write:cases` for the requested application.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/routing-rules/{record_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param recordUuid record_uuid
    */
@@ -1248,6 +1300,8 @@ export class CasesTeams extends APIResource {
    * Requires `write:cases` for the requested application.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/teams/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(params: CasesTeamsCreateParams, options?: RequestOptions): APIPromise<CaseReviewTeam> {
     return this._client.request(CASES_TEAMS_CREATE, [], params, options);
@@ -1287,6 +1341,8 @@ export class CasesTeams extends APIResource {
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/teams/{record_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param recordUuid record_uuid
    */
   update(
@@ -1314,6 +1370,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/entity-actions/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    */
   applyEntityAction(
@@ -1331,6 +1389,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/approve/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   approveResolution(caseUuid: string, options?: RequestOptions): APIPromise<CaseDetail> {
@@ -1343,6 +1403,8 @@ export class Cases extends APIResource {
    * Assign the case to a user, or unassign it by sending assignee_user_id: null. assignee_email/assignee_name auto-provision a User row when the assignee does not exist yet.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/assign/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    */
@@ -1360,6 +1422,8 @@ export class Cases extends APIResource {
    * Assign (or unassign, with assignee_user_id: null) several cases at once. All cases must share the same blueprint; mismatches are reported per case without aborting the batch.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/assign/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   bulkAssign(
     params: CasesBulkAssignParams,
@@ -1374,6 +1438,8 @@ export class Cases extends APIResource {
    * Apply the same status transition to several cases in one call: OPEN reopens, AWAITING_USER requests info, RESOLVED resolves (resolution required). Each case is evaluated independently; gate failures (incomplete checklist, missing required note) are reported per case without aborting the batch.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/bulk/status/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   bulkUpdateStatus(
     params: CasesBulkUpdateStatusParams,
@@ -1388,6 +1454,8 @@ export class Cases extends APIResource {
    * Create a case anchored to exactly one subject (a user or a business), directly or by deriving the subject from an attached session/transaction link. Source is always `MANUAL` for API-created cases. Network links require write:cases plus read:networks, Networks access and investigation access for the network scope. The network must be visible and contain the case subject. Manually adding links to network-generated cases is not allowed. An explicit subject is required whenever links includes a network.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(params: CasesCreateParams, options?: RequestOptions): APIPromise<CaseDetail> {
     return this._client.request(CASES_CREATE, [], params, options);
@@ -1402,6 +1470,8 @@ export class Cases extends APIResource {
    *
    * `DELETE /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   delete(caseUuid: string, options?: RequestOptions): APIPromise<void> {
@@ -1415,6 +1485,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/escalate/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   escalate(caseUuid: string, options?: RequestOptions): APIPromise<CaseDetail> {
@@ -1425,6 +1497,8 @@ export class Cases extends APIResource {
    * Review existing cases for a subject or owned source record before manual case creation. Both open and resolved investigations are returned. Each page contains at most 20 cases; use next_offset to request another page.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/duplicates/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   findDuplicates(
     params: CasesFindDuplicatesParams = {},
@@ -1523,6 +1597,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/reject-approval/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   rejectResolution(
@@ -1540,6 +1616,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/reopen/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   reopen(caseUuid: string, options?: RequestOptions): APIPromise<CaseDetail> {
@@ -1553,6 +1631,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/request-info/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   requestInfo(caseUuid: string, options?: RequestOptions): APIPromise<CaseDetail> {
@@ -1565,6 +1645,8 @@ export class Cases extends APIResource {
    * Resolve the case with one of five resolutions: FALSE_POSITIVE (no concern found), VALID_THREAT (concern confirmed), INCONCLUSIVE, REQUIREMENTS_NOT_MET or REQUIREMENTS_SATISFIED. Blocked with 400 if the blueprint's checklist is not optional and items remain incomplete, or if the blueprint requires a resolution note and none is given. When the case's blueprint has a four-eyes checker step (four_eyes_checker_blueprint), the resolution is staged (case.pending_resolution) and the case moves to the checker blueprint instead of resolving immediately; a different officer must call approve or reject-approval. Submit a four-eyes resolution as a console member: a resolution an API key submits has no recorded maker, so approve and reject-approval return 403 for every caller. On a four-eyes blueprint you can name the member who must approve with `checker`: then only that member can approve or reject the resolution, and the response's `checker` names them. Without `checker`, the resolution waits on the checker blueprint's queue. Sending `checker` for a blueprint without a checker step returns 400.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/resolve/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    */
@@ -1608,6 +1690,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/action-receipts/{receipt_uuid}/retry/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid case_uuid
    * @param receiptUuid receipt_uuid
    */
@@ -1631,6 +1715,8 @@ export class Cases extends APIResource {
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/transfer/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param caseUuid Case UUID.
    */
   transfer(
@@ -1647,6 +1733,8 @@ export class Cases extends APIResource {
    * Update the case's title, priority, due date, tags, or owning review team. Send only the fields you want to change; fields you omit keep their value. `tags` replaces the whole tag list. `team` takes the uuid of an active review team of this application (list them with `GET .../cases/teams/`), or null to clear the team. Requires a full-access API key, or `write:cases` for a console member: a key with restricted access gets 403. Logs PRIORITY_CHANGED, DUE_DATE_CHANGED, TAG_ADDED, TAG_REMOVED and TEAM_CHANGED events as applicable; a title change is saved without a timeline event. Returns the updated case.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/cases/{case_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param caseUuid Case UUID.
    */

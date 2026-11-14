@@ -122,6 +122,8 @@ export class Users extends APIResource {
    * **Filed regulatory reports:** if the selected data is in a finalized regulatory report, the whole request is refused with `409` and nothing is deleted. The body uses `code: in_filed_report` and names each report with `uuid`, `report_number`, `report_type` and `case_uuid`. Delete the reports, then repeat the request.
    *
    * `POST /v3/users/delete/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   batchDelete(
     params: UsersBatchDeleteParams = {},
@@ -133,7 +135,7 @@ export class Users extends APIResource {
   /**
    * Create user
    *
-   * Create a [user](/entities/users) by `vendor_data`, before or without a verification session. `vendor_data` must be unique among the application's users (a duplicate returns `400`). Not idempotent.
+   * Create a [user](/entities/users) by `vendor_data`, before or without a verification session. `vendor_data` must be unique among the application's users (a duplicate returns `400`). Not idempotent without an `Idempotency-Key`.
    *
    * **Contact details:** `email` and `phone_number` are stored in `metadata.contact`, and `country` in `metadata.address`. When you send `first_name` or `last_name` without `full_name`, Didit joins them into `full_name`.
    *
@@ -142,6 +144,8 @@ export class Users extends APIResource {
    * **API key access:** a scoped API key needs `users` write. With `send_verification_link: true` it also needs `sessions` write, or the call answers `403` before anything is written. Full-access keys are unaffected. See [API keys](/console/api-keys).
    *
    * `POST /v3/users/create/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(params: UsersCreateParams, options?: RequestOptions): APIPromise<UsersCreateResponse> {
     return this._client.request(USERS_CREATE, [], params, options);
@@ -243,6 +247,8 @@ export class Users extends APIResource {
    * Set `estimate_only: true` to preview counts and costs without writing anything. Selections of 20 profiles or fewer resolve inline and return `200` with the completed job; larger selections return `202` and run in the background - poll [Get AML monitoring job](#get-/v3/aml-monitoring/jobs/-job_id-/) with the returned `job_id`. Enabling is refused with `403` when the organization balance does not cover the estimate. Identifiers that match nothing are listed in `unmatched` and never fail the request: a selection that matches nothing completes as an empty job (`total` 0), the same convention as the batch delete endpoints.
    *
    * `POST /v3/users/aml-monitoring/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   setAmlMonitoring(
     params: UsersSetAmlMonitoringParams,
@@ -257,6 +263,8 @@ export class Users extends APIResource {
    * Enables or disables AML ongoing monitoring at the user level. Exactly one monitored AML screening is kept per user; users without any AML screening (for example imported users) get one created and screened first, billed as a regular AML screening. Set estimate_only to preview counts and costs without writing. Batches of 20 or fewer resolve inline (200, COMPLETED); larger batches return 202 and run asynchronously.
    *
    * `PATCH /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   setOngoingMonitoring(
     params: UsersSetOngoingMonitoringParams,
@@ -271,6 +279,8 @@ export class Users extends APIResource {
    * Partial update of a user: `display_name`, `full_name`, `date_of_birth`, `status`, `metadata`, `approved_emails`/`approved_phones`/`issuing_states`. `metadata` fully replaces. Changing `status` here works like [Update User Status](#patch-/v3/users/-vendor_data-/update-status/): it records a `STATUS_CHANGED` activity with the optional `reason`, and `BLOCKED` adds the `vendor_data` to the system blocklist (moving away from `BLOCKED` removes that entry). Changes to `display_name`, `full_name`, `date_of_birth` or `metadata` are recorded as a `PROFILE_UPDATED` activity.
    *
    * `PATCH /v3/users/{vendor_data}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param vendorData Your unique identifier for the user (free-form string, NOT a UUID).
    */
@@ -289,6 +299,8 @@ export class Users extends APIResource {
    *
    * `PATCH /v3/users/{vendor_data}/update-status/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param vendorData Your unique identifier for the user.
    */
   updateStatus(
@@ -305,6 +317,8 @@ export class Users extends APIResource {
    * Attach a trusted imported face image to an existing User profile. Use this after creating or retrieving a User by `vendor_data` and reading its `didit_internal_id`. The uploaded face is stored on the User profile and indexed for duplicate detection and face search. It is not added to a face blocklist.
    *
    * `POST /v3/organization/{organization_id}/application/{application_id}/vendor-users/by-id/{didit_internal_id}/faces/upload/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param diditInternalId Didit's internal User UUID, returned as `didit_internal_id` by `GET /v3/users/{vendor_data}/` and `POST /v3/users/create/`.
    */

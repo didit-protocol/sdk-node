@@ -41,6 +41,8 @@ export class DatabaseValidation extends APIResource {
    * Send the request as `application/json`, or as `multipart/form-data` when uploading a `selfie`.
    *
    * `POST /v3/database-validation/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   validate(
     params: DatabaseValidationValidateParams,

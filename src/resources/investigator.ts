@@ -128,6 +128,8 @@ export class Investigator extends APIResource {
    *
    * `POST /v3/investigator/runs/{run_id}/accept/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param runId run_id
    */
   acceptRun(
@@ -144,6 +146,8 @@ export class Investigator extends APIResource {
    * Accepts up to 50 reports marked Ready to accept. Each is its own decision: one that cannot be accepted is skipped with its reason. Restricted keys need the `decisions` scope (write); transaction alerts also need `transactions` (write). Escalating a verification or transaction opens a case.
    *
    * `POST /v3/investigator/runs/batch-accept/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   batchAcceptRuns(
     params: InvestigatorBatchAcceptRunsParams,
@@ -211,6 +215,8 @@ export class Investigator extends APIResource {
    * Takes another action with a category and a reason. Also overrides a decision the Investigator took on its own while it still stands. Restricted keys need the `decisions` scope (write); transaction alerts also need `transactions` (write). Escalating a verification or transaction opens a case. Automated transaction decisions can be overridden only while the original decision still stands. The original decision remains unchanged, the override is recorded separately, and an immediate policy question is raised for its recorded situations with the original policy action. The override does not charge for another automated decision.
    *
    * `POST /v3/investigator/runs/{run_id}/override/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param runId run_id
    */
@@ -315,6 +321,8 @@ export class Investigator extends APIResource {
    * Change the stage, the monthly spend limit, or both. Moving past `none` needs a plan that includes the Investigator (Growth or higher); `live` also needs a contract that prices it, if you have one. Restricted keys need the `applications` scope (write).
    *
    * `PATCH /v3/investigator/settings/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   updateSettings(
     params: InvestigatorUpdateSettingsParams = {},

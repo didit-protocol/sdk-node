@@ -51,6 +51,8 @@ export class Phone extends APIResource {
    * **Social footprint.** Set `enable_social` to `true` to add a `phone_social` block: the online platforms this number is registered on, with per-category counts and any profile details available. `profiles_registered: 0` means the platforms were checked and the number was found on none of them - a valid, billable answer. The block is absent when the add-on was not requested or the check could not be completed, and it is not billed in that case. Billing adds one `phone_social` unit per request on top of this endpoint's own price.
    *
    * `POST /v3/phone/risk/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   assessRisk(
     params: PhoneAssessRiskParams,
@@ -85,6 +87,8 @@ export class Phone extends APIResource {
    * **Social footprint.** Set `enable_social` to `true` to add a `phone_social` block: the online platforms this number is registered on, with per-category counts and any profile details available. `profiles_registered: 0` means the platforms were checked and the number was found on none of them - a valid, billable answer. The block is absent when the add-on was not requested or the check could not be completed, and it is not billed in that case. Billing adds one `phone_social` unit per request on top of this endpoint's own price.
    *
    * `POST /v3/phone/check/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   checkCode(
     params: PhoneCheckCodeParams,
@@ -117,6 +121,8 @@ export class Phone extends APIResource {
    * **Rate limits.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints, plus an anti-abuse cap of 4 send attempts per phone number per hour; exceeding either returns `429`.
    *
    * `POST /v3/phone/send/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   sendCode(
     params: PhoneSendCodeParams,

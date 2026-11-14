@@ -120,6 +120,8 @@ export class MonitoringEvents extends APIResource {
    * Send one non-monetary event (login, session, gameplay, bonus, affiliate, payment, dispute, security, responsible gambling or custom) from your backend. The event is validated against its category contract, stored, IP-enriched once per unique public address, and evaluated by your real-time event rules before the response returns; cross-subject and long-window rules run asynchronously (`correlation_pending: true`), and in a sandbox application no rules run. `event_id` is the idempotency key: the same `event_id` with the same `event_category`, `action_type`, `occurred_at`, `subject.vendor_data` and `payload` returns `200` with `idempotent_replay: true` and the stored outcome (other envelope fields are not compared), while different values return `409`. Event ingestion is opt-in per application: until it is switched on this endpoint returns `403` with `code: event_monitoring_disabled` and stores nothing. A scoped API key needs `transactions: write`. See [Event ingestion](https://docs.didit.me/transaction-monitoring/events) and [Rules on events](https://docs.didit.me/transaction-monitoring/event-rules); to send events from a browser or app, use [SDK event submission](https://docs.didit.me/transaction-monitoring/sdk-event-submission).
    *
    * `POST /v3/events/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: MonitoringEventsCreateParams,
@@ -134,6 +136,8 @@ export class MonitoringEvents extends APIResource {
    * Submit 1 to 500 events in one request, each in the same envelope as `POST /v3/events/`. Every item is validated, stored and evaluated on its own and gets its own outcome (`accepted`, `replayed` or `rejected`), so one malformed event never rolls back the others: the response is `201` when no item was rejected and `207` when at least one was, and both mean the request was processed. Send `{"events": [...]}`; a bare JSON array of events is also accepted. Event ingestion must be switched on for the application, otherwise the whole request returns `403` with `code: event_monitoring_disabled` and nothing is stored. A scoped API key needs `transactions: write`. See [Batches](https://docs.didit.me/transaction-monitoring/events#batches).
    *
    * `POST /v3/events/batch/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   createBatch(
     params: MonitoringEventsCreateBatchParams,
@@ -148,6 +152,8 @@ export class MonitoringEvents extends APIResource {
    * Mint a short-lived device credential bound to one subject, so your web or mobile app can send that user's events straight to Didit without an API key. The app sends the returned `monitoring_token` in the `X-Monitoring-Token` header to the device lane (`POST /v1/events/` and `POST /v1/events/batch/`), where the subject is always overwritten with this `vendor_data`, events outside `allowed_event_categories` are rejected, each submitted event spends one use, and a request whose `Origin` does not equal `bind_to_origin` is refused. Call it from your backend only; minting creates the credential and nothing else (no user is created). Event ingestion must be switched on for the application, otherwise this endpoint returns `403` with `code: event_monitoring_disabled` instead of minting a credential that could never write. A scoped API key needs `transactions: write`. See [SDK event submission](https://docs.didit.me/transaction-monitoring/sdk-event-submission).
    *
    * `POST /v3/events/sdk-token/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   createSdkToken(
     params: MonitoringEventsCreateSdkTokenParams,
@@ -162,6 +168,8 @@ export class MonitoringEvents extends APIResource {
    * Permanently delete one monitoring event together with its rule runs, notes and tag links, for example an event sent by mistake. After the `204` the event is gone from every read (retrieve returns `404`, and it no longer appears in the list or the subject timeline), the deletion is irreversible, and its `event_id` is free to be used for a new event. Not affected: the user or company the event resolved to, cases a rule opened, list entries a rule added, and the scores and statuses already applied to other events. To erase everything about a person or a company, delete the user or the company instead, which also deletes their events. A scoped API key needs `transactions: write`.
    *
    * `DELETE /v3/events/{event_uuid}/delete/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param eventUuid Didit identifier of the event (`event_uuid` from the create, batch, list or timeline response), not your own `event_id`.
    */

@@ -72,6 +72,8 @@ export class BiometricTemplates extends APIResource {
    * **`delete_all: true` without filters purges every biometric template in the application and cannot be undone.** Run the count endpoint with the same filters first.
    *
    * `POST /v3/biometric-templates/delete/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   batchDelete(
     params: BiometricTemplatesBatchDeleteParams = {},
@@ -108,6 +110,8 @@ export class BiometricTemplates extends APIResource {
    * Templates are also purged by `POST /v3/users/delete/` for the owning User, by any deletion of that User's sessions with `deletion_instruction: privacy_erasure`, and automatically at `expires_at`.
    *
    * `DELETE /v3/biometric-templates/{template_uuid}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param templateUuid Template id, as returned in `biometric_template_uuid` by the session deletion endpoints, `biometric_template_id` on a Face Search match, or the list endpoint.
    */

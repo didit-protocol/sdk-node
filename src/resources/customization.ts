@@ -34,6 +34,8 @@ export class Customization extends APIResource {
    * Partial update of the application's white-label branding. Send `application/json` to change colors, fonts, radii and UI options, or `multipart/form-data` to upload logo images. Only the fields you include are changed. Custom domain and white-label email cannot be set through this endpoint - use the Business Console for those.
    *
    * `PATCH /v3/customization/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   update(
     params: CustomizationUpdateParams = {},

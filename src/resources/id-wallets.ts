@@ -226,6 +226,8 @@ export class IdWallets extends APIResource {
    *
    * `POST /v3/id-verification/wallets/verifications/{request_id}/cancel/`
    *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
    * @param requestId The request_id the start endpoint returned.
    */
   cancelVerification(
@@ -252,6 +254,8 @@ export class IdWallets extends APIResource {
    * Smart-ID and Mobile-ID: ask the provider whether the user confirmed, refused or let the prompt lapse, and verify the signed identity when they confirmed. Redirect wallets complete through the user's browser, so for them this only reads the verification back. Answers the verification as it is afterwards.
    *
    * `POST /v3/id-verification/wallets/verifications/{request_id}/poll/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param requestId The request_id the start endpoint returned.
    */
@@ -700,6 +704,8 @@ export class IdWallets extends APIResource {
    * Digital Credentials API wallets (Google Wallet): send what the wallet returned to your page or app for a verification whose next_action is request_digital_credential. Didit decrypts it, checks the issuer's signature against the trusted issuer roots, every returned value against its signed digest, and the device signature over your origin and this request, then decides the verification: verified (billed once) or declined with the error code. Single use: a second submit returns the decided verification.
    *
    * `POST /v3/id-verification/wallets/verifications/{request_id}/response/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    *
    * @param requestId The request_id the start endpoint returned.
    */
