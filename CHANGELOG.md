@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.22.0](https://github.com/didit-protocol/sdk-node/compare/v2.21.0...v2.22.0) (2026-11-14)
+
+
+### Features
+
+* **spec:** sync API spec 2026-11-14 ([b56a7f7](https://github.com/didit-protocol/sdk-node/commit/b56a7f7152fe88a867fed89ffe1a4ae2ab7382e5))
+
+
+### Bug Fixes
+
+* refuse an idempotency key that is not printable ASCII before any request ([#84](https://github.com/didit-protocol/sdk-node/issues/84)) ([a37aa0f](https://github.com/didit-protocol/sdk-node/commit/a37aa0f4f9144bba64103649472ee4c91769b998))
+
 ## [2.21.0](https://github.com/didit-protocol/sdk-node/compare/v2.20.0...v2.21.0) (2026-11-14)
 
 
