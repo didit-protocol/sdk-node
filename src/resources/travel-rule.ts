@@ -31,15 +31,20 @@ import type {
   WalletAddressImportReport,
 } from "../types/components.js";
 import type {
+  TravelRuleAssignVaspParams,
+  TravelRuleAssignVaspResponse,
   TravelRuleCounterpartyContactsCreateParams,
   TravelRuleCounterpartyContactsListParams,
   TravelRuleCounterpartyContactsListResponse,
   TravelRuleCreateVaspParams,
   TravelRuleCreateWidgetSessionParams,
+  TravelRuleListVaspReviewersResponse,
   TravelRuleListVaspsParams,
   TravelRuleListVaspsResponse,
   TravelRuleNetworksUpdateQuestionnaireParams,
   TravelRuleRegisterInboundParams,
+  TravelRuleReviewVaspScreeningHitParams,
+  TravelRuleReviewVaspScreeningHitResponse,
   TravelRuleScreenVaspParams,
   TravelRuleSendComplianceEmailConfirmationResponse,
   TravelRuleSendVaspQuestionnaireParams,
@@ -233,6 +238,12 @@ const TRAVEL_RULE_WORKSPACE_VERIFY_DOMAIN_DNS: OperationSpec = {
   path: "/v3/travel-rule/workspace/domain/dns/",
   dates: "TravelRuleWorkspace",
 };
+const TRAVEL_RULE_ASSIGN_VASP: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/vasps/{vasp_id}/assign/",
+  body: "json",
+  dates: { p: { assignee: "TravelRuleVaspAssignee" } },
+};
 const TRAVEL_RULE_CLEAR_VASP_DECISION: OperationSpec = {
   method: "DELETE",
   path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
@@ -254,6 +265,10 @@ const TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/vasps/{vasp_id}/questionnaires/",
   dates: "TravelRuleCounterpartyQuestionnaireList",
+};
+const TRAVEL_RULE_LIST_VASP_REVIEWERS: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/reviewers/",
 };
 const TRAVEL_RULE_LIST_VASPS: OperationSpec = {
   method: "GET",
@@ -296,6 +311,12 @@ const TRAVEL_RULE_RETRIEVE_VASP_SCREENING: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/vasps/{vasp_id}/screening/",
   dates: "TravelRuleCounterpartyScreeningStatus",
+};
+const TRAVEL_RULE_REVIEW_VASP_SCREENING_HIT: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/travel-rule/vasps/{vasp_id}/screening/",
+  body: "json",
+  dates: { p: { screening: "TravelRuleCounterpartyScreening" } },
 };
 const TRAVEL_RULE_SCREEN_VASP: OperationSpec = {
   method: "POST",
@@ -744,6 +765,23 @@ export class TravelRule extends APIResource {
   readonly workspace: TravelRuleWorkspaceResource = new TravelRuleWorkspaceResource(this._client);
 
   /**
+   * Assign a VASP to a member
+   *
+   * Assigns the counterparty to one application member, or unassigns it with `assignee_email: null`. Repeating the same assignment changes nothing (`changed: false`). The assignment is private to your application. Needs the transactions write privilege.
+   *
+   * `POST /v3/travel-rule/vasps/{vasp_id}/assign/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  assignVasp(
+    vaspId: string,
+    params: TravelRuleAssignVaspParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleAssignVaspResponse> {
+    return this._client.request(TRAVEL_RULE_ASSIGN_VASP, [vaspId], params, options);
+  }
+
+  /**
    * Clear your decision on a VASP
    *
    * Clear your application's own decision on a counterparty. The response shows the decision that applies afterwards: null, or for an entity of a brand the brand's decision, which the entity follows again.
@@ -801,6 +839,17 @@ export class TravelRule extends APIResource {
     options?: RequestOptions,
   ): APIPromise<TravelRuleCounterpartyQuestionnaireList> {
     return this._client.request(TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES, [vaspId], undefined, options);
+  }
+
+  /**
+   * List the members who can be assigned a VASP
+   *
+   * The application members who can review Travel Rule counterparties. Use one `email` as `assignee_email` of `POST /v3/travel-rule/vasps/{vasp_id}/assign/`. Needs the transactions read privilege.
+   *
+   * `GET /v3/travel-rule/vasps/reviewers/`
+   */
+  listVaspReviewers(options?: RequestOptions): APIPromise<TravelRuleListVaspReviewersResponse> {
+    return this._client.request(TRAVEL_RULE_LIST_VASP_REVIEWERS, [], undefined, options);
   }
 
   /**
@@ -885,6 +934,23 @@ export class TravelRule extends APIResource {
     options?: RequestOptions,
   ): APIPromise<TravelRuleCounterpartyScreeningStatus> {
     return this._client.request(TRAVEL_RULE_RETRIEVE_VASP_SCREENING, [vaspId], undefined, options);
+  }
+
+  /**
+   * Review a screening hit
+   *
+   * Records your review of one possible match of a screening. The screening score and status are recomputed from the reviewed hits, but the counterparty's decision is never changed for you: decide it with `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`. Repeating the same review changes nothing (`changed: false`). Needs the transactions write privilege.
+   *
+   * `PATCH /v3/travel-rule/vasps/{vasp_id}/screening/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  reviewVaspScreeningHit(
+    vaspId: string,
+    params: TravelRuleReviewVaspScreeningHitParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleReviewVaspScreeningHitResponse> {
+    return this._client.request(TRAVEL_RULE_REVIEW_VASP_SCREENING_HIT, [vaspId], params, options);
   }
 
   /**

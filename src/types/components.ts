@@ -11262,6 +11262,36 @@ export interface TravelRuleCounterpartyScreening {
   fresh?: boolean;
   /** true while the screening is fresh and its status is In Review or Declined. While your latest screening is flagged and counterparty screening stays on, counterparty_risk_level is HIGH in your rules. */
   flagged?: boolean;
+  /** What was screened: the company name only. People are never inferred from the due-diligence questionnaire. */
+  scope?: "company" | (string & {});
+  /** People screening is not run for counterparties. */
+  people_screening?: TravelRuleCounterpartyScreeningPeopleScreening;
+  /** The possible matches. Returned by `GET` and `POST` on `/v3/travel-rule/vasps/{vasp_id}/screening/` and by the hit review, not in the screening summary of a VASP row. Source and list details are public; no screening supplier is named. */
+  hits?: TravelRuleCounterpartyScreeningHits[];
+}
+
+export interface TravelRuleCounterpartyScreeningHits {
+  /** The hit id, `hit_...`. */
+  id?: string;
+  /** The review recorded for the hit, or null while nobody reviewed it. */
+  review?: TravelRuleCounterpartyScreeningHitsReview | null;
+  /** true only when a person reviewed the hit as `False Positive`. A low match score can mark a hit `False Positive` automatically; that is not a dismissal. */
+  dismissed?: boolean;
+  [key: string]: unknown;
+}
+
+/** The review recorded for the hit, or null while nobody reviewed it. */
+export interface TravelRuleCounterpartyScreeningHitsReview {
+  status?: "Unreviewed" | "Confirmed Match" | "False Positive" | "Inconclusive" | (string & {});
+  reason?: string;
+  reviewed_by?: string | null;
+  reviewed_at?: Date | null;
+}
+
+/** People screening is not run for counterparties. */
+export interface TravelRuleCounterpartyScreeningPeopleScreening {
+  status?: "not_run" | (string & {});
+  reason?: "people_not_provided" | (string & {});
 }
 
 export interface TravelRuleCounterpartyScreeningResult {
@@ -11584,6 +11614,10 @@ export interface TravelRuleNetworkParticipant {
   last_error?: string;
   /** Every status change, oldest first. */
   history?: TravelRuleNetworkParticipantHistory[];
+  /** Whether the signed-in member asked for an email when this participant's status changes. Always false for API-key calls, which cannot set the preference. */
+  notify_status_changes?: boolean;
+  /** The verified account email the notifications go to; null when there is none. */
+  notification_email?: string | null;
 }
 
 export interface TravelRuleNetworkParticipantHistory {
@@ -11692,7 +11726,8 @@ export interface TravelRuleNetworkState {
     | "request_sent"
     | "unavailable"
     | "error"
-    | (string & {});
+    | (string & {})
+    | null;
   /** Machine-readable detail of state. own_membership_only: Didit does not carry applications on this network (TRUST), connect your own membership; sandbox_application: sandbox transfers never reach a network; provisioning_failed: the network refused the registration, the participant's last_error says why and requesting the network again retries. */
   reason?:
     | "own_membership_connected"
@@ -11713,17 +11748,27 @@ export interface TravelRuleNetworkState {
     | "provisioning_failed"
     | "questionnaire_pending"
     | "submitted_to_network"
-    | (string & {});
+    | (string & {})
+    | null;
   /** Whether Didit's own membership of this network is configured; not a live health check. */
-  platform_available?: boolean;
+  platform_available?: boolean | null;
   /** Whether a connected customer membership exists. Credentials are validated locally; network validation occurs on a live exchange. */
-  connected?: boolean;
-  /** This application's own participant on the network, or null when it has none. */
+  connected?: boolean | null;
   participant?: TravelRuleNetworkParticipantSummary | null;
   /** Directory VASPs reachable on this network. */
-  vasps_reachable?: number;
+  vasps_reachable?: number | null;
   /** This application's transfers carried on this network in the last 30 days. */
-  routed_30d?: number;
+  routed_30d?: number | null;
+  /** `error` when this network's row could not be loaded; the other networks are unaffected. */
+  load_status?: "loaded" | "error" | (string & {});
+  /** Present only when `load_status` is `error`. */
+  load_error?: TravelRuleNetworkStateLoadError | null;
+}
+
+/** Present only when `load_status` is `error`. */
+export interface TravelRuleNetworkStateLoadError {
+  code?: "network_state_unavailable" | (string & {});
+  retryable?: boolean;
 }
 
 export interface TravelRuleNetworksOverview {
@@ -11733,6 +11778,8 @@ export interface TravelRuleNetworksOverview {
   participants?: TravelRuleNetworkParticipant[];
   /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
   networks?: TravelRuleNetworksOverviewNetworks;
+  /** The verified account email of the signed-in member; null for API-key calls. */
+  notification_email?: string | null;
 }
 
 /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
@@ -12109,6 +12156,24 @@ export interface TravelRuleUtxoEntry {
   txid?: string;
   /** Optional. The output index an input spends. */
   vout?: number | null;
+}
+
+/** The member the VASP is assigned to, or null. The assignment is private to your application. */
+export interface TravelRuleVaspAssignee {
+  /** The member's user id. */
+  uuid?: string;
+  full_name?: string;
+  email?: string;
+  assigned_at?: Date;
+}
+
+export interface TravelRuleVaspReviewer {
+  /** The member's user id. */
+  user_id?: string;
+  email?: string;
+  name?: string;
+  /** Display only; it grants nothing. */
+  role?: string | null;
 }
 
 export interface TravelRuleWalletLookup {
@@ -12691,6 +12756,8 @@ export interface VaspDirectoryEntry {
   questionnaires?: TravelRuleCounterpartyQuestionnaire[];
   /** directory for a shared directory entry, added_by_you for your application-private entry, or didit_network for a directory entry linked to a Didit customer. Separate kind=didit member results may omit this field; use kind to identify them. */
   source?: "didit_network" | "directory" | "added_by_you" | (string & {});
+  /** The member the VASP is assigned to, or null. The assignment is private to your application. */
+  assignee?: TravelRuleVaspAssignee | null;
 }
 
 export interface VaspDirectoryEntryAliases {
