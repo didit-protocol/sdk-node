@@ -15,7 +15,7 @@ export interface RequestOptions {
   /** Extra top-level fields for the JSON or multipart body. */
   body?: Record<string, unknown>;
   /**
-   * The `Idempotency-Key` header (1 to 255 characters), sent on `POST`, `PUT`,
+   * The `Idempotency-Key` header (1 to 255 printable ASCII characters), sent on `POST`, `PUT`,
    * `PATCH` and `DELETE`. With a key, `POST` and `PATCH` are retried like `GET`.
    * Per request only; the SDK never generates one.
    */
