@@ -12,6 +12,9 @@ import type {
   TravelRuleCounterpartyQuestionnaireList,
   TravelRuleCounterpartyScreeningResult,
   TravelRuleCounterpartyScreeningStatus,
+  TravelRuleDecisionEvent,
+  TravelRuleDocument,
+  TravelRuleDocumentShare,
   TravelRuleInboundResponse,
   TravelRuleManualMatchResponse,
   TravelRuleNetworkParticipant,
@@ -36,9 +39,16 @@ import type {
   TravelRuleCounterpartyContactsCreateParams,
   TravelRuleCounterpartyContactsListParams,
   TravelRuleCounterpartyContactsListResponse,
+  TravelRuleCounterpartyContactsUpdateParams,
   TravelRuleCreateVaspParams,
   TravelRuleCreateWidgetSessionParams,
+  TravelRuleDocumentsCreateParams,
+  TravelRuleDocumentsListParams,
+  TravelRuleDocumentsListResponse,
+  TravelRuleListVaspDecisionHistoryParams,
+  TravelRuleListVaspDecisionHistoryResponse,
   TravelRuleListVaspReviewersResponse,
+  TravelRuleListVaspSharedDocumentsResponse,
   TravelRuleListVaspsParams,
   TravelRuleListVaspsResponse,
   TravelRuleNetworksUpdateQuestionnaireParams,
@@ -48,6 +58,7 @@ import type {
   TravelRuleScreenVaspParams,
   TravelRuleSendComplianceEmailConfirmationResponse,
   TravelRuleSendVaspQuestionnaireParams,
+  TravelRuleShareVaspDocumentsParams,
   TravelRuleTransfersListParams,
   TravelRuleTransfersListResponse,
   TravelRuleUnmatchedDepositsListParams,
@@ -87,6 +98,36 @@ const TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST: OperationSpec = {
   path: "/v3/travel-rule/counterparty-contacts/",
   query: ["counterparty", "limit", "offset"],
   dates: { p: { results: { i: "TravelRuleCounterpartyContact" } } },
+};
+const TRAVEL_RULE_COUNTERPARTY_CONTACTS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/travel-rule/counterparty-contacts/{contact_uuid}/",
+  body: "json",
+  dates: "TravelRuleCounterpartyContact",
+};
+const TRAVEL_RULE_DOCUMENTS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/documents/",
+  body: "multipart",
+  files: ["file"],
+  dates: "TravelRuleDocument",
+};
+const TRAVEL_RULE_DOCUMENTS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/travel-rule/documents/{document_id}/",
+  response: "none",
+};
+const TRAVEL_RULE_DOCUMENTS_DOWNLOAD: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/documents/{document_id}/",
+  response: "binary",
+  accept: "application/pdf",
+};
+const TRAVEL_RULE_DOCUMENTS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/documents/",
+  query: ["limit", "offset"],
+  dates: { p: { results: { i: "TravelRuleDocument" } } },
 };
 const TRAVEL_RULE_NETWORKS_REQUEST_ACCESS: OperationSpec = {
   method: "POST",
@@ -261,6 +302,12 @@ const TRAVEL_RULE_CREATE_WIDGET_SESSION: OperationSpec = {
   body: "json",
   dates: "TravelRuleWidgetSessionResponse",
 };
+const TRAVEL_RULE_LIST_VASP_DECISION_HISTORY: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/decision-history/",
+  query: ["limit", "offset"],
+  dates: { p: { results: { i: "TravelRuleDecisionEvent" } } },
+};
 const TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/vasps/{vasp_id}/questionnaires/",
@@ -269,6 +316,11 @@ const TRAVEL_RULE_LIST_VASP_QUESTIONNAIRES: OperationSpec = {
 const TRAVEL_RULE_LIST_VASP_REVIEWERS: OperationSpec = {
   method: "GET",
   path: "/v3/travel-rule/vasps/reviewers/",
+};
+const TRAVEL_RULE_LIST_VASP_SHARED_DOCUMENTS: OperationSpec = {
+  method: "GET",
+  path: "/v3/travel-rule/vasps/{vasp_id}/shared-documents/",
+  dates: { p: { documents: { i: "TravelRuleDocument" } } },
 };
 const TRAVEL_RULE_LIST_VASPS: OperationSpec = {
   method: "GET",
@@ -334,6 +386,11 @@ const TRAVEL_RULE_SEND_VASP_QUESTIONNAIRE: OperationSpec = {
   body: "json",
   dates: "TravelRuleCounterpartyQuestionnaire",
 };
+const TRAVEL_RULE_SHARE_VASP_DOCUMENTS: OperationSpec = {
+  method: "POST",
+  path: "/v3/travel-rule/vasps/{vasp_id}/shared-documents/",
+  body: "json",
+};
 const TRAVEL_RULE_UPDATE_SETTINGS: OperationSpec = {
   method: "PUT",
   path: "/v3/travel-rule/settings/",
@@ -345,6 +402,16 @@ const TRAVEL_RULE_UPDATE_VASP_DECISION: OperationSpec = {
   path: "/v3/travel-rule/vasps/{vasp_id}/decision/",
   body: "json",
   dates: "TravelRuleCounterpartyDecisionResponse",
+};
+const TRAVEL_RULE_WITHDRAW_VASP_DOCUMENTS: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/travel-rule/vasps/{vasp_id}/shared-documents/",
+  response: "none",
+};
+const TRAVEL_RULE_WITHDRAW_VASP_QUESTIONNAIRE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/travel-rule/vasps/{vasp_id}/questionnaires/{questionnaire_id}/",
+  response: "none",
 };
 
 /** `travel_rule.counterparty_contacts` */
@@ -393,6 +460,85 @@ export class TravelRuleCounterpartyContacts extends APIResource {
     options?: RequestOptions,
   ): PagePromise<TravelRuleCounterpartyContactsListResponse, TravelRuleCounterpartyContact> {
     return this._client.requestPage(TRAVEL_RULE_COUNTERPARTY_CONTACTS_LIST, [], params, options);
+  }
+
+  /**
+   * Edit a counterparty contact
+   *
+   * Edits one of your application's own contacts. Changing the email address clears its verification and invalid state. Platform contacts cannot be edited.
+   *
+   * `PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/`
+   *
+   * @param contactUuid contact_uuid
+   */
+  update(
+    contactUuid: string,
+    params: TravelRuleCounterpartyContactsUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleCounterpartyContact> {
+    return this._client.request(
+      TRAVEL_RULE_COUNTERPARTY_CONTACTS_UPDATE,
+      [contactUuid],
+      params,
+      options,
+    );
+  }
+}
+
+/** `travel_rule.documents` */
+export class TravelRuleDocuments extends APIResource {
+  /**
+   * Upload a Travel Rule document
+   *
+   * Stores a PDF in your inventory so you can share it with counterparties. The file must be a PDF of at most 5 MiB. Uploading identical content of the same kind again returns the existing document. Needs the transactions write privilege.
+   *
+   * `POST /v3/travel-rule/documents/`
+   */
+  create(
+    params: TravelRuleDocumentsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleDocument> {
+    return this._client.request(TRAVEL_RULE_DOCUMENTS_CREATE, [], params, options);
+  }
+
+  /**
+   * Delete a Travel Rule document
+   *
+   * Deletes the document and every link that shared it. Deletion is irreversible and takes effect at once: shared links stop working.
+   *
+   * `DELETE /v3/travel-rule/documents/{document_id}/`
+   *
+   * @param documentId document_id
+   */
+  delete(documentId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(TRAVEL_RULE_DOCUMENTS_DELETE, [documentId], undefined, options);
+  }
+
+  /**
+   * Download a Travel Rule document
+   *
+   * Returns the PDF, as an attachment, for a document you uploaded or one a counterparty sent you with a questionnaire. Needs the transactions read privilege.
+   *
+   * `GET /v3/travel-rule/documents/{document_id}/`
+   *
+   * @param documentId document_id
+   */
+  download(documentId: string, options?: RequestOptions): APIPromise<Blob> {
+    return this._client.request(TRAVEL_RULE_DOCUMENTS_DOWNLOAD, [documentId], undefined, options);
+  }
+
+  /**
+   * List your Travel Rule documents
+   *
+   * Paginated inventory of the PDF documents you uploaded to share with counterparties, newest first. Documents counterparties sent you with a questionnaire are not listed here: they appear on the questionnaire. Needs the transactions read privilege.
+   *
+   * `GET /v3/travel-rule/documents/`
+   */
+  list(
+    params: TravelRuleDocumentsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleDocumentsListResponse, TravelRuleDocument> {
+    return this._client.requestPage(TRAVEL_RULE_DOCUMENTS_LIST, [], params, options);
   }
 }
 
@@ -755,6 +901,7 @@ export class TravelRuleWorkspaceResource extends APIResource {
 export class TravelRule extends APIResource {
   readonly counterpartyContacts: TravelRuleCounterpartyContacts =
     new TravelRuleCounterpartyContacts(this._client);
+  readonly documents: TravelRuleDocuments = new TravelRuleDocuments(this._client);
   readonly networks: TravelRuleNetworks = new TravelRuleNetworks(this._client);
   readonly transfers: TravelRuleTransfers = new TravelRuleTransfers(this._client);
   readonly unmatchedDeposits: TravelRuleUnmatchedDeposits = new TravelRuleUnmatchedDeposits(
@@ -826,6 +973,28 @@ export class TravelRule extends APIResource {
   }
 
   /**
+   * List a VASP's decision history
+   *
+   * Your application's own decision changes for the counterparty, newest first. Only changes made after this history existed are listed. Needs the transactions read privilege.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/decision-history/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  listVaspDecisionHistory(
+    vaspId: string,
+    params: TravelRuleListVaspDecisionHistoryParams = {},
+    options?: RequestOptions,
+  ): PagePromise<TravelRuleListVaspDecisionHistoryResponse, TravelRuleDecisionEvent> {
+    return this._client.requestPage(
+      TRAVEL_RULE_LIST_VASP_DECISION_HISTORY,
+      [vaspId],
+      params,
+      options,
+    );
+  }
+
+  /**
    * List due-diligence questionnaires with a VASP
    *
    * Every due-diligence questionnaire your application sent the counterparty, newest first, with its status and, once answered, the answers. Private to your application.
@@ -850,6 +1019,27 @@ export class TravelRule extends APIResource {
    */
   listVaspReviewers(options?: RequestOptions): APIPromise<TravelRuleListVaspReviewersResponse> {
     return this._client.request(TRAVEL_RULE_LIST_VASP_REVIEWERS, [], undefined, options);
+  }
+
+  /**
+   * List the documents shared with a VASP
+   *
+   * The documents currently shared with the counterparty.
+   *
+   * `GET /v3/travel-rule/vasps/{vasp_id}/shared-documents/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  listVaspSharedDocuments(
+    vaspId: string,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleListVaspSharedDocumentsResponse> {
+    return this._client.request(
+      TRAVEL_RULE_LIST_VASP_SHARED_DOCUMENTS,
+      [vaspId],
+      undefined,
+      options,
+    );
   }
 
   /**
@@ -1006,6 +1196,23 @@ export class TravelRule extends APIResource {
   }
 
   /**
+   * Share documents with a VASP
+   *
+   * Emails the counterparty a private link to the selected documents. Sharing again replaces the earlier share: the earlier link stops working for good. Sharing exactly what is already shared with the same address changes nothing and answers `200` with `url: null`. Needs the transactions write privilege.
+   *
+   * `POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  shareVaspDocuments(
+    vaspId: string,
+    params: TravelRuleShareVaspDocumentsParams,
+    options?: RequestOptions,
+  ): APIPromise<TravelRuleDocumentShare> {
+    return this._client.request(TRAVEL_RULE_SHARE_VASP_DOCUMENTS, [vaspId], params, options);
+  }
+
+  /**
    * Update Travel Rule settings
    *
    * Upsert the application's Travel Rule settings and VASP profile. Partial update - only send the fields you want to change. Setting `is_enabled: true` requires a non-blank `legal_name` (already stored or included in the same request), otherwise returns 400.
@@ -1034,5 +1241,41 @@ export class TravelRule extends APIResource {
     options?: RequestOptions,
   ): APIPromise<TravelRuleCounterpartyDecisionResponse> {
     return this._client.request(TRAVEL_RULE_UPDATE_VASP_DECISION, [vaspId], params, options);
+  }
+
+  /**
+   * Withdraw the documents shared with a VASP
+   *
+   * Revokes every active link to your documents for this counterparty. Withdrawal is permanent: the links never work again, and sharing again creates a new link.
+   *
+   * `DELETE /v3/travel-rule/vasps/{vasp_id}/shared-documents/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   */
+  withdrawVaspDocuments(vaspId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(TRAVEL_RULE_WITHDRAW_VASP_DOCUMENTS, [vaspId], undefined, options);
+  }
+
+  /**
+   * Withdraw a due-diligence request
+   *
+   * Withdraws the request and erases the documents and answers collected with it. Its answer link stops working. Deletion is irreversible. Needs the transactions write privilege.
+   *
+   * `DELETE /v3/travel-rule/vasps/{vasp_id}/questionnaires/{questionnaire_id}/`
+   *
+   * @param vaspId The id of a row of GET /v3/travel-rule/vasps/: a directory entry or a Didit network member.
+   * @param questionnaireId questionnaire_id
+   */
+  withdrawVaspQuestionnaire(
+    vaspId: string,
+    questionnaireId: string,
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    return this._client.request(
+      TRAVEL_RULE_WITHDRAW_VASP_QUESTIONNAIRE,
+      [vaspId, questionnaireId],
+      undefined,
+      options,
+    );
   }
 }

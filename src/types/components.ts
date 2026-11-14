@@ -11197,6 +11197,12 @@ export interface TravelRuleCounterpartyContact {
   invalid_detail?: string;
   invalid_at?: Date | null;
   created_at?: Date;
+  /** Optional. The contact's role. */
+  role?: string;
+  /** Optional. The contact's phone number. */
+  phone?: string;
+  /** Whether due-diligence requests and reminders go to this contact. */
+  receives_requests?: boolean;
 }
 
 /** Your application's decision on a counterparty VASP. Private to your application: it never changes the shared directory entry and another customer never sees it. It acts only through your transaction rules (the counterparty_dd_status rule field and the travel-rule-counterparty-blocked and travel-rule-counterparty-restricted presets); it never changes how a transfer is routed. */
@@ -11241,6 +11247,20 @@ export interface TravelRuleCounterpartyQuestionnaire {
   current?: boolean;
   /** The answers keyed by question id: legal_name, licensing, jurisdictions, aml_program, compliance_officer, sanctions_screening, transaction_monitoring, travel_rule, custody, ownership, record_keeping, data_protection. Each answer is up to 2,000 characters. Empty until answered. */
   answers?: Record<string, string>;
+  /** What the request asked for. */
+  requested_items?: TravelRuleDocumentKind[];
+  /** When Didit last reminded the counterparty, or null. */
+  reminder_sent_at?: Date | null;
+  /** The documents the counterparty uploaded. */
+  documents?: TravelRuleCounterpartyQuestionnaireDocuments[];
+}
+
+export interface TravelRuleCounterpartyQuestionnaireDocuments {
+  id?: string;
+  name?: string;
+  /** `questionnaire`: the due-diligence questionnaire answers. `incorporation`: certificate of incorporation. `licence`: licence or registration. `aml_policy`: AML and CFT policy. `ownership`: ownership structure. */
+  kind?: TravelRuleDocumentKind;
+  received_at?: Date;
 }
 
 export interface TravelRuleCounterpartyQuestionnaireList {
@@ -11369,6 +11389,16 @@ export interface TravelRuleDataUnmasked {
   actor?: string;
 }
 
+export interface TravelRuleDecisionEvent {
+  id?: string;
+  /** The decision recorded, as in `decision.decision` of the VASP. */
+  decision?: string;
+  reason?: string;
+  /** Who recorded it. */
+  actor?: string;
+  created_at?: Date;
+}
+
 /** Where the latest message the transfer owes the other side stands. Didit contacts the counterparty after the request that created or changed the transfer has returned, so this object says whether that message got through: queued, being sent, waiting to be retried after an error, delivered, or failed. A failure the network may still recover from (no answer in time, a failed connection, HTTP `408`, `429` or `5xx`) is tried again after 30 seconds, 2 minutes, 10 minutes, 30 minutes and 1 hour. When a first message (`kind: SEND`) fails for good, because the network refused it or the sixth attempt failed too, the transfer moves to `COUNTERPARTY_VASP_NOT_REACHABLE` with `last_error` in its `timeline`; any other message that fails for good is noted in the `timeline`. The transfer's `status` stays the source of truth for the exchange itself. */
 export interface TravelRuleDelivery {
   /** What the message carries. `SEND`: the transfer's first message to the counterparty (outbound; the rail is chosen when it is sent). `ANSWER`: your accept or decline, owed to the network that asked (inbound). `TXID`: the on-chain transaction hash, after you finish the transfer. `CANCEL`: the cancellation, after you cancel it. `POLL`: a status query to a network that offers one, repeated every 5 minutes while the transfer waits on the counterparty. */
@@ -11477,6 +11507,30 @@ export interface TravelRuleDiscoveryStep {
   /** The rail that reaches that counterparty, when the step found one. */
   rail?: string | null;
   at?: Date;
+}
+
+/** A PDF document. Never carries the file content. */
+export interface TravelRuleDocument {
+  id: string;
+  /** The uploaded file name. */
+  name: string;
+  /** `questionnaire`: the due-diligence questionnaire answers. `incorporation`: certificate of incorporation. `licence`: licence or registration. `aml_policy`: AML and CFT policy. `ownership`: ownership structure. */
+  kind: TravelRuleDocumentKind;
+  /** When you uploaded it. Present on your own inventory. */
+  uploaded_at?: Date;
+  /** When a counterparty uploaded it. Present on documents received with a questionnaire. */
+  received_at?: Date;
+  content_type: "application/pdf" | (string & {});
+}
+
+/** `questionnaire`: the due-diligence questionnaire answers. `incorporation`: certificate of incorporation. `licence`: licence or registration. `aml_policy`: AML and CFT policy. `ownership`: ownership structure. */
+export type TravelRuleDocumentKind =
+  "questionnaire" | "incorporation" | "licence" | "aml_policy" | "ownership" | (string & {});
+
+export interface TravelRuleDocumentShare {
+  shared_with?: string;
+  /** The private link, returned once when the share is created. null when nothing changed. */
+  url?: string | null;
 }
 
 export interface TravelRuleInboundResponse {

@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 392 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 402 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -609,34 +609,49 @@ Every method of `@didit-protocol/sdk-node`: 392 methods, generated from `openapi
 
 ## `didit.travelRule`
 
-| Method                                                                                            | HTTP                                                           | Returns                                             | Notes |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------- | ----- |
-| `didit.travelRule.assignVasp(vaspId, params: TravelRuleAssignVaspParams)`                         | `POST /v3/travel-rule/vasps/{vasp_id}/assign/`                 | `TravelRuleAssignVaspResponse`                      |       |
-| `didit.travelRule.clearVaspDecision(vaspId)`                                                      | `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`             | `TravelRuleCounterpartyDecisionResponse`            |       |
-| `didit.travelRule.createVasp(params: TravelRuleCreateVaspParams)`                                 | `POST /v3/travel-rule/vasps/`                                  | `VaspDirectoryEntry`                                |       |
-| `didit.travelRule.createWidgetSession(params?: TravelRuleCreateWidgetSessionParams)`              | `POST /v3/travel-rule/widget-session/`                         | `TravelRuleWidgetSessionResponse`                   |       |
-| `didit.travelRule.listVaspQuestionnaires(vaspId)`                                                 | `GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/`          | `TravelRuleCounterpartyQuestionnaireList`           |       |
-| `didit.travelRule.listVaspReviewers()`                                                            | `GET /v3/travel-rule/vasps/reviewers/`                         | `TravelRuleListVaspReviewersResponse`               |       |
-| `didit.travelRule.listVasps(params?: TravelRuleListVaspsParams)`                                  | `GET /v3/travel-rule/vasps/`                                   | page of `VaspDirectoryEntry`                        |       |
-| `didit.travelRule.registerInbound(params: TravelRuleRegisterInboundParams)`                       | `POST /v3/travel-rule/inbound/`                                | `TravelRuleInboundResponse`                         |       |
-| `didit.travelRule.retrieveSettings()`                                                             | `GET /v3/travel-rule/settings/`                                | `TravelRuleSettingsDetail`                          |       |
-| `didit.travelRule.retrieveVasp(vaspId)`                                                           | `GET /v3/travel-rule/vasps/{vasp_id}/`                         | `VaspDirectoryEntry`                                |       |
-| `didit.travelRule.retrieveVaspDecision(vaspId)`                                                   | `GET /v3/travel-rule/vasps/{vasp_id}/decision/`                | `TravelRuleCounterpartyDecisionResponse`            |       |
-| `didit.travelRule.retrieveVaspScreening(vaspId)`                                                  | `GET /v3/travel-rule/vasps/{vasp_id}/screening/`               | `TravelRuleCounterpartyScreeningStatus`             |       |
-| `didit.travelRule.reviewVaspScreeningHit(vaspId, params: TravelRuleReviewVaspScreeningHitParams)` | `PATCH /v3/travel-rule/vasps/{vasp_id}/screening/`             | `TravelRuleReviewVaspScreeningHitResponse`          |       |
-| `didit.travelRule.screenVasp(vaspId, params?: TravelRuleScreenVaspParams)`                        | `POST /v3/travel-rule/vasps/{vasp_id}/screening/`              | `TravelRuleCounterpartyScreeningResult`             |       |
-| `didit.travelRule.sendComplianceEmailConfirmation()`                                              | `POST /v3/travel-rule/settings/compliance-email/confirmation/` | `TravelRuleSendComplianceEmailConfirmationResponse` |       |
-| `didit.travelRule.sendVaspQuestionnaire(vaspId, params?: TravelRuleSendVaspQuestionnaireParams)`  | `POST /v3/travel-rule/vasps/{vasp_id}/questionnaires/`         | `TravelRuleCounterpartyQuestionnaire`               |       |
-| `didit.travelRule.updateSettings(params?: TravelRuleUpdateSettingsParams)`                        | `PUT /v3/travel-rule/settings/`                                | `TravelRuleSettingsDetail`                          |       |
-| `didit.travelRule.updateVaspDecision(vaspId, params: TravelRuleUpdateVaspDecisionParams)`         | `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`                | `TravelRuleCounterpartyDecisionResponse`            |       |
+| Method                                                                                               | HTTP                                                                        | Returns                                             | Notes |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------- | ----- |
+| `didit.travelRule.assignVasp(vaspId, params: TravelRuleAssignVaspParams)`                            | `POST /v3/travel-rule/vasps/{vasp_id}/assign/`                              | `TravelRuleAssignVaspResponse`                      |       |
+| `didit.travelRule.clearVaspDecision(vaspId)`                                                         | `DELETE /v3/travel-rule/vasps/{vasp_id}/decision/`                          | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.createVasp(params: TravelRuleCreateVaspParams)`                                    | `POST /v3/travel-rule/vasps/`                                               | `VaspDirectoryEntry`                                |       |
+| `didit.travelRule.createWidgetSession(params?: TravelRuleCreateWidgetSessionParams)`                 | `POST /v3/travel-rule/widget-session/`                                      | `TravelRuleWidgetSessionResponse`                   |       |
+| `didit.travelRule.listVaspDecisionHistory(vaspId, params?: TravelRuleListVaspDecisionHistoryParams)` | `GET /v3/travel-rule/vasps/{vasp_id}/decision-history/`                     | page of `TravelRuleDecisionEvent`                   |       |
+| `didit.travelRule.listVaspQuestionnaires(vaspId)`                                                    | `GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/`                       | `TravelRuleCounterpartyQuestionnaireList`           |       |
+| `didit.travelRule.listVaspReviewers()`                                                               | `GET /v3/travel-rule/vasps/reviewers/`                                      | `TravelRuleListVaspReviewersResponse`               |       |
+| `didit.travelRule.listVaspSharedDocuments(vaspId)`                                                   | `GET /v3/travel-rule/vasps/{vasp_id}/shared-documents/`                     | `TravelRuleListVaspSharedDocumentsResponse`         |       |
+| `didit.travelRule.listVasps(params?: TravelRuleListVaspsParams)`                                     | `GET /v3/travel-rule/vasps/`                                                | page of `VaspDirectoryEntry`                        |       |
+| `didit.travelRule.registerInbound(params: TravelRuleRegisterInboundParams)`                          | `POST /v3/travel-rule/inbound/`                                             | `TravelRuleInboundResponse`                         |       |
+| `didit.travelRule.retrieveSettings()`                                                                | `GET /v3/travel-rule/settings/`                                             | `TravelRuleSettingsDetail`                          |       |
+| `didit.travelRule.retrieveVasp(vaspId)`                                                              | `GET /v3/travel-rule/vasps/{vasp_id}/`                                      | `VaspDirectoryEntry`                                |       |
+| `didit.travelRule.retrieveVaspDecision(vaspId)`                                                      | `GET /v3/travel-rule/vasps/{vasp_id}/decision/`                             | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.retrieveVaspScreening(vaspId)`                                                     | `GET /v3/travel-rule/vasps/{vasp_id}/screening/`                            | `TravelRuleCounterpartyScreeningStatus`             |       |
+| `didit.travelRule.reviewVaspScreeningHit(vaspId, params: TravelRuleReviewVaspScreeningHitParams)`    | `PATCH /v3/travel-rule/vasps/{vasp_id}/screening/`                          | `TravelRuleReviewVaspScreeningHitResponse`          |       |
+| `didit.travelRule.screenVasp(vaspId, params?: TravelRuleScreenVaspParams)`                           | `POST /v3/travel-rule/vasps/{vasp_id}/screening/`                           | `TravelRuleCounterpartyScreeningResult`             |       |
+| `didit.travelRule.sendComplianceEmailConfirmation()`                                                 | `POST /v3/travel-rule/settings/compliance-email/confirmation/`              | `TravelRuleSendComplianceEmailConfirmationResponse` |       |
+| `didit.travelRule.sendVaspQuestionnaire(vaspId, params?: TravelRuleSendVaspQuestionnaireParams)`     | `POST /v3/travel-rule/vasps/{vasp_id}/questionnaires/`                      | `TravelRuleCounterpartyQuestionnaire`               |       |
+| `didit.travelRule.shareVaspDocuments(vaspId, params: TravelRuleShareVaspDocumentsParams)`            | `POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/`                    | `TravelRuleDocumentShare`                           |       |
+| `didit.travelRule.updateSettings(params?: TravelRuleUpdateSettingsParams)`                           | `PUT /v3/travel-rule/settings/`                                             | `TravelRuleSettingsDetail`                          |       |
+| `didit.travelRule.updateVaspDecision(vaspId, params: TravelRuleUpdateVaspDecisionParams)`            | `PUT /v3/travel-rule/vasps/{vasp_id}/decision/`                             | `TravelRuleCounterpartyDecisionResponse`            |       |
+| `didit.travelRule.withdrawVaspDocuments(vaspId)`                                                     | `DELETE /v3/travel-rule/vasps/{vasp_id}/shared-documents/`                  | nothing                                             |       |
+| `didit.travelRule.withdrawVaspQuestionnaire(vaspId, questionnaireId)`                                | `DELETE /v3/travel-rule/vasps/{vasp_id}/questionnaires/{questionnaire_id}/` | nothing                                             |       |
 
 ## `didit.travelRule.counterpartyContacts`
 
-| Method                                                                                             | HTTP                                                           | Returns                                 | Notes |
-| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- | ----- |
-| `didit.travelRule.counterpartyContacts.create(params: TravelRuleCounterpartyContactsCreateParams)` | `POST /v3/travel-rule/counterparty-contacts/`                  | `TravelRuleCounterpartyContact`         |       |
-| `didit.travelRule.counterpartyContacts.delete(contactUuid)`                                        | `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/` | nothing                                 |       |
-| `didit.travelRule.counterpartyContacts.list(params?: TravelRuleCounterpartyContactsListParams)`    | `GET /v3/travel-rule/counterparty-contacts/`                   | page of `TravelRuleCounterpartyContact` |       |
+| Method                                                                                                           | HTTP                                                           | Returns                                 | Notes |
+| ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------- | ----- |
+| `didit.travelRule.counterpartyContacts.create(params: TravelRuleCounterpartyContactsCreateParams)`               | `POST /v3/travel-rule/counterparty-contacts/`                  | `TravelRuleCounterpartyContact`         |       |
+| `didit.travelRule.counterpartyContacts.delete(contactUuid)`                                                      | `DELETE /v3/travel-rule/counterparty-contacts/{contact_uuid}/` | nothing                                 |       |
+| `didit.travelRule.counterpartyContacts.list(params?: TravelRuleCounterpartyContactsListParams)`                  | `GET /v3/travel-rule/counterparty-contacts/`                   | page of `TravelRuleCounterpartyContact` |       |
+| `didit.travelRule.counterpartyContacts.update(contactUuid, params?: TravelRuleCounterpartyContactsUpdateParams)` | `PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/`  | `TravelRuleCounterpartyContact`         |       |
+
+## `didit.travelRule.documents`
+
+| Method                                                                       | HTTP                                              | Returns                      | Notes  |
+| ---------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------- | ------ |
+| `didit.travelRule.documents.create(params: TravelRuleDocumentsCreateParams)` | `POST /v3/travel-rule/documents/`                 | `TravelRuleDocument`         | upload |
+| `didit.travelRule.documents.delete(documentId)`                              | `DELETE /v3/travel-rule/documents/{document_id}/` | nothing                      |        |
+| `didit.travelRule.documents.download(documentId)`                            | `GET /v3/travel-rule/documents/{document_id}/`    | `Blob`                       |        |
+| `didit.travelRule.documents.list(params?: TravelRuleDocumentsListParams)`    | `GET /v3/travel-rule/documents/`                  | page of `TravelRuleDocument` |        |
 
 ## `didit.travelRule.networks`
 
