@@ -577,7 +577,14 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleCounterpartyDecision: { p: { updated_at: 1 } },
   TravelRuleCounterpartyDecisionResponse: { p: { decision: "TravelRuleCounterpartyDecision" } },
   TravelRuleCounterpartyQuestionnaire: {
-    p: { sent_at: 1, expires_at: 1, answered_at: 1, valid_until: 1 },
+    p: {
+      sent_at: 1,
+      expires_at: 1,
+      answered_at: 1,
+      valid_until: 1,
+      reminder_sent_at: 1,
+      documents: { i: { p: { received_at: 1 } } },
+    },
   },
   TravelRuleCounterpartyQuestionnaireList: {
     p: { questionnaires: { i: "TravelRuleCounterpartyQuestionnaire" } },
@@ -588,13 +595,18 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   TravelRuleCounterpartyScreeningResult: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleCounterpartyScreeningStatus: { p: { screening: "TravelRuleCounterpartyScreening" } },
   TravelRuleDataUnmasked: { p: { at: 1 } },
+  TravelRuleDecisionEvent: { p: { created_at: 1 } },
   TravelRuleDelivery: { p: { next_attempt_at: 1, delivered_at: 1, updated_at: 1 } },
   TravelRuleDeliveryLogEntry: {
     p: { created_at: 1, delivered_at: 1, updated_at: 1, next_attempt_at: 1 },
   },
   TravelRuleDeliveryLogPage: { p: { results: { i: "TravelRuleDeliveryLogEntry" } } },
   TravelRuleDiscoveryStep: { p: { at: 1 } },
+  TravelRuleDocument: { p: { uploaded_at: 1, received_at: 1 } },
+  TravelRuleDocumentsListResponse: { p: { results: { i: "TravelRuleDocument" } } },
   TravelRuleInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
+  TravelRuleListVaspDecisionHistoryResponse: { p: { results: { i: "TravelRuleDecisionEvent" } } },
+  TravelRuleListVaspSharedDocumentsResponse: { p: { documents: { i: "TravelRuleDocument" } } },
   TravelRuleListVaspsResponse: { p: { results: { i: "VaspDirectoryEntry" } } },
   TravelRuleManualMatchResponse: {
     p: { deposit: "TravelRuleTransferRow", message: "TravelRuleTransferRow" },

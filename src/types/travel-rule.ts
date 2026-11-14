@@ -5,6 +5,9 @@ import type {
   TravelRuleCounterpartyContact,
   TravelRuleCounterpartyScreening,
   TravelRuleDataSharingFields,
+  TravelRuleDecisionEvent,
+  TravelRuleDocument,
+  TravelRuleDocumentKind,
   TravelRuleMatchingRules,
   TravelRuleTransferRow,
   TravelRuleUtxo,
@@ -34,6 +37,12 @@ export interface TravelRuleCounterpartyContactsCreateParams {
   email: string;
   /** Optional label. */
   name?: string;
+  /** Optional. The contact's role. */
+  role?: string;
+  /** Optional. The contact's phone number. */
+  phone?: string;
+  /** Whether due-diligence requests and reminders go to this contact. */
+  receives_requests?: boolean;
 }
 
 export interface TravelRuleCounterpartyContactsListParams {
@@ -50,6 +59,14 @@ export interface TravelRuleCounterpartyContactsListResponse {
   next?: string | null;
   previous?: string | null;
   results?: TravelRuleCounterpartyContact[];
+}
+
+export interface TravelRuleCounterpartyContactsUpdateParams {
+  name?: string;
+  email?: string;
+  role?: string;
+  phone?: string;
+  receives_requests?: boolean;
 }
 
 export interface TravelRuleCreateVaspParams {
@@ -90,8 +107,43 @@ export interface TravelRuleCreateWidgetSessionParams {
   request_key?: string;
 }
 
+export interface TravelRuleDocumentsCreateParams {
+  /** `questionnaire`: the due-diligence questionnaire answers. `incorporation`: certificate of incorporation. `licence`: licence or registration. `aml_policy`: AML and CFT policy. `ownership`: ownership structure. */
+  kind: TravelRuleDocumentKind;
+  /** A PDF of at most 5 MiB. */
+  file: Uploadable;
+}
+
+export interface TravelRuleDocumentsListParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface TravelRuleDocumentsListResponse {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: TravelRuleDocument[];
+}
+
+export interface TravelRuleListVaspDecisionHistoryParams {
+  limit?: number;
+  offset?: number;
+}
+
+export interface TravelRuleListVaspDecisionHistoryResponse {
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+  results?: TravelRuleDecisionEvent[];
+}
+
 export interface TravelRuleListVaspReviewersResponse {
   results?: TravelRuleVaspReviewer[];
+}
+
+export interface TravelRuleListVaspSharedDocumentsResponse {
+  documents?: TravelRuleDocument[];
 }
 
 export interface TravelRuleListVaspsParams {
@@ -217,6 +269,17 @@ export interface TravelRuleSendComplianceEmailConfirmationResponse {
 
 export interface TravelRuleSendVaspQuestionnaireParams {
   /** Optional. A compliance address on record for the counterparty: for a directory entry its compliance address or a contact your application sees, for a Didit network member its confirmed compliance email. Default: the address a Travel Rule email to the counterparty goes to (your own contact first, then a platform contact, then the entry's compliance address). */
+  sent_to?: string;
+  /** Optional. Days the counterparty has to answer. Default: the standard answer window. */
+  answer_by_days?: number;
+  /** Optional. What the counterparty must provide: the questionnaire answers and/or PDF documents. */
+  requested_items?: TravelRuleDocumentKind[];
+}
+
+export interface TravelRuleShareVaspDocumentsParams {
+  /** Documents of your own inventory, each once. */
+  document_ids: string[];
+  /** Optional. A compliance address on record for the counterparty, chosen the way `sent_to` of the questionnaire request is. Default: the address a Travel Rule email to the counterparty goes to. */
   sent_to?: string;
 }
 

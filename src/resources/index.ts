@@ -157,6 +157,7 @@ export {
 export {
   TravelRule,
   TravelRuleCounterpartyContacts,
+  TravelRuleDocuments,
   TravelRuleNetworks,
   TravelRuleTransfers,
   TravelRuleUnmatchedDeposits,

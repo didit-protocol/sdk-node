@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   API_ORIGIN,
+  BINARY,
   expectAuth,
   expectMatchesExample,
   mockClient,
@@ -112,6 +113,28 @@ describe("travel_rule", () => {
     expect(page.hasNextPage()).toBe(false);
   });
 
+  it("travel_rule.counterparty_contacts.update: PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/"),
+    });
+    const result = await client.travelRule.counterpartyContacts.update("contact-uuid-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/counterparty-contacts/contact-uuid-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/travel-rule/counterparty-contacts/{contact_uuid}/"),
+    );
+  });
+
   it("travel_rule.create_vasp: POST /v3/travel-rule/vasps/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -148,6 +171,112 @@ describe("travel_rule", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("POST /v3/travel-rule/widget-session/"));
+  });
+
+  it("travel_rule.documents.create: POST /v3/travel-rule/documents/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/travel-rule/documents/"),
+    });
+    const result = await client.travelRule.documents.create({
+      kind: "questionnaire",
+      file: {
+        data: new Uint8Array([1, 2, 3]),
+        filename: "document.jpg",
+        contentType: "image/jpeg",
+      },
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(request.form).toEqual({ kind: "questionnaire" });
+    expect(Object.keys(request.files).sort()).toEqual(["file"]);
+    expect(request.files.file).toEqual([
+      { filename: "document.jpg", type: "image/jpeg", bytes: [1, 2, 3] },
+    ]);
+    expectMatchesExample(result, responseExample("POST /v3/travel-rule/documents/"));
+  });
+
+  it("travel_rule.documents.delete: DELETE /v3/travel-rule/documents/{document_id}/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.travelRule.documents.delete("document-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/documents/document-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+  });
+
+  it("travel_rule.documents.download: GET /v3/travel-rule/documents/{document_id}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      body: BINARY,
+      contentType: "application/pdf",
+    });
+    const result = await client.travelRule.documents.download("document-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/documents/document-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/pdf");
+    expect(request.bodyText).toBe("");
+    expect(result).toBeInstanceOf(Blob);
+    expect(result.type).toBe("application/pdf");
+    expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
+  });
+
+  it("travel_rule.documents.list: GET /v3/travel-rule/documents/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/documents/", "page"),
+    });
+    const page = await client.travelRule.documents.list();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample({ ...page }, responseExample("GET /v3/travel-rule/documents/", "page"));
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("travel_rule.list_vasp_decision_history: GET /v3/travel-rule/vasps/{vasp_id}/decision-history/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/vasps/{vasp_id}/decision-history/", "page"),
+    });
+    const page = await client.travelRule.listVaspDecisionHistory("vasp-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/decision-history/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      { ...page },
+      responseExample("GET /v3/travel-rule/vasps/{vasp_id}/decision-history/", "page"),
+    );
+    expect(page.hasNextPage()).toBe(false);
   });
 
   it("travel_rule.list_vasp_questionnaires: GET /v3/travel-rule/vasps/{vasp_id}/questionnaires/", async () => {
@@ -187,6 +316,27 @@ describe("travel_rule", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
     expectMatchesExample(result, responseExample("GET /v3/travel-rule/vasps/reviewers/"));
+  });
+
+  it("travel_rule.list_vasp_shared_documents: GET /v3/travel-rule/vasps/{vasp_id}/shared-documents/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/travel-rule/vasps/{vasp_id}/shared-documents/"),
+    });
+    const result = await client.travelRule.listVaspSharedDocuments("vasp-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/shared-documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/travel-rule/vasps/{vasp_id}/shared-documents/"),
+    );
   });
 
   it("travel_rule.list_vasps: GET /v3/travel-rule/vasps/", async () => {
@@ -503,6 +653,30 @@ describe("travel_rule", () => {
     );
   });
 
+  it("travel_rule.share_vasp_documents: POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/"),
+    });
+    const result = await client.travelRule.shareVaspDocuments("vasp-id-1", {
+      document_ids: ["00000000-0000-4000-8000-000000000001"],
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/shared-documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ document_ids: ["00000000-0000-4000-8000-000000000001"] });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/travel-rule/vasps/{vasp_id}/shared-documents/"),
+    );
+  });
+
   it("travel_rule.transfers.list: GET /v3/travel-rule/transfers/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -788,6 +962,34 @@ describe("travel_rule", () => {
       responseExample("GET /v3/travel-rule/wallet-proofs/", "page"),
     );
     expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("travel_rule.withdraw_vasp_documents: DELETE /v3/travel-rule/vasps/{vasp_id}/shared-documents/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.travelRule.withdrawVaspDocuments("vasp-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/shared-documents/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+  });
+
+  it("travel_rule.withdraw_vasp_questionnaire: DELETE /v3/travel-rule/vasps/{vasp_id}/questionnaires/{questionnaire_id}/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.travelRule.withdrawVaspQuestionnaire("vasp-id-1", "questionnaire-id-2");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/travel-rule/vasps/vasp-id-1/questionnaires/questionnaire-id-2/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
   });
 
   it("travel_rule.workspace.claim: POST /v3/travel-rule/workspace/claim/", async () => {
