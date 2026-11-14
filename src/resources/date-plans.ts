@@ -47,6 +47,10 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { aml: { p: { hits: { i: { p: { first_seen: 1, last_seen: 1 } } } } }, created_at: 1 },
   },
   Application: { p: { created_at: 1 } },
+  AsyncReport: {
+    p: { started_at: 1, completed_at: 1, expires_at: 1, created_at: 1, updated_at: 1 },
+  },
+  AsyncReportList: { p: { results: { i: "AsyncReport" } } },
   BankAccountCheckResponse: { p: { created_at: 1 } },
   BankVerificationResult: {
     p: {
@@ -739,6 +743,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   WalletAddressEntry: { p: { created_at: 1 } },
   WebhookConfig: { p: { endpoints: { i: "WebhookConfigDestination" } } },
   WebhookConfigDestination: { p: { created_at: 1, updated_at: 1 } },
+  WebhookDestinationActivity: { p: { occurred_at: 1 } },
+  WebhookDestinationActivityList: { p: { results: { i: "WebhookDestinationActivity" } } },
   WebhookDestinationDelivery: { p: { created_at: 1 } },
   WebhookDestinationDeliveryDetail: { p: { created_at: 1 } },
   WebhooksDestinationsCreateResponse: {

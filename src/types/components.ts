@@ -1191,6 +1191,102 @@ export interface ApplicationProduct {
   modules: Record<string, boolean>;
 }
 
+export interface AsyncReport {
+  /** Report identifier. */
+  uuid: string;
+  /** Export or compliance-report kind. */
+  report_type:
+    | "SESSION_EXPORT"
+    | "TRANSACTION_EXPORT"
+    | "BUSINESS_EXPORT"
+    | "VENDOR_USER_EXPORT"
+    | "VENDOR_BUSINESS_EXPORT"
+    | "CASE_EXPORT"
+    | "CASE_SLA_EXPORT"
+    | "LIST_ENTRY_EXPORT"
+    | "EVENT_EXPORT"
+    | "COMPLIANCE_KYC_KYB"
+    | "COMPLIANCE_AML_LOG"
+    | "COMPLIANCE_TRAVEL_RULE"
+    | "COMPLIANCE_SANCTIONS_PEP"
+    | "COMPLIANCE_RISK_SUMMARY"
+    | "COMPLIANCE_SAR_STR_DRAFT"
+    | "COMPLIANCE_CTR"
+    | "COMPLIANCE_CASE_SUMMARY"
+    | (string & {});
+  /** Display label for the report kind. */
+  report_type_display: string;
+  /** Generation state. READY may include individual failures; inspect failed_count. */
+  status: "PENDING" | "PROCESSING" | "READY" | "FAILED" | (string & {});
+  /** Display label for the generation state. */
+  status_display: string;
+  /** Original export options; keys depend on report_type. */
+  parameters: Record<string, unknown>;
+  /** Original requester identity, or null for callers without a user identity. */
+  requested_by_user_id: string | null;
+  /** Requester email, when available. */
+  requested_by_email: string | null;
+  /** Requester display name, when available. */
+  requested_by_name: string | null;
+  /** Number of exported records, or null before generation. */
+  row_count: number | null;
+  /** Live session UUIDs that failed in this verification export. Deleted sessions are excluded. Use these IDs for a selective retry. */
+  failed_item_ids: string[];
+  /** Number of entries in failed_item_ids. */
+  failed_count: number;
+  /** Total generated file size in bytes, or null before generation. */
+  file_size: number | null;
+  /** Generated file metadata; does not contain download URLs. */
+  files: AsyncReportFile[];
+  /** Schedule identifier, or null for an unscheduled report. */
+  scheduled_report: string | null;
+  /** Generation error, when available. */
+  error_message: string | null;
+  /** Whether a requested deletion is still in progress. */
+  deletion_pending: boolean;
+  /** Estimated seconds until completion for a pending or processing report; null without history or when done. */
+  eta_seconds: number | null;
+  /** Generation start time. */
+  started_at: Date | null;
+  /** Generation completion time. */
+  completed_at: Date | null;
+  /** Report expiry time. */
+  expires_at: Date;
+  /** Creation time. */
+  created_at: Date;
+  /** Last update time. */
+  updated_at: Date;
+}
+
+export interface AsyncReportFile {
+  /** File name. */
+  name: string;
+  /** File format. */
+  format: string;
+  /** Exported records in this file, when applicable. */
+  rows: number | null;
+  /** File size in bytes. */
+  bytes: number;
+}
+
+export interface AsyncReportList {
+  /** Result count, normally capped at 100; may be estimated. Follow next rather than using count to stop pagination. */
+  count: number;
+  /** Next page URL, or null. */
+  next: string | null;
+  /** Previous page URL, or null. */
+  previous: string | null;
+  results: AsyncReport[];
+  /** Counts of all reports the caller can read, before the list filters. */
+  counts: AsyncReportListCounts;
+}
+
+/** Counts of all reports the caller can read, before the list filters. */
+export interface AsyncReportListCounts {
+  report_type: Record<string, number>;
+  status: Record<string, number>;
+}
+
 /** The company that should hold the account. Checks a business account. */
 export interface BankAccountCheckBusinessHolder {
   /** The name of the company that should hold the account. Checks a business account. */
@@ -13254,6 +13350,27 @@ export interface WebhookConfigDestination {
   subscribed_events: WebhookEventType[];
   created_at: Date;
   updated_at: Date;
+}
+
+export interface WebhookDestinationActivity {
+  /** Failure alert identifier. */
+  id: string;
+  /** Activity type. */
+  type: "failure_alert" | (string & {});
+  /** Time of the failure alert. */
+  occurred_at: Date;
+  /** Failure count recorded with this alert. */
+  failure_count: number;
+}
+
+export interface WebhookDestinationActivityList {
+  /** Result count, normally capped at 100; may be estimated. Follow next rather than using count to stop pagination. */
+  count: number;
+  /** Next page URL, or null. */
+  next: string | null;
+  /** Previous page URL, or null. */
+  previous: string | null;
+  results: WebhookDestinationActivity[];
 }
 
 /** One delivery attempt to a webhook destination. The first send of an event, each automatic retry and each resend are separate deliveries. */

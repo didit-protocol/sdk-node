@@ -34,6 +34,7 @@ export type * from "./proof-of-address.js";
 export type * from "./questionnaires.js";
 export type * from "./regulatory-reports.js";
 export type * from "./report-templates.js";
+export type * from "./reports.js";
 export type * from "./sessions.js";
 export type * from "./transactions.js";
 export type * from "./travel-rule.js";
