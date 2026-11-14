@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 402 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 406 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -468,6 +468,14 @@ Every method of `@didit-protocol/sdk-node`: 402 methods, generated from `openapi
 | `didit.reportTemplates.retrieve(templateUuid)`                                     | `GET /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`    | `ReportTemplateDetail`         | application scoped |
 | `didit.reportTemplates.update(templateUuid, params?: ReportTemplatesUpdateParams)` | `PATCH /v3/organization/{organization_id}/application/{application_id}/report-templates/{template_uuid}/`  | `ReportTemplateDetail`         | application scoped |
 
+## `didit.reports`
+
+| Method                                                         | HTTP                                                                                                | Returns               | Notes              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------- | ------------------ |
+| `didit.reports.list(params?: ReportsListParams)`               | `GET /v3/organization/{organization_id}/application/{application_id}/reports/`                      | page of `AsyncReport` | application scoped |
+| `didit.reports.retrieve(reportUuid)`                           | `GET /v3/organization/{organization_id}/application/{application_id}/reports/{report_uuid}/`        | `AsyncReport`         | application scoped |
+| `didit.reports.retry(reportUuid, params?: ReportsRetryParams)` | `POST /v3/organization/{organization_id}/application/{application_id}/reports/{report_uuid}/retry/` | `AsyncReport`         | application scoped |
+
 ## `didit.sandbox`
 
 | Method                          | HTTP                         | Returns                  | Notes |
@@ -739,17 +747,18 @@ Every method of `@didit-protocol/sdk-node`: 402 methods, generated from `openapi
 
 ## `didit.webhooks.destinations`
 
-| Method                                                                                                                 | HTTP                                                                                  | Returns                                         | Notes |
-| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------- | ----- |
-| `didit.webhooks.destinations.create(params: WebhooksDestinationsCreateParams)`                                         | `POST /v3/webhook/destinations/`                                                      | `WebhooksDestinationsCreateResponse`            |       |
-| `didit.webhooks.destinations.delete(destinationUuid)`                                                                  | `DELETE /v3/webhook/destinations/{destination_uuid}/`                                 | nothing                                         |       |
-| `didit.webhooks.destinations.list()`                                                                                   | `GET /v3/webhook/destinations/`                                                       | `WebhooksDestinationsListResponse[]`            |       |
-| `didit.webhooks.destinations.listDeliveries(destinationUuid, params?: WebhooksDestinationsListDeliveriesParams)`       | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`                         | page of `WebhookDestinationDelivery`            |       |
-| `didit.webhooks.destinations.resendDelivery(destinationUuid, deliveryUuid)`                                            | `POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/` | `WebhookDestinationDeliveryDetail`              |       |
-| `didit.webhooks.destinations.retrieve(destinationUuid)`                                                                | `GET /v3/webhook/destinations/{destination_uuid}/`                                    | `WebhooksDestinationsRetrieveResponse`          |       |
-| `didit.webhooks.destinations.retrieveAnalytics(destinationUuid, params?: WebhooksDestinationsRetrieveAnalyticsParams)` | `GET /v3/webhook/destinations/{destination_uuid}/analytics/`                          | `WebhooksDestinationsRetrieveAnalyticsResponse` |       |
-| `didit.webhooks.destinations.retrieveDelivery(destinationUuid, deliveryUuid)`                                          | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/`         | `WebhookDestinationDeliveryDetail`              |       |
-| `didit.webhooks.destinations.update(destinationUuid, params?: WebhooksDestinationsUpdateParams)`                       | `PATCH /v3/webhook/destinations/{destination_uuid}/`                                  | `WebhooksDestinationsUpdateResponse`            |       |
+| Method                                                                                                                 | HTTP                                                                                                                    | Returns                                         | Notes              |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------ |
+| `didit.webhooks.destinations.create(params: WebhooksDestinationsCreateParams)`                                         | `POST /v3/webhook/destinations/`                                                                                        | `WebhooksDestinationsCreateResponse`            |                    |
+| `didit.webhooks.destinations.delete(destinationUuid)`                                                                  | `DELETE /v3/webhook/destinations/{destination_uuid}/`                                                                   | nothing                                         |                    |
+| `didit.webhooks.destinations.list()`                                                                                   | `GET /v3/webhook/destinations/`                                                                                         | `WebhooksDestinationsListResponse[]`            |                    |
+| `didit.webhooks.destinations.listActivity(destinationUuid, params?: WebhooksDestinationsListActivityParams)`           | `GET /v3/organization/{organization_id}/application/{application_id}/webhook/destinations/{destination_uuid}/activity/` | page of `WebhookDestinationActivity`            | application scoped |
+| `didit.webhooks.destinations.listDeliveries(destinationUuid, params?: WebhooksDestinationsListDeliveriesParams)`       | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/`                                                           | page of `WebhookDestinationDelivery`            |                    |
+| `didit.webhooks.destinations.resendDelivery(destinationUuid, deliveryUuid)`                                            | `POST /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/resend/`                                   | `WebhookDestinationDeliveryDetail`              |                    |
+| `didit.webhooks.destinations.retrieve(destinationUuid)`                                                                | `GET /v3/webhook/destinations/{destination_uuid}/`                                                                      | `WebhooksDestinationsRetrieveResponse`          |                    |
+| `didit.webhooks.destinations.retrieveAnalytics(destinationUuid, params?: WebhooksDestinationsRetrieveAnalyticsParams)` | `GET /v3/webhook/destinations/{destination_uuid}/analytics/`                                                            | `WebhooksDestinationsRetrieveAnalyticsResponse` |                    |
+| `didit.webhooks.destinations.retrieveDelivery(destinationUuid, deliveryUuid)`                                          | `GET /v3/webhook/destinations/{destination_uuid}/deliveries/{delivery_uuid}/`                                           | `WebhookDestinationDeliveryDetail`              |                    |
+| `didit.webhooks.destinations.update(destinationUuid, params?: WebhooksDestinationsUpdateParams)`                       | `PATCH /v3/webhook/destinations/{destination_uuid}/`                                                                    | `WebhooksDestinationsUpdateResponse`            |                    |
 
 ## `didit.workflows`
 

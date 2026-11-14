@@ -7,12 +7,15 @@ import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   WebhookConfig,
+  WebhookDestinationActivity,
+  WebhookDestinationActivityList,
   WebhookDestinationDelivery,
   WebhookDestinationDeliveryDetail,
 } from "../types/components.js";
 import type {
   WebhooksDestinationsCreateParams,
   WebhooksDestinationsCreateResponse,
+  WebhooksDestinationsListActivityParams,
   WebhooksDestinationsListDeliveriesParams,
   WebhooksDestinationsListDeliveriesResponse,
   WebhooksDestinationsListResponse,
@@ -59,6 +62,13 @@ const WEBHOOKS_DESTINATIONS_LIST: OperationSpec = {
       },
     },
   },
+};
+const WEBHOOKS_DESTINATIONS_LIST_ACTIVITY: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/{organization_id}/application/{application_id}/webhook/destinations/{destination_uuid}/activity/",
+  scope: "application",
+  query: ["limit", "offset"],
+  dates: "WebhookDestinationActivityList",
 };
 const WEBHOOKS_DESTINATIONS_LIST_DELIVERIES: OperationSpec = {
   method: "GET",
@@ -165,6 +175,28 @@ export class WebhooksDestinations extends APIResource {
    */
   list(options?: RequestOptions): APIPromise<WebhooksDestinationsListResponse[]> {
     return this._client.request(WEBHOOKS_DESTINATIONS_LIST, [], undefined, options);
+  }
+
+  /**
+   * List webhook destination activity
+   *
+   * Lists recorded failure alerts for one destination, newest first. Requires read:webhooks. Application/API-key credentials must belong to the application in the path; member Bearer tokens must have access to that application. These are failure alert events, not individual delivery attempts or outbound webhook event types. See [Webhooks](https://docs.didit.me/integration/webhooks#retry-policy).
+   *
+   * `GET /v3/organization/{organization_id}/application/{application_id}/webhook/destinations/{destination_uuid}/activity/`
+   *
+   * @param destinationUuid Destination uuid.
+   */
+  listActivity(
+    destinationUuid: string,
+    params: WebhooksDestinationsListActivityParams = {},
+    options?: RequestOptions,
+  ): PagePromise<WebhookDestinationActivityList, WebhookDestinationActivity> {
+    return this._client.requestPage(
+      WEBHOOKS_DESTINATIONS_LIST_ACTIVITY,
+      [destinationUuid],
+      params,
+      options,
+    );
   }
 
   /**

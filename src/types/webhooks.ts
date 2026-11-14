@@ -63,6 +63,13 @@ export interface WebhooksDestinationsCreateResponseSummary {
   metrics_window_days?: number;
 }
 
+export interface WebhooksDestinationsListActivityParams {
+  /** Maximum results per page. */
+  limit?: number;
+  /** Number of results to skip. */
+  offset?: number;
+}
+
 export interface WebhooksDestinationsListDeliveriesParams {
   /** Maximum number of deliveries per page. Defaults to 50. A value that is not a positive integer falls back to 50; a value above 1000000 returns `400`. */
   limit?: number;
