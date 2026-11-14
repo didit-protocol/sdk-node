@@ -14,7 +14,11 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean | Date | null | undefined>;
   /** Extra top-level fields for the JSON or multipart body. */
   body?: Record<string, unknown>;
-  /** The `Idempotency-Key` header, for the operations that accept it. */
+  /**
+   * The `Idempotency-Key` header (1 to 255 characters), sent on `POST`, `PUT`,
+   * `PATCH` and `DELETE`. With a key, `POST` and `PATCH` are retried like `GET`.
+   * Per request only; the SDK never generates one.
+   */
   idempotencyKey?: string;
   /** Cancels the request (and its retries); so does a `signal` in `fetchOptions`. */
   signal?: AbortSignal;

@@ -72,12 +72,16 @@ interface PreparedRequest {
   body: string | FormData | undefined;
   timeout: number;
   maxRetries: number;
+  /** Whether the request carries an `Idempotency-Key`, which makes `POST` and `PATCH` safe to repeat. */
+  keyed: boolean;
   /** The `signal` option and any `fetchOptions.signal`: the first to abort cancels the request. */
   signals: readonly AbortSignal[];
   fetchOptions: RequestInit | undefined;
 }
 
 const IDEMPOTENT = new Set(["GET", "HEAD", "PUT", "DELETE", "OPTIONS"]);
+// The Idempotency-Key header is sent on these methods only.
+const KEY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // Errors raised before any byte of the request left this process (undici, Bun).
 const NOT_SENT = new Set([
@@ -109,11 +113,22 @@ export function failedBeforeSending(error: unknown): boolean {
 }
 
 /** Whether a response status may be retried (docs/DESIGN.md section 7). */
-export function shouldRetryStatus(method: string, status: number): boolean {
+export function shouldRetryStatus(method: string, status: number, keyed = false): boolean {
   // 429 guarantees the request was not processed, so even POST and PATCH retry.
   if (status === 429) return true;
-  if (!IDEMPOTENT.has(method)) return false;
+  if (!IDEMPOTENT.has(method) && !keyed) return false;
   return status === 408 || status >= 500;
+}
+
+/** Whether a response is the 409 that says the first request with this key is still running. */
+function isKeyInProgress(status: number, text: string): boolean {
+  if (status !== 409) return false;
+  try {
+    const body: unknown = JSON.parse(text);
+    return isRecord(body) && body.code === "idempotency_key_in_progress";
+  } catch {
+    return false;
+  }
 }
 
 /** Milliseconds to wait from a `Retry-After` header (seconds or HTTP date), capped at 60 s. */
@@ -524,6 +539,8 @@ export class APIClient {
     headers.set("X-Didit-Client", clientHeader());
     for (const [name, value] of Object.entries(this.#options.defaultHeaders ?? {}))
       setHeader(headers, name, value);
+    // A client-wide default never counts as an idempotency key (per request only).
+    headers.delete("Idempotency-Key");
 
     let body: string | FormData | undefined;
     if (op.body === "whole") {
@@ -544,11 +561,23 @@ export class APIClient {
         headers.set("Content-Type", "application/json");
       }
     }
-    if (options.idempotencyKey !== undefined)
-      setHeader(headers, "Idempotency-Key", options.idempotencyKey);
+    // The effective key: the option, else a per-request raw header (any casing).
+    // Client defaults never count (they were stripped above).
+    let key: unknown = options.idempotencyKey;
     for (const [name, value] of Object.entries(options.headers ?? {})) {
+      if (name.toLowerCase() === "idempotency-key") {
+        if (key === undefined && value !== undefined && value !== null) key = value;
+        continue;
+      }
       if (value === null) headers.delete(name);
       else if (value !== undefined) setHeader(headers, name, value);
+    }
+    if (key !== undefined && (typeof key !== "string" || key.length < 1 || key.length > 255)) {
+      throw new ConfigurationError("idempotencyKey must be a string of 1 to 255 characters.");
+    }
+    // Carrying a key is decided on the final headers: only the allow-listed methods send it.
+    if (typeof key === "string" && KEY_METHODS.has(op.method)) {
+      setHeader(headers, "Idempotency-Key", key);
     }
     // Credentials last, so no default or per-request header can replace, remove
     // or redirect them: each only ever goes to the origin of the API it belongs to.
@@ -581,6 +610,7 @@ export class APIClient {
       body,
       timeout,
       maxRetries,
+      keyed: headers.has("Idempotency-Key"),
       signals,
       fetchOptions,
     };
@@ -643,9 +673,8 @@ export class APIClient {
         if (cancelled) throw abortError(cancelled);
         const label = timedOut.value ? "timeout" : "connection error";
         this.#log(method, prepared.url, started, attempt, undefined, label);
-        const retry = timedOut.value
-          ? IDEMPOTENT.has(method)
-          : IDEMPOTENT.has(method) || failedBeforeSending(error);
+        const safe = IDEMPOTENT.has(method) || prepared.keyed;
+        const retry = timedOut.value ? safe : safe || failedBeforeSending(error);
         if (retry && attempt < prepared.maxRetries) {
           await sleep(retryDelay(attempt), signals);
           continue;
@@ -668,7 +697,11 @@ export class APIClient {
       } finally {
         done();
       }
-      if (shouldRetryStatus(method, response.status) && attempt < prepared.maxRetries) {
+      if (
+        (shouldRetryStatus(method, response.status, prepared.keyed) ||
+          (prepared.keyed && isKeyInProgress(response.status, text))) &&
+        attempt < prepared.maxRetries
+      ) {
         const wait = parseRetryAfter(response.headers.get("retry-after")) ?? retryDelay(attempt);
         await sleep(wait, signals);
         continue;
