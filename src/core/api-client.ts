@@ -82,6 +82,8 @@ interface PreparedRequest {
 const IDEMPOTENT = new Set(["GET", "HEAD", "PUT", "DELETE", "OPTIONS"]);
 // The Idempotency-Key header is sent on these methods only.
 const KEY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+/** 1 to 255 printable ASCII characters (space to "~"), the first and last not a space. */
+const IDEMPOTENCY_KEY_PATTERN = /^(?:[!-~]|[!-~][ -~]{0,253}[!-~])$/;
 
 // Errors raised before any byte of the request left this process (undici, Bun).
 const NOT_SENT = new Set([
@@ -572,9 +574,13 @@ export class APIClient {
       if (value === null) headers.delete(name);
       else if (value !== undefined) setHeader(headers, name, value);
     }
-    // 1 to 255 printable ASCII characters (space to "~"): the key travels as an HTTP header value.
-    if (key !== undefined && (typeof key !== "string" || !/^[ -~]{1,255}$/.test(key))) {
-      throw new ConfigurationError("idempotencyKey must be a string of 1 to 255 printable ASCII characters.");
+    // 1 to 255 printable ASCII characters (space to "~") that neither start nor end with a space: the key
+    // travels as an HTTP header value that the server trims.
+    if (key !== undefined && (typeof key !== "string" || !IDEMPOTENCY_KEY_PATTERN.test(key))) {
+      throw new ConfigurationError(
+        "idempotencyKey must be a string of 1 to 255 printable ASCII characters " +
+          "that neither start nor end with a space.",
+      );
     }
     // Carrying a key is decided on the final headers: only the allow-listed methods send it.
     if (typeof key === "string" && KEY_METHODS.has(op.method)) {

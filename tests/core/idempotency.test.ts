@@ -133,6 +133,9 @@ describe("idempotency key from a per-request header", () => {
     ["non-ASCII text", "注文-1"],
     ["an accented letter", "café"],
     ["a newline", "a\nb"],
+    ["a leading space", " order-1"],
+    ["a trailing space", "order-1 "],
+    ["only spaces", "   "],
   ])("rejects a raw header that is %s before any request", async (_l, value) => {
     const { didit, calls } = client(() => ({ json: {} }));
     await expect(
@@ -147,6 +150,9 @@ describe("idempotency key from a per-request header", () => {
     ["non-ASCII text", "注文-1"],
     ["an accented letter", "café"],
     ["a newline", "a\nb"],
+    ["a leading space", " order-1"],
+    ["a trailing space", "order-1 "],
+    ["only spaces", "   "],
   ])(
     "rejects an invalid key (%s) on an operation with the generated parameter",
     async (_l, value) => {
@@ -206,6 +212,9 @@ describe("idempotencyKey option: validation", () => {
     ["non-ASCII text", "注文-1"],
     ["an accented letter", "café"],
     ["a newline", "a\nb"],
+    ["a leading space", " order-1"],
+    ["a trailing space", "order-1 "],
+    ["only spaces", "   "],
     ["a number", 42],
     ["null", null],
   ])("rejects %s before any request is sent", async (_label, value) => {
