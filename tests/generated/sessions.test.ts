@@ -251,13 +251,15 @@ describe("sessions", () => {
       body: BINARY,
       contentType: "application/pdf",
     });
-    const result = await client.sessions.generatePdf("11111111-2222-3333-4444-555555555555");
+    const result = await client.sessions.generatePdf("11111111-2222-3333-4444-555555555555", {
+      language: "es",
+    });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
     expect(request.origin).toBe(API_ORIGIN);
     expect(request.path).toBe("/v3/session/11111111-2222-3333-4444-555555555555/generate-pdf/");
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({ language: "es" });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/pdf");
     expect(request.bodyText).toBe("");
