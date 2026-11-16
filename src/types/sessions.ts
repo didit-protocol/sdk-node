@@ -564,6 +564,28 @@ export interface SessionsExportAmlScreeningHistoryParams {
   month?: string;
 }
 
+export interface SessionsGeneratePdfParams {
+  /** Language of the report. Every word the report writes itself prints in this language: section titles, labels, table headers, statuses, check names and descriptions, notes, footers, page numbering, the cover, the PDF outline, dates (month names and order per language) and country names. What the end user submitted or a source returned (names, addresses, document fields, OCR values, watchlist profiles, free text, IDs) prints exactly as captured. Arabic (`ar`) prints right to left. Values are case-sensitive; an unknown value returns `400`. Applies to both KYC and KYB reports. Omit it for the English report. */
+  language?:
+    | "en"
+    | "es"
+    | "ar"
+    | "ca"
+    | "de"
+    | "fr"
+    | "hi"
+    | "id"
+    | "it"
+    | "ja"
+    | "ko"
+    | "pt-BR"
+    | "pt-PT"
+    | "ru"
+    | "sw"
+    | "zh"
+    | (string & {});
+}
+
 export interface SessionsImportSharedParams {
   /** JWT share token issued by [`POST /v3/session/{sessionId}/share/`](/sessions-api/share-session). */
   share_token: string;
