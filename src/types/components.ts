@@ -7728,7 +7728,7 @@ export interface SessionDecisionIdVerifications {
   fallback_from?: SessionDecisionIdVerificationsFallbackFrom | null;
   /** Registry evidence. Present only when `verification_method` is `id_lookup`; `null` otherwise. */
   id_lookup?: SessionDecisionIdVerificationsIdLookup | null;
-  /** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. */
+  /** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. UAE PASS (`provider` `uae_pass`) is outcome only: the identity fields of this ID verification (`full_name`, `first_name`, `last_name`, `date_of_birth`, `nationality`, the document numbers) stay `null`, `attributes` holds only whether each detail declared in `expected_details` matched, and nothing UAE PASS shared about the person is returned or kept. */
   wallet_verification?: SessionDecisionIdVerificationsWalletVerification | null;
   /** Feature-level status of this ID verification step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
@@ -8159,7 +8159,7 @@ export interface SessionDecisionIdVerificationsParsedAddressRawResultsNavigation
   longitude?: number;
 }
 
-/** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. */
+/** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. UAE PASS (`provider` `uae_pass`) is outcome only: the identity fields of this ID verification (`full_name`, `first_name`, `last_name`, `date_of_birth`, `nationality`, the document numbers) stay `null`, `attributes` holds only whether each detail declared in `expected_details` matched, and nothing UAE PASS shared about the person is returned or kept. */
 export interface SessionDecisionIdVerificationsWalletVerification {
   /** Catalog wallet id, e.g. `mitid`. */
   provider?: string;
@@ -8177,7 +8177,7 @@ export interface SessionDecisionIdVerificationsWalletVerification {
   verified_at?: Date | null;
   /** Whether the signed assertion the wallet returned validated. */
   signature_valid?: boolean | null;
-  /** The attributes the wallet shared, keyed as the wallet's catalog entry lists them. */
+  /** The attributes the wallet shared, keyed as the wallet's catalog entry lists them. For UAE PASS only the comparison with `expected_details`, one key per declared detail, each `match` or `no_match`: `name_match` (`first_name` / `last_name`), `date_of_birth_match` and `identification_number_match` (the Emirates ID number). A declared detail that does not match also raises the expected-details warning (`FULL_NAME_MISMATCH_WITH_PROVIDED`, `DOB_MISMATCH_WITH_PROVIDED` or `IDENTIFICATION_NUMBER_MISMATCH_WITH_PROVIDED`), handled by the workflow's expected-details mismatch action. */
   attributes?: Record<string, unknown>;
   /** Short-lived presigned URL to the portrait the wallet shared, where it shares one. */
   portrait?: string | null;
