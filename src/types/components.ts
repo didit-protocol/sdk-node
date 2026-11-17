@@ -3896,6 +3896,8 @@ export interface GeolocationAttempt {
   region_code?: string | null;
   /** Nearest populated place, a label for reviewers. */
   city?: string | null;
+  /** Street address at the device fix, reverse geocoded. `country_code`, `region_code` and `city` stay the offline place used by geofences; this is the address for reviewers and for comparison with `kyc.parsed_address` or `poa.parsed_address` in workflow rules. See the schema for when it is `null`. */
+  parsed_address?: GeolocationParsedAddress | null;
   /** Result of the country and area rules of the step. */
   geofence?: GeolocationAttemptGeofence;
   /** `true` when `geofence.result` is `inside`, `false` when `outside`, `null` otherwise. */
@@ -4035,6 +4037,8 @@ export interface GeolocationCheck {
   region_code?: string | null;
   /** Nearest populated place, a label for reviewers. */
   city?: string | null;
+  /** Street address at the device fix, reverse geocoded. `country_code`, `region_code` and `city` stay the offline place used by geofences; this is the address for reviewers and for comparison with `kyc.parsed_address` or `poa.parsed_address` in workflow rules. See the schema for when it is `null`. */
+  parsed_address?: GeolocationParsedAddress | null;
   /** Result of the country and area rules of the step. */
   geofence?: GeolocationCheckGeofence;
   /** `true` when `geofence.result` is `inside`, `false` when `outside`, `null` otherwise. */
@@ -4121,6 +4125,36 @@ export interface GeolocationCheckWarnings {
   long_description?: string;
   /** The workflow graph node ID that generated this warning */
   node_id?: string;
+}
+
+/** The street address at the device fix, reverse geocoded, in the same shape as `id_verifications[].parsed_address` and `poa_verifications[].poa_parsed_address`. It is only as precise as `accuracy_m`. `null` when there is no device fix (permission denied, timeout or skip), when the Location step only used the IP address, in sandbox sessions, when the geocoder places the point nowhere, or when the geocoder failed. */
+export interface GeolocationParsedAddress {
+  /** Street and number, for example `Puerta del Sol 7`. */
+  street_1?: string | null;
+  /** Secondary address line, when the geocoder returns one. */
+  street_2?: string | null;
+  /** City or locality of the address. */
+  city?: string | null;
+  /** Region, state or province of the address. */
+  region?: string | null;
+  /** ISO 3166-1 alpha-2 country code of the address. */
+  country?: string | null;
+  /** Postal code of the address. */
+  postal_code?: string | null;
+  /** Street-type prefix detected at the start of `street_1`, title-cased, for example `Calle` or `Avenue`. `null` when none is found. */
+  address_type?: string | null;
+  /** The address as one display line. */
+  formatted_address?: string | null;
+  /** The geocoder's raw result, for audit. */
+  raw_results?: Record<string, unknown> | null;
+  /** Coordinates of the address point. */
+  document_location?: GeolocationParsedAddressDocumentLocation | null;
+}
+
+/** Coordinates of the address point. */
+export interface GeolocationParsedAddressDocumentLocation {
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface IPRiskResponse {
