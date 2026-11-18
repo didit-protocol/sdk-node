@@ -23,7 +23,7 @@ export interface DatabaseValidationValidateParams {
   first_name?: string;
   /** The individual's last name. Required by some services/countries. */
   last_name?: string;
-  /** Middle name, used by some country services (AUS, NZL, …). */
+  /** Middle name, used by some country services (NZL, …). */
   middle_name?: string;
   /** Full name - some services accept this in lieu of first/last name (e.g. CHN services, which match the native-script name). */
   full_name?: string;
@@ -72,15 +72,15 @@ export interface DatabaseValidationValidateParams {
   address_element_5?: string;
   /** Postal code for address-based services (alias of `address_element_5`). */
   postal_code?: string;
-  /** Driver licence number for government document-verification services (AUS, NZL, IND). */
+  /** Driver licence number for government document-verification services (NZL, IND). */
   driver_license_number?: string;
-  /** Physical driver licence card number, where required separately from the licence number (AUS). */
+  /** Physical driver licence card number, where required separately from the licence number. */
   driver_license_card_number?: string;
-  /** Driver licence state or territory of issue (AUS). */
+  /** Driver licence state or territory of issue. */
   driver_license_state?: string;
   /** Driver licence version code (NZL). */
   driver_license_version?: string;
-  /** Passport number for government passport-verification services (AUS, NZL, IND, CHN). */
+  /** Passport number for government passport-verification services (NZL, IND, CHN). */
   passport_number?: string;
   /** Passport expiry date, `YYYY-MM-DD`, for passport-verification services. */
   passport_expiration_date?: string;
@@ -88,27 +88,25 @@ export interface DatabaseValidationValidateParams {
   passport_file_number?: string;
   /** Issuing country of the passport (ISO 3166-1 alpha-3) for passport-verification services. */
   passport_issue_country?: string;
-  /** Medicare card number (AUS). */
+  /** Medicare card number. */
   medicare_card_number?: string;
-  /** Australian ImmiCard number. */
   immi_card_number?: string;
-  /** Australian ImmiCard expiry date. */
   immi_card_expiry_date?: string;
-  /** Citizenship certificate number (AUS). */
+  /** Citizenship certificate number. */
   citizenship_certificate_number?: string;
-  /** Birth-certificate registration number (AUS). */
+  /** Birth-certificate registration number. */
   birth_registration_number?: string;
-  /** Birth-certificate registration date (AUS). */
+  /** Birth-certificate registration date. */
   birth_registration_date?: string;
-  /** Birth-certificate registration state (AUS). */
+  /** Birth-certificate registration state. */
   birth_registration_state?: string;
-  /** Marriage certificate number (AUS). */
+  /** Marriage certificate number. */
   marriage_certificate_number?: string;
-  /** Change-of-name certificate number (AUS). */
+  /** Change-of-name certificate number. */
   change_of_name_certificate_number?: string;
-  /** First name of the partner on a marriage certificate (AUS). */
+  /** First name of the partner on a marriage certificate. */
   first_partner_name?: string;
-  /** Last name of the partner on a marriage certificate (AUS). */
+  /** Last name of the partner on a marriage certificate. */
   last_partner_name?: string;
   /** Voter registration number (IND EPIC, IRL). */
   voter_id?: string;
