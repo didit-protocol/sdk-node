@@ -7830,7 +7830,7 @@ export interface SessionDecisionIdVerifications {
   parsed_address?: SessionDecisionIdVerificationsParsedAddress;
   /** Additional document verification files */
   extra_files?: string[];
-  /** Face match score between the portrait extracted from the front document image and the front camera image */
+  /** Face match score between the portrait extracted from the front document image and the front camera image. `null` when the comparison did not run; when the client reported no front-camera frame and neither side has a score, the ID verification warnings carry `SELFIE_MATCH_NOT_COMPUTED`. */
   front_image_camera_front_face_match_score?: number | null;
   /** Face match score between the portrait extracted from the back document image and the front camera image */
   back_image_camera_front_face_match_score?: number | null;
@@ -8240,6 +8240,7 @@ export interface SessionDecisionIdVerificationsWarnings {
     | "GEOLOCATION"
     | "SIGNATURE"
     | (string & {});
+  /** Machine-readable risk code. In ID verification warnings, `SELFIE_MATCH_NOT_COMPUTED` means document selfie matching is enabled but the front-camera comparison never ran because the client reported no front-camera frame (`front_camera_image_unavailable`); it resolves to `In Review` by default or `Declined` when `document_selfie_portrait_match_not_computed_action` is `DECLINE`. */
   risk?: string;
   /** Additional contextual data about the warning */
   additional_data?: Record<string, unknown> | null;
