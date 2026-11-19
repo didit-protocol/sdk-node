@@ -355,6 +355,7 @@ export interface TravelRuleUnmatchedDepositsMatchParams {
 export interface TravelRuleUpdateSettingsParams {
   is_enabled?: boolean;
   legal_name?: string;
+  /** Your Legal Entity Identifier (ISO 17442): 20 letters and digits whose last two are check digits (ISO 7064 MOD 97-10). It is stored in upper case. Anything else answers 400 with 'Enter a valid LEI: 20 letters and digits whose last two are its check digits (ISO 17442).' Send an empty string to clear it. When the LEI, the legal name or the country changes, Didit checks the LEI with GLEIF; didit_network.lei_check shows the answer. */
   lei?: string;
   jurisdiction?: string;
   /** Your VASP profile's own jurisdiction, up to 3 characters (for example `GB` or `USA`), shown to other Didit customers in the VASP directory. Independent of `jurisdiction`, which sets the regulatory regime Didit stamps on your transfers. Send an empty string to clear it; the directory then shows `jurisdiction`. */
@@ -365,7 +366,7 @@ export interface TravelRuleUpdateSettingsParams {
   timeout_outcome?: "HOLD" | "REJECT" | "PROCEED" | (string & {});
   /** Compliance contact email for your VASP profile. The Didit network lists your profile only once this address is confirmed through an emailed link (POST /v3/travel-rule/settings/compliance-email/confirmation/); changing it needs a new confirmation. */
   compliance_email?: string;
-  /** Whether your VASP profile can be listed in the Didit network: found in GET /v3/travel-rule/vasps/ by other Didit customers and reached on the INTERNAL rail. Listing also needs a live application, Travel Rule on, a legal name and a confirmed compliance email; didit_network says which are missing. Default true. */
+  /** Whether your VASP profile can be listed in the Didit network: found in GET /v3/travel-rule/vasps/ by other Didit customers and reached on the INTERNAL rail. Listing also needs a live application, Travel Rule on, a legal name, a confirmed compliance email, an LEI that GLEIF lists as issued to an active entity and a review by Didit that you are a virtual asset service provider; didit_network says which are missing. Default true. */
   is_discoverable?: boolean;
   /** Decimal string, zero or greater, in your application's default currency. Minimum transfer amount that triggers a managed exchange. */
   threshold_amount?: string;

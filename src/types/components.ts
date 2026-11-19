@@ -10883,7 +10883,7 @@ export interface TransactionListTravelRule {
   delivery?: TravelRuleDelivery | null;
   /** How Didit looked for the counterparty, one entry per step that ran. Empty when no discovery ran, for example on an inbound transfer. */
   discovery?: TravelRuleDiscoveryStep[];
-  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
+  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet and that the directory no longer lists), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
   reason?: string;
   /** What moves the transfer on; `[]` for any status but `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE`. `email_undeliverable` offers `update_compliance_email`, then `resend`. `delivery_failed` offers `resend`. A discovery reason offers `select_counterparty_vasp`, `declare_self_hosted`, `add_vasp_hint` and `resend`. */
   next_actions?: TravelRuleNextAction[];
@@ -11300,7 +11300,7 @@ export interface TransactionTravelRule {
   delivery?: TravelRuleDelivery | null;
   /** How Didit looked for the counterparty, one entry per step that ran. Empty when no discovery ran, for example on an inbound transfer. */
   discovery?: TravelRuleDiscoveryStep[];
-  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
+  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet and that the directory no longer lists), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
   reason?: string;
   /** What moves the transfer on; `[]` for any status but `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE`. `email_undeliverable` offers `update_compliance_email`, then `resend`. `delivery_failed` offers `resend`. A discovery reason offers `select_counterparty_vasp`, `declare_self_hosted`, `add_vasp_hint` and `resend`. */
   next_actions?: TravelRuleNextAction[];
@@ -12138,11 +12138,11 @@ export interface TravelRuleSettingsDetail {
   matching_rules?: TravelRuleMatchingRules;
   /** Your VASP's legal name. Required (non-blank) to set is_enabled to true. */
   legal_name?: string;
-  /** Your Legal Entity Identifier, surfaced in the VASP directory. */
+  /** Your Legal Entity Identifier (ISO 17442): 20 letters and digits whose last two are check digits (ISO 7064 MOD 97-10). It is stored in upper case. Surfaced in the VASP directory. Didit checks it with GLEIF; didit_network.lei_check shows the answer. */
   lei?: string;
   /** Compliance contact email for your VASP profile. The Didit network lists your profile only once this address is confirmed through an emailed link (POST /v3/travel-rule/settings/compliance-email/confirmation/); changing it needs a new confirmation. */
   compliance_email?: string;
-  /** Whether your VASP profile can be listed in the Didit network: found in GET /v3/travel-rule/vasps/ by other Didit customers and reached on the INTERNAL rail. Listing also needs a live application, Travel Rule on, a legal name and a confirmed compliance email; didit_network says which are missing. Default true. */
+  /** Whether your VASP profile can be listed in the Didit network: found in GET /v3/travel-rule/vasps/ by other Didit customers and reached on the INTERNAL rail. Listing also needs a live application, Travel Rule on, a legal name, a confirmed compliance email, an LEI that GLEIF lists as issued to an active entity and a review by Didit that you are a virtual asset service provider; didit_network says which are missing. Default true. */
   is_discoverable?: boolean;
   /** When true, an inbound TRP inquiry whose beneficiary wallet is a verified address-book entry with a matching name is approved automatically. When false, that inquiry waits in ON_HOLD for you to approve or deny it with the ownership endpoint. INTERNAL-rail and after-deposit transfers are not affected. Default true. */
   inbound_auto_accept?: boolean;
@@ -12168,29 +12168,54 @@ export interface TravelRuleSettingsDetail {
   disabled_networks?: ("GTR" | "TRUST" | "VERIFYVASP" | "SYGNA" | (string & {}))[];
   /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
   networks?: TravelRuleSettingsDetailNetworks;
-  /** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. */
+  /** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. Listing needs: a live (not sandbox) application with Travel Rule on, Discoverable on, a legal name, a compliance email confirmed through the emailed link, an LEI that GLEIF lists as issued to an active entity, and a review by Didit that the company is a virtual asset service provider (the review is for that LEI: changing the LEI or the legal name needs a new review). */
   didit_network?: TravelRuleSettingsDetailDiditNetwork;
   /** VASP licence or registration reference. Empty when not supplied. */
   licence?: string;
 }
 
-/** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. */
+/** Whether the Didit network lists your VASP profile, so other Didit customers find it in the directory and reach it on the INTERNAL rail, and each condition it still misses. Listing needs: a live (not sandbox) application with Travel Rule on, Discoverable on, a legal name, a compliance email confirmed through the emailed link, an LEI that GLEIF lists as issued to an active entity, and a review by Didit that the company is a virtual asset service provider (the review is for that LEI: changing the LEI or the legal name needs a new review). */
 export interface TravelRuleSettingsDetailDiditNetwork {
   listed?: boolean;
-  /** Empty when listed. compliance_email_unconfirmed: send the confirmation with POST /v3/travel-rule/settings/compliance-email/confirmation/ and open the emailed link. excluded_by_staff: Didit marked the application as a test, demo or internal one. */
+  /** Empty when listed, in this order when present. lei_missing: set lei with PUT /v3/travel-rule/settings/. lei_unverified: GLEIF does not list the LEI as issued to an active entity; see lei_check.reason. compliance_email_unconfirmed: send the confirmation with POST /v3/travel-rule/settings/compliance-email/confirmation/ and open the emailed link. excluded_by_staff: Didit marked the application as a test, demo, internal or not-a-VASP one. review_pending: Didit has not yet reviewed that the company is a virtual asset service provider for this LEI. A legal name or country that differs from GLEIF does not block the listing by itself: the reviewer sees it and counterparties read it in the lei check of essential_checks. Invited VASPs that joined free and proved their claim of a registered directory entry are listed through that claim. */
   missing?: (
     | "travel_rule_off"
     | "sandbox_application"
     | "not_discoverable"
     | "legal_name_missing"
+    | "lei_missing"
+    | "lei_unverified"
     | "compliance_email_missing"
     | "compliance_email_unconfirmed"
     | "excluded_by_staff"
     | "internal_organization"
+    | "review_pending"
     | (string & {})
   )[];
   /** Whether the current compliance_email was confirmed through the emailed link. */
   compliance_email_confirmed?: boolean;
+  /** What GLEIF said about your current LEI. null before the LEI was first checked. */
+  lei_check?: TravelRuleSettingsDetailDiditNetworkLeiCheck | null;
+}
+
+/** What GLEIF said about your current LEI. null before the LEI was first checked. */
+export interface TravelRuleSettingsDetailDiditNetworkLeiCheck {
+  status?: "pass" | "fail" | "unknown" | (string & {});
+  /** no_lei: no LEI is set. no_gleif_record: GLEIF has not been asked yet. gleif_lei_unknown: GLEIF has no record of this LEI. gleif_other_lei: the GLEIF record on file is for a different LEI. gleif_entity_inactive: the GLEIF entity is not active. gleif_lei_not_issued: the LEI is not in issued status (for example it lapsed). gleif_name_mismatch: GLEIF's legal name does not match your legal name. gleif_country_mismatch: GLEIF's country does not match your country. gleif_consistent: active, issued and consistent with your legal name and country. */
+  reason?:
+    | "no_lei"
+    | "no_gleif_record"
+    | "gleif_lei_unknown"
+    | "gleif_other_lei"
+    | "gleif_entity_inactive"
+    | "gleif_lei_not_issued"
+    | "gleif_name_mismatch"
+    | "gleif_country_mismatch"
+    | "gleif_consistent"
+    | (string & {});
+  /** The legal name GLEIF holds for the LEI; empty when GLEIF has no record. */
+  gleif_legal_name?: string;
+  checked_at?: Date | null;
 }
 
 /** Per network, how this application would send and why it cannot. No network, including GTR, is included by default: a network is reachable through your own connected membership, or through Didit's membership once Didit's membership of that network is live and your own participant on it is active. Not a live health or delivery check. */
@@ -12279,7 +12304,7 @@ export interface TravelRuleTransferDetail {
   delivery?: TravelRuleDelivery | null;
   /** How Didit looked for the counterparty, one entry per step that ran. Empty when no discovery ran, for example on an inbound transfer. */
   discovery?: TravelRuleDiscoveryStep[];
-  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
+  /** Why a `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE` transfer is stuck; `""` for any other status. A failed delivery decides it first, on `COUNTERPARTY_VASP_NOT_REACHABLE` only: `email_undeliverable` (the mail provider refused the compliance email and no address is left to try: when it was sent, on a reminder, or as a permanent bounce reported later) or `delivery_failed` (the rail that was delivering failed for good: a network rail refused the message or ran out of retries, a `TRP` identity host did not answer, or the counterparty's `TRP` host did not accept the inquiry). Otherwise the `discovery` trace decides it: `awaiting_end_user` (no step named a counterparty Didit can reach), `directory_match_no_route` (a step named a directory VASP that has no route), `picked_member_without_proven_wallet` (the end user picked a Didit customer that has not proven control of the wallet and that the directory no longer lists), or `no_directory_match` when the trace gives no other reason. A resend moves the transfer on, so the reason clears. See [Why a transfer is stuck](/transaction-monitoring/travel-rule#why-a-transfer-is-stuck). */
   reason?: string;
   /** What moves the transfer on; `[]` for any status but `COUNTERPARTY_VASP_NOT_FOUND` or `COUNTERPARTY_VASP_NOT_REACHABLE`. `email_undeliverable` offers `update_compliance_email`, then `resend`. `delivery_failed` offers `resend`. A discovery reason offers `select_counterparty_vasp`, `declare_self_hosted`, `add_vasp_hint` and `resend`. */
   next_actions?: TravelRuleNextAction[];
@@ -12705,7 +12730,7 @@ export interface TravelRuleWorkspace {
   /** Receiving Travel Rule data is free. Sending is billed only after billing is enabled. */
   billing_enabled?: boolean;
   billing_enabled_at?: Date | null;
-  /** Whether the Didit network lists this VASP and, when not, each condition it still misses. */
+  /** Whether the Didit network lists this VASP and, when not, each condition it still misses. Same shape as didit_network in GET /v3/travel-rule/settings/. */
   didit_network?: Record<string, unknown>;
   settings?: TravelRuleSettingsDetail;
   /** Own-account outbound quote, or null when a flat Travel Rule quote is unavailable. Does not enable billing. */
@@ -13127,7 +13152,7 @@ export interface UserSessionListItemTopWarnings {
   short_description?: string;
 }
 
-/** A VASP of the directory or a member of the Didit network, with the routes your application has to it. A customer is a member of the Didit network only while its application is live, its Travel Rule is on, its profile is discoverable, has a legal name and a confirmed compliance email, and Didit has not marked the application as a test, demo or internal one. Each row also carries the shared due-diligence assessment (dd_score, risk_level, responsiveness, essential_checks) and your application's own decision, entity screening and questionnaires, which no other customer sees. */
+/** A VASP of the directory or a member of the Didit network, with the routes your application has to it. A customer is a member of the Didit network only while its application is live, its Travel Rule is on, its profile is discoverable, has a legal name and a confirmed compliance email, has an LEI that GLEIF lists as issued to an active entity and has been reviewed by Didit as a virtual asset service provider, and Didit has not marked the application as a test, demo, internal or not-a-VASP one. Each row also carries the shared due-diligence assessment (dd_score, risk_level, responsiveness, essential_checks) and your application's own decision, entity screening and questionnaires, which no other customer sees. */
 export interface VaspDirectoryEntry {
   /** The entry's id, for GET /v3/travel-rule/vasps/{vasp_id}/. */
   id?: string;
@@ -13171,7 +13196,7 @@ export interface VaspDirectoryEntry {
   risk_level?: "LOW" | "MEDIUM" | "HIGH" | "" | (string & {});
   /** Whether the VASP answers Travel Rule requests: the share of the requests Didit customers started towards it in the last 90 days that it answered. Only requests sent over a network or protocol rail, or by email to a shared address (the entry's compliance address or a platform contact), count; a request sent to an address a customer typed, or to a customer's private contact, never does. An expired request is unanswered; a completed exchange, a decline or a data mismatch is an answer; a cancelled request or an unreachable rail is neither. Always UNKNOWN with zero counts for a Didit network member. */
   responsiveness?: VaspDirectoryEntryResponsiveness;
-  /** The essential-checks report of a directory entry, built only from the platform's verified sources: registration (an official register lists the VASP: the EU's interim MiCA register, the public TRISA directory or the global LEI register), licence (a MiCA authorisation is on record and current), domain (the entry's domain matches its TRP endpoint or the website its register gives) and lei (its LEI record is active, issued and consistent with the entry's names and country). The essentials component of dd_score is the share of decided checks that pass. Empty until the weekly directory refresh first checks the entry, and always empty for a Didit network member. */
+  /** The essential-checks report of a directory entry, built only from the platform's verified sources: registration (an official register lists the VASP: the EU's interim MiCA register, the public TRISA directory or the global LEI register), licence (a MiCA authorisation is on record and current), domain (the entry's domain matches its TRP endpoint or the website its register gives) and lei (its LEI record is active, issued and consistent with the entry's names and country). The essentials component of dd_score is the share of decided checks that pass. Empty until the weekly directory refresh first checks the entry. A Didit network member (kind didit) carries the report too: registration, licence and domain come from the registered directory entry with the same LEI when there is one (else registration fails with no_register, licence is unknown with no_licence_record and domain is unknown with no_domain), and the lei check is GLEIF's answer against the member's own legal name and country. */
   essential_checks?: VaspDirectoryEntryEssentialChecks;
   /** Your application's decision on this VASP, or for an entity with no decision of its own its brand's (inherited_from names the brand). Null when there is none. Private to your application. */
   decision?: TravelRuleCounterpartyDecision | null;
@@ -13232,7 +13257,7 @@ export interface VaspDirectoryEntryEntities {
   reachable?: boolean;
 }
 
-/** The essential-checks report of a directory entry, built only from the platform's verified sources: registration (an official register lists the VASP: the EU's interim MiCA register, the public TRISA directory or the global LEI register), licence (a MiCA authorisation is on record and current), domain (the entry's domain matches its TRP endpoint or the website its register gives) and lei (its LEI record is active, issued and consistent with the entry's names and country). The essentials component of dd_score is the share of decided checks that pass. Empty until the weekly directory refresh first checks the entry, and always empty for a Didit network member. */
+/** The essential-checks report of a directory entry, built only from the platform's verified sources: registration (an official register lists the VASP: the EU's interim MiCA register, the public TRISA directory or the global LEI register), licence (a MiCA authorisation is on record and current), domain (the entry's domain matches its TRP endpoint or the website its register gives) and lei (its LEI record is active, issued and consistent with the entry's names and country). The essentials component of dd_score is the share of decided checks that pass. Empty until the weekly directory refresh first checks the entry. A Didit network member (kind didit) carries the report too: registration, licence and domain come from the registered directory entry with the same LEI when there is one (else registration fails with no_register, licence is unknown with no_licence_record and domain is unknown with no_domain), and the lei check is GLEIF's answer against the member's own legal name and country. */
 export interface VaspDirectoryEntryEssentialChecks {
   level?: "essential" | (string & {});
   checked_at?: Date;
@@ -13247,7 +13272,7 @@ export interface VaspDirectoryEntryEssentialChecksChecks {
   id?: "registration" | "licence" | "domain" | "lei" | (string & {});
   /** unknown when no source on record can decide the check. */
   status?: "pass" | "fail" | "unknown" | (string & {});
-  /** Machine-readable code of the verdict. */
+  /** Machine-readable code of the verdict. lei check: no_lei, no_gleif_record, gleif_lei_unknown (GLEIF has no record of the LEI), gleif_other_lei, gleif_entity_inactive, gleif_lei_not_issued, gleif_name_mismatch, gleif_country_mismatch, gleif_consistent. registration: gleif_issued, gleif_not_issued, no_register and the register reasons. licence: no_licence_record, no_authorisation_date. domain: no_domain. */
   reason?: string;
   /** One-line English explanation. */
   detail?: string;

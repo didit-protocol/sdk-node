@@ -673,6 +673,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
           sygna: "TravelRuleNetworkState",
         },
       },
+      didit_network: { p: { lei_check: { p: { checked_at: 1 } } } },
     },
   },
   TravelRuleTestVaspInboundResponse: { p: { travel_rule: "TravelRuleTransferDetail" } },
