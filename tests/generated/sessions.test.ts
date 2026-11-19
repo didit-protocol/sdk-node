@@ -474,6 +474,28 @@ describe("sessions", () => {
     expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/pause/"));
   });
 
+  it("sessions.imports.request_limit: POST /v3/session/imports/{importId}/request-limit/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/session/imports/{importId}/request-limit/"),
+    });
+    const result = await client.sessions.imports.requestLimit("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/request-limit/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/session/imports/{importId}/request-limit/"),
+    );
+  });
+
   it("sessions.imports.resume: POST /v3/session/imports/{importId}/resume/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -508,6 +530,24 @@ describe("sessions", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
     expectMatchesExample(result, responseExample("GET /v3/session/imports/{importId}/"));
+  });
+
+  it("sessions.imports.retrieve_limits: GET /v3/session/imports/limits/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/session/imports/limits/"),
+    });
+    const result = await client.sessions.imports.retrieveLimits();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/limits/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/session/imports/limits/"));
   });
 
   it("sessions.imports.retrieve_template: GET /v3/session/imports/template/", async () => {
@@ -564,6 +604,24 @@ describe("sessions", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({});
     expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/start/"));
+  });
+
+  it("sessions.imports.undo: POST /v3/session/imports/{importId}/undo/", async () => {
+    const { client, calls } = mockClient({
+      status: 202,
+      json: responseExample("POST /v3/session/imports/{importId}/undo/"),
+    });
+    const result = await client.sessions.imports.undo("importId-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/session/imports/importId-1/undo/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("POST /v3/session/imports/{importId}/undo/"));
   });
 
   it("sessions.list: GET /v3/sessions/", async () => {

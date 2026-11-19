@@ -10,6 +10,7 @@ import type {
   BusinessSessionListItem,
   EntityNetworkMembershipList,
   FeatureStatusOverride,
+  ImportLimits,
   KYBKeyPeopleParty,
   ReviewItem,
   SandboxSimulateResponse,
@@ -48,6 +49,7 @@ import type {
   SessionsImportsListJobsParams,
   SessionsImportsListJobsResponse,
   SessionsImportsListProvidersResponse,
+  SessionsImportsRequestLimitParams,
   SessionsImportsRetrieveTemplateParams,
   SessionsImportsRetryParams,
   SessionsImportsStartParams,
@@ -146,6 +148,12 @@ const SESSIONS_IMPORTS_PAUSE: OperationSpec = {
   path: "/v3/session/imports/{importId}/pause/",
   dates: "SessionImportJob",
 };
+const SESSIONS_IMPORTS_REQUEST_LIMIT: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/request-limit/",
+  body: "json",
+  dates: "SessionImportJob",
+};
 const SESSIONS_IMPORTS_RESUME: OperationSpec = {
   method: "POST",
   path: "/v3/session/imports/{importId}/resume/",
@@ -155,6 +163,11 @@ const SESSIONS_IMPORTS_RETRIEVE: OperationSpec = {
   method: "GET",
   path: "/v3/session/imports/{importId}/",
   dates: "SessionImportJob",
+};
+const SESSIONS_IMPORTS_RETRIEVE_LIMITS: OperationSpec = {
+  method: "GET",
+  path: "/v3/session/imports/limits/",
+  dates: "ImportLimits",
 };
 const SESSIONS_IMPORTS_RETRIEVE_TEMPLATE: OperationSpec = {
   method: "GET",
@@ -174,6 +187,11 @@ const SESSIONS_IMPORTS_START: OperationSpec = {
   method: "POST",
   path: "/v3/session/imports/{importId}/start/",
   body: "json",
+  dates: "SessionImportJob",
+};
+const SESSIONS_IMPORTS_UNDO: OperationSpec = {
+  method: "POST",
+  path: "/v3/session/imports/{importId}/undo/",
   dates: "SessionImportJob",
 };
 const SESSIONS_REVIEWS_CREATE: OperationSpec = {
@@ -497,7 +515,7 @@ export class SessionsImports extends APIResource {
   /**
    * Cancel an import job
    *
-   * Cancel an import. What was imported stays; the uploaded file and the key are erased.
+   * Cancel an import. What was imported stays, unless you undo it with `POST /v3/session/imports/{importId}/undo/`; the uploaded file and the key are erased.
    *
    * `POST /v3/session/imports/{importId}/cancel/`
    *
@@ -528,7 +546,7 @@ export class SessionsImports extends APIResource {
   /**
    * Create a verification import job
    *
-   * Create an asynchronous import job for historical User Verification sessions, Business Verification sessions, transaction monitoring records, or workflow custom status rules. Set `source=provider` to migrate from another provider: Didit reads Sumsub, Onfido, Persona and ComplyCube with your read-only key, reads Veriff, iDenfy and MetaMap records by the IDs you upload in `file`, and imports an export file in Didit's format for the other providers. Record IDs are namespaced by provider (`sumsub:<id>`) so a re-run skips everything already in Didit, and a record imported through a file with the provider's bare ID is recognised too, in both directions, so moving between a file import and a provider migration never imports a record twice. An application can run up to 4 import jobs at once; a job interrupted by a deploy or a worker restart continues from its last imported row by itself. Imports are disabled by default and must be enabled per organization by Didit.
+   * Create an asynchronous import job for historical User Verification sessions, Business Verification sessions, transaction monitoring records, or workflow custom status rules. Set `source=provider` to migrate from another provider: `GET /v3/session/imports/providers/` lists the providers and how each is read: with your read-only key, from the record IDs you upload in `file`, or from an export file in Didit's format. Record IDs are namespaced by provider (`<provider>:<id>`) so a re-run skips everything already in Didit, and a record imported through a file with the provider's bare ID is recognised too, in both directions, so moving between a file import and a provider migration never imports a record twice. An application can run up to 4 import jobs at once; a job interrupted by a deploy or a worker restart continues from its last imported row by itself. Any organization can import without asking Didit first, within a monthly limit that follows what it pays (see `GET /v3/session/imports/limits/`): 2,000 records a month from a provider and 500 from a file or the API until the first paid top-up, then 250,000 and 25,000, and no monthly limit on a contract. A job above the limit writes what fits and then waits (`WAITING`), and continues by itself when the limit goes up; ask for a higher limit with `POST /v3/session/imports/{importId}/request-limit/`. Every source accepts `dry_run`. A job that is not a dry run first checks the whole file or account; for an organization that has never paid, a finding can hold the job (`HELD`) for review by Didit before anything is written. Imported verifications stay in their application: they cannot be shared with another application and never feed cross-organization fraud signals. `POST /v3/session/imports/{importId}/undo/` deletes what an import created.
    *
    * `POST /v3/session/imports/`
    *
@@ -572,7 +590,7 @@ export class SessionsImports extends APIResource {
   /**
    * List import jobs
    *
-   * Every import of the application in one shape: verification imports and migrations, people and businesses.
+   * Every import of the application in one shape: verification imports and migrations, people and businesses. `limit_lane`, `waiting_reason`, `checks`, `review_note`, `limit_request`, `granted_records` and the Undo fields apply to verification imports; they are `null`, empty or `false` for people and company imports.
    *
    * `GET /v3/import-jobs/`
    */
@@ -610,6 +628,25 @@ export class SessionsImports extends APIResource {
   }
 
   /**
+   * Request a higher import limit
+   *
+   * Ask Didit to let one import go past the monthly limit. Allowed on a job that is `READY`, `PENDING`, `PROCESSING` or `WAITING` and whose lane has a limit; one request can be pending per job. `requested_records` is not sent: it is computed from the job's dry run or check pass as what the import still has to write beyond what it may write now (one month of the lane when no pass counted the file). An approval lets that job finish and does not change the organization's monthly limit. A declined request leaves the job waiting for the next month or a top-up, and the answer is in `limit_request.staff_note`. The job continues by itself when the limit goes up. A turned-off organization or a sandbox application is refused.
+   *
+   * `POST /v3/session/imports/{importId}/request-limit/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param importId importId
+   */
+  requestLimit(
+    importId: string,
+    params: SessionsImportsRequestLimitParams = {},
+    options?: RequestOptions,
+  ): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_REQUEST_LIMIT, [importId], params, options);
+  }
+
+  /**
    * Resume an import job
    *
    * Resume an import you paused. A job paused by the provider's rate limit resumes by itself.
@@ -635,6 +672,17 @@ export class SessionsImports extends APIResource {
    */
   retrieve(importId: string, options?: RequestOptions): APIPromise<SessionImportJob> {
     return this._client.request(SESSIONS_IMPORTS_RETRIEVE, [importId], undefined, options);
+  }
+
+  /**
+   * Get import limits
+   *
+   * Read how many verifications your organization can still import this month. Limits follow what the organization pays and are counted per organization, across all its live applications, per calendar month in UTC, in records written by imports that are not dry runs: 2,000 from a provider and 500 from a file or the API until the first paid top-up, then 250,000 and 25,000, and no monthly limit (`limit: null`) on a contract or when Didit set the organization to always allowed. Records skipped because they were already in Didit, rejected rows and dry runs do not count, and records you undo are given back. `can_import: false` with `reason: turned_off` or `reason: sandbox` means a create call would be refused. Authenticate with your application's API key, or with a console user token that has `write:sessions`.
+   *
+   * `GET /v3/session/imports/limits/`
+   */
+  retrieveLimits(options?: RequestOptions): APIPromise<ImportLimits> {
+    return this._client.request(SESSIONS_IMPORTS_RETRIEVE_LIMITS, [], undefined, options);
   }
 
   /**
@@ -673,7 +721,7 @@ export class SessionsImports extends APIResource {
   /**
    * Start a dry run
    *
-   * Start a migration whose dry run finished (`READY`): the same job imports for real, with the status mapping and face templates choice as sent now.
+   * Start an import whose dry run finished (`READY`): the same job imports for real, with the status mapping and face templates choice as sent now. A file or API job runs the checks again over the whole file first.
    *
    * `POST /v3/session/imports/{importId}/start/`
    *
@@ -687,6 +735,23 @@ export class SessionsImports extends APIResource {
     options?: RequestOptions,
   ): APIPromise<SessionImportJob> {
     return this._client.request(SESSIONS_IMPORTS_START, [importId], params, options);
+  }
+
+  /**
+   * Undo an import
+   *
+   * Delete what an import created. Every verification (User Verification, Business Verification) and transaction the job created is deleted with its images and videos, its face templates, and the blocklist entries the job added, exactly as `DELETE /v3/session/{sessionId}/delete/` deletes a session. Records that were already in Didit, and the workflow status rules an import changed, are not affected. The records you undo are given back to the month's import limit. Deletion cannot be reversed.
+   *
+   * Allowed when `can_undo` is `true` and the job is `COMPLETED`, `FAILED`, `CANCELLED` or `WAITING` (a waiting job is cancelled first). Imports made before Undo import existed did not record what they created and cannot be undone. The job moves to `UNDOING` and ends `UNDONE` with `undone_count`; poll `GET /v3/session/imports/{importId}/`. Undo is available for User Verification, Business Verification and transaction imports; status rules are not undone. Needs the sessions write and delete privileges (`write:sessions` and `delete:sessions` for a console user; an API key needs sessions write access and `delete:sessions`). Undoing a Business Verification import also needs `delete:businesses`, and a transactions import needs `write:transactions` (an API key needs write access to that resource).
+   *
+   * `POST /v3/session/imports/{importId}/undo/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param importId importId
+   */
+  undo(importId: string, options?: RequestOptions): APIPromise<SessionImportJob> {
+    return this._client.request(SESSIONS_IMPORTS_UNDO, [importId], undefined, options);
   }
 }
 

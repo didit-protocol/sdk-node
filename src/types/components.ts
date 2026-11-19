@@ -4220,6 +4220,17 @@ export interface IPRiskResponseIp {
   threat: Record<string, unknown>;
 }
 
+export interface ImportCheck {
+  /** `all_approved_no_media`: at least 95% of the records are Approved and at most 5% carry any image (selfie, document or video), on 100 records or more. It applies to file imports only (a provider's export file included), because records read from a provider's API carry their images only once they are imported. `repeated_documents`: the same document number and issuing country appears under a different name or date of birth in at least 2% of the records and at least 20 records (User Verification imports). `implausible_dates`: a verification date in the future or before 2010, or a date of birth giving an age under 14 or over 110, in at least 2% of the records. */
+  code: "all_approved_no_media" | "repeated_documents" | "implausible_dates" | (string & {});
+  /** Records the check flagged. */
+  count: number;
+  /** Flagged records as a fraction of the records checked. */
+  share: number;
+  /** `true` when this finding holds the import for review by Didit before anything is written (an organization on the automatic mode that has never paid). Otherwise the finding is a warning only. */
+  holds: boolean;
+}
+
 /** One import job of any kind, in the shape the console's Import jobs drawer reads. */
 export interface ImportJobSummary {
   id?: string;
@@ -4228,7 +4239,7 @@ export interface ImportJobSummary {
   provider?: string | null;
   provider_name?: string | null;
   filename?: string | null;
-  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. */
+  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. `waiting`: the month's import limit is used up. `held`: a check holds the import for review by Didit. `declined`: Didit declined the held import. `undoing` and `undone`: Undo import is running or finished. */
   state?:
     | "ready"
     | "queued"
@@ -4238,7 +4249,13 @@ export interface ImportJobSummary {
     | "errors"
     | "failed"
     | "cancelled"
+    | "waiting"
+    | "held"
+    | "declined"
+    | "undoing"
+    | "undone"
     | (string & {});
+  /** The job's status; the same values as a verification import job's `status`, including `WAITING`, `HELD`, `DECLINED`, `UNDOING` and `UNDONE`. */
   status?: string;
   is_dry_run?: boolean;
   credential_hint?: string | null;
@@ -4251,6 +4268,25 @@ export interface ImportJobSummary {
   created_at?: Date;
   started_at?: Date | null;
   completed_at?: Date | null;
+  /** The monthly limit this job counts against: `provider` for a migration read from another provider (`source=provider`), `file` for an upload or file URL. */
+  limit_lane?: "provider" | "file" | (string & {}) | null;
+  /** Why a `WAITING` job waits. `null` otherwise. */
+  waiting_reason?: "limit" | (string & {}) | null;
+  /** What the checks found in the whole file or account. Empty when nothing was flagged. */
+  checks?: ImportCheck[];
+  /** The note from Didit on a `DECLINED` job. */
+  review_note?: string | null;
+  /** The request for a higher limit made for this job, or `null`. */
+  limit_request?: ImportLimitRequest | null;
+  /** Records Didit approved for this job beyond the monthly limit. */
+  granted_records?: number;
+  /** `true` when the job recorded what it created, so `POST /v3/session/imports/{importId}/undo/` can delete it. Imports made before Undo import existed did not record it. */
+  can_undo?: boolean;
+  /** Records deleted by Undo import. */
+  undone_count?: number;
+  undone_at?: Date | null;
+  /** Who undid the import. */
+  undone_by?: string | null;
 }
 
 export interface ImportJobSummaryFaceTemplates {
@@ -4274,6 +4310,56 @@ export interface ImportJobSummaryProgress {
 export interface ImportJobSummaryStartedBy {
   name?: string | null;
   email?: string | null;
+}
+
+export interface ImportLimitLane {
+  /** Records this lane may write in the period. `null` when there is no monthly limit, `0` when imports are turned off. */
+  limit: number | null;
+  /** Records written in the period by imports that are not dry runs, across all live applications of the organization. Records an import skipped because they were already in Didit, rejected rows and dry runs do not count, and records you undo are given back. */
+  used: number;
+  /** `limit` minus `used`. `null` when there is no monthly limit, `0` when imports are turned off. */
+  remaining: number | null;
+}
+
+export interface ImportLimitRequest {
+  id: string;
+  status: "pending" | "approved" | "declined" | (string & {});
+  /** Records the request asks to write beyond the monthly limit, for this import. */
+  requested_records: number;
+  /** Your note, at most 1000 characters. */
+  note?: string | null;
+  created_at: Date;
+  decided_at?: Date | null;
+  /** The answer from Didit when the request was declined or approved. */
+  staff_note?: string | null;
+}
+
+export interface ImportLimits {
+  /** The import mode of the organization. `automatic` applies the monthly limits; `always_allowed` has no monthly limit and its files are never held for a check; `turned_off` imports nothing. */
+  mode: "automatic" | "always_allowed" | "turned_off" | (string & {});
+  /** The level that sets the monthly limits: `never_paid` until the first paid top-up, `paid` after it, `contract` on an enterprise contract. */
+  level: "never_paid" | "paid" | "contract" | (string & {});
+  /** `false` when imports are turned off or the application is a sandbox application. */
+  can_import: boolean;
+  /** Why `can_import` is `false`; `null` otherwise. */
+  reason: "turned_off" | "sandbox" | (string & {}) | null;
+  /** `true` when a check can hold a file for review by Didit before anything is written: an organization on the automatic mode that has never paid. */
+  checks_can_hold: boolean;
+  period: ImportLimitsPeriod;
+  /** Monthly limits per lane. `provider` counts migrations that read records from another provider with your key (`source=provider`); `file` counts file uploads and file URLs sent through the API. */
+  lanes: ImportLimitsLanes;
+}
+
+/** Monthly limits per lane. `provider` counts migrations that read records from another provider with your key (`source=provider`); `file` counts file uploads and file URLs sent through the API. */
+export interface ImportLimitsLanes {
+  provider: ImportLimitLane;
+  file: ImportLimitLane;
+}
+
+export interface ImportLimitsPeriod {
+  starts_at: Date;
+  /** When the monthly limits start again: the first day of the next calendar month, UTC. */
+  resets_at: Date;
 }
 
 export interface ImportProvider {
@@ -9848,6 +9934,7 @@ export interface SessionImportError {
 export interface SessionImportJob {
   /** Import job id. Use this value to poll progress and fetch row errors. */
   uuid: string;
+  /** `WAITING`: the month's limit is used up. The import continues by itself when the limit goes up (a top-up, the next month, or Didit approving a limit request). `HELD`: a check held the file for review by Didit; nothing is written. `DECLINED`: Didit declined the held file (`review_note` says why); nothing was written and the source and credentials are erased. `UNDOING` and `UNDONE`: an Undo import is running or has finished. */
   status:
     | "PENDING"
     | "PROCESSING"
@@ -9856,6 +9943,11 @@ export interface SessionImportJob {
     | "PAUSED"
     | "CANCELLED"
     | "READY"
+    | "WAITING"
+    | "HELD"
+    | "DECLINED"
+    | "UNDOING"
+    | "UNDONE"
     | (string & {});
   import_type:
     "user_verification" | "business_verification" | "status_rules" | "transactions" | (string & {});
@@ -9874,7 +9966,7 @@ export interface SessionImportJob {
   updated_at?: Date;
   started_at?: Date | null;
   completed_at?: Date | null;
-  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. */
+  /** The job's state as the console shows it; `errors` is a completed job with rejected rows. `waiting`: the month's import limit is used up. `held`: a check holds the import for review by Didit. `declined`: Didit declined the held import. `undoing` and `undone`: Undo import is running or finished. */
   state?:
     | "ready"
     | "queued"
@@ -9884,6 +9976,11 @@ export interface SessionImportJob {
     | "errors"
     | "failed"
     | "cancelled"
+    | "waiting"
+    | "held"
+    | "declined"
+    | "undoing"
+    | "undone"
     | (string & {});
   source?: "file" | "api" | "provider" | (string & {});
   /** Migration source; empty for a file or API import. */
@@ -9896,7 +9993,7 @@ export interface SessionImportJob {
   resumes_at?: Date | null;
   status_mapping?: Record<string, string>;
   is_dry_run?: boolean;
-  /** What a dry run found: `total`, `by_status`, `already_in_didit`, `same_person`, `not_finished`, `failed`, `unmapped_statuses`. */
+  /** What a dry run found: `total`, `by_status`, `already_in_didit`, `same_person`, `not_finished`, `failed`, `unmapped_statuses` and `checks` (only the checks that fired, the same list as the job's `checks`). */
   dry_run_summary?: Record<string, unknown>;
   face_templates_enabled?: boolean;
   lawful_basis_confirmed_at?: Date | null;
@@ -9907,6 +10004,25 @@ export interface SessionImportJob {
   face_blocklist_hits_count?: number;
   created_by_name?: string | null;
   created_by_email?: string | null;
+  /** The monthly limit this job counts against: `provider` for a migration read from another provider (`source=provider`), `file` for an upload or file URL. */
+  limit_lane?: "provider" | "file" | (string & {});
+  /** Why a `WAITING` job waits. `null` otherwise. */
+  waiting_reason?: "limit" | (string & {}) | null;
+  /** Only the checks that fired over the whole file or account, each saying whether it holds the import. Empty when nothing fired. */
+  checks?: ImportCheck[];
+  /** The note from Didit on a `DECLINED` job. */
+  review_note?: string | null;
+  /** The request for a higher limit made for this job, or `null`. */
+  limit_request?: ImportLimitRequest | null;
+  /** Records Didit approved for this job beyond the monthly limit. */
+  granted_records?: number;
+  /** `true` when the job recorded what it created, so `POST /v3/session/imports/{importId}/undo/` can delete it. Imports made before Undo import existed did not record it. */
+  can_undo?: boolean;
+  /** Records deleted by Undo import. */
+  undone_count?: number;
+  undone_at?: Date | null;
+  /** Who undid the import. */
+  undone_by?: string | null;
 }
 
 export interface SessionSignDocument {
