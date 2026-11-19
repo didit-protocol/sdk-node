@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 406 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 409 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -528,21 +528,24 @@ Every method of `@didit-protocol/sdk-node`: 406 methods, generated from `openapi
 
 ## `didit.sessions.imports`
 
-| Method                                                                                    | HTTP                                          | Returns                                 | Notes                    |
-| ----------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------- | ------------------------ |
-| `didit.sessions.imports.cancel(importId)`                                                 | `POST /v3/session/imports/{importId}/cancel/` | `SessionImportJob`                      | `idempotencyKey`         |
-| `didit.sessions.imports.checkProvider(params: SessionsImportsCheckProviderParams)`        | `POST /v3/session/imports/providers/check/`   | `SessionsImportsCheckProviderResponse`  | `idempotencyKey`         |
-| `didit.sessions.imports.create(params?: SessionsImportsCreateParams)`                     | `POST /v3/session/imports/`                   | `SessionImportJob`                      | upload, `idempotencyKey` |
-| `didit.sessions.imports.listActiveJobs()`                                                 | `GET /v3/import-jobs/active/`                 | `SessionsImportsListActiveJobsResponse` |                          |
-| `didit.sessions.imports.listErrors(importId, params?: SessionsImportsListErrorsParams)`   | `GET /v3/session/imports/{importId}/errors/`  | page of `SessionImportError`            |                          |
-| `didit.sessions.imports.listJobs(params?: SessionsImportsListJobsParams)`                 | `GET /v3/import-jobs/`                        | `SessionsImportsListJobsResponse`       |                          |
-| `didit.sessions.imports.listProviders()`                                                  | `GET /v3/session/imports/providers/`          | `SessionsImportsListProvidersResponse`  |                          |
-| `didit.sessions.imports.pause(importId)`                                                  | `POST /v3/session/imports/{importId}/pause/`  | `SessionImportJob`                      | `idempotencyKey`         |
-| `didit.sessions.imports.resume(importId)`                                                 | `POST /v3/session/imports/{importId}/resume/` | `SessionImportJob`                      | `idempotencyKey`         |
-| `didit.sessions.imports.retrieve(importId)`                                               | `GET /v3/session/imports/{importId}/`         | `SessionImportJob`                      |                          |
-| `didit.sessions.imports.retrieveTemplate(params?: SessionsImportsRetrieveTemplateParams)` | `GET /v3/session/imports/template/`           | `Blob`                                  |                          |
-| `didit.sessions.imports.retry(importId, params?: SessionsImportsRetryParams)`             | `POST /v3/session/imports/{importId}/retry/`  | `SessionImportJob`                      | upload, `idempotencyKey` |
-| `didit.sessions.imports.start(importId, params?: SessionsImportsStartParams)`             | `POST /v3/session/imports/{importId}/start/`  | `SessionImportJob`                      | `idempotencyKey`         |
+| Method                                                                                      | HTTP                                                 | Returns                                 | Notes                    |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------- | ------------------------ |
+| `didit.sessions.imports.cancel(importId)`                                                   | `POST /v3/session/imports/{importId}/cancel/`        | `SessionImportJob`                      | `idempotencyKey`         |
+| `didit.sessions.imports.checkProvider(params: SessionsImportsCheckProviderParams)`          | `POST /v3/session/imports/providers/check/`          | `SessionsImportsCheckProviderResponse`  | `idempotencyKey`         |
+| `didit.sessions.imports.create(params?: SessionsImportsCreateParams)`                       | `POST /v3/session/imports/`                          | `SessionImportJob`                      | upload, `idempotencyKey` |
+| `didit.sessions.imports.listActiveJobs()`                                                   | `GET /v3/import-jobs/active/`                        | `SessionsImportsListActiveJobsResponse` |                          |
+| `didit.sessions.imports.listErrors(importId, params?: SessionsImportsListErrorsParams)`     | `GET /v3/session/imports/{importId}/errors/`         | page of `SessionImportError`            |                          |
+| `didit.sessions.imports.listJobs(params?: SessionsImportsListJobsParams)`                   | `GET /v3/import-jobs/`                               | `SessionsImportsListJobsResponse`       |                          |
+| `didit.sessions.imports.listProviders()`                                                    | `GET /v3/session/imports/providers/`                 | `SessionsImportsListProvidersResponse`  |                          |
+| `didit.sessions.imports.pause(importId)`                                                    | `POST /v3/session/imports/{importId}/pause/`         | `SessionImportJob`                      | `idempotencyKey`         |
+| `didit.sessions.imports.requestLimit(importId, params?: SessionsImportsRequestLimitParams)` | `POST /v3/session/imports/{importId}/request-limit/` | `SessionImportJob`                      | `idempotencyKey`         |
+| `didit.sessions.imports.resume(importId)`                                                   | `POST /v3/session/imports/{importId}/resume/`        | `SessionImportJob`                      | `idempotencyKey`         |
+| `didit.sessions.imports.retrieve(importId)`                                                 | `GET /v3/session/imports/{importId}/`                | `SessionImportJob`                      |                          |
+| `didit.sessions.imports.retrieveLimits()`                                                   | `GET /v3/session/imports/limits/`                    | `ImportLimits`                          |                          |
+| `didit.sessions.imports.retrieveTemplate(params?: SessionsImportsRetrieveTemplateParams)`   | `GET /v3/session/imports/template/`                  | `Blob`                                  |                          |
+| `didit.sessions.imports.retry(importId, params?: SessionsImportsRetryParams)`               | `POST /v3/session/imports/{importId}/retry/`         | `SessionImportJob`                      | upload, `idempotencyKey` |
+| `didit.sessions.imports.start(importId, params?: SessionsImportsStartParams)`               | `POST /v3/session/imports/{importId}/start/`         | `SessionImportJob`                      | `idempotencyKey`         |
+| `didit.sessions.imports.undo(importId)`                                                     | `POST /v3/session/imports/{importId}/undo/`          | `SessionImportJob`                      | `idempotencyKey`         |
 
 ## `didit.sessions.reviews`
 

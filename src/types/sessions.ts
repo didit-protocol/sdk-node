@@ -642,7 +642,7 @@ export interface SessionsImportsCreateParams {
   workflow_id?: string;
   /** Optional. Inferred from the URL's file extension when omitted. */
   source_format?: "csv" | "ndjson" | (string & {});
-  /** Alternative to file upload. Must be an HTTPS URL resolving to a public address (private/loopback networks are rejected). Mutually exclusive with `file`. */
+  /** HTTPS URL of the file, resolving to a public address (private/loopback networks are rejected). Required for a file import and for a provider migration whose provider is read from uploaded record IDs or an export file (`GET /v3/session/imports/providers/` gives each provider's mode). Not needed when `source` is `provider` and Didit reads the account with `credentials`. */
   source_file_url?: string;
   /** `provider` makes this a migration from another identity verification provider. Omit for a file import. */
   source?: "file" | "provider" | (string & {});
@@ -730,6 +730,11 @@ export interface SessionsImportsListProvidersResponse {
   providers?: ImportProvider[];
   mapping_targets?: string[];
   skipped_statuses?: string[];
+}
+
+export interface SessionsImportsRequestLimitParams {
+  /** Optional. Tell Didit why you need a higher limit, at most 1000 characters. */
+  note?: string;
 }
 
 export interface SessionsImportsRetrieveTemplateParams {

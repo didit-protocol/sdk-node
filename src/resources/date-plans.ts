@@ -182,7 +182,18 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   GeolocationCheck: { p: { measured_at: 1, consent: { p: { accepted_at: 1 } } } },
   IPRiskResponse: { p: { created_at: 1 } },
   IdVerificationVerifyResponse: { p: { created_at: 1 } },
-  ImportJobSummary: { p: { resumes_at: 1, created_at: 1, started_at: 1, completed_at: 1 } },
+  ImportJobSummary: {
+    p: {
+      resumes_at: 1,
+      created_at: 1,
+      started_at: 1,
+      completed_at: 1,
+      limit_request: "ImportLimitRequest",
+      undone_at: 1,
+    },
+  },
+  ImportLimitRequest: { p: { created_at: 1, decided_at: 1 } },
+  ImportLimits: { p: { period: { p: { starts_at: 1, resets_at: 1 } } } },
   InvestigatorBlock: { p: { prepared_at: 1, decision: "InvestigatorDecision" } },
   InvestigatorDecision: {
     p: {
@@ -452,6 +463,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       credentials_expires_at: 1,
       resumes_at: 1,
       lawful_basis_confirmed_at: 1,
+      limit_request: "ImportLimitRequest",
+      undone_at: 1,
     },
   },
   SessionWebhookDelivery: { p: { created_at: 1 } },
