@@ -553,7 +553,7 @@ export interface AMLScreeningRun {
   completed_at: Date;
   /** When the monitoring batch this re-screen belongs to started. */
   started_at: Date;
-  /** `NO_CHANGE`: completed and the result did not move. `CHANGED`: completed and the score, status, hit count or hits changed. `FAILED`: no usable answer for this subject, so the check was left as it was. */
+  /** `NO_CHANGE`: completed and the result did not move. `CHANGED`: completed and the score, the status or a match at or above your Match Score Threshold changed (added, removed or updated). Matches below that threshold start as False Positive and can come and go between runs without making a run `CHANGED`. `FAILED`: no usable answer for this subject, so the check was left as it was. */
   outcome: "NO_CHANGE" | "CHANGED" | "FAILED" | (string & {});
   /** What started the screening. Always `ONGOING_MONITORING` today. */
   trigger: "ONGOING_MONITORING" | (string & {});
