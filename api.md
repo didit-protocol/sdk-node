@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 409 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 412 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -400,6 +400,7 @@ Every method of `@didit-protocol/sdk-node`: 409 methods, generated from `openapi
 | `didit.networks.retrieveGraph(networkUuid, params?: NetworksRetrieveGraphParams)`       | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/graph/`        | `NetworkGraph`                           | application scoped                   |
 | `didit.networks.retrieveMap(networkUuid)`                                               | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/map/`          | `NetworkMap`                             | application scoped                   |
 | `didit.networks.retrieveTimeline(networkUuid, params?: NetworksRetrieveTimelineParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/networks/{network_uuid}/timeline/`     | `NetworkTimeline \| NetworkTimelinePage` | application scoped                   |
+| `didit.networks.searchSignals(params: NetworksSearchSignalsParams)`                     | `POST /v3/organization/{organization_id}/application/{application_id}/networks/signals/search/`             | `NetworkSignalSearchResponse`            | application scoped                   |
 
 ## `didit.networks.notes`
 
@@ -724,8 +725,10 @@ Every method of `@didit-protocol/sdk-node`: 409 methods, generated from `openapi
 | `didit.users.batchDelete(params?: UsersBatchDeleteParams)`                  | `POST /v3/users/delete/`                                                                                                    | `UsersBatchDeleteResponse`                              | `idempotencyKey`                     |
 | `didit.users.create(params: UsersCreateParams)`                             | `POST /v3/users/create/`                                                                                                    | `UsersCreateResponse`                                   | `idempotencyKey`                     |
 | `didit.users.generatePdf(vendorData)`                                       | `GET /v3/users/{vendor_data}/generate-pdf/`                                                                                 | `Blob`                                                  |                                      |
+| `didit.users.getLookup(lookupId)`                                           | `GET /v3/users/lookup/{lookup_id}/`                                                                                         | `UsersLookupDetail`                                     |                                      |
 | `didit.users.list(params?: UsersListParams)`                                | `GET /v3/users/`                                                                                                            | page of `UserListItem`                                  |                                      |
 | `didit.users.listNetworks(vendorUserUuid)`                                  | `GET /v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/`                    | `EntityNetworkMembershipList`                           | application scoped                   |
+| `didit.users.lookup(params: UsersLookupParams)`                             | `POST /v3/users/lookup/`                                                                                                    | `UsersLookupResponse`                                   |                                      |
 | `didit.users.retrieve(vendorData)`                                          | `GET /v3/users/{vendor_data}/`                                                                                              | `UserDetailItem`                                        |                                      |
 | `didit.users.retrieveOngoingMonitoringJob(jobId)`                           | `GET /v3/organization/{organization_id}/application/{application_id}/vendor-users/toggle-ongoing-monitoring/{job_id}/`      | `OngoingMonitoringJob`                                  | application scoped                   |
 | `didit.users.setAmlMonitoring(params: UsersSetAmlMonitoringParams)`         | `POST /v3/users/aml-monitoring/`                                                                                            | `AMLMonitoringToggleResult \| AMLMonitoringJob`         | `idempotencyKey`                     |

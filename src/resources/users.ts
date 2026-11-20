@@ -13,6 +13,8 @@ import type {
   OngoingMonitoringToggleResult,
   UserDetailItem,
   UserListItem,
+  UsersLookupDetail,
+  UsersLookupResponse,
 } from "../types/components.js";
 import type {
   UsersBatchDeleteParams,
@@ -21,6 +23,7 @@ import type {
   UsersCreateResponse,
   UsersListParams,
   UsersListResponse,
+  UsersLookupParams,
   UsersSetAmlMonitoringParams,
   UsersSetOngoingMonitoringParams,
   UsersUpdateParams,
@@ -56,10 +59,15 @@ const USERS_GENERATE_PDF: OperationSpec = {
   response: "binary",
   accept: "application/pdf",
 };
+const USERS_GET_LOOKUP: OperationSpec = {
+  method: "GET",
+  path: "/v3/users/lookup/{lookup_id}/",
+  dates: "UsersLookupDetail",
+};
 const USERS_LIST: OperationSpec = {
   method: "GET",
   path: "/v3/users/",
-  query: ["limit", "offset"],
+  query: ["limit", "offset", "lookup"],
   dates: { p: { results: { i: "UserListItem" } } },
 };
 const USERS_LIST_NETWORKS: OperationSpec = {
@@ -67,6 +75,12 @@ const USERS_LIST_NETWORKS: OperationSpec = {
   path: "/v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/",
   scope: "application",
   dates: "EntityNetworkMembershipList",
+};
+const USERS_LOOKUP: OperationSpec = {
+  method: "POST",
+  path: "/v3/users/lookup/",
+  body: "json",
+  dates: "UsersLookupResponse",
 };
 const USERS_RETRIEVE: OperationSpec = {
   method: "GET",
@@ -181,9 +195,22 @@ export class Users extends APIResource {
   }
 
   /**
+   * Get a user lookup
+   *
+   * Read back a lookup made with [Look up users](#post-/v3/users/lookup/): the same counts and `not_found` list, plus the `identifiers` you submitted after blanks and duplicates were removed, in order. A lookup lives 24 hours and belongs to the application that made it; an expired, unknown or other application's `lookup_id` returns `404` with `code: lookup_not_found`.
+   *
+   * `GET /v3/users/lookup/{lookup_id}/`
+   *
+   * @param lookupId The `lookup_id` returned by Look up users.
+   */
+  getLookup(lookupId: string, options?: RequestOptions): APIPromise<UsersLookupDetail> {
+    return this._client.request(USERS_GET_LOOKUP, [lookupId], undefined, options);
+  }
+
+  /**
    * List users
    *
-   * List [users](/entities/users) Didit assembles from KYC sessions sharing the same `vendor_data` (free-form string, NOT a UUID), plus users created via the API. Paginated, ordered by `last_session_at` desc. This endpoint does not support filtering or search parameters - fetch pages and filter client-side.
+   * List [users](/entities/users) Didit assembles from KYC sessions sharing the same `vendor_data` (free-form string, NOT a UUID), plus users created via the API. Paginated, ordered by `last_session_at` desc, or by the position in your list when `lookup` is set. Pass `lookup` to read only the users a list of identifiers resolved to (see [Look up users](#post-/v3/users/lookup/)). No other filter or search parameter is supported: fetch pages and filter client-side.
    *
    * `GET /v3/users/`
    */
@@ -208,6 +235,19 @@ export class Users extends APIResource {
     options?: RequestOptions,
   ): APIPromise<EntityNetworkMembershipList> {
     return this._client.request(USERS_LIST_NETWORKS, [vendorUserUuid], undefined, options);
+  }
+
+  /**
+   * Look up users
+   *
+   * Resolve a list of up to 20,000 identifiers to the users of your application, in one call. Each identifier is matched, in this order, against `vendor_data` (exactly), the Didit user ID (a UUID), then a verified email (case-insensitive). An email can match several users, and all of them count. Blank entries are dropped and duplicates removed, keeping the first; 1 to 20,000 identifiers must remain, and a request sends at most 100,000 entries before that clean-up. The call only reads. It answers with a `lookup_id`, the counts and the identifiers that matched nobody, each with its 1-based `position` in the submitted list.
+   *
+   * Pass the `lookup_id` as `lookup` to [List users](#get-/v3/users/) to page through exactly the matched users, in the order you submitted them. The result is kept for 24 hours for your application only, then answers `404` with `code: lookup_not_found`.
+   *
+   * `POST /v3/users/lookup/`
+   */
+  lookup(params: UsersLookupParams, options?: RequestOptions): APIPromise<UsersLookupResponse> {
+    return this._client.request(USERS_LOOKUP, [], params, options);
   }
 
   /**

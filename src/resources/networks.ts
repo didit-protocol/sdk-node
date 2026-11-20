@@ -11,6 +11,7 @@ import type {
   NetworkListItem,
   NetworkMap,
   NetworkNote,
+  NetworkSignalSearchResponse,
   NetworkTimeline,
   NetworkTimelinePage,
 } from "../types/components.js";
@@ -26,6 +27,7 @@ import type {
   NetworksRemoveTagParams,
   NetworksRetrieveGraphParams,
   NetworksRetrieveTimelineParams,
+  NetworksSearchSignalsParams,
 } from "../types/networks.js";
 
 const NETWORKS_NOTES_CREATE: OperationSpec = {
@@ -132,6 +134,13 @@ const NETWORKS_RETRIEVE_TIMELINE: OperationSpec = {
   scope: "application",
   query: ["contract", "limit", "cursor", "event_type"],
   dates: { p: { results: { i: "NetworkTimelineEvent" } } },
+};
+const NETWORKS_SEARCH_SIGNALS: OperationSpec = {
+  method: "POST",
+  path: "/v3/organization/{organization_id}/application/{application_id}/networks/signals/search/",
+  scope: "application",
+  body: "json",
+  dates: "NetworkSignalSearchResponse",
 };
 
 /** `networks.notes` */
@@ -348,5 +357,21 @@ export class Networks extends APIResource {
     options?: RequestOptions,
   ): APIPromise<NetworkTimeline | NetworkTimelinePage> {
     return this._client.request(NETWORKS_RETRIEVE_TIMELINE, [networkUuid], params, options);
+  }
+
+  /**
+   * Search signals
+   *
+   * Check one value against every network of your organization before you open an investigation. Choose a `signal_type` and send its value: an address, a phone number, an email, a device fingerprint, a document number with its issuing state and type, or a face image. A `wallet_address` search takes the address and optionally its destination tag or memo in `tag`, and answers with the `wallet` object: accounts, payouts, the amount paid out and the payout dates. A wallet many accounts use is a shared service: it answers `match_count: 0` and no matches, with `is_shared_service: true`.
+   *
+   * Requires the `read:networks` permission. Searches are limited per organization: when the budget is spent the call answers `429`.
+   *
+   * `POST /v3/organization/{organization_id}/application/{application_id}/networks/signals/search/`
+   */
+  searchSignals(
+    params: NetworksSearchSignalsParams,
+    options?: RequestOptions,
+  ): APIPromise<NetworkSignalSearchResponse> {
+    return this._client.request(NETWORKS_SEARCH_SIGNALS, [], params, options);
   }
 }

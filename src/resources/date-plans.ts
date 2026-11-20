@@ -304,14 +304,35 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       patterns: { i: "NetworkPatternScore" },
     },
   },
-  NetworkGraph: { p: { network: "NetworkDetail", edges: { i: "NetworkGraphEdge" } } },
+  NetworkGraph: {
+    p: {
+      network: "NetworkDetail",
+      nodes: { i: "NetworkGraphNode" },
+      edges: { i: "NetworkGraphEdge" },
+    },
+  },
   NetworkGraphEdge: { p: { first_seen_at: 1, last_seen_at: 1 } },
+  NetworkGraphNode: { p: { wallet: { p: { first_payout_at: 1, last_payout_at: 1 } } } },
   NetworkListItem: { p: { first_activity_at: 1, last_activity_at: 1 } },
   NetworkMap: { p: { network: "NetworkDetail", points: { i: { p: { observed_at: 1 } } } } },
   NetworkMember: { p: { joined_at: 1, last_seen_at: 1 } },
   NetworkNote: { p: { created_at: 1 } },
   NetworkPatternScore: { p: { computed_at: 1 } },
   NetworkSignal: { p: { first_seen_at: 1, last_seen_at: 1 } },
+  NetworkSignalSearchMatch: {
+    p: { first_seen_at: 1, last_seen_at: 1, networks: { i: "NetworkListItem" } },
+  },
+  NetworkSignalSearchRecentPayout: { p: { txn_date: 1 } },
+  NetworkSignalSearchResponse: {
+    p: { matches: { i: "NetworkSignalSearchMatch" }, wallet: "NetworkSignalSearchWallet" },
+  },
+  NetworkSignalSearchWallet: {
+    p: {
+      first_payout_at: 1,
+      last_payout_at: 1,
+      recent_payouts: { i: "NetworkSignalSearchRecentPayout" },
+    },
+  },
   NetworkTag: { p: { added_at: 1 } },
   NetworkTimeline: { p: { results: { i: "NetworkTimelineEvent" } } },
   NetworkTimelineAttempt: { p: { status_changed_at: 1 } },
@@ -745,6 +766,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     },
   },
   UsersListResponse: { p: { results: { i: "UserListItem" } } },
+  UsersLookupDetail: { p: { expires_at: 1 } },
+  UsersLookupResponse: { p: { expires_at: 1 } },
   UsersUploadFaceResponse: { p: { created_at: 1 } },
   VaspDirectoryEntry: {
     p: {
