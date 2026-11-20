@@ -34,7 +34,7 @@ export interface AmlScreenParams {
   aml_match_score_threshold?: number;
   /** Also search news media for negative coverage. Adds up to ~30 s of latency while results are gathered - use a ≥60 s client timeout. */
   include_adverse_media?: boolean;
-  /** Keep re-screening this profile and push changes via webhook. Requires `save_api_request=true` (else `400`). */
+  /** Keep this profile under provider-driven ongoing monitoring and push the provider's updates via webhook. Requires `save_api_request=true` (else `400`). */
   include_ongoing_monitoring?: boolean;
   /** Persist the screening as a session (console visibility, decision endpoint, webhooks, hit review). Set to `false` for a stateless check. */
   save_api_request?: boolean;
