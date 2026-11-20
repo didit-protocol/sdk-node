@@ -71,6 +71,24 @@ describe("users", () => {
     expect([...new Uint8Array(await result.arrayBuffer())]).toEqual([...BINARY]);
   });
 
+  it("users.get_lookup: GET /v3/users/lookup/{lookup_id}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/users/lookup/{lookup_id}/"),
+    });
+    const result = await client.users.getLookup("lookup-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/users/lookup/lookup-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/users/lookup/{lookup_id}/"));
+  });
+
   it("users.list: GET /v3/users/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -115,6 +133,25 @@ describe("users", () => {
         "GET /v3/organization/{organization_id}/application/{application_id}/users/{vendor_user_uuid}/networks/",
       ),
     );
+  });
+
+  it("users.lookup: POST /v3/users/lookup/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/users/lookup/"),
+    });
+    const result = await client.users.lookup({ identifiers: ["value"] });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/users/lookup/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ identifiers: ["value"] });
+    expectMatchesExample(result, responseExample("POST /v3/users/lookup/"));
   });
 
   it("users.retrieve: GET /v3/users/{vendor_data}/", async () => {

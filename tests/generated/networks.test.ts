@@ -364,4 +364,32 @@ describe("networks", () => {
       ),
     );
   });
+
+  it("networks.search_signals: POST /v3/organization/{organization_id}/application/{application_id}/networks/signals/search/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/signals/search/",
+      ),
+    });
+    const result = await client.networks.searchSignals({ signal_type: "ip_address" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/organization/org-123/application/app-456/networks/signals/search/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ signal_type: "ip_address" });
+    expectMatchesExample(
+      result,
+      responseExample(
+        "POST /v3/organization/{organization_id}/application/{application_id}/networks/signals/search/",
+      ),
+    );
+  });
 });

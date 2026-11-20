@@ -3386,6 +3386,7 @@ export interface EntityNetworkMembership {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {})
   )[];
   signal_count?: number;
@@ -5454,6 +5455,7 @@ export interface NetworkDetail {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {})
   )[];
   /** Counts of members by category (e.g. total, per outcome_status). */
@@ -5508,6 +5510,7 @@ export interface NetworkDetailResponse {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {})
   )[];
   /** Counts of members by category (e.g. total, per outcome_status). */
@@ -5569,6 +5572,7 @@ export interface NetworkGraphEdge {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {});
   /** 1.0 for an exact match. */
   confidence?: number;
@@ -5583,10 +5587,34 @@ export interface NetworkGraphMetrics {
   hub_signal_count?: number;
 }
 
-/** A subject node or a signal node, distinguished by kind. Subject nodes (kind: vendor_user | vendor_business | transaction_party) carry id, kind, subject, node_status (approved | in_review | declined | not_completed), and tags. Signal nodes (kind: signal) carry id, kind, uuid, signal_type, subject_count, coverage, is_hub, is_datacenter_ip, is_high_collision_device, node_status (signal_active | signal_guarded), tags, risk_evidence, first_seen_at, and last_seen_at. */
+/** A subject node or a signal node, distinguished by kind. Subject nodes (kind: vendor_user | vendor_business | transaction_party) carry id, kind, subject, node_status (approved | in_review | declined | not_completed), and tags. Signal nodes (kind: signal) carry id, kind, uuid, signal_type, subject_count, coverage, is_hub, is_datacenter_ip, is_high_collision_device, node_status (signal_active | signal_guarded), tags, risk_evidence, first_seen_at, and last_seen_at. A signal node with `signal_type: wallet_address` also carries `wallet`: where the money went through that wallet. Every other node has no `wallet` key. */
 export interface NetworkGraphNode {
   id?: string;
   kind?: "vendor_user" | "vendor_business" | "transaction_party" | "signal" | (string & {});
+  /** Only on a signal node of type `wallet_address`. */
+  wallet?: NetworkGraphNodeWallet;
+}
+
+/** Only on a signal node of type `wallet_address`. */
+export interface NetworkGraphNodeWallet {
+  /** The currency most of the payouts to this wallet were made in. */
+  asset?: string | null;
+  /** The blockchain, read from the address format only. `null` for EVM addresses and other formats. */
+  network?: "tron" | "bitcoin" | "solana" | (string & {}) | null;
+  /** Users and businesses of the application the wallet links. */
+  account_count?: number;
+  /** The application's outbound transactions to this wallet. */
+  payout_count?: number;
+  /** Sum of each payout's amount in the application's default currency. Payouts without one are counted but not summed. `null` when none. */
+  paid_out?: NetworkGraphNodeWalletPaidOut | null;
+  first_payout_at?: Date | null;
+  last_payout_at?: Date | null;
+}
+
+/** Sum of each payout's amount in the application's default currency. Payouts without one are counted but not summed. `null` when none. */
+export interface NetworkGraphNodeWalletPaidOut {
+  amount?: string;
+  currency?: string;
 }
 
 /** Network counts for the list's views and filter options, each network counted once. Returned only when `summary` is not `false`. `scopes` count every network visible to the application. `views` count the visible networks inside the selected `scope`. `facets` count the networks in the selected `scope` and `status` view (dismissed networks are left out unless `status` includes them). The other list filters do not change these counts. */
@@ -5726,6 +5754,7 @@ export interface NetworkListItem {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {})
   )[];
   /** Counts of members by category (e.g. total, per outcome_status). */
@@ -5850,6 +5879,7 @@ export interface NetworkSignal {
     | "phone"
     | "email"
     | "address"
+    | "wallet_address"
     | (string & {});
   subject_count?: number;
   coverage?: number;
@@ -5862,6 +5892,84 @@ export interface NetworkSignal {
   risk_evidence?: Record<string, unknown>;
   first_seen_at?: Date | null;
   last_seen_at?: Date | null;
+}
+
+export interface NetworkSignalSearchMatch {
+  uuid?: string;
+  signal_type?: string;
+  quality_flags?: NetworkSignalSearchMatchQualityFlags;
+  subject_count?: number;
+  first_seen_at?: Date;
+  last_seen_at?: Date;
+  subjects?: Record<string, unknown>[];
+  networks?: NetworkListItem[];
+}
+
+export interface NetworkSignalSearchMatchQualityFlags {
+  is_datacenter_ip?: boolean;
+  is_high_collision_device?: boolean;
+  is_hub?: boolean;
+}
+
+export interface NetworkSignalSearchRecentPayout {
+  uuid?: string;
+  transaction_number?: number | null;
+  txn_id?: string | null;
+  txn_date?: Date;
+  amount?: string;
+  currency?: string;
+  paid_out?: NetworkSignalSearchRecentPayoutPaidOut | null;
+  account?: NetworkSignalSearchRecentPayoutAccount;
+}
+
+export interface NetworkSignalSearchRecentPayoutAccount {
+  vendor_user_id?: string | null;
+  vendor_data?: string | null;
+  full_name?: string | null;
+}
+
+export interface NetworkSignalSearchRecentPayoutPaidOut {
+  amount: string;
+  currency: string;
+}
+
+export interface NetworkSignalSearchResponse {
+  signal_type: string;
+  match_count: number;
+  matches: NetworkSignalSearchMatch[];
+  enrichment_available?: boolean;
+  /** Email and phone searches only, optional: `data`, `score`, `session_id`, `observed_at`. */
+  enrichment?: Record<string, unknown>;
+  cross_organization?: NetworkSignalSearchResponseCrossOrganization;
+  /** Only on a `wallet_address` search: what the address did in your organization. */
+  wallet?: NetworkSignalSearchWallet;
+}
+
+export interface NetworkSignalSearchResponseCrossOrganization {
+  available?: boolean;
+  signals_checked?: number;
+  insights?: Record<string, unknown>[];
+}
+
+/** Only on a `wallet_address` search: what the address did in your organization. */
+export interface NetworkSignalSearchWallet {
+  signal_id?: string | null;
+  /** `true` for an address many accounts use (an exchange or payment service). It links nobody, so `match_count` is 0 and `matches` is empty. */
+  is_shared_service?: boolean;
+  account_count?: number;
+  payout_count?: number;
+  /** Sum of each payout's amount in the application's default currency. Payouts without one are counted but not summed. */
+  paid_out?: NetworkSignalSearchWalletPaidOut | null;
+  first_payout_at?: Date | null;
+  last_payout_at?: Date | null;
+  /** The newest 5 payouts. */
+  recent_payouts?: NetworkSignalSearchRecentPayout[];
+}
+
+/** Sum of each payout's amount in the application's default currency. Payouts without one are counted but not summed. */
+export interface NetworkSignalSearchWalletPaidOut {
+  amount: string;
+  currency: string;
 }
 
 /** One of your application's tags on the network. */
@@ -13150,6 +13258,39 @@ export interface UserSessionListItemTopWarnings {
   /** `error` or `warning`; `null` for a legacy entry. */
   log_type?: string | null;
   short_description?: string;
+}
+
+export interface UsersLookupDetail {
+  /** Pass it as `lookup` to List users. */
+  lookup_id: string;
+  /** Identifiers read, after blanks and duplicates were removed. */
+  requested: number;
+  /** Identifiers that matched at least one user. */
+  found: number;
+  not_found: UsersLookupNotFound[];
+  /** When the result expires (24 hours after the lookup). */
+  expires_at: Date;
+  /** The identifiers submitted, after blanks and duplicates were removed, in order. */
+  identifiers: string[];
+}
+
+export interface UsersLookupNotFound {
+  /** The identifier that matched no user. */
+  identifier: string;
+  /** 1-based position in the submitted list, after blanks and duplicates were removed. */
+  position: number;
+}
+
+export interface UsersLookupResponse {
+  /** Pass it as `lookup` to List users. */
+  lookup_id: string;
+  /** Identifiers read, after blanks and duplicates were removed. */
+  requested: number;
+  /** Identifiers that matched at least one user. */
+  found: number;
+  not_found: UsersLookupNotFound[];
+  /** When the result expires (24 hours after the lookup). */
+  expires_at: Date;
 }
 
 /** A VASP of the directory or a member of the Didit network, with the routes your application has to it. A customer is a member of the Didit network only while its application is live, its Travel Rule is on, its profile is discoverable, has a legal name and a confirmed compliance email, has an LEI that GLEIF lists as issued to an active entity and has been reviewed by Didit as a virtual asset service provider, and Didit has not marked the application as a test, demo, internal or not-a-VASP one. Each row also carries the shared due-diligence assessment (dd_score, risk_level, responsiveness, essential_checks) and your application's own decision, entity screening and questionnaires, which no other customer sees. */

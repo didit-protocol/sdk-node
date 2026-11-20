@@ -181,6 +181,8 @@ export interface UsersListParams {
   limit?: number;
   /** Zero-based offset of the first record to return. Prefer following the `next` URL from the previous page over computing this by hand. */
   offset?: number;
+  /** A `lookup_id` returned by `POST /v3/users/lookup/`. The list returns only the users that lookup matched, ordered by the position of their identifier in the list you submitted, paginated with `limit` and `offset`. An expired or unknown `lookup_id` returns `404` with `code: lookup_not_found`; submit the list again. */
+  lookup?: string;
 }
 
 export interface UsersListResponse {
@@ -191,6 +193,11 @@ export interface UsersListResponse {
   /** Absolute URL of the previous page, or `null` on the first page. */
   previous?: string | null;
   results?: UserListItem[];
+}
+
+export interface UsersLookupParams {
+  /** Each entry is a `vendor_data` value, a Didit user ID or a verified email. Send at most 100,000 entries. Blank entries are dropped and duplicates removed, keeping the first, and at most 20,000 identifiers must remain. Either limit exceeded is a `400` with `code: too_many_identifiers`, and an empty list is a `400` too. */
+  identifiers: string[];
 }
 
 /** Select users with `vendor_data_list`, `didit_internal_id_list`, or both (the two lists are OR'd). At most 1000 identifiers per request across both lists. */
