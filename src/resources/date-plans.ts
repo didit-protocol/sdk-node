@@ -278,6 +278,20 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   ListsEntriesListResponse: { p: { results: { i: "ComplianceListEntry" } } },
   ListsListResponse: { p: { results: { i: "ComplianceList" } } },
+  Message: {
+    p: {
+      schedule_at: 1,
+      expires_at: 1,
+      created_at: 1,
+      sent_at: 1,
+      delivered_at: 1,
+      read_at: 1,
+      failed_at: 1,
+      attempts: { i: "MessageAttempt" },
+    },
+  },
+  MessageAttempt: { p: { created_at: 1, sent_at: 1, delivered_at: 1, read_at: 1, failed_at: 1 } },
+  MessageList: { p: { results: { i: "Message" } } },
   MonitoringEvent: { p: { occurred_at: 1, received_at: 1 } },
   MonitoringEventDetail: {
     p: {

@@ -5013,6 +5013,151 @@ export interface LoginResponse {
   message?: string;
 }
 
+/** A transactional message: its latest attempt's state, then every attempt in order. `id` is the first attempt's id; the message is also found by any attempt's id. Statuses never move back within one attempt; a failed attempt followed by another channel makes the message `queued` again on that channel. */
+export interface Message {
+  id: string;
+  /** `scheduled`: waiting for `schedule_at`. `queued`: accepted, waiting to go out. `sending`: being handed to the carrier. `sent`: the carrier or platform accepted it. `delivered`: delivered to the device or inbox. `read`: a WhatsApp read receipt or an email open. `failed`: not delivered, see `error`. `cancelled`: cancelled before its time. */
+  status:
+    | "scheduled"
+    | "queued"
+    | "sending"
+    | "sent"
+    | "delivered"
+    | "read"
+    | "failed"
+    | "cancelled"
+    | (string & {});
+  /** The recipient of the first attempt. `null` once erased: Didit erases a message's text and recipient `retention_days` after the message's last event (`PATCH /v3/messages/settings/`). */
+  to: string | null;
+  /** The channel of the latest attempt. */
+  channel: "sms" | "whatsapp" | "email" | (string & {});
+  /** The channels of the request, in order: those tried so far, then those still to try. */
+  channels: ("sms" | "whatsapp" | "email" | (string & {}))[];
+  /** The text exactly as the recipient reads it. `null` once erased: Didit erases a message's text and recipient `retention_days` after the message's last event (`PATCH /v3/messages/settings/`). */
+  body: string | null;
+  /** Email subject. `null` once erased. */
+  subject: string | null;
+  template_id: string | null;
+  /** Language of the text sent. */
+  locale: string | null;
+  /** Your reference, as you sent it. */
+  correlation_id: string | null;
+  segments: number;
+  encoding: "GSM-7" | "UCS-2" | (string & {}) | null;
+  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+  price: MessagePrice | null;
+  /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
+  error: MessageError | null;
+  schedule_at: Date | null;
+  expires_at: Date | null;
+  created_at: Date;
+  sent_at: Date | null;
+  delivered_at: Date | null;
+  read_at: Date | null;
+  failed_at: Date | null;
+  attempts: MessageAttempt[];
+  /** Simulated by a sandbox application: never sent or charged. */
+  is_sandbox: boolean;
+}
+
+/** One channel's attempt. A channel that could not take the message is kept as a `failed` attempt that never left, with its `error` and no price. */
+export interface MessageAttempt {
+  /** The attempt's own id. */
+  id: string;
+  channel: "sms" | "whatsapp" | "email" | (string & {});
+  /** Where this attempt was addressed (E.164 number or email). Not in webhooks. `null` once erased. */
+  to?: string | null;
+  status:
+    | "scheduled"
+    | "queued"
+    | "sending"
+    | "sent"
+    | "delivered"
+    | "read"
+    | "failed"
+    | "cancelled"
+    | (string & {});
+  /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
+  error: MessageError | null;
+  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+  price: MessagePrice | null;
+  /** SMS segments the text takes; 1 off SMS. */
+  segments: number;
+  /** SMS only: the alphabet the text is sent in. `null` once the text is erased. */
+  encoding: "GSM-7" | "UCS-2" | (string & {}) | null;
+  created_at: Date;
+  sent_at: Date | null;
+  delivered_at: Date | null;
+  read_at: Date | null;
+  failed_at: Date | null;
+}
+
+export interface MessageChannelPrice {
+  channel: "sms" | "whatsapp" | "email" | (string & {});
+  unit: "segment" | "message" | (string & {});
+  /** WhatsApp: the message category priced (`utility`). */
+  category?: string;
+  /** The carrier's or WhatsApp's part, at cost; `0.0000` from your own connected WhatsApp Business account. */
+  carrier: string | null;
+  /** Didit's fee with your plan's discount. */
+  fee: string | null;
+  /** Total per unit. */
+  price: string | null;
+}
+
+/** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
+export interface MessageError {
+  /** `invalid_recipient`: the address is not valid for the channel, or the number has no account on it. `unreachable`: the carrier could not reach the device. `rejected`: the carrier or platform refused the message. `opted_out`: the recipient opted out of the channel. `expired`: `expires_at` passed before it could go out. `template_required`: WhatsApp only delivers an approved WhatsApp template. `channel_unavailable`: the channel is switched off, not configured, not in your contract or locked until your first top-up. `insufficient_credits`: the balance does not cover it. `rate_limited`: throttled and retries ran out. `delivery_unconfirmed`: the outcome is unknown and it is not sent again automatically. `cancelled`: cancelled before its time. `template_channel_missing`, `template_variable_missing`, `empty_body`, `body_too_long`: the content cannot go out on this channel. `unknown`: any other failure. */
+  code:
+    | "invalid_recipient"
+    | "unreachable"
+    | "rejected"
+    | "opted_out"
+    | "expired"
+    | "template_required"
+    | "channel_unavailable"
+    | "insufficient_credits"
+    | "rate_limited"
+    | "delivery_unconfirmed"
+    | "cancelled"
+    | "template_channel_missing"
+    | "template_variable_missing"
+    | "empty_body"
+    | "body_too_long"
+    | "unknown"
+    | (string & {});
+  message: string;
+}
+
+export interface MessageList {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Message[];
+}
+
+/** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+export interface MessagePrice {
+  /** Total price, carrier and fee included. */
+  amount: string;
+  currency: string;
+  carrier: string | null;
+  fee: string | null;
+  final: boolean;
+}
+
+export interface MessagePrices {
+  country: string;
+  currency: string;
+  channels: MessageChannelPrice[];
+}
+
+/** Your application's settings for the Messages API. */
+export interface MessagesSettings {
+  /** Days after a message's last event (created, sent, delivered, read, failed or cancelled) before Didit erases its text and recipient (`to`, `body`, `subject` and template variables read `null` from then on). Status, channel, country, segments, price and timestamps stay. A message still waiting to go out (`scheduled`, `queued`, `sending`) is erased only after it went out; one cancelled before it went out counts from its cancellation. A request no channel can take is refused and nothing of it is stored. A change applies to every message of the application, already sent ones included, within the hour. */
+  retention_days: number;
+}
+
 /** One stored monitoring event as returned by the list and subject-timeline endpoints. Restricted evidence (payload, device context, rule evidence) is only returned by `GET /v3/events/{event_uuid}/`. */
 export interface MonitoringEvent {
   /** Didit identifier of the event. Use it as `{event_uuid}` in the retrieve and delete calls. */
@@ -14375,6 +14520,7 @@ export type WebhookEventType =
   | "investigator.sla.breached"
   | "investigator.qa.failed"
   | "investigator.external.report.ready"
+  | "message.status.updated"
   | (string & {});
 
 /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */
