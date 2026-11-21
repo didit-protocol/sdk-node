@@ -1,0 +1,10 @@
+{
+  // The published package. No Node.js types: the SDK runs on Node, Bun, Deno and
+  // edge runtimes, so it may only use web platform APIs (fetch, crypto.subtle, streams).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "types": []
+  },
+  "include": ["src"]
+}
