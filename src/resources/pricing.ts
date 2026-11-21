@@ -4,11 +4,16 @@ import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { BankVerificationPricing } from "../types/components.js";
+import type { BankVerificationPricing, PublicPriceBook } from "../types/components.js";
 
 const PRICING_BANK_VERIFICATION: OperationSpec = {
   method: "GET",
   path: "/v3/organization/bank-verification-pricing/",
+  auth: "none",
+};
+const PRICING_PRICE_BOOK: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/price-book/",
   auth: "none",
 };
 
@@ -29,5 +34,22 @@ export class Pricing extends APIResource {
    */
   bankVerification(options?: RequestOptions): APIPromise<BankVerificationPricing> {
     return this._client.request(PRICING_BANK_VERIFICATION, [], undefined, options);
+  }
+
+  /**
+   * Get the price book (public, unauthenticated)
+   *
+   * Returns Didit's public list prices: every plan with its monthly and yearly price and its discount, the white label price, Didit's fee on each Messages channel, and every flat usage price. Use it to quote Didit's prices in your own product or to check a price before you build a workflow.
+   *
+   * Public: send no auth header. The response contains no organization data and is the same for every caller. It carries an `ETag`, so send `If-None-Match` to get a `304 Not Modified` when nothing changed.
+   *
+   * **Messages fees.** An SMS costs the carrier's price per segment plus Didit's fee per segment (`message_fee_usd_by_channel.sms`, also `messages_fee_usd`). A WhatsApp message sent from Didit's number costs WhatsApp's rate plus Didit's own WhatsApp fee (`message_fee_usd_by_channel.whatsapp`); sent from your own WhatsApp Business account, WhatsApp bills you directly and Didit charges only its fee. The carrier's and WhatsApp's parts are passed on at cost.
+   *
+   * These are list prices before your plan discount, which applies to Didit's fee only on carrier-priced items and to the whole price everywhere else. A negotiated or contract price replaces the list price for your organization. Per-item prices are on their own feeds, such as [phone verification prices](/getting-started/phone-verification-pricing) and [bank verification prices](/getting-started/bank-verification-pricing).
+   *
+   * `GET /v3/organization/price-book/`
+   */
+  priceBook(options?: RequestOptions): APIPromise<PublicPriceBook> {
+    return this._client.request(PRICING_PRICE_BOOK, [], undefined, options);
   }
 }

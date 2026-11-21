@@ -6585,6 +6585,53 @@ export interface PhoneVerificationSendResponse {
   metadata?: Record<string, unknown> | null;
 }
 
+export interface PublicPriceBook {
+  currency: "USD" | (string & {});
+  plans: PublicPriceBookPlan[];
+  /** The white label price per finished session. */
+  white_label_usd: string | null;
+  /** Didit's fee per SMS segment, excluding the carrier's price. A WhatsApp message's own, lower fee is in `message_fee_usd_by_channel`. */
+  messages_fee_usd: string | null;
+  /** Didit's fee on each carrier-priced Messages channel, excluding the carrier's or WhatsApp's price, which is passed on at cost. Null where the fee is not published. */
+  message_fee_usd_by_channel: PublicPriceBookMessageFees;
+  /** Flat usage prices. A price a catalog sets per item (a phone code by country and channel, a database or ID number lookup by service, a KYB registry check by country and tier, a bank check by market) is on that catalog's own public feed. */
+  lines: PublicPriceBookLine[];
+}
+
+export interface PublicPriceBookLine {
+  /** The usage type the price applies to, as usage and invoices name it. */
+  key: string;
+  /** The product the usage belongs to. */
+  product: string;
+  /** Together with `key`, identifies a price, including the managed and own-provider variants of one usage. */
+  feature: string;
+  /** What one unit of the price is. */
+  unit: string;
+  /** The list price of one unit in USD, before your plan discount. */
+  list_price_usd: string;
+}
+
+/** Didit's fee on each carrier-priced Messages channel, excluding the carrier's or WhatsApp's price, which is passed on at cost. Null where the fee is not published. */
+export interface PublicPriceBookMessageFees {
+  /** Didit's fee per SMS segment (the standard fee; a few countries take less). */
+  sms: string | null;
+  /** Didit's fee per WhatsApp message, on top of WhatsApp's rate from Didit's number, alone from your own WhatsApp Business account. */
+  whatsapp: string | null;
+}
+
+export interface PublicPriceBookPlan {
+  /** The plan. */
+  key: "free" | "growth" | "scale" | "enterprise" | (string & {});
+  /** The plan's monthly price in USD. Null on Enterprise, which has contract terms. */
+  price_usd_month: string | null;
+  /** The plan paid a year up front; its credit still lands monthly. Null on Free and Enterprise. */
+  price_usd_year: string | null;
+  /** The discount the plan takes off every list price (on a carrier-priced item, off Didit's fee only). Null on Enterprise. */
+  discount_percent: number | null;
+  /** Monitored transactions included each month. Null on Enterprise, whose contract sets it. */
+  transactions_included_per_month: number | null;
+}
+
 /** Full questionnaire detail returned from GET, POST (create) and PATCH (update) endpoints. */
 export interface QuestionnaireDetail {
   /** Unique identifier of the questionnaire. Use this id when referencing the questionnaire from a workflow or in subsequent update/delete requests. */
