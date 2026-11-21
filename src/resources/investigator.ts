@@ -24,6 +24,7 @@ import type {
   InvestigatorOverrideRunParams,
   InvestigatorRetrieveDashboardParams,
   InvestigatorRetrieveDashboardResponse,
+  InvestigatorRetrieveOfferResponse,
   InvestigatorRetrievePerformanceParams,
   InvestigatorRetrievePerformanceResponse,
   InvestigatorRetrieveSummaryParams,
@@ -85,6 +86,10 @@ const INVESTIGATOR_RETRIEVE_DASHBOARD: OperationSpec = {
   method: "GET",
   path: "/v3/investigator/dashboard/",
   query: ["scope"],
+};
+const INVESTIGATOR_RETRIEVE_OFFER: OperationSpec = {
+  method: "GET",
+  path: "/v3/investigator/offer/",
 };
 const INVESTIGATOR_RETRIEVE_PERFORMANCE: OperationSpec = {
   method: "GET",
@@ -240,6 +245,17 @@ export class Investigator extends APIResource {
     options?: RequestOptions,
   ): APIPromise<InvestigatorRetrieveDashboardResponse> {
     return this._client.request(INVESTIGATOR_RETRIEVE_DASHBOARD, [], params, options);
+  }
+
+  /**
+   * Investigator agent offer
+   *
+   * Whether to offer the Investigator agent to this application: its decisions taken by hand in the last 30 days, the average handling time, the people who stopped halfway and whether follow-ups are on. Read from the daily analytics, never from a scan of sessions. `show` is true when 20 or more decisions were taken by hand and the agent is not set up, or when follow-ups are off and 50 or more people stopped halfway.
+   *
+   * `GET /v3/investigator/offer/`
+   */
+  retrieveOffer(options?: RequestOptions): APIPromise<InvestigatorRetrieveOfferResponse> {
+    return this._client.request(INVESTIGATOR_RETRIEVE_OFFER, [], undefined, options);
   }
 
   /**

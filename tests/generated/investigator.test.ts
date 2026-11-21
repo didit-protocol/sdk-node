@@ -170,6 +170,24 @@ describe("investigator", () => {
     expectMatchesExample(result, responseExample("GET /v3/investigator/dashboard/"));
   });
 
+  it("investigator.retrieve_offer: GET /v3/investigator/offer/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/investigator/offer/"),
+    });
+    const result = await client.investigator.retrieveOffer();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/investigator/offer/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/investigator/offer/"));
+  });
+
   it("investigator.retrieve_performance: GET /v3/investigator/performance/", async () => {
     const { client, calls } = mockClient({
       status: 200,

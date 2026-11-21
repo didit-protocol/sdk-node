@@ -4497,7 +4497,7 @@ export interface InvestigatorQueueRow {
   run_id?: string;
   kind?: "session" | "business_session" | "transaction" | "case" | (string & {});
   queue?: "kyc" | "kyb" | "aml" | "transactions" | "cases" | (string & {});
-  stage?: "shadow" | "live" | (string & {});
+  stage?: "none" | "shadow" | "live" | (string & {});
   /** The item under review: `id`, `number`, `status`, `name` and, depending on the kind, `country`, `workflow`, `vendor_data`, `txn_id`, `amount`, `currency`, `direction`, `title` or `priority`. */
   subject?: Record<string, unknown>;
   recommendation?: "approve" | "decline" | "escalate" | "request" | (string & {});
@@ -4511,13 +4511,17 @@ export interface InvestigatorQueueRow {
   waiting_since?: Date | null;
   due_at?: Date | null;
   prepared_at?: Date | null;
+  /** True for one of the organization's free reports: a review run at stage `none`, with no setup, never charged. */
+  free_report?: boolean;
+  /** True for an example report shown on a sandbox application. Example reports are read only and never cost anything. */
+  example?: boolean;
 }
 
 export interface InvestigatorRunDetail {
   run_id?: string;
   kind?: "session" | "business_session" | "transaction" | "case" | (string & {});
   queue?: "kyc" | "kyb" | "aml" | "transactions" | "cases" | (string & {});
-  stage?: "shadow" | "live" | (string & {});
+  stage?: "none" | "shadow" | "live" | (string & {});
   /** The item under review: `id`, `number`, `status`, `name` and, depending on the kind, `country`, `workflow`, `vendor_data`, `txn_id`, `amount`, `currency`, `direction`, `title` or `priority`. */
   subject?: Record<string, unknown>;
   recommendation?: "approve" | "decline" | "escalate" | "request" | (string & {});
@@ -4531,6 +4535,10 @@ export interface InvestigatorRunDetail {
   waiting_since?: Date | null;
   due_at?: Date | null;
   prepared_at?: Date | null;
+  /** True for one of the organization's free reports: a review run at stage `none`, with no setup, never charged. */
+  free_report?: boolean;
+  /** True for an example report shown on a sandbox application. Example reports are read only and never cost anything. */
+  example?: boolean;
   status?: string;
   is_open?: boolean;
   /** How many sections and linked records it read. */
@@ -10164,6 +10172,422 @@ export interface SessionWebhookDelivery {
   request_body: string;
   /** When the delivery was created. */
   created_at: Date;
+}
+
+export interface SetupAndroidApp {
+  package_name: string;
+  sha256_cert_fingerprints: string[];
+}
+
+/** The brand as Customization sets it. Read-only here. */
+export interface SetupBrand {
+  source?: string;
+  name?: string;
+  logo?: string | null;
+  logo_dark?: string | null;
+  brand_colour?: string;
+  brand_colour_dark?: string;
+  button_text_colour?: string;
+  background?: string;
+  background_dark?: string;
+  corner_radius?: number;
+  font?: string;
+  theme?: "device" | (string & {});
+}
+
+export interface SetupBranding {
+  /** The brand as Customization sets it. Read-only here. */
+  brand: SetupBrand;
+  /** The texts this application set, by language code. */
+  texts: Record<string, SetupBrandingTexts>;
+  /** Didit's own copy for the language you asked for. */
+  defaults: SetupBrandingDefaults;
+  terms_url?: string | null;
+  privacy_url?: string | null;
+  /** The language codes the hosted pages can show. */
+  languages: string[];
+  badge: SetupBrandingBadge;
+  hosted_url: string;
+}
+
+export interface SetupBrandingBadge {
+  visible?: boolean;
+  plan?: string;
+  early_access?: boolean;
+}
+
+/** Didit's own copy for the language you asked for. */
+export interface SetupBrandingDefaults {
+  sign_in_title?: string;
+  subtitle?: string;
+  sign_up_title?: string;
+}
+
+/** The texts of the hosted sign-in, sign-up and subtitle lines. A field left empty falls back to Didit's copy. */
+export interface SetupBrandingTexts {
+  sign_in_title?: string;
+  subtitle?: string;
+  sign_up_title?: string;
+}
+
+export interface SetupConfiguration {
+  application_id: string;
+  /** `pk_live_` or `pk_test_` followed by the base64url issuer. A public identifier, not a credential; `null` when the hosted origin is not usable yet. */
+  publishable_key?: string | null;
+  /** Whether Authentication is on for this application. Read-only: it follows the product. */
+  enabled: boolean;
+  methods: SetupMethodSummary[];
+  /** Which social providers Didit's own sandbox apps can serve for this application. Every value is `false` on a live application. */
+  didit_test_credentials: SetupDiditTestCredentials;
+  /** Where `POST authorize/` may send the browser after sign-in. Exact match, and `https://` only on a live application. */
+  redirect_uris: string[];
+  /** Origins allowed to embed or call the hosted pages and the browser SDK. Scheme, host and optional port only. */
+  allowed_origins: string[];
+  /** Where hosted sign-out sends the browser. Empty for none. */
+  post_logout_redirect_uri?: string;
+  session_lifetime: number;
+  idle_timeout: number;
+  /** `false` signs the person out of their other sessions at each new sign-in. */
+  multiple_sessions?: boolean;
+  password_min_length?: number;
+  revoke_on_password_change?: boolean;
+  /** Accept a `+` in the email's local part. */
+  allow_subaddresses?: boolean;
+  signup_policy: "anyone" | "invited" | "allowed_domains" | (string & {});
+  /** The domains `signup_policy: "allowed_domains"` accepts. */
+  allowed_email_domains?: string[];
+}
+
+export interface SetupCustomDomain {
+  domain: string;
+  status: "pending" | "issuing" | "verified" | "active" | "failed" | (string & {});
+  failure_reason?: string;
+  dns_record: SetupCustomDomainDnsRecord;
+  certificate: SetupCustomDomainCertificate;
+  dns_checked_at?: Date | null;
+  verified_at?: Date | null;
+  activated_at?: Date | null;
+}
+
+export interface SetupCustomDomainCertificate {
+  status?: string;
+  expires_at?: Date | null;
+}
+
+export interface SetupCustomDomainDnsRecord {
+  type: "CNAME" | (string & {});
+  name: string;
+  /** The application's default host the domain points at. */
+  value: string;
+}
+
+/** Which social providers Didit's own sandbox apps can serve for this application. Every value is `false` on a live application. */
+export interface SetupDiditTestCredentials {
+  google?: boolean;
+  microsoft?: boolean;
+  apple?: boolean;
+  github?: boolean;
+}
+
+export interface SetupDomain {
+  host: string;
+  default_origin: string;
+  /** The custom domain once it is active, the default origin until then. */
+  origin: string;
+  hosted_url: string;
+  issuer: string;
+  passkey_rp_id: string;
+  sandbox: boolean;
+  /** A live application's sandbox origin, shown beside its own. */
+  sandbox_origin?: string | null;
+  /** Whether this deployment can serve a custom domain. */
+  custom_domains_available: boolean;
+  custom_domain?: SetupCustomDomain | null;
+}
+
+export interface SetupEmail {
+  key: string;
+  from: string;
+  /** The console member's address. Empty for a grant or a key. */
+  to: string;
+  subject: string;
+  html: string;
+  enabled: boolean;
+}
+
+export interface SetupEmailSummary {
+  key:
+    "code" | "magic" | "reset" | "device" | "invite" | "org" | "agent" | "agentoff" | (string & {});
+  icon?: string;
+  /** Whether Authentication sends this email at all. `false` for `device`, `agent` and `agentoff`, which are listing placeholders. */
+  sent: boolean;
+  /** Whether this application sends it. */
+  enabled: boolean;
+  subject?: string;
+}
+
+export interface SetupEmails {
+  /** Read-only: they come from Customization. */
+  senders: SetupEmailsSenders;
+  emails: SetupEmailSummary[];
+  language: string;
+}
+
+/** Read-only: they come from Customization. */
+export interface SetupEmailsSenders {
+  email?: SetupEmailsSendersEmail;
+  sms?: SetupEmailsSendersSms;
+}
+
+export interface SetupEmailsSendersEmail {
+  name?: string;
+  email?: string;
+  header?: string;
+  /** Whether the application sends from its own verified domain. */
+  own?: boolean;
+}
+
+export interface SetupEmailsSendersSms {
+  name?: string | null;
+}
+
+export interface SetupMethodResult {
+  name: string;
+  enabled: boolean;
+  /** Returned only for social methods. */
+  credential_source?: "own" | "didit_test" | (string & {});
+  /** Whether the method can now sign anyone in. */
+  configured?: boolean;
+  client_id?: string;
+  callback_uri?: string;
+}
+
+/** One sign-in method. `credential_source` is `null` for a method that holds no social credentials, and `always_on` appears on the methods that are on for every application. */
+export interface SetupMethodSummary {
+  name:
+    | "password"
+    | "code"
+    | "magic"
+    | "phone"
+    | "passkey"
+    | "google"
+    | "microsoft"
+    | "apple"
+    | "github"
+    | "sso"
+    | "wallet"
+    | (string & {});
+  enabled: boolean;
+  /** `own` for the application's credentials, `didit_test` for Didit's sandbox app, `null` for a method that takes no social credentials. */
+  credential_source: "own" | "didit_test" | (string & {}) | null;
+  /** Present and `true` on a method no application can switch off. */
+  always_on?: boolean;
+  /** `wallet` only: whether Didit ID Wallet sign-in can be offered. */
+  available?: boolean;
+  /** Whether the method has the credentials it needs to sign anyone in. */
+  configured?: boolean;
+  /** The social client ID in use, or an empty string. */
+  client_id?: string;
+  /** The redirect URI to register with the provider; Didit's own broker for `didit_test`. */
+  callback_uri?: string;
+}
+
+export interface SetupNativeApps {
+  /** Apple team ID and bundle identifier, as `webcredentials` names an app. */
+  ios_app_ids: string[];
+  android_apps: SetupAndroidApp[];
+}
+
+export interface SetupOnboarding {
+  completed: ("methods" | "redirects" | "import" | "test" | (string & {}))[];
+  /** Every setup step is done. */
+  ready: boolean;
+  sign_in_ui: "hosted" | "own" | (string & {});
+  /** Console session only: the sample sign-in the console shows, naming an end user. Left out for a grant or a key. */
+  test_sign_in?: Record<string, unknown> | null;
+  test_status: "verified" | "skipped" | "not_started" | (string & {});
+}
+
+export interface SetupProtection {
+  enabled: boolean;
+  breached_password_check: boolean;
+  protections: SetupProtectionPolicy[];
+  /** Detections per day, policy and action. */
+  daily?: SetupProtectionDaily[];
+  /** Extra proofs asked for and how they ended. */
+  challenges_daily?: SetupProtectionChallengesDaily[];
+  period_days: number;
+  /** This calendar month against the previous one. */
+  calendar_month?: SetupProtectionCalendarMonth;
+  attack_mode?: SetupProtectionAttackMode;
+  selfie_available?: boolean;
+}
+
+export interface SetupProtectionAttackMode {
+  active: boolean;
+  started_at?: Date | null;
+  expires_at?: Date | null;
+}
+
+/** This calendar month against the previous one. */
+export interface SetupProtectionCalendarMonth {
+  start?: Date;
+  as_of?: Date;
+  previous_start?: Date;
+  previous_end?: Date;
+  protections?: SetupProtectionCalendarMonthProtections[];
+  challenges?: SetupProtectionCalendarMonthChallenges;
+}
+
+export interface SetupProtectionCalendarMonthChallenges {
+  passed?: number;
+  failed?: number;
+  previous_passed?: number;
+  previous_failed?: number;
+}
+
+export interface SetupProtectionCalendarMonthProtections {
+  key?: string;
+  counts?: SetupProtectionCalendarMonthProtectionsCounts;
+  previous_counts?: SetupProtectionCalendarMonthProtectionsPreviousCounts;
+  counts_delta?: SetupProtectionCalendarMonthProtectionsCountsDelta;
+  accounts?: number;
+  previous_accounts?: number;
+  accounts_delta?: number;
+}
+
+export interface SetupProtectionCalendarMonthProtectionsCounts {
+  log?: number;
+  challenge?: number;
+  block?: number;
+}
+
+export interface SetupProtectionCalendarMonthProtectionsCountsDelta {
+  log?: number;
+  challenge?: number;
+  block?: number;
+}
+
+export interface SetupProtectionCalendarMonthProtectionsPreviousCounts {
+  log?: number;
+  challenge?: number;
+  block?: number;
+}
+
+export interface SetupProtectionChallengesDaily {
+  date?: string;
+  passed?: number;
+  failed?: number;
+}
+
+export interface SetupProtectionDaily {
+  date?: string;
+  protection?: string;
+  action?: string;
+  count?: number;
+}
+
+export interface SetupProtectionPolicy {
+  key: "bots" | "stuffing" | "brute" | "disposable" | "vpn" | "travel" | (string & {});
+  mode: "off" | "log" | "challenge" | "block" | (string & {});
+  /** `vpn` and `travel` need the IP lookup; `false` when it cannot be attempted. */
+  available: boolean;
+  counts: SetupProtectionPolicyCounts;
+  /** How many people the policy matched in the last 14 days. */
+  accounts: number;
+}
+
+export interface SetupProtectionPolicyCounts {
+  log?: number;
+  challenge?: number;
+  block?: number;
+}
+
+/** Your own OAuth app's credentials. The secret is write-only: no response returns it. */
+export interface SetupProviderCredentials {
+  client_id: string;
+  client_secret: string;
+}
+
+export interface SetupSettings {
+  sign_in_ui?: "hosted" | "own" | (string & {});
+  agent_humans_only?: boolean;
+  agents_enabled?: boolean;
+  agent_scopes?: ("read" | "act" | (string & {}))[];
+  agent_lifetime?: number;
+  agent_idle_timeout?: number;
+  agent_approval?: "passkey" | "sign_in" | (string & {});
+  organizations_enabled?: boolean;
+  mfa_policy?: "optional" | "everyone" | "organization_admins" | (string & {});
+  default_member_role?: "admin" | "member" | "billing" | (string & {});
+  webhook_events_disabled?: (
+    | "auth.sign_in"
+    | "auth.sign_in_failed"
+    | "auth.new_device"
+    | "auth.account_locked"
+    | "auth.two_factor_changed"
+    | "auth.session_revoked"
+    | "auth.agent_access_approved"
+    | "auth.agent_access_revoked"
+    | (string & {})
+  )[];
+}
+
+export interface SetupVerified {
+  signup_level: "none" | "liveness" | "full_id" | (string & {});
+  signup?: SetupVerifiedSignup;
+  rules: SetupVerifiedRule[];
+  /** The claims your tokens carry once the person is verified. */
+  claims: (
+    | "over_18"
+    | "over_21"
+    | "given_name"
+    | "family_name"
+    | "birthdate"
+    | "nationality"
+    | "country"
+    | "document_verified"
+    | "liveness"
+    | (string & {})
+  )[];
+  available_claims: string[];
+  /** The verification workflow behind each method; `null` until one is created. */
+  workflows: SetupVerifiedWorkflows;
+  wallet: SetupVerifiedWallet;
+  since: Date;
+}
+
+export interface SetupVerifiedRule {
+  rule: "payout" | "bank" | "contact" | "device" | "sign_in" | (string & {});
+  enabled?: boolean;
+  method?: "liveness" | "selfie" | "full_id" | (string & {});
+  /** `payout` only: the amount above which the rule applies, as a decimal string. */
+  threshold?: string;
+  /** `payout` only: the ISO 4217 currency of `threshold`. */
+  currency?: string;
+  /** Checks this month. */
+  checks?: number;
+  passed?: number;
+  failed?: number;
+}
+
+export interface SetupVerifiedSignup {
+  checks?: number;
+  passed?: number;
+  failed?: number;
+}
+
+export interface SetupVerifiedWallet {
+  enabled?: boolean;
+  sign_ins?: number;
+  people?: number;
+}
+
+/** The verification workflow behind each method; `null` until one is created. */
+export interface SetupVerifiedWorkflows {
+  liveness?: string | null;
+  selfie?: string | null;
+  full_id?: string | null;
 }
 
 /** A field to place on a session document: which signer fills it, how, and where. Give either a position (`page`, `x`, `y`, `width` and `height`) or an `anchor`. Positions are fractions of the page as it's displayed, from its top-left corner, rounded to 4 decimals, and the field must fit inside the page. A document takes up to 200 fields and one signer up to 500, and every role with fields on a document needs a `signature` or `initials` field there. See [Fields on the document](/core-technology/electronic-signature/overview#fields-on-the-document). */
