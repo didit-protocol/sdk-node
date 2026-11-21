@@ -528,6 +528,22 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { vat_checked_at: 1, confirmed_by_user_at: 1, last_console_edit_at: 1 },
   },
   SessionsUpdateKybPartyDraftResponse: { p: { created_at: 1, updated_at: 1 } },
+  SetupCustomDomain: {
+    p: {
+      certificate: { p: { expires_at: 1 } },
+      dns_checked_at: 1,
+      verified_at: 1,
+      activated_at: 1,
+    },
+  },
+  SetupDomain: { p: { custom_domain: "SetupCustomDomain" } },
+  SetupProtection: {
+    p: {
+      calendar_month: { p: { start: 1, as_of: 1, previous_start: 1, previous_end: 1 } },
+      attack_mode: { p: { started_at: 1, expires_at: 1 } },
+    },
+  },
+  SetupVerified: { p: { since: 1 } },
   SignatureFieldResult: { p: { filled_at: 1 } },
   SignatureResult: {
     p: {

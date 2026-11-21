@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 412 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 435 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -59,6 +59,33 @@ Every method of `@didit-protocol/sdk-node`: 412 methods, generated from `openapi
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------ |
 | `didit.analytics.retrieve(params?: AnalyticsRetrieveParams)`           | `GET /v3/organization/{organization_id}/application/{application_id}/analytics/`       | `ApplicationAnalyticsSummary \| ApplicationAnalyticsWidgetResponse` | application scoped |
 | `didit.analytics.retrieveToday(params?: AnalyticsRetrieveTodayParams)` | `GET /v3/organization/{organization_id}/application/{application_id}/analytics/today/` | `ApplicationAnalyticsToday`                                         | application scoped |
+
+## `didit.authenticationSetup`
+
+| Method                                                                                                                                | HTTP                                                                                                  | Returns              | Notes |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------- | ----- |
+| `didit.authenticationSetup.activateDomain(organizationId, applicationId)`                                                             | `POST /organizations/{organization_id}/applications/{application_id}/authentication/domain/activate/` | `SetupDomain`        |       |
+| `didit.authenticationSetup.getBranding(organizationId, applicationId, params?: AuthenticationSetupGetBrandingParams)`                 | `GET /organizations/{organization_id}/applications/{application_id}/authentication/branding/`         | `SetupBranding`      |       |
+| `didit.authenticationSetup.getConfiguration(organizationId, applicationId)`                                                           | `GET /organizations/{organization_id}/applications/{application_id}/authentication/`                  | `SetupConfiguration` |       |
+| `didit.authenticationSetup.getDomain(organizationId, applicationId)`                                                                  | `GET /organizations/{organization_id}/applications/{application_id}/authentication/domain/`           | `SetupDomain`        |       |
+| `didit.authenticationSetup.getEmail(organizationId, applicationId, key)`                                                              | `GET /organizations/{organization_id}/applications/{application_id}/authentication/emails/{key}/`     | `SetupEmail`         |       |
+| `didit.authenticationSetup.getEmails(organizationId, applicationId, params?: AuthenticationSetupGetEmailsParams)`                     | `GET /organizations/{organization_id}/applications/{application_id}/authentication/emails/`           | `SetupEmails`        |       |
+| `didit.authenticationSetup.getNativeApps(organizationId, applicationId)`                                                              | `GET /organizations/{organization_id}/applications/{application_id}/authentication/native-apps/`      | `SetupNativeApps`    |       |
+| `didit.authenticationSetup.getOnboarding(organizationId, applicationId)`                                                              | `GET /organizations/{organization_id}/applications/{application_id}/authentication/onboarding/`       | `SetupOnboarding`    |       |
+| `didit.authenticationSetup.getProtection(organizationId, applicationId)`                                                              | `GET /organizations/{organization_id}/applications/{application_id}/authentication/protection/`       | `SetupProtection`    |       |
+| `didit.authenticationSetup.getSettings(organizationId, applicationId)`                                                                | `GET /organizations/{organization_id}/applications/{application_id}/authentication/settings/`         | `SetupSettings`      |       |
+| `didit.authenticationSetup.getVerified(organizationId, applicationId)`                                                                | `GET /organizations/{organization_id}/applications/{application_id}/authentication/verified/`         | `SetupVerified`      |       |
+| `didit.authenticationSetup.removeDomain(organizationId, applicationId)`                                                               | `DELETE /organizations/{organization_id}/applications/{application_id}/authentication/domain/`        | `SetupDomain`        |       |
+| `didit.authenticationSetup.setDomain(organizationId, applicationId, params: AuthenticationSetupSetDomainParams)`                      | `PUT /organizations/{organization_id}/applications/{application_id}/authentication/domain/`           | `SetupDomain`        |       |
+| `didit.authenticationSetup.setMethod(organizationId, applicationId, name, params: AuthenticationSetupSetMethodParams)`                | `PUT /organizations/{organization_id}/applications/{application_id}/authentication/methods/{name}/`   | `SetupMethodResult`  |       |
+| `didit.authenticationSetup.updateBranding(organizationId, applicationId, params?: AuthenticationSetupUpdateBrandingParams)`           | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/branding/`       | `SetupBranding`      |       |
+| `didit.authenticationSetup.updateConfiguration(organizationId, applicationId, params?: AuthenticationSetupUpdateConfigurationParams)` | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/`                | `SetupConfiguration` |       |
+| `didit.authenticationSetup.updateNativeApps(organizationId, applicationId, params: AuthenticationSetupUpdateNativeAppsParams)`        | `PUT /organizations/{organization_id}/applications/{application_id}/authentication/native-apps/`      | `SetupNativeApps`    |       |
+| `didit.authenticationSetup.updateOnboarding(organizationId, applicationId, params?: AuthenticationSetupUpdateOnboardingParams)`       | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/onboarding/`     | `SetupOnboarding`    |       |
+| `didit.authenticationSetup.updateProtection(organizationId, applicationId, params?: AuthenticationSetupUpdateProtectionParams)`       | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/protection/`     | `SetupProtection`    |       |
+| `didit.authenticationSetup.updateSettings(organizationId, applicationId, params?: AuthenticationSetupUpdateSettingsParams)`           | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/settings/`       | `SetupSettings`      |       |
+| `didit.authenticationSetup.updateVerified(organizationId, applicationId, params?: AuthenticationSetupUpdateVerifiedParams)`           | `PATCH /organizations/{organization_id}/applications/{application_id}/authentication/verified/`       | `SetupVerified`      |       |
+| `didit.authenticationSetup.verifyDomain(organizationId, applicationId)`                                                               | `POST /organizations/{organization_id}/applications/{application_id}/authentication/domain/verify/`   | `SetupDomain`        |       |
 
 ## `didit.bank`
 
@@ -332,6 +359,7 @@ Every method of `@didit-protocol/sdk-node`: 412 methods, generated from `openapi
 | `didit.investigator.listQueue(params?: InvestigatorListQueueParams)`                     | `GET /v3/investigator/queue/`                         | page of `InvestigatorQueueRow`            |                  |
 | `didit.investigator.overrideRun(runId, params: InvestigatorOverrideRunParams)`           | `POST /v3/investigator/runs/{run_id}/override/`       | `InvestigatorDecision`                    | `idempotencyKey` |
 | `didit.investigator.retrieveDashboard(params?: InvestigatorRetrieveDashboardParams)`     | `GET /v3/investigator/dashboard/`                     | `InvestigatorRetrieveDashboardResponse`   |                  |
+| `didit.investigator.retrieveOffer()`                                                     | `GET /v3/investigator/offer/`                         | `InvestigatorRetrieveOfferResponse`       |                  |
 | `didit.investigator.retrievePerformance(params?: InvestigatorRetrievePerformanceParams)` | `GET /v3/investigator/performance/`                   | `InvestigatorRetrievePerformanceResponse` |                  |
 | `didit.investigator.retrieveRun(runId)`                                                  | `GET /v3/investigator/runs/{run_id}/`                 | `InvestigatorRunDetail`                   |                  |
 | `didit.investigator.retrieveSettings()`                                                  | `GET /v3/investigator/settings/`                      | `InvestigatorSettings`                    |                  |

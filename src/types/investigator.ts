@@ -120,6 +120,15 @@ export interface InvestigatorRetrieveDashboardResponse {
   [key: string]: unknown;
 }
 
+export interface InvestigatorRetrieveOfferResponse {
+  show?: boolean;
+  manual_decisions_30d?: number;
+  avg_handling_seconds?: number | null;
+  stopped_halfway_30d?: number;
+  stage?: "none" | "shadow" | "live" | (string & {});
+  followups_on?: boolean;
+}
+
 export interface InvestigatorRetrievePerformanceParams {
   /** `identity` (sessions, and cases not opened by a transaction rule) or `transactions` (transaction alerts, and cases a transaction rule opened). */
   scope?: "all" | "identity" | "transactions" | (string & {});
@@ -143,6 +152,7 @@ export interface InvestigatorRetrieveSummaryParams {
 }
 
 export interface InvestigatorRetrieveSummaryResponse {
+  /** `none` (not set up; free reports still run while `free_reports.remaining` is above 0), `shadow` or `live`. */
   stage?: string;
   last_report_at?: Date | null;
   prepared_today?: number;
@@ -151,7 +161,16 @@ export interface InvestigatorRetrieveSummaryResponse {
   decided_today?: number;
   automation_rate_month?: number | null;
   preparing?: number;
+  /** The organization's free reports: the first reports run with no setup, on any plan, and are never charged. */
+  free_reports?: InvestigatorRetrieveSummaryResponseFreeReports;
   [key: string]: unknown;
+}
+
+/** The organization's free reports: the first reports run with no setup, on any plan, and are never charged. */
+export interface InvestigatorRetrieveSummaryResponseFreeReports {
+  limit?: number;
+  used?: number;
+  remaining?: number;
 }
 
 export interface InvestigatorRetrieveTransactionResponse {
