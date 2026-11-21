@@ -31,4 +31,22 @@ describe("pricing", () => {
       responseExample("GET /v3/organization/bank-verification-pricing/"),
     );
   });
+
+  it("pricing.price_book: GET /v3/organization/price-book/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/organization/price-book/"),
+    });
+    const result = await client.pricing.priceBook();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/organization/price-book/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "none");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/organization/price-book/"));
+  });
 });
