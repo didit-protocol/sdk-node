@@ -27,6 +27,7 @@ export type * from "./investigator.js";
 export type * from "./ip.js";
 export type * from "./kyb.js";
 export type * from "./lists.js";
+export type * from "./messages.js";
 export type * from "./monitoring-events.js";
 export type * from "./networks.js";
 export type * from "./passive-liveness.js";

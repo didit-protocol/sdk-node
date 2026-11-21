@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 436 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 444 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -400,6 +400,19 @@ Every method of `@didit-protocol/sdk-node`: 436 methods, generated from `openapi
 | `didit.lists.entries.delete(listUuid, entryUuid)`                                | `DELETE /v3/lists/{list_uuid}/entries/{entry_uuid}/` | nothing                       | `idempotencyKey` |
 | `didit.lists.entries.list(listUuid, params?: ListsEntriesListParams)`            | `GET /v3/lists/{list_uuid}/entries/`                 | page of `ComplianceListEntry` |                  |
 | `didit.lists.entries.uploadFace(listUuid, params: ListsEntriesUploadFaceParams)` | `POST /v3/lists/{list_uuid}/entries/face-upload/`    | `ComplianceListEntry`         | `idempotencyKey` |
+
+## `didit.messages`
+
+| Method                                                                | HTTP                                     | Returns            | Notes            |
+| --------------------------------------------------------------------- | ---------------------------------------- | ------------------ | ---------------- |
+| `didit.messages.cancel(messageId)`                                    | `POST /v3/messages/{message_id}/cancel/` | `Message`          |                  |
+| `didit.messages.delete(messageId)`                                    | `DELETE /v3/messages/{message_id}/`      | nothing            |                  |
+| `didit.messages.list(params?: MessagesListParams)`                    | `GET /v3/messages/`                      | page of `Message`  |                  |
+| `didit.messages.listPrices(params: MessagesListPricesParams)`         | `GET /v3/messages/prices/`               | `MessagePrices`    |                  |
+| `didit.messages.retrieve(messageId)`                                  | `GET /v3/messages/{message_id}/`         | `Message`          |                  |
+| `didit.messages.retrieveSettings()`                                   | `GET /v3/messages/settings/`             | `MessagesSettings` |                  |
+| `didit.messages.send(params: MessagesSendParams)`                     | `POST /v3/messages/`                     | `Message`          | `idempotencyKey` |
+| `didit.messages.updateSettings(params: MessagesUpdateSettingsParams)` | `PATCH /v3/messages/settings/`           | `MessagesSettings` |                  |
 
 ## `didit.monitoringEvents`
 
