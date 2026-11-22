@@ -16,7 +16,7 @@ const BILLING_TOP_UP: OperationSpec = {
   method: "POST",
   path: "/v3/billing/top-up/",
   body: "json",
-  dates: "BillingTopUpCharge",
+  datesByStatus: { "201": "BillingTopUpCharge", "202": "BillingTopUpCharge" },
 };
 
 /** `billing` */

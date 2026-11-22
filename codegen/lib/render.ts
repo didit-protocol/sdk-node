@@ -258,6 +258,8 @@ function descriptorFor(method: Method): string {
     parts.push(`response: "binary"`, `accept: ${JSON.stringify(method.response.accept)}`);
   if (method.response.kind === "none") parts.push(`response: "none"`);
   if (method.response.plan !== null) parts.push(`dates: ${literalPlan(method.response.plan)}`);
+  if (method.response.plansByStatus)
+    parts.push(`datesByStatus: ${JSON.stringify(method.response.plansByStatus)}`);
   return `const ${method.constName}: OperationSpec = { ${parts.join(", ")} };`;
 }
 

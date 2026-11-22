@@ -256,7 +256,10 @@ const SESSIONS_BATCH_DELETE: OperationSpec = {
   method: "POST",
   path: "/v3/sessions/delete/",
   body: "json",
-  dates: { p: { results: { i: { p: { biometric_template_expires_at: 1 } } } } },
+  datesByStatus: {
+    "200": { p: { results: { i: { p: { biometric_template_expires_at: 1 } } } } },
+    "202": "SessionDeletionJob",
+  },
 };
 const SESSIONS_BULK_UPDATE_AML_HIT_STATUS: OperationSpec = {
   method: "PATCH",

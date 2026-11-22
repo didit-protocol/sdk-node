@@ -1435,7 +1435,7 @@ export interface BankConnection {
     | "deleted"
     | "failed"
     | (string & {});
-  /** Why the connection is in this status. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed`, `application_deleted` or `restored_after_deletion`. */
+  /** Why the connection is in this status. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed` or `application_deleted`. */
   status_reason:
     | "collection_complete"
     | "consent_expired"
@@ -1450,7 +1450,6 @@ export interface BankConnection {
     | "deleted_by_customer"
     | "retention_elapsed"
     | "application_deleted"
-    | "restored_after_deletion"
     | (string & {})
     | null;
   /** The bank a connection or link is for. */
@@ -1467,7 +1466,7 @@ export interface BankConnection {
   /** The optional comparison of the account holder with a person or company. */
   ownership?: BankConnectionOwnership;
   end_user?: BankConnectionEndUser;
-  /** Reserved. Always `null`. */
+  /** The person's own access page. `null` until the access page is available. */
   manage_url?: string | null;
   /** What this connection costs. Sandbox is never charged. */
   billing?: BankConnectionBilling;
@@ -1498,7 +1497,7 @@ export interface BankConnectionAccountSummary {
 export interface BankConnectionBilling {
   /** Billing unit, `connection_month` for ongoing access, `one_time` otherwise. */
   unit: "connection_month" | "one_time" | (string & {});
-  /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged for a month only when every accepted scope published data for at least one account in that month. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged for a month only when every accepted scope published data for at least one account in that month. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page. */
   price_usd: string | null;
   /** The last month end already settled. */
   billed_through: string | null;
@@ -1537,11 +1536,11 @@ export interface BankConnectionConsent {
   ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {}) | null;
 }
 
-/** Accepted deletion. The connection's bank data is being deleted and its data operations answer `409 connection_not_active`; reading the connection returns a minimal record with this `erasure` status. */
+/** The record of a deletion. The connection's bank data is deleted and its data operations answer `409 connection_not_active`; reading the connection returns a minimal record with this `erasure` record. */
 export interface BankConnectionDeletion {
   /** The connection id. */
   id: string;
-  /** Progress of a deletion you asked for. */
+  /** The record of a deletion you asked for. The deletion itself is immediate: the connection's data is deleted and unreadable when the call returns. `status` is the confirmation of it. */
   erasure: BankConnectionErasure;
 }
 
@@ -1550,12 +1549,13 @@ export interface BankConnectionEndUser {
   reference: string | null;
 }
 
-/** Progress of a deletion you asked for. */
+/** The record of a deletion you asked for. The deletion itself is immediate: the connection's data is deleted and unreadable when the call returns. `status` is the confirmation of it. */
 export interface BankConnectionErasure {
-  /** `pending` while deletion runs, `erased` when no stored copy and no access at the bank remain, `failed` when it could not be confirmed within 24 hours. A failed deletion keeps the connection's data closed, is retried, and Didit is alerted. */
+  /** The confirmation of the deletion. `pending`: the deletion is being confirmed, including the end of access at the bank. `erased`: confirmed, with `erased_at`. `failed`: the confirmation has not arrived yet and is repeated automatically; nothing is needed from you. The data is deleted and not readable in any of the three. */
   status: "pending" | "erased" | "failed" | (string & {});
+  /** When you asked for the deletion. */
   requested_at: Date;
-  /** When the deletion finished. `null` until `status` is `erased`. */
+  /** When the deletion was confirmed. `null` until `status` is `erased`. */
   erased_at: Date | null;
 }
 
@@ -1594,7 +1594,7 @@ export interface BankConnectionSync {
   budgets: BankSyncBudget[];
   /** The last sync error, or `null`. */
   last_error: BankSyncError | null;
-  /** How many times a day the automatic sync runs for this connection, between one and four depending on the bank. Where the bank allows more unattended reads, at least two a day always remain for live syncs. Your application can lower it to once a day in its settings. */
+  /** How many times a day the automatic sync runs for this connection, between one and four depending on the bank. Where the bank allows more unattended reads, at least two a day always remain for live syncs. */
   frequency_per_day: number;
   /** How many live syncs (`refresh_connection`) are left today within the bank's limit: the tightest budget's `remaining`. `null` where the bank sets no limit. Live syncs are included in the monthly price. */
   live_syncs_left_today: number | null;
@@ -1723,7 +1723,7 @@ export interface BankLink {
     | (string & {});
   /** The hosted page to send the person to. Returned only when the link is created; `null` on later reads, because the token is not stored. */
   url: string | null;
-  /** The token the web and native SDKs take. Returned only when the link is created; `null` on later reads. Single purpose and short lived: the hosted `url` and this token are redeemed once between them, and whichever arrives first wins. It carries no personal data. Never log it. */
+  /** The token for Didit's embedded Bank Link, which is not released yet: open `url` today. Returned only when the link is created; `null` on later reads. Single purpose and short lived. It carries no personal data. Never log it. */
   client_token: string | null;
   /** When an unredeemed link stops working. */
   expires_at: Date;
@@ -1825,7 +1825,7 @@ export interface BankLinkQuoteLine {
   meter: string;
   /** What one unit is, for example `connection_month` or `completed_sign_in`. */
   unit: string;
-  /** Price of one unit in USD, a decimal string with 4 decimals. Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  /** Price of one unit in USD, a decimal string with 4 decimals. Amounts in examples are illustrative; the price for a country is shown on the pricing page. */
   price_usd: string;
 }
 
@@ -1857,7 +1857,7 @@ export interface BankSignInPricing {
   add_ons: BankSignInPricingAddOns;
   /** Ongoing access to bank data (Bank Link `access: ongoing`). Present only where Bank data is switched on. */
   ongoing?: BankSignInPricingOngoing;
-  /** One-time data prices of a Bank Link, present only where Bank data is switched on. `null` where the country offers no one-time data: use `add_ons`. */
+  /** One-time data prices of a Bank Link, present only where Bank data is switched on. `null` where the country offers no one-time data: use `add_ons`. Where the country offers the one-time bundle, the object also carries `bundle_included: true` and `transactions_usd` is that bundle: one read of transactions and balances. */
   one_time_data?: BankSignInPricingOneTimeData | null;
 }
 
@@ -1874,23 +1874,25 @@ export interface BankSignInPricingOneTimeData {
   balances_usd: string | null;
   /** Price of one read of transactions, with or without balances. Decimal string with 4 decimals in USD. */
   transactions_usd: string | null;
+  /** `true` when `transactions_usd` is the one-time bundle: one read that carries transactions and balances together, so the `balance` add-on is not charged on top of it. Absent - never `false` - where `transactions_usd` is the separate transactions add-on price, including while the one-time bundle is not offered in the country. */
+  bundle_included?: boolean;
 }
 
 /** Ongoing access to bank data (Bank Link `access: ongoing`). Present only where Bank data is switched on. */
 export interface BankSignInPricingOngoing {
   /** `true` only where at least one bank offers ongoing access in this country. */
   available: boolean;
-  /** List price per active connection per calendar month, a decimal string with 4 decimals in USD. `null` when not available. Ongoing access is billed per active connection per month, with every account, reads, refreshes within the bank's limits and renewals included; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  /** List price per active connection per calendar month, a decimal string with 4 decimals in USD. `null` when not available. Ongoing access is billed per active connection per month, with every account, reads, refreshes within the bank's limits and renewals included; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page. */
   price_usd_per_month: string | null;
 }
 
 /** How the bank statement upload is priced. */
 export interface BankStatementUploadPricing {
-  /** Price of a statement upload after a charged bank attempt. Decimal string with 4 decimals, in USD. */
+  /** Price of a statement upload with no charged bank attempt before it. After a charged bank attempt in the same session the statement costs nothing extra. Decimal string with 4 decimals, in USD. */
   price_usd: string;
   /** `true` when the upload is included at no extra charge after a charged bank attempt in the same session. */
   included_after_charged_bank_attempt: boolean;
-  /** `true` when a statement upload can run on its own, with no bank attempt first. `false` in production; sandbox sessions can test it without billing. */
+  /** `true` when a statement upload can run on its own, with no bank attempt first, at `price_usd`. */
   standalone_available: boolean;
 }
 
@@ -13555,7 +13557,7 @@ export interface TravelRuleNextAction {
 export interface TravelRuleSettingsDetail {
   /** Whether the managed Travel Rule negotiation flow is active for outbound `travelRule` transactions on this application. */
   is_enabled?: boolean;
-  /** Your VASP's regulatory regime code. Default `"EU"`. Didit maps it to the regime it stamps on your Travel Rule transactions as `travel_rule_regime` (for example `EU` or an EU member code becomes `eu`), which transaction rules can key on, and it decides which data fields the exchange must share. Other Didit customers see `vasp_jurisdiction` in the VASP directory; while `vasp_jurisdiction` is empty, the directory shows this value instead. */
+  /** Your VASP's regulatory regime code. Default `"EU"`. Didit maps it to the regime it stamps on your Travel Rule transactions as `travel_rule_regime` (for example `EU` or an EU member code becomes `eu`, `CA` or `CAN` becomes `canada`, `US` or `USA` becomes `us`), which transaction rules can key on, and it decides which data fields the exchange must share. Canada (FINTRAC) requires the originator name and a structured address and the beneficiary name, a structured address and wallet address; the United States (FinCEN) requires the originator name and a structured address and the beneficiary name and wallet address. A structured address has town_name, country, and an address_line or a street_name with a building_number or building_name; a single-line address is refused. Other Didit customers see `vasp_jurisdiction` in the VASP directory; while `vasp_jurisdiction` is empty, the directory shows this value instead. */
   jurisdiction?: string;
   /** Your VASP profile's own jurisdiction, up to 3 characters (for example `GB` or `USA`), shown to other Didit customers in the VASP directory. It is independent of `jurisdiction`, the regulatory regime Didit stamps on your transfers; while `vasp_jurisdiction` is empty, the directory shows `jurisdiction`. Empty until you set it. */
   vasp_jurisdiction?: string;

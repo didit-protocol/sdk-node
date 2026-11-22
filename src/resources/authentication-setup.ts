@@ -6,6 +6,7 @@ import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   AuthenticationSetupGetBrandingParams,
+  AuthenticationSetupGetEmailParams,
   AuthenticationSetupGetEmailsParams,
   AuthenticationSetupSetDomainParams,
   AuthenticationSetupSetMethodParams,
@@ -58,6 +59,7 @@ const AUTHENTICATION_SETUP_GET_EMAIL: OperationSpec = {
   method: "GET",
   path: "/organizations/{organization_id}/applications/{application_id}/authentication/emails/{key}/",
   api: "account",
+  query: ["organization", "role", "agent"],
 };
 const AUTHENTICATION_SETUP_GET_EMAILS: OperationSpec = {
   method: "GET",
@@ -260,7 +262,7 @@ export class AuthenticationSetup extends APIResource {
   /**
    * Preview a sign-in email
    *
-   * Returns one email as it renders, with sample codes and links. An invitation preview uses a sample organization for a grant or named key. A console session can see a customer organization's name. The address of a console member is left out for a grant or a key, which have no mailbox. An email Authentication does not send answers `{"error": "email_not_sent_by_authentication"}`.
+   * Returns one email as it renders, with sample codes and links. An invitation preview uses a sample organization for a grant or named key, or the `organization` and `role` you pass. `agentoff` is the email a person receives when your team ends an agent's access with a notification; `agent` names the agent. A console session can see a customer organization's name. The address of a console member is left out for a grant or a key, which have no mailbox. An email Authentication does not send answers `{"error": "email_not_sent_by_authentication"}`.
    *
    * `GET /organizations/{organization_id}/applications/{application_id}/authentication/emails/{key}/`
    *
@@ -272,12 +274,13 @@ export class AuthenticationSetup extends APIResource {
     organizationId: string,
     applicationId: string,
     key: string,
+    params: AuthenticationSetupGetEmailParams = {},
     options?: RequestOptions,
   ): APIPromise<SetupEmail> {
     return this._client.request(
       AUTHENTICATION_SETUP_GET_EMAIL,
       [organizationId, applicationId, key],
-      undefined,
+      params,
       options,
     );
   }
