@@ -143,6 +143,7 @@ describe("authentication_setup", () => {
       "a1b2c3d4-5678-90ab-cdef-111111111111",
       "7b0a6c2e-3f41-4c9a-8d55-1e2f3a4b5c6d",
       "code",
+      { organization: "Northwind Traders", role: "member", agent: "Nova" },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -151,7 +152,11 @@ describe("authentication_setup", () => {
     expect(request.path).toBe(
       "/auth/v2/organizations/a1b2c3d4-5678-90ab-cdef-111111111111/applications/7b0a6c2e-3f41-4c9a-8d55-1e2f3a4b5c6d/authentication/emails/code/",
     );
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({
+      organization: "Northwind Traders",
+      role: "member",
+      agent: "Nova",
+    });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");

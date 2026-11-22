@@ -182,7 +182,7 @@ function resolve(doc: JsonObject, node: unknown): unknown {
  * The first 2xx JSON example of an operation, as the generator reads it; `{}`
  * (or an empty page) when the spec has none.
  */
-export function responseExample(key: string, kind?: "page"): unknown {
+export function responseExample(key: string, kind?: "page", status?: number): unknown {
   const { verification, account, deprecated } = loadSpecs();
   const isAccount = key.startsWith("account ");
   const [method, path] = key.replace(/^account /, "").split(" ") as [string, string];
@@ -198,7 +198,7 @@ export function responseExample(key: string, kind?: "page"): unknown {
   const fallback = kind === "page" ? { count: 0, next: null, previous: null, results: [] } : {};
   if (!isObject(op) || !isObject(op.responses)) return fallback;
   const codes = Object.keys(op.responses)
-    .filter((c) => c.startsWith("2"))
+    .filter((c) => c.startsWith("2") && (status === undefined || c === String(status)))
     .sort();
   for (const code of codes) {
     const response = resolve(doc, op.responses[code]) as JsonObject;
