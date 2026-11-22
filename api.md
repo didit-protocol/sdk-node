@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 444 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 463 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -89,9 +89,28 @@ Every method of `@didit-protocol/sdk-node`: 444 methods, generated from `openapi
 
 ## `didit.bank`
 
-| Method                                                    | HTTP                           | Returns                    | Notes            |
-| --------------------------------------------------------- | ------------------------------ | -------------------------- | ---------------- |
-| `didit.bank.accountCheck(params: BankAccountCheckParams)` | `POST /v3/bank/account-check/` | `BankAccountCheckResponse` | `idempotencyKey` |
+| Method                                                                        | HTTP                                                 | Returns                                    | Notes            |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------ | ---------------- |
+| `didit.bank.accountCheck(params: BankAccountCheckParams)`                     | `POST /v3/bank/account-check/`                       | `BankAccountCheckResponse`                 | `idempotencyKey` |
+| `didit.bank.cancelLink(id)`                                                   | `POST /v3/bank/links/{id}/cancel/`                   | `BankLink`                                 | `idempotencyKey` |
+| `didit.bank.createLink(params?: BankCreateLinkParams)`                        | `POST /v3/bank/links/`                               | `BankLink`                                 | `idempotencyKey` |
+| `didit.bank.deleteConnection(id)`                                             | `DELETE /v3/bank/connections/{id}/`                  | `BankConnectionDeletion`                   | `idempotencyKey` |
+| `didit.bank.getAccount(accountId)`                                            | `GET /v3/bank/accounts/{account_id}/`                | `BankAccount`                              |                  |
+| `didit.bank.getBalances(accountId)`                                           | `GET /v3/bank/accounts/{account_id}/balances/`       | `BankBalances`                             |                  |
+| `didit.bank.getConnection(id)`                                                | `GET /v3/bank/connections/{id}/`                     | `BankConnection`                           |                  |
+| `didit.bank.getCoverage()`                                                    | `GET /v3/bank/coverage/`                             | `BankCoverage`                             |                  |
+| `didit.bank.getInstitution(id)`                                               | `GET /v3/bank/institutions/{id}/`                    | `BankInstitution`                          |                  |
+| `didit.bank.getLink(id)`                                                      | `GET /v3/bank/links/{id}/`                           | `BankLink`                                 |                  |
+| `didit.bank.getSyncRun(id, syncId)`                                           | `GET /v3/bank/connections/{id}/sync-runs/{sync_id}/` | `BankSyncRun`                              |                  |
+| `didit.bank.listAccounts(id, params?: BankListAccountsParams)`                | `GET /v3/bank/connections/{id}/accounts/`            | `BankAccountList`                          |                  |
+| `didit.bank.listConnections(params?: BankListConnectionsParams)`              | `GET /v3/bank/connections/`                          | `BankConnectionList`                       |                  |
+| `didit.bank.listInstitutions(params?: BankListInstitutionsParams)`            | `GET /v3/bank/institutions/`                         | `BankInstitutionList`                      |                  |
+| `didit.bank.listSyncRuns(id, params?: BankListSyncRunsParams)`                | `GET /v3/bank/connections/{id}/sync-runs/`           | `BankSyncRunList`                          |                  |
+| `didit.bank.listTransactions(accountId, params?: BankListTransactionsParams)` | `GET /v3/bank/accounts/{account_id}/transactions/`   | `BankTransactionPage`                      |                  |
+| `didit.bank.refreshConnection(id, params?: BankRefreshConnectionParams)`      | `POST /v3/bank/connections/{id}/refresh/`            | `BankSyncCompleted \| BankRefreshAccepted` | `idempotencyKey` |
+| `didit.bank.renewConnection(id, params?: BankRenewConnectionParams)`          | `POST /v3/bank/connections/{id}/renew/`              | `BankLink`                                 | `idempotencyKey` |
+| `didit.bank.revokeConnection(id)`                                             | `POST /v3/bank/connections/{id}/revoke/`             | `BankConnection`                           | `idempotencyKey` |
+| `didit.bank.syncTransactions(id, params?: BankSyncTransactionsParams)`        | `GET /v3/bank/connections/{id}/transactions/sync/`   | `BankTransactionChanges`                   |                  |
 
 ## `didit.billing`
 
