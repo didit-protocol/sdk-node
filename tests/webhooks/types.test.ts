@@ -231,6 +231,22 @@ describe("WebhookEvent", () => {
       | "travel_rule.status.updated"
       | "workflow.compliance_changed"
       | "kyb.registry_search.resolved"
+      | "bank.link.completed"
+      | "bank.link.cancelled"
+      | "bank.link.expired"
+      | "bank.link.failed"
+      | "bank.connection.created"
+      | "bank.connection.updated"
+      | "bank.connection.renewal_required"
+      | "bank.connection.renewed"
+      | "bank.connection.history_complete"
+      | "bank.connection.consent_expiring"
+      | "bank.connection.revoked"
+      | "bank.connection.deleted"
+      | "bank.data.updated"
+      | "bank.sync.completed"
+      | "bank.sync.failed"
+      | "bank.sync.recovered"
     >();
     expectTypeOf<
       Extract<WebhookEvent, { webhook_type: "data.updated" }>
