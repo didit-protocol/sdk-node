@@ -5,7 +5,7 @@
 // change: a session event's `decision` is the generated decision type, whose
 // date-times are Date objects. Narrow it with `switch (event.webhook_type)`.
 //
-// How narrowing works with UnknownEvent in the union: the twelve known events
+// How narrowing works with UnknownEvent in the union: the twenty-eight known events
 // declare `webhook_type` as a string literal, and UnknownEvent reads it through
 // an index signature (`webhook_type${string}`) instead of declaring it. For a
 // union of ten or more object types whose discriminant is a literal in each
