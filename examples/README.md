@@ -9,6 +9,7 @@ Use a sandbox application while you try them.
 | `id-verification.ts`            | Standalone ID verification with file uploads                                          |
 | `aml-screening.ts`              | AML screening with an idempotency key, the raw response and error handling            |
 | `transactions.ts`               | Transactions (KYT): submit one, then list them with `for await`                       |
+| `bank-data.ts`                  | Bank Link: create a link, wait for `bank.connection.created`, read accounts           |
 | `travel-rule.ts`                | Travel Rule settings, the VASP directory, wallet addresses, wallet screening          |
 | `authentication.ts`             | Verify a Didit Authentication access token in your backend                            |
 | `webhooks/express.ts`           | Webhook receiver for Express                                                          |
