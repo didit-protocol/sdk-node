@@ -8,7 +8,7 @@
 // below reads the first page of the new connection's accounts. Point the webhook
 // destination at a public URL that forwards to port 4242.
 
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 import Didit, { webhooks } from "@didit-protocol/sdk-node";
 
@@ -24,7 +24,7 @@ const link = await didit.bank.createLink({
 });
 console.log("Open", link.url);
 
-const server = createServer(async (request, response) => {
+async function handle(request: IncomingMessage, response: ServerResponse) {
   if (request.method !== "POST" || request.url !== "/webhooks/didit") {
     response.writeHead(404).end();
     return;
@@ -48,6 +48,10 @@ const server = createServer(async (request, response) => {
   }
 
   response.writeHead(204).end();
+}
+
+const server = createServer((request, response) => {
+  void handle(request, response);
 });
 
 server.listen(4242, "127.0.0.1", () => {
