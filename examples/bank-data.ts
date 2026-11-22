@@ -13,8 +13,10 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import Didit, { webhooks } from "@didit-protocol/sdk-node";
 
 const didit = new Didit();
-const secret = process.env.DIDIT_WEBHOOK_SECRET;
-if (!secret) throw new Error("Set DIDIT_WEBHOOK_SECRET to the webhook destination's secret.");
+const webhookSecret = process.env.DIDIT_WEBHOOK_SECRET;
+if (!webhookSecret)
+  throw new Error("Set DIDIT_WEBHOOK_SECRET to the webhook destination's secret.");
+const secret: string = webhookSecret;
 
 const link = await didit.bank.createLink({
   country: "ESP",
