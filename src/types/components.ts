@@ -1287,6 +1287,36 @@ export interface AsyncReportListCounts {
   status: Record<string, number>;
 }
 
+/** One account inside a connection. */
+export interface BankAccount {
+  /** Account id. Belongs to the connection and never changes while it exists, renewals included. */
+  id: string;
+  connection_id: string;
+  name: string | null;
+  /** The bank's product name. */
+  product: string | null;
+  type: "current" | "savings" | "card" | "loan" | "investment" | "other" | (string & {});
+  usage: "personal" | "business" | "unknown" | (string & {});
+  /** ISO 4217 currency code. */
+  currency: string;
+  /** Holder name where the bank shares it. */
+  holder_name: string | null;
+  /** Holders the bank shares. Ownership counts only `holder` and `joint_holder`. */
+  holders: BankAccountHolder[];
+  /** Full identifiers, returned to server-side callers with the bank data permission. */
+  identifiers: BankAccountIdentifiers;
+  /** Identifies the same bank account across connections of one application and environment: a keyed hash of the bank's own identifiers. `null` when the bank gives no reliable identifier. Use it to recognise a bank account you already know. */
+  account_ref: string | null;
+  /** The previous `account_ref`, only for a verified alias such as a bank migration. */
+  account_ref_previous: string | null;
+  /** `access_removed`: the person removed the account from the consent. It is no longer synced. */
+  status: "open" | "closed" | "access_removed" | (string & {});
+  scopes_granted: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  sync: BankAccountSync;
+  /** What the bank delivered of the history you asked for. */
+  history_coverage: BankHistoryCoverage;
+}
+
 /** The company that should hold the account. Checks a business account. */
 export interface BankAccountCheckBusinessHolder {
   /** The name of the company that should hold the account. Checks a business account. */
@@ -1327,6 +1357,487 @@ export interface BankAccountCheckResponse {
   created_at: Date;
 }
 
+export interface BankAccountHolder {
+  name: string;
+  role: "holder" | "joint_holder" | "representative" | "unknown" | (string & {});
+}
+
+/** Full identifiers, returned to server-side callers with the bank data permission. */
+export interface BankAccountIdentifiers {
+  /** Full IBAN, upper case without spaces. */
+  iban: string | null;
+  bic: string | null;
+  /** Local account number, where the account has no IBAN. */
+  account_number: string | null;
+  /** Local bank code, where the account has no IBAN. */
+  sort_code: string | null;
+  /** Any other identifier the bank gives. */
+  other: BankAccountIdentifiersOther[];
+}
+
+export interface BankAccountIdentifiersOther {
+  scheme: string;
+  value: string;
+}
+
+export interface BankAccountList {
+  items: BankAccount[];
+  next_cursor: string | null;
+}
+
+export interface BankAccountSync {
+  /** When the account's data was last fetched from the bank. */
+  last_synced_at: Date | null;
+  status: "pending" | "ok" | "failed" | (string & {});
+  history_requested_from: string | null;
+  /** The oldest booking date the bank really delivered for this account. */
+  history_available_from: string | null;
+  /** Whether this bank reports pending transactions. */
+  pending_supported: boolean;
+}
+
+export interface BankBalance {
+  /** `booked`, `available` or `expected`. `other` is a balance the bank types in a way Didit does not map: it is served, never dropped, and `iso_type` carries the bank's raw code. */
+  type: "booked" | "available" | "expected" | "other" | (string & {});
+  /** The bank's own balance type code, as the bank sent it (an ISO 20022 code where it gives one), or `null` when the bank sent none. */
+  iso_type: string | null;
+  /** Amount as a decimal string. */
+  amount: string;
+  /** ISO 4217 currency code. */
+  currency: string;
+  reference_date: string | null;
+  last_change_at: Date | null;
+  /** Whether an overdraft limit is included, where the bank says. */
+  credit_limit_included: boolean | null;
+}
+
+/** Typed balances of an account. */
+export interface BankBalances {
+  account_id: string;
+  balances: BankBalance[];
+  /** When the balances were last fetched from the bank. */
+  last_synced_at: Date | null;
+}
+
+/** The person's permission for your application to read one bank. A renewal keeps the connection id and every account id. */
+export interface BankConnection {
+  /** Identifier of the connection. */
+  id: string;
+  environment: "live" | "sandbox" | (string & {});
+  access: "one_time" | "ongoing" | (string & {});
+  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you. `deleted`: only the id, dates and reason remain. `failed`: the first sync never succeeded. */
+  status:
+    | "pending"
+    | "active"
+    | "renewal_required"
+    | "paused"
+    | "revoked"
+    | "deleted"
+    | "failed"
+    | (string & {});
+  /** Why the connection is in this status. `paused_by_customer` is reserved. */
+  status_reason:
+    | "collection_complete"
+    | "consent_expired"
+    | "consent_lapsed"
+    | "bank_requires_sign_in"
+    | "revoked_by_end_user"
+    | "revoked_by_bank"
+    | "revoked_by_customer"
+    | "insufficient_balance"
+    | "paused_by_customer"
+    | "first_sync_failed"
+    | (string & {})
+    | null;
+  /** The bank a connection or link is for. */
+  institution: BankInstitutionSummary;
+  segment: "personal" | "business" | (string & {}) | null;
+  /** The scopes the person accepted. */
+  data: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  /** The person's consent for this connection. */
+  consent: BankConnectionConsent;
+  /** Synchronisation state of a connection. */
+  sync: BankConnectionSync;
+  /** Summary of every account in the connection. Read the full account with `get_account`. */
+  accounts: BankConnectionAccountSummary[];
+  /** The optional comparison of the account holder with a person or company. */
+  ownership: BankConnectionOwnership;
+  end_user: BankConnectionEndUser;
+  /** Reserved. Always `null` for now. */
+  manage_url: string | null;
+  /** What this connection costs. Sandbox is never charged. */
+  billing: BankConnectionBilling;
+  /** Set when this connection may duplicate another active one but no `end_user.reference` allowed a certain match. */
+  possible_duplicate_of: string | null;
+  /** Set after `delete_connection`; otherwise `null`. */
+  erasure: BankConnectionErasure | null;
+  vendor_data: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/** Short form of an account inside a connection. */
+export interface BankConnectionAccountSummary {
+  /** Account id. Stable for the life of the connection, renewals included. */
+  id: string;
+  name: string | null;
+  type: "current" | "savings" | "card" | "loan" | "investment" | "other" | (string & {});
+  usage: "personal" | "business" | "unknown" | (string & {});
+  /** ISO 4217 currency code. */
+  currency: string;
+  /** Last four characters of the IBAN, where the account has one. */
+  iban_last4: string | null;
+  status: "open" | "closed" | "access_removed" | (string & {});
+}
+
+/** What this connection costs. Sandbox is never charged. */
+export interface BankConnectionBilling {
+  /** Billing unit, `connection_month` for ongoing access, `one_time` otherwise. */
+  unit: string;
+  /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged for a month only when every accepted scope published data for at least one account in that month. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  price_usd: string | null;
+  /** The last month end already settled. */
+  billed_through: string | null;
+}
+
+/** The person's consent for this connection. */
+export interface BankConnectionConsent {
+  /** `revocation_pending` until the bank confirms the consent is terminated, then `revoked`. `revocation_failed` is retried automatically. Bank fetches stop the moment a revocation is requested. */
+  status:
+    "granted" | "expired" | "revocation_pending" | "revoked" | "revocation_failed" | (string & {});
+  /** Version of the consent. A renewal creates the next version on the same connection. */
+  version: number;
+  granted_at: Date | null;
+  /** When the bank's consent ends. The bank sets it, up to `consent_days`. */
+  expires_at: Date | null;
+  /** Length of the consent in days, as the bank granted it. */
+  days_granted: number | null;
+  /** How many times the consent was renewed. */
+  renewed_count: number;
+  scopes_requested: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  scopes_granted: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  /** Ids of the accounts the person shares. */
+  accounts_granted: string[];
+  /** How a renewal works: `reconfirm` is the person confirming on Didit's screen with no bank sign-in, where the bank and the country's rules allow it. `bank_auth` is a bank sign-in. */
+  renewal_action: "reconfirm" | "bank_auth" | (string & {}) | null;
+  /** The consent's end: renew before it for no gap. */
+  renew_by: Date | null;
+  /** Set when `renewal_action` is `reconfirm`: the last moment to reconfirm. */
+  reconfirm_by: Date | null;
+  /** The last moment the same connection can be revived after the consent ended. After it the person connects again. It equals `retain_until`. */
+  renewable_until: Date | null;
+  /** Set once access ended: how long the stored data stays readable, set by the retention setting of your application. */
+  retain_until: Date | null;
+  ended_at: Date | null;
+  /** Who ended access, set from evidence. `unknown` when neither the bank nor the sync says. */
+  ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {}) | null;
+}
+
+/** Accepted deletion. The connection's bank data is being deleted and every read and write of it is refused; the connection reads as a minimal record with this `erasure` status. */
+export interface BankConnectionDeletion {
+  /** The connection id. */
+  id: string;
+  /** Progress of a deletion you asked for. */
+  erasure: BankConnectionErasure;
+}
+
+export interface BankConnectionEndUser {
+  /** Your id for the person or company. */
+  reference: string | null;
+}
+
+/** Progress of a deletion you asked for. */
+export interface BankConnectionErasure {
+  /** `pending` while deletion runs, `erased` when no stored copy and no access at the bank remain, `failed` when it could not be confirmed within 24 hours. A failed deletion keeps every read and write of the connection blocked, is retried, and Didit is alerted. */
+  status: "pending" | "erased" | "failed" | (string & {});
+  requested_at: Date;
+}
+
+/** A page of connections. */
+export interface BankConnectionList {
+  items: BankConnection[];
+  /** Pass as `cursor` for the next page. `null` on the last page. */
+  next_cursor: string | null;
+}
+
+/** The optional comparison of the account holder with a person or company. */
+export interface BankConnectionOwnership {
+  compare: "none" | "person" | "business" | (string & {});
+  match: "any_holder" | "all_holders" | (string & {}) | null;
+  /** Id of the ownership result when a comparison was asked. */
+  check_id: string | null;
+  /** Verdict. `unknown` whenever missing holder evidence could change it, and when the bank shares no holder. */
+  result: "match" | "close_match" | "no_match" | "unknown" | (string & {}) | null;
+}
+
+/** Synchronisation state of a connection. */
+export interface BankConnectionSync {
+  /** `failing` after 24 hours of failed attempts, which are retried with backoff. A bank that asks the person to sign in again makes the connection `renewal_required` instead. */
+  status: "pending" | "ok" | "failing" | (string & {});
+  /** Result of the first sync. The connection becomes `active` on `succeeded` or `partial`, and `failed` when no account succeeded. */
+  initial_status: "pending" | "succeeded" | "partial" | "failed" | (string & {});
+  /** `true` only when `initial_status` is `succeeded`: accounts, balances and recent transactions are readable. */
+  initial_complete: boolean;
+  /** `true` when the history backfill ended, for any reason. Ranges it could not get are in each account's `history_coverage.missing_ranges`. */
+  history_complete: boolean;
+  /** When data was last fetched from the bank, not when you last read it. */
+  last_synced_at: Date | null;
+  /** When the next automatic sync is planned. The automatic sync runs between one and four times a day depending on the bank (see `frequency_per_day`). */
+  next_sync_at: Date | null;
+  /** The bank's limits on fetches without the person present. */
+  budgets: BankSyncBudget[];
+  /** The last sync error, or `null`. */
+  last_error: BankSyncError | null;
+  /** How many times a day the automatic sync runs for this connection, between one and four depending on the bank. Where the bank allows more unattended reads, at least two a day always remain for live syncs. Your application can lower it to once a day in its settings. */
+  frequency_per_day: number;
+  /** How many live syncs (`refresh_connection`) are left today within the bank's limit: the tightest budget's `remaining`. `null` where the bank sets no limit. Live syncs are included in the monthly price. */
+  live_syncs_left_today: number | null;
+}
+
+/** Bank data coverage per country. Ongoing access is counted only where a bank is switched on for it. */
+export interface BankCoverage {
+  items: BankCoverageCountry[];
+}
+
+export interface BankCoverageCountry {
+  country: string;
+  /** Country name in English. */
+  name: string;
+  /** Bank sign-in is available. */
+  sign_in_available: boolean;
+  /** The account check is available. */
+  account_check_available: boolean;
+  /** At least one bank in the country offers ongoing access. */
+  ongoing_access: boolean;
+  /** Number of banks listed in the country. */
+  institutions: number;
+  /** Number of those banks that offer ongoing access. */
+  ongoing_institutions: number;
+  /** The longest consent any bank in the country allows, in days. */
+  consent_days_max: number | null;
+  /** The deepest history any bank in the country delivers, in days. */
+  history_days_max: number | null;
+  /** Whether at least one bank supports business accounts. */
+  business_accounts: boolean | null;
+}
+
+export interface BankDateRange {
+  from: string;
+  to: string;
+}
+
+/** What the bank delivered of the history you asked for. */
+export interface BankHistoryCoverage {
+  /** The start date that was asked for. */
+  requested_from: string | null;
+  /** The oldest booking date the bank really delivered. */
+  oldest_booking_date: string | null;
+  covered_ranges: BankDateRange[];
+  missing_ranges: BankDateRange[];
+  /** `partial`: the bank delivered less than asked. `empty`: the bank confirmed the whole window and it has no transactions. `unavailable`: the bank gave no history. `unknown`: not known yet. */
+  status: "complete" | "partial" | "empty" | "unavailable" | "unknown" | (string & {});
+  /** `true` when the person gave the extra confirmation some banks ask for before releasing older history. */
+  extended_auth_used: boolean;
+}
+
+/** A bank and what it supports. Values come from observed capability data, refreshed daily; a value never observed is `null`, not a guess. */
+export interface BankInstitution {
+  /** Didit's identifier of the bank, a stable slug. */
+  id: string;
+  name: string;
+  country: string;
+  logo_url: string | null;
+  /** IANA time zone the bank's dates are in. */
+  timezone: string | null;
+  segments: ("personal" | "business" | (string & {}))[];
+  /** `ongoing` is listed only where ongoing access is switched on for the bank. */
+  access: ("one_time" | "ongoing" | (string & {}))[];
+  /** Whether ongoing access is available at this bank. */
+  ongoing_access: boolean;
+  /** The longest consent the bank allows, in days. `null` when not observed. */
+  consent_days_max: number | null;
+  /** The deepest history the bank delivers, in days. `null` when not observed. */
+  history_days_max: number | null;
+  /** Whether the bank reports pending transactions. */
+  pending_transactions: boolean | null;
+  /** Whether the bank links a pending transaction to its booked one, which is what sets `pending_id`. */
+  pending_linkage: boolean | null;
+  balance_types: ("booked" | "available" | "expected" | (string & {}))[];
+  /** The transaction fields the bank is known to send. Every other field is `null`. */
+  transaction_fields: string[];
+  /** How the person signs in at the bank. */
+  sign_in: "redirect" | "app_approval" | "credentials" | (string & {}) | null;
+  /** Whether Bank Link needs a verified email address for the person. */
+  requires_end_user_email: boolean | null;
+  /** Whether business accounts are supported. */
+  corporate_accounts: boolean | null;
+  /** Whether the person picks the accounts at the bank instead of in Bank Link. */
+  bank_account_selection: boolean | null;
+  /** Whether the bank asks for one more confirmation to release older history. */
+  separate_history_consent: boolean | null;
+  /** Whether a renewal can be reconfirmed on Didit's screen without a bank sign-in. */
+  reconfirmation: boolean | null;
+  /** Hours between automatic syncs where the bank allows a faster cadence. `null` means the daily default. */
+  sync_frequency_hours: number | null;
+  health: "operational" | "degraded" | "down" | (string & {});
+}
+
+export interface BankInstitutionList {
+  items: BankInstitution[];
+  next_cursor: string | null;
+}
+
+/** The bank a connection or link is for. */
+export interface BankInstitutionSummary {
+  /** Didit's identifier of the bank, a stable slug. Use it as `institution_id`. */
+  id: string;
+  /** The bank's name. */
+  name: string;
+  /** Country of the bank, ISO 3166-1 alpha-3. */
+  country: string;
+  /** Logo of the bank, or `null`. */
+  logo_url: string | null;
+}
+
+/** One run of Bank Link for one person: connect a bank, or renew a connection. Confirm a link yourself with `get_link`: never trust an id sent by the browser. */
+export interface BankLink {
+  /** Identifier of the link. */
+  id: string;
+  mode: "connect" | "renew" | (string & {});
+  access: "one_time" | "ongoing" | (string & {});
+  /** State of the link. `completed`, `cancelled`, `expired` and `failed` are final. */
+  status:
+    | "created"
+    | "opened"
+    | "connecting"
+    | "completed"
+    | "cancelled"
+    | "expired"
+    | "failed"
+    | (string & {});
+  /** The hosted page to send the person to. Returned only when the link is created; `null` on later reads, because the token is not stored. */
+  url: string | null;
+  /** The token the web and native SDKs take. Returned only when the link is created; `null` on later reads. Single purpose and short lived: the hosted `url` and this token are redeemed once between them, and whichever arrives first wins. It carries no personal data. Never log it. */
+  client_token: string | null;
+  /** When an unredeemed link stops working. */
+  expires_at: Date;
+  /** The connection this link created or renewed, once `status` is `completed`. */
+  connection_id: string | null;
+  /** The ownership result of this link, when it asked for `ownership.compare` other than `none`. */
+  check_id: string | null;
+  /** `true` when the link completed as a renewal of an existing connection because the person already shares exactly these accounts (`duplicates: reuse`). Nothing is charged twice. */
+  reused: boolean;
+  /** Why the link failed, when `status` is `failed`. Otherwise `null`. */
+  error: BankLinkError | null;
+  /** The price of a link, pinned when it is created. The price charged is the quote's. Reads never bill. */
+  quote: BankLinkQuote;
+  /** Your reference from the request. */
+  vendor_data: string | null;
+}
+
+/** The person or company that connects the account. */
+export interface BankLinkEndUser {
+  /** Your own id for the person or company. Searchable with `end_user_reference`, and used to recognise a repeat connection. */
+  reference?: string;
+  /** Optional. Where the bank route needs a verified address for the person and you did not send one, Bank Link asks the person for it. Never used for marketing. */
+  email?: string;
+}
+
+/** The reason a link ended `failed`. Nothing was published or charged. */
+export interface BankLinkError {
+  /** Why the link failed. A failed link is not an HTTP error: the link reads with `status: failed` and this object. A renew link whose connection changed meanwhile reads `renewal_not_needed` or `renewal_window_expired`. */
+  code:
+    | "duplicate_conflict"
+    | "renewal_login_mismatch"
+    | "reduced_grant"
+    | "corporate_approval_not_supported"
+    | "ongoing_access_not_available"
+    | "bank_unavailable"
+    | "bank_cancelled"
+    | "consent_declined"
+    | "read_limit"
+    | "renewal_not_needed"
+    | "renewal_window_expired"
+    | (string & {});
+  /** Plain-language explanation for a developer. */
+  message: string;
+  /** With `duplicate_conflict`: the ids of the active connections that overlap. Renew one of them, or create the link again with `duplicates: allow`. */
+  conflicts_with: string[] | null;
+}
+
+/** Optional comparison of the account holder with a person or a company. */
+export interface BankLinkOwnershipRequest {
+  /** What the holder of the account is compared with. `none` (default) gives no verdict and needs no reference. `person` needs `reference_identity` or `session_id`. `business` needs `business` or `business_session_id`. */
+  compare?: "none" | "person" | "business" | (string & {});
+  /** Whether one legal holder or every legal holder must match. Representatives never count. */
+  match?: "any_holder" | "all_holders" | (string & {});
+  /** Caller-supplied values to compare with the account holder. Cannot be sent with `session_id`. */
+  reference_identity?: BankLinkOwnershipRequestReferenceIdentity;
+  /** A completed Didit verification session of the person to compare with. Cannot be sent with `reference_identity`. */
+  session_id?: string;
+  /** The company to compare with the account holder. */
+  business?: BankLinkOwnershipRequestBusiness;
+  /** A Didit business verification to compare with. Cannot be sent with `business`. */
+  business_session_id?: string;
+}
+
+/** The company to compare with the account holder. */
+export interface BankLinkOwnershipRequestBusiness {
+  legal_name: string;
+  registration_id?: string;
+}
+
+/** Caller-supplied values to compare with the account holder. Cannot be sent with `session_id`. */
+export interface BankLinkOwnershipRequestReferenceIdentity {
+  full_name?: string;
+  date_of_birth?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
+
+/** The price of a link, pinned when it is created. The price charged is the quote's. Reads never bill. */
+export interface BankLinkQuote {
+  /** Identifier of the quote. */
+  id: string;
+  /** The lines this link charges, for the scopes it asks for. */
+  lines: BankLinkQuoteLine[];
+  /** What a one-time fallback would charge, only when the link was created with `allow_one_time_fallback`. It is shown on the create response and is `null` otherwise. A one-time read with data can cost more than a first month of ongoing access. */
+  fallback_lines: BankLinkQuoteLine[] | null;
+  /** Total of `lines` in USD. The total can only go down: with a reduced grant, or when the person picks a country with a lower price. */
+  total_usd: string;
+  /** The quote is pinned to the link and valid for the link's whole lifetime, so it equals `expires_at`. */
+  valid_until: Date;
+  /** The data scopes the quote prices. */
+  scopes: ("accounts" | "balances" | "transactions" | (string & {}))[];
+}
+
+/** One priced line of a quote. */
+export interface BankLinkQuoteLine {
+  /** What is charged, for example `bank_data_connection_month`, `bank_verification`. */
+  meter: string;
+  /** What one unit is, for example `connection_month` or `completed_sign_in`. */
+  unit: string;
+  /** Price of one unit in USD, a decimal string with 4 decimals. Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  price_usd: string;
+}
+
+/** A refresh was accepted. A second call while a sync runs returns the same `sync_id`. */
+export interface BankRefreshAccepted {
+  /** The sync that was queued, or the one already running. */
+  sync_id: string;
+  status: "queued" | "running" | (string & {});
+  /** The earliest moment a new refresh can be asked for. `null` unless a budget is used up. */
+  next_refresh_at: Date | null;
+}
+
+export interface BankRemovedTransaction {
+  /** The id of the transaction that is no longer current. */
+  id: string;
+  /** `pending_booked`: the bank booked it, and the booked transaction is in `added`. `pending_expired`: a pending transaction the bank stopped reporting. `bank_removed`: the bank removed it. `access_removed`: the account left the consent. */
+  reason: "pending_booked" | "pending_expired" | "bank_removed" | "access_removed" | (string & {});
+}
+
 /** Bank sign-in: the person signs in to their bank. Priced by market, the same for every bank in it. */
 export interface BankSignInPricing {
   /** `true` only where Didit serves bank sign-in in this country in production. */
@@ -1337,6 +1848,10 @@ export interface BankSignInPricing {
   price_usd: string | null;
   /** Add-ons priced in this country, each a decimal string with 4 decimals in USD, added to the bank sign-in price. Only the add-ons the country offers are listed; empty when bank sign-in is not available. */
   add_ons: BankSignInPricingAddOns;
+  /** Ongoing access to bank data (Bank Link `access: ongoing`). Present only where Bank data is switched on. */
+  ongoing?: BankSignInPricingOngoing;
+  /** One-time data prices of a Bank Link, present only where Bank data is switched on. `null` where the country offers no one-time data: use `add_ons`. */
+  one_time_data?: BankSignInPricingOneTimeData | null;
 }
 
 /** Add-ons priced in this country, each a decimal string with 4 decimals in USD, added to the bank sign-in price. Only the add-ons the country offers are listed; empty when bank sign-in is not available. */
@@ -1347,6 +1862,21 @@ export interface BankSignInPricingAddOns {
   transactions?: string;
 }
 
+export interface BankSignInPricingOneTimeData {
+  /** Price of one read of balances only. Decimal string with 4 decimals in USD. */
+  balances_usd: string | null;
+  /** Price of one read of transactions, with or without balances. Decimal string with 4 decimals in USD. */
+  transactions_usd: string | null;
+}
+
+/** Ongoing access to bank data (Bank Link `access: ongoing`). Present only where Bank data is switched on. */
+export interface BankSignInPricingOngoing {
+  /** `true` only where at least one bank offers ongoing access in this country. */
+  available: boolean;
+  /** List price per active connection per calendar month, a decimal string with 4 decimals in USD. `null` when not available. Ongoing access is billed per active connection per month, with every account, reads, refreshes within the bank's limits and renewals included; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
+  price_usd_per_month: string | null;
+}
+
 /** How the bank statement upload is priced. */
 export interface BankStatementUploadPricing {
   /** Price of a statement upload after a charged bank attempt. Decimal string with 4 decimals, in USD. */
@@ -1355,6 +1885,184 @@ export interface BankStatementUploadPricing {
   included_after_charged_bank_attempt: boolean;
   /** `true` when a statement upload can run on its own, with no bank attempt first. `false` in production; sandbox sessions can test it without billing. */
   standalone_available: boolean;
+}
+
+/** One bucket of the bank's limit on fetches without the person present. */
+export interface BankSyncBudget {
+  /** What the bank counts the budget against. */
+  scope: "connection" | "account" | (string & {});
+  resource: "all" | "accounts" | "balances" | "transactions" | (string & {});
+  /** The account, when `scope` is `account`. */
+  account_id?: string | null;
+  /** How many times a day Didit may fetch from the bank without the person present, as the bank defines it. This is a ceiling set by the bank, not a promise. */
+  limit: number;
+  /** Fetches left for your refreshes in the current window. The reads kept for the automatic syncs are already taken out, and an automatic sync never takes the last two reads of the day, so two refreshes on demand always remain. */
+  remaining: number;
+  /** When the window resets. */
+  resets_at: Date;
+}
+
+/** A finished sync returned by a refresh with `wait`: the sync run with its `outcome`, the per-account counts in `results` and `balances_changed`. */
+export interface BankSyncCompleted {
+  id: string;
+  connection_id: string;
+  trigger: "initial" | "scheduled" | "requested" | (string & {});
+  status: "queued" | "running" | "succeeded" | "partial" | "failed" | (string & {});
+  started_at: Date | null;
+  finished_at: Date | null;
+  /** What the run did, per account and resource. */
+  results: BankSyncRunResult[];
+  /** Why the run failed as a whole. `null` when it did not. Errors of single accounts and resources are in `results`. */
+  error: BankSyncCompletedError | null;
+  /** How the sync ended. */
+  outcome: "succeeded" | "partial" | "failed" | (string & {});
+  /** Whether any balance changed. */
+  balances_changed: boolean;
+}
+
+/** Why the run failed as a whole. `null` when it did not. Errors of single accounts and resources are in `results`. */
+export interface BankSyncCompletedError {
+  code: string;
+  message: string;
+  at: Date;
+}
+
+/** Why a sync failed. */
+export interface BankSyncError {
+  /** Didit error code. */
+  code: string;
+  /** Plain-language explanation. */
+  message: string;
+  /** When it happened. */
+  at?: Date | null;
+}
+
+/** One synchronisation of a connection. Only initial, scheduled and requested syncs are listed. */
+export interface BankSyncRun {
+  id: string;
+  connection_id: string;
+  trigger: "initial" | "scheduled" | "requested" | (string & {});
+  status: "queued" | "running" | "succeeded" | "partial" | "failed" | (string & {});
+  started_at: Date | null;
+  finished_at: Date | null;
+  /** What the run did, per account and resource. */
+  results: BankSyncRunResult[];
+  /** Why the run failed as a whole. `null` when it did not. Errors of single accounts and resources are in `results`. */
+  error: BankSyncRunError | null;
+}
+
+/** Why the run failed as a whole. `null` when it did not. Errors of single accounts and resources are in `results`. */
+export interface BankSyncRunError {
+  code: string;
+  message: string;
+  at: Date;
+}
+
+export interface BankSyncRunList {
+  items: BankSyncRun[];
+  next_cursor: string | null;
+}
+
+export interface BankSyncRunResult {
+  /** `null` for a connection-wide result. */
+  account_id: string | null;
+  resource: "accounts" | "balances" | "transactions" | (string & {});
+  outcome: "succeeded" | "failed" | "skipped" | (string & {});
+  added: number;
+  modified: number;
+  removed: number;
+  /** Required when `outcome` is `failed`. */
+  error: BankSyncError | null;
+}
+
+/** One movement of an account. Any field the bank does not send is `null`; the institution capabilities list which fields a bank is known to send. */
+export interface BankTransaction {
+  /** Didit's id, opaque and stored at first sight. The same movement keeps its id across reads, syncs and renewals. `identity_quality` says how strong that guarantee is. */
+  id: string;
+  account_id: string;
+  /** A pending transaction has its own id. When the bank books it, the booked transaction carries `pending_id` where the bank links them, and the pending one appears in `removed` with `reason: pending_booked`. */
+  status: "booked" | "pending" | (string & {});
+  /** The pending transaction this one replaced. Set only when the bank links them, never guessed. */
+  pending_id: string | null;
+  /** The transaction this one reverses, when the bank links them. A reversal is a new transaction. */
+  reverses_id: string | null;
+  booking_date: string | null;
+  value_date: string | null;
+  transaction_date: string | null;
+  /** The date the date filters use, as the bank reports it in its own time zone with nothing converted: the booking date of a booked transaction, and for a pending one its transaction date or, failing that, the date it was first seen. */
+  effective_date: string;
+  /** Signed amount as a decimal string. Negative is money out. */
+  amount: string;
+  /** ISO 4217 currency code. */
+  currency: string;
+  /** Repeats the sign of `amount`. */
+  direction: "credit" | "debit" | (string & {});
+  description: string | null;
+  counterparty: BankTransactionCounterparty;
+  remittance: BankTransactionRemittance;
+  bank_transaction_code: string | null;
+  /** The bank's immutable entry reference where it provides one. `null` otherwise, never invented. */
+  bank_reference: string | null;
+  /** How `id` was matched. `bank_reference` and `route_id` are stable. `derived` is matched by content: it is stable while the bank keeps reporting the entry unchanged, and a correction by the bank can then appear as one `removed` and one `added`. */
+  identity_quality: "bank_reference" | "route_id" | "derived" | (string & {});
+  end_to_end_id: string | null;
+  mandate_id: string | null;
+  creditor_id: string | null;
+  merchant_category_code: string | null;
+  /** Currency exchange details where the bank gives them. */
+  exchange: BankTransactionExchange | null;
+  /** Balance after the transaction where the bank gives it. */
+  balance_after: string | null;
+  /** Didit's own category, when one applies. */
+  category: string | null;
+  first_seen_at: Date;
+  updated_at: Date;
+}
+
+/** Changes of a connection's transactions since a cursor. An empty cursor returns every current transaction as `added`. All pages of one read reflect the same snapshot; changes that arrive meanwhile come in the next read. */
+export interface BankTransactionChanges {
+  /** Transactions to add. On a first read (no cursor, or after `reset`) this is every transaction the connection had when the read started, each exactly once and in its current state, even if a sync runs while you page. In later reads it holds the transactions that are new since your cursor, and the booked transaction that replaces a pending one. */
+  added: BankTransaction[];
+  /** Transactions that changed since your cursor, in their current state. Apply each as an upsert by `id`: a transaction you already received while paging the first read comes again here if it changed meanwhile, and a bank correction arrives here too. */
+  modified: BankTransaction[];
+  /** Transactions that no longer exist, with a `reason`. Ignore an `id` you do not have: a transaction that was removed while you paged a first read was still delivered once as `added` and arrives here in the next read. */
+  removed: BankRemovedTransaction[];
+  /** `true` while there are more pages. Store `next_cursor` only after a response with `has_more: false`; if paging fails midway, restart from the cursor you had stored. */
+  has_more: boolean;
+  /** Continues this read while `has_more` is `true`. */
+  next_page_token: string | null;
+  /** The durable checkpoint of the feed, returned only on the last page. Opaque and bound to the application, environment and connection. Replayable for 90 days. On a first read it marks the moment the read started, so what changed meanwhile arrives in the next read. */
+  next_cursor: string | null;
+  /** `true` on every bootstrap, which is every read from an empty cursor: replace your copy with the result instead of adding to it. */
+  reset: boolean;
+}
+
+export interface BankTransactionCounterparty {
+  name: string | null;
+  iban: string | null;
+  bic: string | null;
+}
+
+/** Currency exchange details where the bank gives them. */
+export interface BankTransactionExchange {
+  source_amount?: string | null;
+  source_currency?: string | null;
+  rate?: string | null;
+}
+
+/** A page of a date-range read. The first page pins which transactions are included and each is served in its current state; a transaction removed while you page drops out of later pages and is reported by the change feed. */
+export interface BankTransactionPage {
+  /** Sorted by `effective_date` descending, then `id`. */
+  items: BankTransaction[];
+  /** Continues this read. Pins the snapshot of the first page, lives one hour and is bound to the application, environment, account and filters of the read. */
+  next_page_token: string | null;
+  has_more: boolean;
+}
+
+export interface BankTransactionRemittance {
+  unstructured: string[];
+  structured: string | null;
+  reference: string | null;
 }
 
 /** Public Bank Verification list prices: the statement upload, the own provider key fee and each country's methods. */
@@ -14520,6 +15228,22 @@ export type WebhookEventType =
   | "investigator.sla.breached"
   | "investigator.qa.failed"
   | "investigator.external.report.ready"
+  | "bank.link.completed"
+  | "bank.link.cancelled"
+  | "bank.link.expired"
+  | "bank.link.failed"
+  | "bank.connection.created"
+  | "bank.connection.updated"
+  | "bank.connection.consent_expiring"
+  | "bank.connection.renewal_required"
+  | "bank.connection.renewed"
+  | "bank.connection.revoked"
+  | "bank.connection.deleted"
+  | "bank.connection.history_complete"
+  | "bank.data.updated"
+  | "bank.sync.completed"
+  | "bank.sync.failed"
+  | "bank.sync.recovered"
   | "message.status.updated"
   | (string & {});
 

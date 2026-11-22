@@ -8,6 +8,22 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import type {
   ActivityCreatedEvent,
+  BankConnectionConsentExpiringEvent,
+  BankConnectionCreatedEvent,
+  BankConnectionDeletedEvent,
+  BankConnectionHistoryCompleteEvent,
+  BankConnectionRenewalRequiredEvent,
+  BankConnectionRenewedEvent,
+  BankConnectionRevokedEvent,
+  BankConnectionUpdatedEvent,
+  BankDataUpdatedEvent,
+  BankLinkCancelledEvent,
+  BankLinkCompletedEvent,
+  BankLinkExpiredEvent,
+  BankLinkFailedEvent,
+  BankSyncCompletedEvent,
+  BankSyncFailedEvent,
+  BankSyncRecoveredEvent,
   BusinessDataUpdatedEvent,
   BusinessStatusUpdatedEvent,
   KnownWebhookEvent,
@@ -71,6 +87,76 @@ function describeEvent(event: WebhookEvent): string {
     case "kyb.registry_search.resolved":
       expectTypeOf(event).toEqualTypeOf<KybRegistrySearchResolvedEvent>();
       return "registry search";
+    case "bank.link.completed":
+      expectTypeOf(event).toEqualTypeOf<BankLinkCompletedEvent>();
+      expectTypeOf(event.data.link_id).toEqualTypeOf<string>();
+      return `bank link ${event.data.status}`;
+    case "bank.link.cancelled":
+      expectTypeOf(event).toEqualTypeOf<BankLinkCancelledEvent>();
+      return "bank link cancelled";
+    case "bank.link.expired":
+      expectTypeOf(event).toEqualTypeOf<BankLinkExpiredEvent>();
+      return "bank link expired";
+    case "bank.link.failed":
+      expectTypeOf(event).toEqualTypeOf<BankLinkFailedEvent>();
+      expectTypeOf(event.data.error_code).toEqualTypeOf<
+        | "duplicate_conflict"
+        | "renewal_login_mismatch"
+        | "reduced_grant"
+        | "corporate_approval_not_supported"
+        | "ongoing_access_not_available"
+        | "bank_unavailable"
+        | "bank_cancelled"
+        | "consent_declined"
+        | "read_limit"
+        | (string & {})
+        | null
+      >();
+      return `bank link ${event.data.error_code ?? ""}`;
+    case "bank.connection.created":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionCreatedEvent>();
+      return `connection ${event.data.connection_id}`;
+    case "bank.connection.updated":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionUpdatedEvent>();
+      return `connection ${event.data.status}`;
+    case "bank.connection.renewal_required":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionRenewalRequiredEvent>();
+      return "connection renewal required";
+    case "bank.connection.renewed":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionRenewedEvent>();
+      return "connection renewed";
+    case "bank.connection.history_complete":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionHistoryCompleteEvent>();
+      return "history complete";
+    case "bank.connection.consent_expiring":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionConsentExpiringEvent>();
+      expectTypeOf(event.data.days_left).toEqualTypeOf<number>();
+      return `consent ${event.data.days_left} days`;
+    case "bank.connection.revoked":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionRevokedEvent>();
+      expectTypeOf(event.data.ended_by).toEqualTypeOf<
+        "end_user" | "bank" | "customer" | "unknown" | (string & {})
+      >();
+      return `connection revoked by ${event.data.ended_by}`;
+    case "bank.connection.deleted":
+      expectTypeOf(event).toEqualTypeOf<BankConnectionDeletedEvent>();
+      return "connection deleted";
+    case "bank.data.updated":
+      expectTypeOf(event).toEqualTypeOf<BankDataUpdatedEvent>();
+      expectTypeOf(event.data.added).toEqualTypeOf<number>();
+      return `${event.data.added} added`;
+    case "bank.sync.completed":
+      expectTypeOf(event).toEqualTypeOf<BankSyncCompletedEvent>();
+      expectTypeOf(event.data.outcome).toEqualTypeOf<
+        "succeeded" | "partial" | "failed" | (string & {})
+      >();
+      return `sync ${event.data.outcome}`;
+    case "bank.sync.failed":
+      expectTypeOf(event).toEqualTypeOf<BankSyncFailedEvent>();
+      return "sync failed";
+    case "bank.sync.recovered":
+      expectTypeOf(event).toEqualTypeOf<BankSyncRecoveredEvent>();
+      return "sync recovered";
     default:
       // TypeScript cannot remove the known events here (UnknownEvent's type
       // is any string), but webhook_type is still a string to log.
@@ -145,6 +231,22 @@ describe("WebhookEvent", () => {
       | "travel_rule.status.updated"
       | "workflow.compliance_changed"
       | "kyb.registry_search.resolved"
+      | "bank.link.completed"
+      | "bank.link.cancelled"
+      | "bank.link.expired"
+      | "bank.link.failed"
+      | "bank.connection.created"
+      | "bank.connection.updated"
+      | "bank.connection.renewal_required"
+      | "bank.connection.renewed"
+      | "bank.connection.history_complete"
+      | "bank.connection.consent_expiring"
+      | "bank.connection.revoked"
+      | "bank.connection.deleted"
+      | "bank.data.updated"
+      | "bank.sync.completed"
+      | "bank.sync.failed"
+      | "bank.sync.recovered"
     >();
     expectTypeOf<
       Extract<WebhookEvent, { webhook_type: "data.updated" }>
