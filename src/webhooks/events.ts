@@ -245,7 +245,7 @@ export interface KybRegistrySearchResolvedEvent extends WebhookEventBase {
   kyb_registry?: Record<string, unknown> | null;
 }
 
-/** Ids and statuses of a Bank Link. No personal data. */
+/** Ids and statuses of a Bank Link, in `data` of the `bank.link.*` events. No personal data. */
 export interface BankLinkEventData {
   /** The link id. */
   link_id: string;
@@ -266,112 +266,197 @@ export interface BankLinkEventData {
     | "bank_cancelled"
     | "consent_declined"
     | "read_limit"
-    | (string & {})
-    | null;
-}
-
-/** Ids and statuses of a bank connection. No personal data. */
-export interface BankConnectionEventData {
-  /** The connection id. */
-  connection_id: string;
-  status:
-    | "pending"
-    | "active"
-    | "renewal_required"
-    | "paused"
-    | "revoked"
-    | "deleted"
-    | "failed"
-    | (string & {});
-  /** Why the connection is in this status. */
-  status_reason:
-    | "collection_complete"
-    | "consent_expired"
-    | "consent_lapsed"
-    | "bank_requires_sign_in"
-    | "revoked_by_end_user"
-    | "revoked_by_bank"
-    | "revoked_by_customer"
-    | "insufficient_balance"
-    | "paused_by_customer"
+    | "renewal_not_needed"
+    | "renewal_window_expired"
     | "first_sync_failed"
     | (string & {})
     | null;
 }
 
-/** The approach of a connection's consent end. */
+/** Status of a bank connection. */
+type BankConnectionStatus =
+  | "pending"
+  | "active"
+  | "renewal_required"
+  | "paused"
+  | "revoked"
+  | "deleted"
+  | "failed"
+  | (string & {});
+
+/** What started a bank sync. */
+type BankSyncTrigger = "initial" | "scheduled" | "requested" | (string & {});
+
+// The connection, data and sync events send their fields at the top level of
+// the body, next to the envelope fields (no `data` object). Date-times are the
+// ISO 8601 strings as sent.
+
+/** Fields of `bank.connection.created`. */
+export interface BankConnectionCreatedData {
+  /** The connection id. */
+  connection_id: string;
+  /** How the first sync ended. */
+  initial_status: "succeeded" | "partial" | (string & {});
+}
+
+/** Fields of `bank.connection.updated`. */
+export interface BankConnectionUpdatedData {
+  /** The connection id. */
+  connection_id: string;
+  /** The connection status. */
+  status: BankConnectionStatus;
+  /** `pending`: a revocation was requested and the bank has not confirmed it yet. */
+  revocation_status: "pending" | (string & {});
+}
+
+/** Fields of `bank.connection.consent_expiring`. */
 export interface BankConnectionConsentExpiringData {
   /** The connection id. */
   connection_id: string;
-  /** 14, 7 or 1. */
+  /** Days left before the consent ends: 14, 7 or 1. */
   days_left: number;
-  /** When the bank's consent ends, as sent (a date-time string). */
-  expires_at: string;
-  /** A ready renew link, when automatic renew links are on. It is a credential: never log it. */
-  renew_url: string | null;
+  /** When the consent ends. */
+  consent_expires_at: string;
+  /** The consent's end: renew before it for no gap. */
+  renew_by: string | null;
 }
 
-/** Who ended a connection's access, and where the consent stands. */
+/** Fields of `bank.connection.renewal_required`. */
+export interface BankConnectionRenewalRequiredData {
+  /** The connection id. */
+  connection_id: string;
+  status: "renewal_required" | (string & {});
+  /** Why renewal is needed. */
+  reason: "consent_expired" | "bank_requires_sign_in" | (string & {});
+  /** The consent's end, when there is one. */
+  renew_by: string | null;
+  /** The last moment the same connection can be revived. After it the person connects again. */
+  renewable_until: string | null;
+}
+
+/** Fields of `bank.connection.renewed`. */
+export interface BankConnectionRenewedData {
+  /** The connection id. */
+  connection_id: string;
+  /** The connection status. */
+  status: BankConnectionStatus;
+  /** The consent version the renewal created. */
+  consent_version: number;
+  /** The renew link that completed, when there is one. */
+  link_id: string | null;
+  /** When the renewed consent ends. */
+  consent_expires_at: string | null;
+}
+
+/** Fields of `bank.connection.revoked`. */
 export interface BankConnectionRevokedData {
   /** The connection id. */
   connection_id: string;
-  /** The consent status. */
-  status: "revocation_pending" | "revoked" | "revocation_failed" | (string & {});
+  /** Consent status once access is terminated. */
+  status: "revoked" | (string & {});
   /** Who ended access. */
   ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {});
+  /** Why the connection is in this status. */
+  status_reason:
+    | "revoked_by_end_user"
+    | "revoked_by_bank"
+    | "revoked_by_customer"
+    | "consent_expired"
+    | "consent_lapsed"
+    | "bank_requires_sign_in"
+    | "insufficient_balance"
+    | "paused_by_customer"
+    | "first_sync_failed"
+    | "collection_complete"
+    | (string & {})
+    | null;
+  /** When access ended. */
+  ended_at: string | null;
+  /** How long the stored data stays readable, set by the retention setting of your application. */
+  retain_until: string | null;
 }
 
-/** The erased state of a deleted connection. */
+/** Fields of `bank.connection.deleted`. */
 export interface BankConnectionDeletedData {
   /** The connection id. */
   connection_id: string;
-  /** `erased` once no stored copy and no access at the bank remain. */
+  status: "deleted" | (string & {});
+  /** `erased`: the deletion finished. */
   erasure_status: "erased" | (string & {});
+  /** Why the connection was deleted. */
+  reason:
+    | "deleted_by_customer"
+    | "consent_lapsed"
+    | "retention_elapsed"
+    | "application_deleted"
+    | "restored_after_deletion"
+    | (string & {})
+    | null;
+  /** When the deletion finished. */
+  erased_at: string;
 }
 
-/** The transactions and balances a sync changed. */
-export interface BankDataUpdatedData {
+/** Fields of `bank.connection.history_complete`. */
+export interface BankConnectionHistoryCompleteData {
   /** The connection id. */
   connection_id: string;
-  /** The sync that changed the data. */
-  sync_id: string;
-  /** Accounts whose data changed. */
-  account_ids: string[];
+  /** `partial` when the bank could not deliver every range you asked for. */
+  status: "complete" | "partial" | (string & {});
+}
+
+/** Transactions changed in one account, in `bank.data.updated`. */
+export interface BankDataUpdatedAccount {
+  /** The account id. */
+  account_id: string;
   /** Transactions added. */
   added: number;
   /** Transactions modified. */
   modified: number;
   /** Transactions removed. */
   removed: number;
-  /** Whether the balances changed. */
+}
+
+/** Fields of `bank.data.updated`. */
+export interface BankDataUpdatedData {
+  /** The connection id. */
+  connection_id: string;
+  /** The sync run id. */
+  sync_id: string;
+  /** What started the sync. */
+  trigger: BankSyncTrigger;
+  /** The accounts whose transactions changed, with counts. */
+  accounts: BankDataUpdatedAccount[];
+  /** Whether any balance changed. */
   balances_changed: boolean;
 }
 
-/** The result of a connection's sync. */
+/** Fields of `bank.sync.completed`. */
 export interface BankSyncCompletedData {
   /** The connection id. */
   connection_id: string;
-  /** The sync that completed. */
+  /** The sync run id. */
   sync_id: string;
   /** What started the sync. */
-  trigger: "scheduled" | "requested" | "initial" | (string & {});
+  trigger: BankSyncTrigger;
   /** How the sync ended. */
   outcome: "succeeded" | "partial" | "failed" | (string & {});
   /** Whether the sync stored changes. */
   changed: boolean;
 }
 
-/** A sync that failed. */
+/** Fields of `bank.sync.failed`. */
 export interface BankSyncFailedData {
   /** The connection id. */
   connection_id: string;
-  /** The latest failed sync, when one is known. */
-  sync_id: string | null;
-  /** The sync error code, when the bank gave one. */
-  error_code: string | null;
+  /** The latest failed sync. */
+  sync_id: string;
+  /** Didit error code of the failure. */
+  error_code: string;
+  /** When the syncs started to fail. */
+  failing_since: string;
 }
 
-/** A connection whose sync works again. */
+/** Fields of `bank.sync.recovered`. */
 export interface BankSyncRecoveredData {
   /** The connection id. */
   connection_id: string;
@@ -384,98 +469,87 @@ interface BankLinkEventFields {
   data: BankLinkEventData;
 }
 
-/** `bank.link.completed`: a Bank Link completed and may have created a connection. */
+/** `bank.link.completed`: the person connected a bank or renewed a connection; `data.connection_id` is set. */
 export interface BankLinkCompletedEvent extends WebhookEventBase, BankLinkEventFields {
   webhook_type: "bank.link.completed";
 }
 
-/** `bank.link.cancelled`: a Bank Link was cancelled before it completed. */
+/** `bank.link.cancelled`: a Bank Link was cancelled, by the person or by `cancelLink`. */
 export interface BankLinkCancelledEvent extends WebhookEventBase, BankLinkEventFields {
   webhook_type: "bank.link.cancelled";
 }
 
-/** `bank.link.expired`: a Bank Link expired before it completed. */
+/** `bank.link.expired`: a Bank Link expired before it was completed. */
 export interface BankLinkExpiredEvent extends WebhookEventBase, BankLinkEventFields {
   webhook_type: "bank.link.expired";
 }
 
-/** `bank.link.failed`: a Bank Link failed. */
+/** `bank.link.failed`: a Bank Link failed; `data.error_code` says why. Nothing was published or charged. */
 export interface BankLinkFailedEvent extends WebhookEventBase, BankLinkEventFields {
   webhook_type: "bank.link.failed";
 }
 
-/** Fields of the connection events that carry `BankConnectionEventData`. */
-interface BankConnectionEventFields {
-  data: BankConnectionEventData;
-}
-
-/** `bank.connection.created`: a connection was created. */
-export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnectionEventFields {
+/** `bank.connection.created`: the first sync finished and the accounts are readable. */
+export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnectionCreatedData {
   webhook_type: "bank.connection.created";
 }
 
-/** `bank.connection.updated`: a connection changed status. */
-export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionEventFields {
+/** `bank.connection.updated`: a revocation started; `bank.connection.revoked` follows. */
+export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionUpdatedData {
   webhook_type: "bank.connection.updated";
 }
 
-/** `bank.connection.renewal_required`: the person must renew the connection. */
+/** `bank.connection.consent_expiring`: the consent ends in 14, 7 or 1 days. */
+export interface BankConnectionConsentExpiringEvent
+  extends WebhookEventBase, BankConnectionConsentExpiringData {
+  webhook_type: "bank.connection.consent_expiring";
+}
+
+/** `bank.connection.renewal_required`: the consent ended or the bank asks the person to sign in again. */
 export interface BankConnectionRenewalRequiredEvent
-  extends WebhookEventBase, BankConnectionEventFields {
+  extends WebhookEventBase, BankConnectionRenewalRequiredData {
   webhook_type: "bank.connection.renewal_required";
 }
 
-/** `bank.connection.renewed`: the connection's consent was renewed. */
-export interface BankConnectionRenewedEvent extends WebhookEventBase, BankConnectionEventFields {
+/** `bank.connection.renewed`: a renew link completed; the connection and account ids are unchanged. */
+export interface BankConnectionRenewedEvent extends WebhookEventBase, BankConnectionRenewedData {
   webhook_type: "bank.connection.renewed";
+}
+
+/** `bank.connection.revoked`: access ended and the bank confirmed it. */
+export interface BankConnectionRevokedEvent extends WebhookEventBase, BankConnectionRevokedData {
+  webhook_type: "bank.connection.revoked";
+}
+
+/** `bank.connection.deleted`: the connection's stored data was deleted. */
+export interface BankConnectionDeletedEvent extends WebhookEventBase, BankConnectionDeletedData {
+  webhook_type: "bank.connection.deleted";
 }
 
 /** `bank.connection.history_complete`: the history backfill ended. */
 export interface BankConnectionHistoryCompleteEvent
-  extends WebhookEventBase, BankConnectionEventFields {
+  extends WebhookEventBase, BankConnectionHistoryCompleteData {
   webhook_type: "bank.connection.history_complete";
 }
 
-/** `bank.connection.consent_expiring`: the connection's consent is about to end. */
-export interface BankConnectionConsentExpiringEvent extends WebhookEventBase {
-  webhook_type: "bank.connection.consent_expiring";
-  data: BankConnectionConsentExpiringData;
-}
-
-/** `bank.connection.revoked`: access to the connection ended. */
-export interface BankConnectionRevokedEvent extends WebhookEventBase {
-  webhook_type: "bank.connection.revoked";
-  data: BankConnectionRevokedData;
-}
-
-/** `bank.connection.deleted`: the connection's stored bank data was erased. */
-export interface BankConnectionDeletedEvent extends WebhookEventBase {
-  webhook_type: "bank.connection.deleted";
-  data: BankConnectionDeletedData;
-}
-
-/** `bank.data.updated`: a sync changed the connection's transactions or balances. */
-export interface BankDataUpdatedEvent extends WebhookEventBase {
+/** `bank.data.updated`: a sync stored changes, or the first read published the accounts. Read them with `syncTransactions`. */
+export interface BankDataUpdatedEvent extends WebhookEventBase, BankDataUpdatedData {
   webhook_type: "bank.data.updated";
-  data: BankDataUpdatedData;
 }
 
-/** `bank.sync.completed`: a connection's sync ended. */
-export interface BankSyncCompletedEvent extends WebhookEventBase {
+/** `bank.sync.completed`: a sync finished (off by default). */
+export interface BankSyncCompletedEvent extends WebhookEventBase, BankSyncCompletedData {
   webhook_type: "bank.sync.completed";
-  data: BankSyncCompletedData;
 }
 
-/** `bank.sync.failed`: a connection's sync failed. */
-export interface BankSyncFailedEvent extends WebhookEventBase {
+/** `bank.sync.failed`: syncs have been failing for 24 hours; they are retried. */
+export interface BankSyncFailedEvent extends WebhookEventBase, BankSyncFailedData {
   webhook_type: "bank.sync.failed";
-  data: BankSyncFailedData;
 }
 
-/** `bank.sync.recovered`: a connection's sync works again. */
-export interface BankSyncRecoveredEvent extends WebhookEventBase {
+/** `bank.sync.recovered`: syncs work again after `bank.sync.failed`. */
+export interface BankSyncRecoveredEvent extends WebhookEventBase, BankSyncRecoveredData {
   webhook_type: "bank.sync.recovered";
-  data: BankSyncRecoveredData;
 }
 
 /**
