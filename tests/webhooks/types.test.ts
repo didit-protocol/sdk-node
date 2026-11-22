@@ -109,51 +109,59 @@ function describeEvent(event: WebhookEvent): string {
         | "bank_cancelled"
         | "consent_declined"
         | "read_limit"
+        | "renewal_not_needed"
+        | "renewal_window_expired"
+        | "first_sync_failed"
         | (string & {})
         | null
       >();
       return `bank link ${event.data.error_code ?? ""}`;
     case "bank.connection.created":
       expectTypeOf(event).toEqualTypeOf<BankConnectionCreatedEvent>();
-      return `connection ${event.data.connection_id}`;
+      expectTypeOf(event.connection_id).toEqualTypeOf<string>();
+      return `connection ${event.connection_id} ${event.initial_status}`;
     case "bank.connection.updated":
       expectTypeOf(event).toEqualTypeOf<BankConnectionUpdatedEvent>();
-      return `connection ${event.data.status}`;
+      return `connection ${event.status} ${event.revocation_status}`;
     case "bank.connection.renewal_required":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRenewalRequiredEvent>();
-      return "connection renewal required";
+      expectTypeOf(event.renewable_until).toEqualTypeOf<string | null>();
+      return `connection renewal required: ${event.reason}`;
     case "bank.connection.renewed":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRenewedEvent>();
+      expectTypeOf(event.consent_version).toEqualTypeOf<number>();
       return "connection renewed";
     case "bank.connection.history_complete":
       expectTypeOf(event).toEqualTypeOf<BankConnectionHistoryCompleteEvent>();
-      return "history complete";
+      return `history ${event.status}`;
     case "bank.connection.consent_expiring":
       expectTypeOf(event).toEqualTypeOf<BankConnectionConsentExpiringEvent>();
-      expectTypeOf(event.data.days_left).toEqualTypeOf<number>();
-      return `consent ${event.data.days_left} days`;
+      expectTypeOf(event.days_left).toEqualTypeOf<number>();
+      expectTypeOf(event.renew_by).toEqualTypeOf<string | null>();
+      return `consent ${event.days_left} days`;
     case "bank.connection.revoked":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRevokedEvent>();
-      expectTypeOf(event.data.ended_by).toEqualTypeOf<
+      expectTypeOf(event.ended_by).toEqualTypeOf<
         "end_user" | "bank" | "customer" | "unknown" | (string & {})
       >();
-      return `connection revoked by ${event.data.ended_by}`;
+      return `connection revoked by ${event.ended_by}`;
     case "bank.connection.deleted":
       expectTypeOf(event).toEqualTypeOf<BankConnectionDeletedEvent>();
+      expectTypeOf(event.erased_at).toEqualTypeOf<string>();
       return "connection deleted";
     case "bank.data.updated":
       expectTypeOf(event).toEqualTypeOf<BankDataUpdatedEvent>();
-      expectTypeOf(event.data.added).toEqualTypeOf<number>();
-      return `${event.data.added} added`;
+      expectTypeOf(event.accounts[0]!.added).toEqualTypeOf<number>();
+      return `${event.accounts.length} accounts changed`;
     case "bank.sync.completed":
       expectTypeOf(event).toEqualTypeOf<BankSyncCompletedEvent>();
-      expectTypeOf(event.data.outcome).toEqualTypeOf<
+      expectTypeOf(event.outcome).toEqualTypeOf<
         "succeeded" | "partial" | "failed" | (string & {})
       >();
-      return `sync ${event.data.outcome}`;
+      return `sync ${event.outcome}`;
     case "bank.sync.failed":
       expectTypeOf(event).toEqualTypeOf<BankSyncFailedEvent>();
-      return "sync failed";
+      return `sync failing since ${event.failing_since}`;
     case "bank.sync.recovered":
       expectTypeOf(event).toEqualTypeOf<BankSyncRecoveredEvent>();
       return "sync recovered";

@@ -1419,13 +1419,13 @@ export interface BankBalances {
   last_synced_at: Date | null;
 }
 
-/** The person's permission for your application to read one bank. A renewal keeps the connection id and every account id. */
+/** The person's permission for your application to read one bank. A renewal keeps the connection id and every account id. A deleted connection answers only `id`, `status`, `status_reason`, `created_at` and `erasure`: every other field is absent, and no bank, person or account data remains in it. */
 export interface BankConnection {
   /** Identifier of the connection. */
   id: string;
-  environment: "live" | "sandbox" | (string & {});
-  access: "one_time" | "ongoing" | (string & {});
-  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you. `deleted`: only the id, dates and reason remain. `failed`: the first sync never succeeded. */
+  environment?: "live" | "sandbox" | (string & {});
+  access?: "one_time" | "ongoing" | (string & {});
+  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you. `deleted`: only `id`, `status`, `status_reason`, `created_at` and `erasure` remain. `failed`: the first sync never succeeded. */
   status:
     | "pending"
     | "active"
@@ -1435,7 +1435,7 @@ export interface BankConnection {
     | "deleted"
     | "failed"
     | (string & {});
-  /** Why the connection is in this status. `paused_by_customer` is reserved. */
+  /** Why the connection is in this status. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed`, `application_deleted` or `restored_after_deletion`. */
   status_reason:
     | "collection_complete"
     | "consent_expired"
@@ -1447,33 +1447,37 @@ export interface BankConnection {
     | "insufficient_balance"
     | "paused_by_customer"
     | "first_sync_failed"
+    | "deleted_by_customer"
+    | "retention_elapsed"
+    | "application_deleted"
+    | "restored_after_deletion"
     | (string & {})
     | null;
   /** The bank a connection or link is for. */
-  institution: BankInstitutionSummary;
-  segment: "personal" | "business" | (string & {}) | null;
+  institution?: BankInstitutionSummary;
+  segment?: "personal" | "business" | (string & {}) | null;
   /** The scopes the person accepted. */
-  data: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  data?: ("accounts" | "balances" | "transactions" | (string & {}))[];
   /** The person's consent for this connection. */
-  consent: BankConnectionConsent;
+  consent?: BankConnectionConsent;
   /** Synchronisation state of a connection. */
-  sync: BankConnectionSync;
+  sync?: BankConnectionSync;
   /** Summary of every account in the connection. Read the full account with `get_account`. */
-  accounts: BankConnectionAccountSummary[];
+  accounts?: BankConnectionAccountSummary[];
   /** The optional comparison of the account holder with a person or company. */
-  ownership: BankConnectionOwnership;
-  end_user: BankConnectionEndUser;
-  /** Reserved. Always `null` for now. */
-  manage_url: string | null;
+  ownership?: BankConnectionOwnership;
+  end_user?: BankConnectionEndUser;
+  /** Reserved. Always `null`. */
+  manage_url?: string | null;
   /** What this connection costs. Sandbox is never charged. */
-  billing: BankConnectionBilling;
+  billing?: BankConnectionBilling;
   /** Set when this connection may duplicate another active one but no `end_user.reference` allowed a certain match. */
-  possible_duplicate_of: string | null;
+  possible_duplicate_of?: string | null;
   /** Set after `delete_connection`; otherwise `null`. */
   erasure: BankConnectionErasure | null;
-  vendor_data: string | null;
+  vendor_data?: string | null;
   created_at: Date;
-  updated_at: Date;
+  updated_at?: Date;
 }
 
 /** Short form of an account inside a connection. */
@@ -1493,7 +1497,7 @@ export interface BankConnectionAccountSummary {
 /** What this connection costs. Sandbox is never charged. */
 export interface BankConnectionBilling {
   /** Billing unit, `connection_month` for ongoing access, `one_time` otherwise. */
-  unit: string;
+  unit: "connection_month" | "one_time" | (string & {});
   /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged for a month only when every accepted scope published data for at least one account in that month. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page and in the console. */
   price_usd: string | null;
   /** The last month end already settled. */
@@ -1533,7 +1537,7 @@ export interface BankConnectionConsent {
   ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {}) | null;
 }
 
-/** Accepted deletion. The connection's bank data is being deleted and every read and write of it is refused; the connection reads as a minimal record with this `erasure` status. */
+/** Accepted deletion. The connection's bank data is being deleted and its data operations answer `409 connection_not_active`; reading the connection returns a minimal record with this `erasure` status. */
 export interface BankConnectionDeletion {
   /** The connection id. */
   id: string;
@@ -1548,9 +1552,11 @@ export interface BankConnectionEndUser {
 
 /** Progress of a deletion you asked for. */
 export interface BankConnectionErasure {
-  /** `pending` while deletion runs, `erased` when no stored copy and no access at the bank remain, `failed` when it could not be confirmed within 24 hours. A failed deletion keeps every read and write of the connection blocked, is retried, and Didit is alerted. */
+  /** `pending` while deletion runs, `erased` when no stored copy and no access at the bank remain, `failed` when it could not be confirmed within 24 hours. A failed deletion keeps the connection's data closed, is retried, and Didit is alerted. */
   status: "pending" | "erased" | "failed" | (string & {});
   requested_at: Date;
+  /** When the deletion finished. `null` until `status` is `erased`. */
+  erased_at: Date | null;
 }
 
 /** A page of connections. */
@@ -1618,7 +1624,7 @@ export interface BankCoverageCountry {
   /** The deepest history any bank in the country delivers, in days. */
   history_days_max: number | null;
   /** Whether at least one bank supports business accounts. */
-  business_accounts: boolean | null;
+  business_accounts: boolean;
 }
 
 export interface BankDateRange {
@@ -1758,6 +1764,7 @@ export interface BankLinkError {
     | "read_limit"
     | "renewal_not_needed"
     | "renewal_window_expired"
+    | "first_sync_failed"
     | (string & {});
   /** Plain-language explanation for a developer. */
   message: string;
@@ -1767,7 +1774,7 @@ export interface BankLinkError {
 
 /** Optional comparison of the account holder with a person or a company. */
 export interface BankLinkOwnershipRequest {
-  /** What the holder of the account is compared with. `none` (default) gives no verdict and needs no reference. `person` needs `reference_identity` or `session_id`. `business` needs `business` or `business_session_id`. */
+  /** What the holder of the account is compared with. `none` (default) gives no verdict and needs no reference. `person` needs `reference_identity` or `session_id`. `business` needs `business` or `business_session_id`. Send exactly one reference of the kind you compare with, and none with `none`. */
   compare?: "none" | "person" | "business" | (string & {});
   /** Whether one legal holder or every legal holder must match. Representatives never count. */
   match?: "any_holder" | "all_holders" | (string & {});
@@ -1933,8 +1940,8 @@ export interface BankSyncError {
   code: string;
   /** Plain-language explanation. */
   message: string;
-  /** When it happened. */
-  at?: Date | null;
+  /** When it happened. `null` on a per-account result. */
+  at: Date | null;
 }
 
 /** One synchronisation of a connection. Only initial, scheduled and requested syncs are listed. */
@@ -1989,7 +1996,7 @@ export interface BankTransaction {
   booking_date: string | null;
   value_date: string | null;
   transaction_date: string | null;
-  /** The date the date filters use, as the bank reports it in its own time zone with nothing converted: the booking date of a booked transaction, and for a pending one its transaction date or, failing that, the date it was first seen. */
+  /** The date the date filters use, as the bank reports it in its own time zone with nothing converted: for a booked transaction its booking date, else its value date, else the date it was first seen; for a pending one its transaction date, else the date it was first seen. */
   effective_date: string;
   /** Signed amount as a decimal string. Negative is money out. */
   amount: string;
