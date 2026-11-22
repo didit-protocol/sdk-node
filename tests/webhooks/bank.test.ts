@@ -279,7 +279,11 @@ describe("the payloads match the contract's event schemas", () => {
     it(`${name} has exactly its required fields`, () => {
       const typed = resolve(schema).allOf!.find((part) => part.properties?.webhook_type)!;
       const type = (typed.properties!.webhook_type as { enum: string[] }).enum[0]!;
-      const payload: Record<string, unknown> = { ...ENVELOPE, webhook_type: type, ...PAYLOADS[type] };
+      const payload: Record<string, unknown> = {
+        ...ENVELOPE,
+        webhook_type: type,
+        ...PAYLOADS[type],
+      };
       const event = fields(schema);
       expect(Object.keys(payload).sort()).toEqual([...new Set(event.required)].sort());
       expect(event.properties).toEqual(expect.arrayContaining(Object.keys(payload)));
