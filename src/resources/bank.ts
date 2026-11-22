@@ -197,11 +197,19 @@ export class Bank extends APIResource {
   /**
    * Create a bank link
    *
+<<<<<<< HEAD
    * Creates a Bank Link: one run of the flow in which a person connects a bank, or renews a connection. Send the person to `url`, or pass `client_token` to the web or native SDK. A completed link yields a connection.
    *
    * The smallest request is `{}` plus what you want. Defaults: `mode` connect, `access` one_time, `data` accounts only, `history_days` 90, `ownership.compare` none, `segment` any, `duplicates` reuse, `allow_one_time_fallback` false, and for ongoing access a consent as long as the bank allows.
    *
    * The response carries the quote: the price is pinned to the link and charged as quoted. The API key never reaches a browser or an app: only `client_token` and `url` do. They are redeemed once between them, and whichever arrives first wins.
+=======
+   * Creates a Bank Link: one run of the flow in which a person connects a bank, or renews a connection. Send the person to `url`. The `client_token` is for Didit's embedded Bank Link, which is not released yet: open the `url` today. A completed link yields a connection.
+   *
+   * The smallest request is `{}` plus what you want. Defaults: `mode` connect, `access` one_time, `data` accounts only, `history_days` 90, `ownership.compare` none, `segment` any, `duplicates` reuse, `allow_one_time_fallback` false, and for ongoing access a consent as long as the bank allows.
+   *
+   * The response carries the quote: the price is pinned to the link and charged as quoted. The API key never reaches a browser or an app: only the `url` does.
+>>>>>>> origin/main
    *
    * Confirm the outcome yourself with `get_link` or the `bank.link.completed` webhook; never trust a link id sent by the browser. History: send `history_from` or `history_days`, not both. Where the bank allows, ongoing access keeps working until the consent ends; the real date is on each connection.
    *
@@ -218,11 +226,19 @@ export class Bank extends APIResource {
   /**
    * Delete a bank connection
    *
+<<<<<<< HEAD
    * Deletes the connection's bank data and stops access at the bank. The connection's accounts, balances, transactions, sync history, consent records and ownership results are deleted. Deletion is irreversible.
    *
    * It starts at once: the response is `202` with `erasure.status` `pending`, and from that moment the connection's data operations (refresh, sync runs, accounts, balances, transactions and the change feed) answer `409 connection_not_active`. The connection then reads with `erasure.status` `erased`, or `failed` if deletion could not be confirmed within 24 hours; a failed deletion is retried until it completes. A deleted connection reads as a minimal record: its id, `status: deleted`, the reason, its dates and its `erasure` status, and it holds no accounts, balances, transactions, consent or sync data.
    *
    * Not affected: your other connections, the charges already made (they are not refunded), and any data you already downloaded, which is your own copy. Repeating the call returns the current state. To stop access without deleting, use `revoke_connection`.
+=======
+   * Deletes the connection's bank data and stops access at the bank. Deletion is immediate and irreversible: when the call returns, the connection's accounts, balances, transactions, sync history, consent records and ownership results are deleted, and its data operations (refresh, sync runs, accounts, balances, transactions and the change feed) answer `409 connection_not_active`.
+   *
+   * A deleted connection reads as a minimal record: its id, `status: deleted`, the reason, its dates and its `erasure` record (`requested_at`, `erased_at` and `status`, the confirmation of the deletion: `pending` while it is being confirmed, including the end of access at the bank, `erased` once confirmed, `failed` if the confirmation has not arrived yet and is repeated automatically, with nothing needed from you). It holds no accounts, balances, transactions, consent or sync data. `bank.connection.deleted` confirms the deletion.
+   *
+   * Not affected: your other connections, the charges already made (they are not refunded), and any data you already downloaded, which is your own copy. Repeating the call is safe. To stop access without deleting, use `revoke_connection`.
+>>>>>>> origin/main
    *
    * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
    *
@@ -241,7 +257,11 @@ export class Bank extends APIResource {
    *
    * Returns one account with full identifiers, holders, sync state and `history_coverage`, which says what the bank delivered of the history you asked for. `sync.last_synced_at` is when the data was fetched from the bank, not when you read it.
    *
+<<<<<<< HEAD
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+=======
+   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+>>>>>>> origin/main
    *
    * `GET /v3/bank/accounts/{account_id}/`
    *
@@ -256,7 +276,11 @@ export class Bank extends APIResource {
    *
    * Returns the typed balances of an account with their reference dates. Balances are replaced at each sync.
    *
+<<<<<<< HEAD
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+=======
+   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+>>>>>>> origin/main
    *
    * `GET /v3/bank/accounts/{account_id}/balances/`
    *
@@ -347,7 +371,11 @@ export class Bank extends APIResource {
    *
    * Lists every account of the connection, oldest first, with full identifiers and holders. A read never bills.
    *
+<<<<<<< HEAD
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+=======
+   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+>>>>>>> origin/main
    *
    * `GET /v3/bank/connections/{id}/accounts/`
    *
@@ -427,7 +455,11 @@ export class Bank extends APIResource {
    *
    * Response headers: `X-Bank-Last-Synced-At` and `Cache-Control: no-store`.
    *
+<<<<<<< HEAD
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+=======
+   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+>>>>>>> origin/main
    *
    * `GET /v3/bank/accounts/{account_id}/transactions/`
    *
@@ -471,9 +503,17 @@ export class Bank extends APIResource {
   /**
    * Renew a bank connection
    *
+<<<<<<< HEAD
    * Creates a renew link for this connection, a shortcut for `create_link` with `mode: renew`. The person confirms what continues to be shared and signs in at the bank, or reconfirms on Didit's screen where the bank and country allow it (`consent.renewal_action`). The connection id and every account id stay the same, and history continues without duplicates.
    *
    * Until the consent has 30 days left or fewer it answers `409 renewal_not_needed`; after `consent.renewable_until` it answers `409 renewal_window_expired` and the person connects again. If the person renews with another bank login, the link ends `failed` with `renewal_login_mismatch` and nothing changes.
+=======
+   * Creates a renew link for this connection, a shortcut for `create_link` with `mode: renew`. The connection id and every account id stay the same.
+   *
+   * Opening the returned link on the hosted page is not available yet: the page that lets the person renew is still to be built.
+   *
+   * Until the consent has 30 days left or fewer it answers `409 renewal_not_needed`; after `consent.renewable_until` it answers `409 renewal_window_expired` and the person connects again.
+>>>>>>> origin/main
    *
    * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
    *
@@ -521,7 +561,11 @@ export class Bank extends APIResource {
    *
    * The change log is replayable for 90 days. An older cursor answers `410 cursor_expired` with `bootstrap: true`: start again from an empty cursor. Stored history is never aged out while the connection exists. A booked pending transaction appears in `added` and the pending one in `removed` with `reason: pending_booked`. Webhook `bank.data.updated` tells you when to call.
    *
+<<<<<<< HEAD
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+=======
+   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+>>>>>>> origin/main
    *
    * `GET /v3/bank/connections/{id}/transactions/sync/`
    *

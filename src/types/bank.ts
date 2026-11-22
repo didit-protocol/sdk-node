@@ -76,9 +76,15 @@ export interface BankCreateLinkParams {
   ownership?: BankLinkOwnershipRequest;
   /** The person or company that connects the account. */
   end_user?: BankLinkEndUser;
+<<<<<<< HEAD
   /** Where the browser goes at the end, with `link_id`, `status` and a signed `state` (for display only: the webhook and `get_link` are authoritative). Must exactly match a redirect URL registered for your application (scheme, host, port, path and query: no prefix, no trailing-slash or case tolerance), otherwise the call answers `400 redirect_url_not_registered`. In sandbox only, a plain `http` address of `localhost`, `127.0.0.1` or `[::1]` (any port and path, no credentials, no fragment) needs no registration. Without one, automatic return to your page is not promised: after a full-page bank hop the person returns to the page that opened the link when its origin is in `allowed_origins`, and otherwise the flow ends on Didit's own result page. */
   redirect_url?: string;
   /** HTTPS origins allowed to embed this link, up to 50. Must be among your application's allowed domains, which are the default; an origin outside them answers `403 link_origin_not_allowed`. */
+=======
+  /** Where the browser goes at the end, with `link_id`, `status` and a signed `state` (for display only: the webhook and `get_link` are authoritative). In a sandbox application a plain `http` address of `localhost`, `127.0.0.1` or `[::1]` (any port and path, no credentials, no fragment) needs no registration. Any other address answers `400 redirect_url_not_registered`: registering other addresses is not available yet. Without a `redirect_url` the person finishes on Didit's own result page. */
+  redirect_url?: string;
+  /** Accepted and not used today: reserved for Didit's embedded Bank Link, which is not released yet. HTTPS origins, up to 50. */
+>>>>>>> origin/main
   allowed_origins?: string[];
   /** Optional language code such as `es` or `pt-BR`. Otherwise the browser language. */
   language?: string;
@@ -92,6 +98,7 @@ export interface BankCreateLinkParams {
   allow_one_time_fallback?: boolean;
   /** When the bank or the person grants less than you asked for, complete the link and charge only the granted scopes. Otherwise the link ends `failed` with `reduced_grant` and nothing is charged. */
   accept_reduced_grant?: boolean;
+<<<<<<< HEAD
   /** Sandbox applications only: shapes what the Didit Test Bank does in this link, so a test can reach each outcome. Ignored in a live application. */
   sandbox?: BankCreateLinkParamsSandbox;
 }
@@ -99,6 +106,15 @@ export interface BankCreateLinkParams {
 /** Sandbox applications only: shapes what the Didit Test Bank does in this link, so a test can reach each outcome. Ignored in a live application. */
 export interface BankCreateLinkParamsSandbox {
   /** The account set the Test Bank offers. `no_ongoing` makes the bank refuse ongoing access. */
+=======
+  /** Sandbox applications only: picks the Didit Test Bank customer. Ignored in a live application. */
+  sandbox?: BankCreateLinkParamsSandbox;
+}
+
+/** Sandbox applications only: picks the Didit Test Bank customer. Ignored in a live application. */
+export interface BankCreateLinkParamsSandbox {
+  /** The Test Bank customer: `personal_basic` (one current account, 60 movements), `business_multi` (three accounts held by a company), `long_history` (one account with 400 days and 1,400 movements; a read returns the last 365 days, so set `history_days` to 365), `pending` (includes pending transactions), `sparse_fields` (no value date, no counterparty IBAN, no bank reference) or `no_ongoing` (a bank that only allows one-time access: use `allow_one_time_fallback`). */
+>>>>>>> origin/main
   persona?:
     | "personal_basic"
     | "business_multi"
@@ -107,7 +123,11 @@ export interface BankCreateLinkParamsSandbox {
     | "sparse_fields"
     | "no_ongoing"
     | (string & {});
+<<<<<<< HEAD
   /** Behaviours to switch on for the run. */
+=======
+  /** Accepted and reserved for the sandbox simulator: the values change nothing today. */
+>>>>>>> origin/main
   switches?: (
     | "partial_grant"
     | "renewal_other_login"
@@ -201,9 +221,15 @@ export interface BankRefreshConnectionParams {
 
 /** Optional settings of a renew link. The rest comes from the connection. */
 export interface BankRenewConnectionParams {
+<<<<<<< HEAD
   /** Where the browser goes at the end. Must exactly match a registered redirect URL (scheme, host, port, path and query), otherwise `400 redirect_url_not_registered`. In sandbox only, a plain `http` localhost address needs no registration. */
   redirect_url?: string;
   /** HTTPS origins allowed to embed this link, up to 50, among your application's allowed domains. */
+=======
+  /** Where the browser goes at the end. In a sandbox application a plain `http` address of `localhost`, `127.0.0.1` or `[::1]` needs no registration. Any other address answers `400 redirect_url_not_registered`: registering other addresses is not available yet. */
+  redirect_url?: string;
+  /** Accepted and not used today: reserved for Didit's embedded Bank Link, which is not released yet. HTTPS origins, up to 50. */
+>>>>>>> origin/main
   allowed_origins?: string[];
   language?: string;
   /** Lifetime in seconds, 300 to 86400. */
