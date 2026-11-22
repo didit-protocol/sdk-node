@@ -421,8 +421,7 @@ export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnec
 
 /** `bank.connection.renewal_required`: the person must renew the connection. */
 export interface BankConnectionRenewalRequiredEvent
-  extends WebhookEventBase,
-    BankConnectionEventFields {
+  extends WebhookEventBase, BankConnectionEventFields {
   webhook_type: "bank.connection.renewal_required";
 }
 
@@ -433,8 +432,7 @@ export interface BankConnectionRenewedEvent extends WebhookEventBase, BankConnec
 
 /** `bank.connection.history_complete`: the history backfill ended. */
 export interface BankConnectionHistoryCompleteEvent
-  extends WebhookEventBase,
-    BankConnectionEventFields {
+  extends WebhookEventBase, BankConnectionEventFields {
   webhook_type: "bank.connection.history_complete";
 }
 
