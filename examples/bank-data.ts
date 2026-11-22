@@ -10,7 +10,7 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
-import Didit, { webhooks } from "@didit-protocol/sdk-node";
+import Didit, { webhooks, WebhookVerificationError } from "@didit-protocol/sdk-node";
 
 const didit = new Didit();
 const webhookSecret = process.env.DIDIT_WEBHOOK_SECRET;
@@ -35,25 +35,33 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
   const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(chunk as Buffer);
 
+  let event;
   try {
-    const event = await webhooks.verify(Buffer.concat(chunks), request.headers, secret);
-    if (event.webhook_type === "bank.connection.created") {
-      const accounts = await didit.bank.listAccounts(event.data.connection_id, { limit: 10 });
-      console.log("Connection", event.data.connection_id, "has", accounts.items.length, "accounts");
-      for (const account of accounts.items) {
-        console.log(account.id, account.name, account.currency);
-      }
-      server.close();
-    }
+    event = await webhooks.verify(Buffer.concat(chunks), request.headers, secret);
   } catch (error) {
-    console.error("Webhook rejected:", error instanceof Error ? error.message : error);
+    if (!(error instanceof WebhookVerificationError)) throw error;
+    console.error("Webhook rejected:", error.reason);
+    response.writeHead(400).end();
+    return;
   }
-
   response.writeHead(204).end();
+
+  // bank.connection.* events carry their fields next to the envelope fields.
+  if (event.webhook_type === "bank.connection.created") {
+    const accounts = await didit.bank.listAccounts(event.connection_id, { limit: 10 });
+    console.log("Connection", event.connection_id, "has", accounts.items.length, "accounts");
+    for (const account of accounts.items) {
+      console.log(account.id, account.currency);
+    }
+    server.close();
+  }
 }
 
 const server = createServer((request, response) => {
-  void handle(request, response);
+  handle(request, response).catch((error: unknown) => {
+    console.error(error);
+    if (!response.headersSent) response.writeHead(500).end();
+  });
 });
 
 server.listen(4242, "127.0.0.1", () => {
