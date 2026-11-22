@@ -259,7 +259,7 @@ switch (event.webhook_type) {
 }
 ```
 
-Events are a union discriminated by `webhook_type`: session (`status.updated`, `data.updated`), user, business, transaction and Travel Rule events, `activity.created`, `workflow.compliance_changed`, `kyb.registry_search.resolved`, and `UnknownEvent` for any other type.
+Events are a union discriminated by `webhook_type`: session (`status.updated`, `data.updated`), user, business, transaction and Travel Rule events, bank data (`bank.*`), `activity.created`, `workflow.compliance_changed`, `kyb.registry_search.resolved`, and `UnknownEvent` for any other type.
 Each event also has `event.verifiedBy` (which signature matched) and `event.bodyAuthenticated`.
 The event is the body as sent, except that the session `decision` is the generated decision type, so its date-times are `Date` objects.
 
