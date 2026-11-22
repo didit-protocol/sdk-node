@@ -36,3 +36,5 @@ DIDIT_API_KEY=... DIDIT_WORKFLOW_ID=... node examples/quickstart.ts
 
 The webhook receivers need their framework and `DIDIT_WEBHOOK_SECRET`, the secret of the
 webhook destination. Always pass the raw request body to `webhooks.verify`; verify before you parse.
+`bank-data.ts` also needs `DIDIT_WEBHOOK_SECRET` and a public webhook destination that forwards to
+port 4242.
