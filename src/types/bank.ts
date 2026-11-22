@@ -66,21 +66,21 @@ export interface BankCreateLinkParams {
   data?: ("accounts" | "balances" | "transactions" | (string & {}))[];
   /** Days of transaction history to request, 1 to 365, default 90. The bank may deliver less: each account reports what it delivered in `history_coverage`. Cannot be sent with `history_from`. */
   history_days?: number;
-  /** Start date of the history to request, instead of `history_days`. Cannot be sent with `history_days`: both together answer `400 history_window_ambiguous`. A date older than 365 days answers `400 window_not_available`. */
+  /** Start date of the history to request, instead of `history_days`. Cannot be sent with `history_days`: both together answer `400 history_window_ambiguous`. A date older than 365 days, or in the future, answers `400 window_not_available`. */
   history_from?: string;
   /** `allow_extra_auth` lets a bank that asks for one more confirmation release older history. */
   extended_history?: "standard" | "allow_extra_auth" | (string & {});
-  /** Ongoing only. How many days to ask the bank to keep access open, 1 or more. Default: the longest the bank allows. The connection reports the date the bank actually granted in `consent.expires_at`. */
+  /** Ongoing only. How many days to ask the bank to keep access open, 1 or more. Default: the longest the bank allows. The connection reports the date the bank actually granted in `consent.expires_at`. With `access: one_time` it answers `400 invalid_request` with `field: consent_days`. */
   consent_days?: number;
   /** Optional comparison of the account holder with a person or a company. */
   ownership?: BankLinkOwnershipRequest;
   /** The person or company that connects the account. */
   end_user?: BankLinkEndUser;
-  /** Where the browser goes at the end, with `link_id`, `status` and a signed `state` (for display only: the webhook and `get_link` are authoritative). Must exactly match a redirect URL registered in your application settings. Without one, the flow ends on Didit's own result page. */
+  /** Where the browser goes at the end, with `link_id`, `status` and a signed `state` (for display only: the webhook and `get_link` are authoritative). Must exactly match a redirect URL registered for your application (scheme, host, port, path and query: no prefix, no trailing-slash or case tolerance), otherwise the call answers `400 redirect_url_not_registered`. In sandbox only, a plain `http` address of `localhost`, `127.0.0.1` or `[::1]` (any port and path, no credentials, no fragment) needs no registration. Without one, automatic return to your page is not promised: after a full-page bank hop the person returns to the page that opened the link when its origin is in `allowed_origins`, and otherwise the flow ends on Didit's own result page. */
   redirect_url?: string;
-  /** HTTPS origins allowed to embed this link. Must be among your application's allowed domains, which are the default. */
+  /** HTTPS origins allowed to embed this link, up to 50. Must be among your application's allowed domains, which are the default; an origin outside them answers `403 link_origin_not_allowed`. */
   allowed_origins?: string[];
-  /** Optional language code. Otherwise the browser language. */
+  /** Optional language code such as `es` or `pt-BR`. Otherwise the browser language. */
   language?: string;
   /** Your own reference, returned on the link and the connection. */
   vendor_data?: string;
@@ -88,10 +88,36 @@ export interface BankCreateLinkParams {
   expires_in?: number;
   /** `reuse` (default) completes a link that resolves to accounts you already share as a renewal of that connection. `allow` creates an independent second connection. */
   duplicates?: "reuse" | "allow" | (string & {});
-  /** With `ongoing`, lets the person continue with a one-time read at a bank that cannot keep access open, after confirming the reduced access on its own screen. The quote shows what that costs. */
+  /** With `ongoing`, lets the person continue with a one-time read at a bank that cannot keep access open, after confirming the reduced access on its own screen. The quote shows what that costs. Only with `access: ongoing`: with one-time access it answers `400 invalid_request` with `field: allow_one_time_fallback`. */
   allow_one_time_fallback?: boolean;
   /** When the bank or the person grants less than you asked for, complete the link and charge only the granted scopes. Otherwise the link ends `failed` with `reduced_grant` and nothing is charged. */
   accept_reduced_grant?: boolean;
+  /** Sandbox applications only: shapes what the Didit Test Bank does in this link, so a test can reach each outcome. Ignored in a live application. */
+  sandbox?: BankCreateLinkParamsSandbox;
+}
+
+/** Sandbox applications only: shapes what the Didit Test Bank does in this link, so a test can reach each outcome. Ignored in a live application. */
+export interface BankCreateLinkParamsSandbox {
+  /** The account set the Test Bank offers. `no_ongoing` makes the bank refuse ongoing access. */
+  persona?:
+    | "personal_basic"
+    | "business_multi"
+    | "long_history"
+    | "pending"
+    | "sparse_fields"
+    | "no_ongoing"
+    | (string & {});
+  /** Behaviours to switch on for the run. */
+  switches?: (
+    | "partial_grant"
+    | "renewal_other_login"
+    | "expired_cursor"
+    | "webhook_twice"
+    | "midnight_booking"
+    | "blocked_popup"
+    | "bank_app_return"
+    | (string & {})
+  )[];
 }
 
 export interface BankListAccountsParams {
@@ -139,7 +165,7 @@ export interface BankListInstitutionsParams {
   segment?: "personal" | "business" | (string & {});
   /** Only banks that offer this access mode. */
   access?: "one_time" | "ongoing" | (string & {});
-  /** Search by name. */
+  /** Search by name or id, case-insensitive. */
   q?: string;
   /** Page size, 1 to 500. Default 100. */
   limit?: number;
@@ -175,8 +201,9 @@ export interface BankRefreshConnectionParams {
 
 /** Optional settings of a renew link. The rest comes from the connection. */
 export interface BankRenewConnectionParams {
-  /** Where the browser goes at the end. Must exactly match a registered redirect URL. */
+  /** Where the browser goes at the end. Must exactly match a registered redirect URL (scheme, host, port, path and query), otherwise `400 redirect_url_not_registered`. In sandbox only, a plain `http` localhost address needs no registration. */
   redirect_url?: string;
+  /** HTTPS origins allowed to embed this link, up to 50, among your application's allowed domains. */
   allowed_origins?: string[];
   language?: string;
   /** Lifetime in seconds, 300 to 86400. */
@@ -186,7 +213,7 @@ export interface BankRenewConnectionParams {
 export interface BankSyncTransactionsParams {
   /** The `next_cursor` you stored. Empty or omitted starts from the beginning. */
   cursor?: string;
-  /** Page size, 1 to 500. */
+  /** Page size, 1 to 500. Default 100. */
   limit?: number;
   /** Continues the same read while `has_more` is `true`. */
   page_token?: string;

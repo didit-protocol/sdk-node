@@ -78,7 +78,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     },
   },
   BankConnectionDeletion: { p: { erasure: "BankConnectionErasure" } },
-  BankConnectionErasure: { p: { requested_at: 1 } },
+  BankConnectionErasure: { p: { requested_at: 1, erased_at: 1 } },
   BankConnectionList: { p: { items: { i: "BankConnection" } } },
   BankConnectionSync: {
     p: {
