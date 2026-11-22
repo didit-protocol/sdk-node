@@ -504,7 +504,23 @@ export type KnownWebhookEvent =
   | TransactionStatusUpdatedEvent
   | TravelRuleStatusUpdatedEvent
   | WorkflowComplianceChangedEvent
-  | KybRegistrySearchResolvedEvent;
+  | KybRegistrySearchResolvedEvent
+  | BankLinkCompletedEvent
+  | BankLinkCancelledEvent
+  | BankLinkExpiredEvent
+  | BankLinkFailedEvent
+  | BankConnectionCreatedEvent
+  | BankConnectionUpdatedEvent
+  | BankConnectionRenewalRequiredEvent
+  | BankConnectionRenewedEvent
+  | BankConnectionHistoryCompleteEvent
+  | BankConnectionConsentExpiringEvent
+  | BankConnectionRevokedEvent
+  | BankConnectionDeletedEvent
+  | BankDataUpdatedEvent
+  | BankSyncCompletedEvent
+  | BankSyncFailedEvent
+  | BankSyncRecoveredEvent;
 
 /** A verified webhook event; narrow it with `switch (event.webhook_type)`. */
 export type WebhookEvent = KnownWebhookEvent | UnknownEvent;
