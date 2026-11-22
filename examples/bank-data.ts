@@ -33,7 +33,16 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
   }
 
   const chunks: Buffer[] = [];
-  for await (const chunk of request) chunks.push(chunk as Buffer);
+  let bytes = 0;
+  for await (const chunk of request.iterator({ destroyOnReturn: false })) {
+    const buffer = chunk as Buffer;
+    bytes += buffer.length;
+    if (bytes > 1024 * 1024) {
+      response.writeHead(413, { Connection: "close" }).end();
+      return;
+    }
+    chunks.push(buffer);
+  }
 
   let event;
   try {
@@ -44,17 +53,23 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
     response.writeHead(400).end();
     return;
   }
-  response.writeHead(204).end();
-
   // bank.connection.* events carry their fields next to the envelope fields.
   if (event.webhook_type === "bank.connection.created") {
+    const currentLink = await didit.bank.getLink(link.id);
+    if (currentLink.connection_id !== event.connection_id) {
+      response.writeHead(204).end();
+      return;
+    }
     const accounts = await didit.bank.listAccounts(event.connection_id, { limit: 10 });
     console.log("Connection", event.connection_id, "has", accounts.items.length, "accounts");
     for (const account of accounts.items) {
       console.log(account.id, account.currency);
     }
+    response.writeHead(204).end();
     server.close();
+    return;
   }
+  response.writeHead(204).end();
 }
 
 const server = createServer((request, response) => {

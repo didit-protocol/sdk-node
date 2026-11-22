@@ -26,4 +26,6 @@ export interface OperationSpec {
   accept?: string;
   /** Where the response has date-times to decode. */
   dates?: DatePlan;
+  /** When success responses have different date-time fields, select by HTTP status. */
+  datesByStatus?: Readonly<Record<number, DatePlan>>;
 }
