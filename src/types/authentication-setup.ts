@@ -11,6 +11,15 @@ export interface AuthenticationSetupGetBrandingParams {
   language?: string;
 }
 
+export interface AuthenticationSetupGetEmailParams {
+  /** For `org` only: the organization the invitation is for, so the preview shows it as it will be sent. At most 200 characters, the longest organization name an application holds. Without it, a sample organization (a console session sees the application's first customer organization). */
+  organization?: string;
+  /** For `org` only: the role the invitation grants. */
+  role?: "member" | "billing" | "admin" | (string & {});
+  /** For `agentoff` only: the name of the agent whose access ends. At most 200 characters, the longest agent name an application registers. Without it, the agent of the application's latest agent client in a console session, or a sample name. */
+  agent?: string;
+}
+
 export interface AuthenticationSetupGetEmailsParams {
   /** Language of the subjects and previews: an unsupported code falls back to `en`. */
   language?: string;
