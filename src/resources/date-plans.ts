@@ -51,7 +51,71 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { started_at: 1, completed_at: 1, expires_at: 1, created_at: 1, updated_at: 1 },
   },
   AsyncReportList: { p: { results: { i: "AsyncReport" } } },
+  BankAccount: { p: { sync: "BankAccountSync" } },
   BankAccountCheckResponse: { p: { created_at: 1 } },
+  BankAccountList: { p: { items: { i: "BankAccount" } } },
+  BankAccountSync: { p: { last_synced_at: 1 } },
+  BankBalance: { p: { last_change_at: 1 } },
+  BankBalances: { p: { balances: { i: "BankBalance" }, last_synced_at: 1 } },
+  BankConnection: {
+    p: {
+      consent: "BankConnectionConsent",
+      sync: "BankConnectionSync",
+      erasure: "BankConnectionErasure",
+      created_at: 1,
+      updated_at: 1,
+    },
+  },
+  BankConnectionConsent: {
+    p: {
+      granted_at: 1,
+      expires_at: 1,
+      renew_by: 1,
+      reconfirm_by: 1,
+      renewable_until: 1,
+      retain_until: 1,
+      ended_at: 1,
+    },
+  },
+  BankConnectionDeletion: { p: { erasure: "BankConnectionErasure" } },
+  BankConnectionErasure: { p: { requested_at: 1 } },
+  BankConnectionList: { p: { items: { i: "BankConnection" } } },
+  BankConnectionSync: {
+    p: {
+      last_synced_at: 1,
+      next_sync_at: 1,
+      budgets: { i: "BankSyncBudget" },
+      last_error: "BankSyncError",
+    },
+  },
+  BankLink: { p: { expires_at: 1, quote: "BankLinkQuote" } },
+  BankLinkQuote: { p: { valid_until: 1 } },
+  BankRefreshAccepted: { p: { next_refresh_at: 1 } },
+  BankSyncBudget: { p: { resets_at: 1 } },
+  BankSyncCompleted: {
+    p: {
+      started_at: 1,
+      finished_at: 1,
+      results: { i: "BankSyncRunResult" },
+      error: { p: { at: 1 } },
+    },
+  },
+  BankSyncError: { p: { at: 1 } },
+  BankSyncRun: {
+    p: {
+      started_at: 1,
+      finished_at: 1,
+      results: { i: "BankSyncRunResult" },
+      error: { p: { at: 1 } },
+    },
+  },
+  BankSyncRunList: { p: { items: { i: "BankSyncRun" } } },
+  BankSyncRunResult: { p: { error: "BankSyncError" } },
+  BankTransaction: { p: { first_seen_at: 1, updated_at: 1 } },
+  BankTransactionChanges: {
+    p: { added: { i: "BankTransaction" }, modified: { i: "BankTransaction" } },
+  },
+  BankTransactionPage: { p: { items: { i: "BankTransaction" } } },
   BankVerificationResult: {
     p: {
       connection: { p: { connected_at: 1, consent_expires_at: 1, last_refreshed_at: 1 } },
