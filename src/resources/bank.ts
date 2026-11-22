@@ -220,7 +220,7 @@ export class Bank extends APIResource {
    *
    * Deletes the connection's bank data and stops access at the bank. The connection's accounts, balances, transactions, sync history, consent records and ownership results are deleted. Deletion is irreversible.
    *
-   * It starts at once: from the moment you call, every read and write of the connection answers `409 connection_not_active`, and the response is `202` with `erasure.status` `pending`. The connection then reads with `erasure.status` `erased`, or `failed` if deletion could not be confirmed within 24 hours; a failed deletion is retried until it completes. A deleted connection reads as a minimal record: its id, `status: deleted`, the reason, its dates and its `erasure` status, and it holds no accounts, balances, transactions, consent or sync data.
+   * It starts at once: the response is `202` with `erasure.status` `pending`, and from that moment the connection's data operations (refresh, sync runs, accounts, balances, transactions and the change feed) answer `409 connection_not_active`. The connection then reads with `erasure.status` `erased`, or `failed` if deletion could not be confirmed within 24 hours; a failed deletion is retried until it completes. A deleted connection reads as a minimal record: its id, `status: deleted`, the reason, its dates and its `erasure` status, and it holds no accounts, balances, transactions, consent or sync data.
    *
    * Not affected: your other connections, the charges already made (they are not refunded), and any data you already downloaded, which is your own copy. Repeating the call returns the current state. To stop access without deleting, use `revoke_connection`.
    *
@@ -345,7 +345,7 @@ export class Bank extends APIResource {
   /**
    * List accounts of a connection
    *
-   * Lists every account of the connection with full identifiers and holders. A read never bills.
+   * Lists every account of the connection, oldest first, with full identifiers and holders. A read never bills.
    *
    * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Reading accounts, balances and transactions in a live application also needs the application setting "Bank data in the API"; a sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
@@ -421,7 +421,7 @@ export class Bank extends APIResource {
   /**
    * List account transactions
    *
-   * Date-range read of an account's transactions, sorted by `effective_date` descending, then `id` descending, in pages of up to 500. `date_from` and `date_to` are calendar dates, inclusive, in the bank's own time zone with nothing converted. They apply to `effective_date`: the booking date of a booked transaction, and for a pending one its transaction date or, failing that, the date it was first seen. By default `date_from` is the start of the stored history and `date_to` has no upper bound, and booked and pending are both returned.
+   * Date-range read of an account's transactions, sorted by `effective_date` descending, then `id` descending, in pages of up to 500. `date_from` and `date_to` are calendar dates, inclusive, in the bank's own time zone with nothing converted. They apply to `effective_date`: for a booked transaction its booking date, else its value date, else the date it was first seen; for a pending one its transaction date, else the date it was first seen. By default `date_from` is the start of the stored history and `date_to` has no upper bound, and booked and pending are both returned.
    *
    * The first page pins which transactions are included and each is served in its current state: a transaction removed while you page drops out of later pages and is reported by the change feed (`sync_transactions`). `page_token` continues one read and lives one hour; an expired token answers `410 page_expired`, so restart the read from its original query. To keep a copy up to date, use the change feed instead of re-reading ranges.
    *
@@ -446,7 +446,7 @@ export class Bank extends APIResource {
    *
    * Syncs now: reads the bank for new data at any moment. Answers `202` with the `sync_id`; if a sync is already running you get that same `sync_id`, not a second job. With `"wait": true` in the body, or the header `Prefer: wait=<seconds>` (up to 25), the call holds for up to 25 seconds and answers `200` with the finished sync (`outcome`, the per-account counts and `balances_changed`), so one request returns fresh data. If the bank has not answered in that time it answers `202`: read the sync with `get_sync_run` using the `sync_id`, or subscribe to `bank.sync.completed`. `bank.data.updated` follows only when the sync stores changes.
    *
-   * Live syncs are included in the monthly price of the connection, like the automatic syncs: nothing extra is charged. The only limit is the bank's. Banks limit reads without the person present, for example to four a day per account under the European rules, so `sync.budgets` shows what is left and `sync.live_syncs_left_today` how many live syncs remain today. The automatic schedule never uses the last two reads of a day. When the budget is used up the call answers `429 refresh_limit_reached` with `Retry-After` (the seconds until the budget resets, 1 to 86400) and a `sync` object with `live_syncs_left_today` and `budgets`. The limit is a ceiling set by the bank, not a promise of a number of syncs.
+   * Live syncs are included in the monthly price of the connection, like the automatic syncs: nothing extra is charged. The only limit is the bank's. Banks limit reads without the person present, for example to four a day (the Didit Test Bank in sandbox does the same). The automatic syncs of the day (`sync.frequency_per_day`) are set aside first and the rest are yours, so `sync.budgets` shows what is left and `sync.live_syncs_left_today` how many live syncs remain today. The automatic schedule never uses the last two reads of a day, so two live syncs always remain. When the budget is used up the call answers `429 refresh_limit_reached` with `Retry-After` (the seconds until the budget resets, 1 to 86400) and a `sync` object with `live_syncs_left_today` and `budgets`. The limit is a ceiling set by the bank, not a promise of a number of syncs.
    *
    * When a sync stores changes, `bank.data.updated` tells you; then read the change feed.
    *
