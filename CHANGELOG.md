@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.34.0](https://github.com/didit-protocol/sdk-node/compare/v2.33.0...v2.34.0) (2026-11-23)
+
+
+### Features
+
+* **bank:** Bank data operations and typed bank.* webhook events ([#115](https://github.com/didit-protocol/sdk-node/issues/115)) ([44cd8a6](https://github.com/didit-protocol/sdk-node/commit/44cd8a64d86bb4d799c6d14a5e26ddbb17c88201))
+
 ## [2.33.0](https://github.com/didit-protocol/sdk-node/compare/v2.32.0...v2.33.0) (2026-11-22)
 
 
