@@ -32,6 +32,48 @@ describe("pricing", () => {
     );
   });
 
+  it("pricing.bank_verification_country_coverage: GET /v3/organization/bank-verification-coverage/{country}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/organization/bank-verification-coverage/{country}/"),
+    });
+    const result = await client.pricing.bankVerificationCountryCoverage("country-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/organization/bank-verification-coverage/country-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "none");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/organization/bank-verification-coverage/{country}/"),
+    );
+  });
+
+  it("pricing.bank_verification_coverage: GET /v3/organization/bank-verification-coverage/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/organization/bank-verification-coverage/"),
+    });
+    const result = await client.pricing.bankVerificationCoverage();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/organization/bank-verification-coverage/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "none");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(
+      result,
+      responseExample("GET /v3/organization/bank-verification-coverage/"),
+    );
+  });
+
   it("pricing.price_book: GET /v3/organization/price-book/", async () => {
     const { client, calls } = mockClient({
       status: 200,

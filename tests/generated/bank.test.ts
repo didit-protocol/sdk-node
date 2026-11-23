@@ -371,6 +371,44 @@ describe("bank", () => {
     expectMatchesExample(result, responseExample("POST /v3/bank/connections/{id}/revoke/"));
   });
 
+  it("bank.simulate_connection: POST /v3/bank/connections/{id}/simulate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/bank/connections/{id}/simulate/"),
+    });
+    const result = await client.bank.simulateConnection("id-1", { action: "new_transactions" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/bank/connections/id-1/simulate/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ action: "new_transactions" });
+    expectMatchesExample(result, responseExample("POST /v3/bank/connections/{id}/simulate/"));
+  });
+
+  it("bank.simulate_link: POST /v3/bank/links/{id}/simulate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/bank/links/{id}/simulate/"),
+    });
+    const result = await client.bank.simulateLink("id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/bank/links/id-1/simulate/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(result, responseExample("POST /v3/bank/links/{id}/simulate/"));
+  });
+
   it("bank.sync_transactions: GET /v3/bank/connections/{id}/transactions/sync/", async () => {
     const { client, calls } = mockClient({
       status: 200,

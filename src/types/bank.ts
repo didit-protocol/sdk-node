@@ -80,7 +80,7 @@ export interface BankCreateLinkParams {
   redirect_url?: string;
   /** Accepted and not used today: reserved for Didit's embedded Bank Link, which is not released yet. HTTPS origins, up to 50. */
   allowed_origins?: string[];
-  /** Optional language code such as `es` or `pt-BR`. Otherwise the browser language. */
+  /** Optional. One of the [supported languages](/integration/supported-languages), the same codes the `language` of the session API takes, for example `es`, `pt`, `pt-BR` or `zh-CN` (`pt-PT` is not one of them). The match is exact and case-sensitive (`ES` and `pt-PT` are refused). A code outside that list answers `400 invalid_request` with `field: language`. Otherwise the browser language. */
   language?: string;
   /** Your own reference, returned on the link and the connection. */
   vendor_data?: string;
@@ -206,9 +206,68 @@ export interface BankRenewConnectionParams {
   redirect_url?: string;
   /** Accepted and not used today: reserved for Didit's embedded Bank Link, which is not released yet. HTTPS origins, up to 50. */
   allowed_origins?: string[];
+  /** Optional. One of the [supported languages](/integration/supported-languages), the same codes the `language` of the session API takes, for example `es`, `pt`, `pt-BR` or `zh-CN` (`pt-PT` is not one of them). The match is exact and case-sensitive (`ES` and `pt-PT` are refused). A code outside that list answers `400 invalid_request` with `field: language`. */
   language?: string;
   /** Lifetime in seconds, 300 to 86400. */
   expires_in?: number;
+}
+
+/** The event to move on a sandbox connection. */
+export interface BankSimulateConnectionParams {
+  /** What happens. The operation description explains each value. */
+  action:
+    | "new_transactions"
+    | "pending_posted"
+    | "booking_correction"
+    | "consent_expiring"
+    | "consent_expired"
+    | "revoked_by_user"
+    | "revoked_by_bank"
+    | "sync_failed"
+    | "sync_recovered"
+    | "webhook_twice"
+    | "midnight_booking"
+    | "budget_used"
+    | "budget_reset"
+    | (string & {});
+  /** Only for `consent_expiring`: days until the consent ends. Only the notification thresholds are accepted: 14, 7 or 1. Any other value, or `days` with another action, answers `400 invalid_request` with `field` `days`. */
+  days?: number;
+  /** Only for `new_transactions`: how many booked transactions the bank adds. With another action it answers `400 invalid_request` with `field` `count`. */
+  count?: number;
+}
+
+/** How a sandbox link ends. Every field is optional: an empty body completes the link for the `personal_basic` Test Bank customer. */
+export interface BankSimulateLinkParams {
+  /** The Test Bank customer who signs in: `personal_basic` (one current account), `business_multi` (several business accounts), `long_history` (a long transaction history), `pending` (pending rows), `sparse_fields` (transactions with fields missing, one automatic sync a day) or `no_ongoing` (a bank that cannot keep access open). */
+  persona?:
+    | "personal_basic"
+    | "business_multi"
+    | "long_history"
+    | "pending"
+    | "sparse_fields"
+    | "no_ongoing"
+    | (string & {});
+  /** How the link ends. */
+  outcome?:
+    | "completed"
+    | "cancelled"
+    | "failed"
+    | "duplicate_conflict"
+    | "reduced_grant"
+    | "renewal_login_mismatch"
+    | (string & {});
+  /** The failure the link records. Only accepted with `outcome: failed`, where it defaults to `bank_unavailable`. */
+  error_code?:
+    | "duplicate_conflict"
+    | "renewal_login_mismatch"
+    | "reduced_grant"
+    | "corporate_approval_not_supported"
+    | "ongoing_access_not_available"
+    | "bank_unavailable"
+    | "bank_cancelled"
+    | "consent_declined"
+    | "read_limit"
+    | (string & {});
 }
 
 export interface BankSyncTransactionsParams {

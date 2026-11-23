@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 463 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -110,6 +110,8 @@ Every method of `@didit-protocol/sdk-node`: 463 methods, generated from `openapi
 | `didit.bank.refreshConnection(id, params?: BankRefreshConnectionParams)`      | `POST /v3/bank/connections/{id}/refresh/`            | `BankSyncCompleted \| BankRefreshAccepted` | `idempotencyKey` |
 | `didit.bank.renewConnection(id, params?: BankRenewConnectionParams)`          | `POST /v3/bank/connections/{id}/renew/`              | `BankLink`                                 | `idempotencyKey` |
 | `didit.bank.revokeConnection(id)`                                             | `POST /v3/bank/connections/{id}/revoke/`             | `BankConnection`                           | `idempotencyKey` |
+| `didit.bank.simulateConnection(id, params: BankSimulateConnectionParams)`     | `POST /v3/bank/connections/{id}/simulate/`           | `BankConnection`                           | `idempotencyKey` |
+| `didit.bank.simulateLink(id, params?: BankSimulateLinkParams)`                | `POST /v3/bank/links/{id}/simulate/`                 | `BankLink`                                 | `idempotencyKey` |
 | `didit.bank.syncTransactions(id, params?: BankSyncTransactionsParams)`        | `GET /v3/bank/connections/{id}/transactions/sync/`   | `BankTransactionChanges`                   |                  |
 
 ## `didit.billing`
@@ -478,18 +480,68 @@ Every method of `@didit-protocol/sdk-node`: 463 methods, generated from `openapi
 
 ## `didit.phone`
 
-| Method                                                  | HTTP                    | Returns                          | Notes            |
-| ------------------------------------------------------- | ----------------------- | -------------------------------- | ---------------- |
-| `didit.phone.assessRisk(params: PhoneAssessRiskParams)` | `POST /v3/phone/risk/`  | `PhoneRiskResponse`              | `idempotencyKey` |
-| `didit.phone.checkCode(params: PhoneCheckCodeParams)`   | `POST /v3/phone/check/` | `PhoneVerificationCheckResponse` | `idempotencyKey` |
-| `didit.phone.sendCode(params: PhoneSendCodeParams)`     | `POST /v3/phone/send/`  | `PhoneVerificationSendResponse`  | `idempotencyKey` |
+| Method                                                  | HTTP                    | Returns                                                      | Notes            |
+| ------------------------------------------------------- | ----------------------- | ------------------------------------------------------------ | ---------------- |
+| `didit.phone.assessRisk(params: PhoneAssessRiskParams)` | `POST /v3/phone/risk/`  | `PhoneRiskResponse`                                          | `idempotencyKey` |
+| `didit.phone.checkCode(params?: PhoneCheckCodeParams)`  | `POST /v3/phone/check/` | `PhoneVerificationCheckResponse \| PhoneFactorCheckResponse` | `idempotencyKey` |
+| `didit.phone.sendCode(params: PhoneSendCodeParams)`     | `POST /v3/phone/send/`  | `PhoneVerificationSendResponse`                              | `idempotencyKey` |
+
+## `didit.phone.factors`
+
+| Method                                                                    | HTTP                                    | Returns                 | Notes |
+| ------------------------------------------------------------------------- | --------------------------------------- | ----------------------- | ----- |
+| `didit.phone.factors.create(params: PhoneFactorsCreateParams)`            | `POST /v3/phone/factors/`               | `PhoneFactorEnrollment` |       |
+| `didit.phone.factors.delete(factorId)`                                    | `DELETE /v3/phone/factors/{factor_id}/` | nothing                 |       |
+| `didit.phone.factors.list(params: PhoneFactorsListParams)`                | `GET /v3/phone/factors/`                | page of `PhoneFactor`   |       |
+| `didit.phone.factors.retrieve(factorId)`                                  | `GET /v3/phone/factors/{factor_id}/`    | `PhoneFactor`           |       |
+| `didit.phone.factors.update(factorId, params?: PhoneFactorsUpdateParams)` | `PATCH /v3/phone/factors/{factor_id}/`  | `PhoneFactor`           |       |
+
+## `didit.phone.network.registrations`
+
+| Method                                                                                    | HTTP                                                     | Returns                                   | Notes |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- | ----- |
+| `didit.phone.network.registrations.create(params: PhoneNetworkRegistrationsCreateParams)` | `POST /v3/phone/network/registrations/`                  | `PhoneNetworkRegistration`                |       |
+| `didit.phone.network.registrations.list(params?: PhoneNetworkRegistrationsListParams)`    | `GET /v3/phone/network/registrations/`                   | page of `PhoneNetworkRegistrationSummary` |       |
+| `didit.phone.network.registrations.retrieve(registrationId)`                              | `GET /v3/phone/network/registrations/{registration_id}/` | `PhoneNetworkRegistration`                |       |
+
+## `didit.phone.network.registrations.testNumbers`
+
+| Method                                                                                                                           | HTTP                                                                                    | Returns                              | Notes |
+| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ | ----- |
+| `didit.phone.network.registrations.testNumbers.create(registrationId, params: PhoneNetworkRegistrationsTestNumbersCreateParams)` | `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`                  | `PhoneNetworkRegistrationTestNumber` |       |
+| `didit.phone.network.registrations.testNumbers.delete(registrationId, phoneNumber)`                                              | `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/` | nothing                              |       |
+
+## `didit.phone.sdkKeys`
+
+| Method                                                                 | HTTP                                       | Returns              | Notes |
+| ---------------------------------------------------------------------- | ------------------------------------------ | -------------------- | ----- |
+| `didit.phone.sdkKeys.create(params: PhoneSdkKeysCreateParams)`         | `POST /v3/phone/sdk-keys/`                 | `PhoneSdkKey`        |       |
+| `didit.phone.sdkKeys.list(params?: PhoneSdkKeysListParams)`            | `GET /v3/phone/sdk-keys/`                  | `PhoneSdkKeysPage`   |       |
+| `didit.phone.sdkKeys.revoke(keyId)`                                    | `DELETE /v3/phone/sdk-keys/{key_id}/`      | nothing              |       |
+| `didit.phone.sdkKeys.rotate(keyId, params?: PhoneSdkKeysRotateParams)` | `POST /v3/phone/sdk-keys/{key_id}/rotate/` | `PhoneSdkKeyRotated` |       |
+
+## `didit.phone.silent`
+
+| Method                                                                 | HTTP                                 | Returns                  | Notes |
+| ---------------------------------------------------------------------- | ------------------------------------ | ------------------------ | ----- |
+| `didit.phone.silent.coverage(params?: PhoneSilentCoverageParams)`      | `GET /v3/phone/silent/coverage/`     | `PhoneSilentCoverage`    |       |
+| `didit.phone.silent.eligibility(params: PhoneSilentEligibilityParams)` | `POST /v3/phone/silent/eligibility/` | `PhoneSilentEligibility` |       |
+
+## `didit.phone.silent.registrations`
+
+| Method                                                                                  | HTTP                                                    | Returns                   | Notes |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------- | ----- |
+| `didit.phone.silent.registrations.create(params: PhoneSilentRegistrationsCreateParams)` | `POST /v3/phone/silent/registrations/`                  | `PhoneSilentRegistration` |       |
+| `didit.phone.silent.registrations.retrieve(registrationId)`                             | `GET /v3/phone/silent/registrations/{registration_id}/` | `PhoneSilentRegistration` |       |
 
 ## `didit.pricing`
 
-| Method                             | HTTP                                              | Returns                   | Notes |
-| ---------------------------------- | ------------------------------------------------- | ------------------------- | ----- |
-| `didit.pricing.bankVerification()` | `GET /v3/organization/bank-verification-pricing/` | `BankVerificationPricing` |       |
-| `didit.pricing.priceBook()`        | `GET /v3/organization/price-book/`                | `PublicPriceBook`         |       |
+| Method                                                   | HTTP                                                         | Returns                           | Notes |
+| -------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------- | ----- |
+| `didit.pricing.bankVerification()`                       | `GET /v3/organization/bank-verification-pricing/`            | `BankVerificationPricing`         |       |
+| `didit.pricing.bankVerificationCountryCoverage(country)` | `GET /v3/organization/bank-verification-coverage/{country}/` | `BankVerificationCountryCoverage` |       |
+| `didit.pricing.bankVerificationCoverage()`               | `GET /v3/organization/bank-verification-coverage/`           | `BankVerificationCoverage`        |       |
+| `didit.pricing.priceBook()`                              | `GET /v3/organization/price-book/`                           | `PublicPriceBook`                 |       |
 
 ## `didit.proofOfAddress`
 
