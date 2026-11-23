@@ -389,7 +389,6 @@ export interface BankConnectionDeletedData {
     | "consent_lapsed"
     | "retention_elapsed"
     | "application_deleted"
-    | "restored_after_deletion"
     | (string & {})
     | null;
   /** When the deletion finished. */
