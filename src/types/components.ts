@@ -1532,8 +1532,8 @@ export interface BankConnectionConsent {
   /** Set once access ended: how long the stored data stays readable, set by the retention setting of your application. */
   retain_until: Date | null;
   ended_at: Date | null;
-  /** Who ended access, set from evidence. `unknown` when neither the bank nor the sync says. */
-  ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {}) | null;
+  /** Who ended access, set from evidence. `system` when Didit ended it by design: a one-time connection once its read is complete. `unknown` when neither the bank nor the sync says. */
+  ended_by: "end_user" | "bank" | "customer" | "system" | "unknown" | (string & {}) | null;
 }
 
 /** The record of a deletion. The connection's bank data is deleted and its data operations answer `409 connection_not_active`; reading the connection returns a minimal record with this `erasure` record. */
