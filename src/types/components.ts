@@ -1751,7 +1751,7 @@ export interface BankLinkEndUser {
 
 /** The reason a link ended `failed`. Nothing was published or charged. */
 export interface BankLinkError {
-  /** Why the link failed. A failed link is not an HTTP error: the link reads with `status: failed` and this object. A renew link whose connection changed meanwhile reads `renewal_not_needed` or `renewal_window_expired`. */
+  /** Why the link failed. A failed link is not an HTTP error: the link reads with `status: failed` and this object. `bank_cancelled` ends a link only on the fifth cancel at the bank: until then a person who backs out at the bank returns to the list of banks with a notice and the link stays `opened`. A bank that cannot be reached (`bank_unavailable`) also returns the person to the list of banks and leaves the link `opened`. A link ended by the simulate operation fails at once. A renew link whose connection changed meanwhile reads `renewal_not_needed` or `renewal_window_expired`. */
   code:
     | "duplicate_conflict"
     | "renewal_login_mismatch"
@@ -2074,6 +2074,94 @@ export interface BankTransactionRemittance {
   reference: string | null;
 }
 
+export interface BankVerificationCountryCoverage {
+  country: string;
+  name: string;
+  updated_at: Date | null;
+  open: BankVerificationCoverageOpen;
+  data_read: string[];
+  balances_note: string;
+  /** Alphabetical, a fixed order that says nothing about size. */
+  banks: BankVerificationCoverageBank[];
+}
+
+/** Where Didit covers bank data and what is open today. No prices: see the bank verification pricing feed. */
+export interface BankVerificationCoverage {
+  /** When the catalogue was last refreshed. */
+  updated_at: Date | null;
+  open: BankVerificationCoverageAvailability;
+  /** What a read of any covered bank returns. */
+  data_read: ("accounts" | "balances" | "transactions" | (string & {}))[];
+  balances_note: string;
+  /** Countries keyed by ISO 3166-1 alpha-3 code. */
+  countries: Record<string, BankVerificationCoverageCountriesValue>;
+}
+
+export interface BankVerificationCoverageAvailability {
+  /** Bank Verification inside verification workflows. */
+  bank_verification_in_workflows: BankVerificationWorkflowsAvailability;
+  /** The Bank data API with one-time access, for live applications. */
+  bank_data_api_one_time: BankVerificationOneTimeAvailability;
+  /** The Bank data API with ongoing access, for live applications. */
+  bank_data_api_ongoing: BankVerificationOngoingAvailability;
+}
+
+/** One bank. Only what the catalogue has: a field nobody observed is left out. The id is a permanent public identifier. */
+export interface BankVerificationCoverageBank {
+  /** Permanent public identifier and URL slug, for example `es-santander`. Never changes once published. */
+  id: string;
+  name: string;
+  /** ISO 3166-1 alpha-3. */
+  country: string;
+  segments: ("personal" | "business" | (string & {}))[];
+  /** Access modes a link can use at this bank today, as far as the bank and its readiness go: `one_time`, plus `ongoing` only once Didit has marked the bank's route ready for ongoing access. The same value the authenticated institutions endpoint publishes. */
+  access: ("one_time" | "ongoing" | (string & {}))[];
+  /** Days of transaction history a read can obtain. The same number the authenticated institutions endpoint publishes, so a cap applied there applies here. */
+  history_days_max: number | null;
+  pending_transactions: boolean | null;
+  /** Whether the bank can be reached today: `operational`, `degraded` or `down`. */
+  status: "operational" | "degraded" | "down" | (string & {});
+  /** Longest consent in days. Present only when `ongoing` is in `access`. */
+  consent_days_max?: number;
+  /** Present only when the balance types were observed. */
+  balance_types?: string[];
+  /** Present only for a logo Didit hosts. */
+  logo_url?: string;
+}
+
+export interface BankVerificationCoverageCountriesValue {
+  name: string;
+  banks: number;
+  banks_by_segment: BankVerificationCoverageCountriesValueBanksBySegment;
+  open: BankVerificationCoverageOpen;
+  /** Path of the banks of this country, under `/v3/organization/bank-verification-coverage/`. */
+  banks_url: string;
+}
+
+export interface BankVerificationCoverageCountriesValueBanksBySegment {
+  personal?: number;
+  business?: number;
+}
+
+export interface BankVerificationCoverageOpen {
+  bank_verification_in_workflows: boolean;
+  bank_data_api_one_time: boolean;
+  bank_data_api_ongoing: boolean;
+  account_check: boolean;
+}
+
+/** The Bank data API with one-time access, for live applications. */
+export interface BankVerificationOneTimeAvailability {
+  live_applications: boolean;
+  countries: string[];
+}
+
+/** The Bank data API with ongoing access, for live applications. */
+export interface BankVerificationOngoingAvailability {
+  live_applications: boolean;
+  countries: string[];
+}
+
 /** Public Bank Verification list prices: the statement upload, the own provider key fee and each country's methods. */
 export interface BankVerificationPricing {
   /** Currency of every price in the response. */
@@ -2306,6 +2394,12 @@ export interface BankVerificationResultRoute {
   provider_connection_id?: string | null;
   /** The data the connection asked for, for example `ownership` or `balances`. */
   requested_scopes?: string[];
+}
+
+/** Bank Verification inside verification workflows. */
+export interface BankVerificationWorkflowsAvailability {
+  live: boolean;
+  countries: string[];
 }
 
 /** Result of a top-up charged to the organization's saved card. */
@@ -7165,6 +7259,63 @@ export interface PaginatedOrganizationList {
   results: Organization[];
 }
 
+export interface PhoneFactor {
+  /** The factor. */
+  factor_id: string;
+  /** The factor. */
+  type: "totp" | (string & {});
+  /** `unverified` until the first successful check, `verified` after it, `disabled` while its checks are turned off. */
+  status: "unverified" | "verified" | "disabled" | (string & {});
+  /** Your id for the user it belongs to. */
+  user_id?: string;
+  /** Shown in the authenticator app and in the factor list. */
+  friendly_name?: string;
+  /** Your keys and values, as you sent them. */
+  metadata?: Record<string, string>;
+  /** When it was enrolled. */
+  created_at?: Date;
+  /** Its last successful check, `null` until there is one. */
+  last_used_at?: Date | null;
+}
+
+/** The answer to a factor check (a request that names `factor_id`). */
+export interface PhoneFactorCheckResponse {
+  /** The factor id. */
+  verification_id: string;
+  /** `verified` when the code matched; the factor is then `verified` too. */
+  status: "verified" | "failed" | (string & {});
+  attempts: number;
+}
+
+/** The enrollment of a TOTP factor: `totp.uri` is what the authenticator app needs. */
+export interface PhoneFactorEnrollment {
+  /** Check it with `POST /v3/phone/check/` by naming it as `factor_id` together with the `code` its app shows. */
+  factor_id: string;
+  /** The factor type. */
+  type: "totp" | (string & {});
+  /** `unverified` until the first successful check, then `verified`. */
+  status: "unverified" | "verified" | "disabled" | (string & {});
+  /** A `totp` factor: what the authenticator app needs. */
+  totp: PhoneFactorEnrollmentTotp;
+}
+
+/** A `totp` factor: what the authenticator app needs. */
+export interface PhoneFactorEnrollmentTotp {
+  /** The `otpauth://` URI to show as a QR code; the authenticator app scans it and starts producing codes. */
+  uri: string;
+}
+
+export interface PhoneFactorsPage {
+  /** Rows that match the filters. */
+  count: number;
+  /** The next page, or `null` on the last one. */
+  next: string | null;
+  /** The previous page, or `null` on the first one. */
+  previous: string | null;
+  /** The factors of this user. */
+  results: PhoneFactor[];
+}
+
 /** Normalized phone-intelligence block. Present only when the intelligence add-on ran for this lookup; when present it is also exposed under the `enrichment` alias with identical values. */
 export interface PhoneIntelligence {
   /** Normalized 0-100 risk score. Higher is riskier. */
@@ -7220,6 +7371,74 @@ export interface PhoneMatchItem {
   api_service?: string | null;
   /** Where the match was found. Usually `session`; a blocklist hit via an organization list entry uses `list_entry`. */
   source?: string;
+}
+
+/** One mobile network's decision on a registration. */
+export interface PhoneNetworkDecision {
+  /** The mobile network. */
+  name: string;
+  /** Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`. */
+  status: "submitted" | "in_review" | "approved" | "rejected" | (string & {});
+  /** When the network decided, `null` until it has. */
+  decided_at?: Date | null;
+  /** Why a network rejected it, `null` when it approved or has not decided. */
+  reason?: string | null;
+}
+
+export interface PhoneNetworkRegistration {
+  /** The registration: track it with it. */
+  registration_id: string;
+  /** The network feature. */
+  feature: "silent_verification" | "sim_swap" | "number_verification" | (string & {});
+  /** The ISO 3166-1 alpha-2 country. */
+  country: string;
+  /** What you use the feature for, as submitted. */
+  use_case?: string;
+  /** `submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved. */
+  status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
+  /** Each mobile network's decision, network by network. */
+  networks?: PhoneNetworkDecision[];
+  /** When the feature went live for you in the country, `null` until it has. */
+  live_at?: Date | null;
+  /** `on` while the networks review: the feature answers for your verified test numbers, marked `test: true`. `off` once the registration is approved or rejected. */
+  test_access?: "on" | "off" | (string & {});
+  /** Your test numbers for this registration, up to 5. */
+  test_numbers?: PhoneNetworkRegistrationTestNumber[];
+}
+
+export interface PhoneNetworkRegistrationSummary {
+  /** The registration. */
+  registration_id: string;
+  /** The network feature. */
+  feature: "silent_verification" | "sim_swap" | "number_verification" | (string & {});
+  /** The ISO 3166-1 alpha-2 country. */
+  country: string;
+  /** What you use the feature for. */
+  use_case?: string;
+  /** Where the registration stands. */
+  status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
+}
+
+export interface PhoneNetworkRegistrationTestNumber {
+  /** The test number. */
+  phone_number: string;
+  /** `code_sent` - Didit sent it a code, which makes it a verified test number once checked; `verified` - it answers the feature under test access. */
+  status: "code_sent" | "verified" | (string & {});
+  /** The verification carrying the code: check it with `POST /v3/phone/check/`. */
+  verification_id?: string;
+  /** `on` - the registration is under review, so the feature answers for its test numbers, with `test: true` in the answer. */
+  test_access?: "on" | (string & {});
+}
+
+export interface PhoneNetworkRegistrationsPage {
+  /** Rows that match the filters. */
+  count: number;
+  /** The next page, or `null` on the last one. */
+  next: string | null;
+  /** The previous page, or `null` on the first one. */
+  previous: string | null;
+  /** Your network feature registrations. */
+  results: PhoneNetworkRegistrationSummary[];
 }
 
 export interface PhoneRiskResponse {
@@ -7285,6 +7504,103 @@ export interface PhoneRiskResponsePhoneCarrier {
   type?: string;
 }
 
+/** A publishable key of a client SDK. It is not a secret: it is bound to the app ids it may run in and cannot make a server call. */
+export interface PhoneSdkKey {
+  /** The key. */
+  key_id: string;
+  /** The platform it is for. */
+  platform: "ios" | "android" | "web" | (string & {});
+  /** Safe to ship inside the app: it can only start the checks the client SDK runs, never a server call. */
+  publishable_key?: string;
+  /** The bundle ids, package names or `https` origins it works for. */
+  app_ids?: string[];
+  /** `active` - it works; `expiring` - it was rotated and stops working at `previous_expires_at`; `revoked` - it stopped working. */
+  status: "active" | "expiring" | "revoked" | (string & {});
+  /** When it was issued. */
+  created_at?: Date;
+}
+
+export interface PhoneSdkKeyRotated {
+  /** The key. */
+  key_id: string;
+  /** The platform it is for. */
+  platform: "ios" | "android" | "web" | (string & {});
+  /** The new value to ship in the app. */
+  publishable_key: string;
+  /** The bundle ids, package names or `https` origins it works for. */
+  app_ids?: string[];
+  /** `active` - the new value works; `expiring` - it was rotated again; `revoked` - it stopped working. */
+  status?: "active" | "expiring" | "revoked" | (string & {});
+  /** When the key was first issued. */
+  created_at?: Date;
+  /** When the value this rotation replaced stops working. */
+  previous_expires_at: Date;
+}
+
+/** A client SDK key as returned by the list operation. */
+export interface PhoneSdkKeySummary {
+  /** The key. */
+  key_id: string;
+  /** The platform it is for. */
+  platform: "ios" | "android" | "web" | (string & {});
+  /** An active key works, an expiring key works until its rotation overlap ends, and a revoked key has stopped working. */
+  status: "active" | "expiring" | "revoked" | (string & {});
+}
+
+/** The publishable keys of your client SDKs. */
+export interface PhoneSdkKeysPage {
+  /** One entry for each key that matches the platform filter. */
+  results: PhoneSdkKeySummary[];
+}
+
+/** Where silent verification runs: one entry per country, and per country the mobile networks that can run the check. */
+export interface PhoneSilentCoverage {
+  /** One entry per country where silent verification runs. */
+  countries: PhoneSilentCoverageCountry[];
+}
+
+export interface PhoneSilentCoverageCountry {
+  /** ISO 3166-1 alpha-2 country code. */
+  country: string;
+  /** `true` when the SIM check also runs over Wi-Fi, so a device without mobile data can still complete it. */
+  wifi?: boolean;
+  /** The mobile networks in this country that can run a silent check. */
+  networks: PhoneSilentCoverageNetwork[];
+}
+
+export interface PhoneSilentCoverageNetwork {
+  /** The mobile network, as the console names it in Coverage, for example `Mobile network A`. */
+  name: string;
+  /** `live` - the network answers silent checks for production traffic. `test` - it answers only while it approves production use, for the verified test numbers of a registration. */
+  approval: "live" | "test" | (string & {});
+}
+
+export interface PhoneSilentEligibility {
+  /** `true` when a silent check can run for this number now. */
+  eligible: boolean;
+  /** When `eligible` is `false`, why: `unsupported_network` - the number's mobile network cannot run the check; `not_mobile_data` - the device is not on mobile data (send `ip_address` to have this checked); `country_not_covered` - silent verification does not run in the number's country. */
+  reason?: "unsupported_network" | "not_mobile_data" | "country_not_covered" | (string & {}) | null;
+  /** The mobile network, or `null` when Didit has no supported network for the number. */
+  network?: string | null;
+  /** ISO 3166-1 alpha-2 country code of the number. */
+  country?: string;
+  /** `true` when the SIM check can run over Wi-Fi instead, so the device can complete it without mobile data. */
+  wifi_possible?: boolean;
+}
+
+export interface PhoneSilentRegistration {
+  /** The registration: track it with it. */
+  registration_id: string;
+  /** The country it asks approval for. */
+  country: string;
+  /** `submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved. */
+  status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
+  /** Each mobile network's decision, network by network. */
+  networks?: PhoneNetworkDecision[];
+  /** When silent verification went live for you in the country, `null` until it has. */
+  live_at?: Date | null;
+}
+
 /** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
 export interface PhoneSocialFootprint {
   /** Platforms where the phone number is confirmed registered. */
@@ -7328,7 +7644,7 @@ export interface PhoneVerificationCheckResponse {
   /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
   /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. */
-  status?: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
+  status: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
   /** Human-readable explanation of the outcome, including the number of attempts remaining after a wrong code. */
   message?: string;
   /** Full phone report. Present (non-null) only on finalized outcomes (`Approved`/`Declined`); `null` on `Failed` and absent on `Expired or Not Found`. */

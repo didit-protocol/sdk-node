@@ -17,11 +17,12 @@ export interface PhoneAssessRiskParams {
   enable_social?: boolean;
 }
 
+/** Send `phone_number` and `code` to check a phone code, or `factor_id` and `code` to check a TOTP factor enrolled with `POST /v3/phone/factors/`. */
 export interface PhoneCheckCodeParams {
   /** The same phone number used in the matching [`POST /v3/phone/send/`](/standalone-apis/phone-send) call, in E.164 format. This is what links the check to the send. */
-  phone_number: string;
+  phone_number?: string;
   /** The OTP the end user received. Must be 4–8 numeric digits - anything else returns `400` without consuming an attempt. A well-formed but wrong code returns `200` with `status: "Failed"` and consumes one of the 3 attempts. */
-  code: string;
+  code?: string;
   /** What to do when the same number was already used by a different user (different `vendor_data`) of your application. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings` and fills `phone.matches`. */
   duplicated_phone_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** What to do when the carrier lookup flags the number as a temporary/burner line (`phone.is_disposable`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
@@ -42,6 +43,102 @@ export interface PhoneCheckCodeParams {
   enable_social?: boolean;
   /** Action when the social footprint check finds the number registered on none of the platforms it covers. Only NO_ACTION and DECLINE are accepted on this endpoint; REVIEW is available on the workflow configuration key of the same name. */
   phone_no_social_presence_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** A TOTP factor being checked instead of a phone code, as returned when it was enrolled; send the 4-8 digit `code` its authenticator app shows. The answer is `{verification_id, status, attempts}` with `status` `verified` or `failed`; a factor that is `disabled` answers `400 factor_disabled`, an unknown one `404 not_found`. */
+  factor_id?: string;
+}
+
+export interface PhoneFactorsCreateParams {
+  /** The factor to enroll: `totp`, for an authenticator app. */
+  type: "totp" | (string & {});
+  /** Your id for the user the factor belongs to; a check names the factor and the user. */
+  user_id: string;
+  /** Shown in the authenticator app and in the factor list. */
+  friendly_name?: string;
+  /** Up to 10 keys and values of your own, returned with the factor. */
+  metadata?: Record<string, string>;
+}
+
+export interface PhoneFactorsListParams {
+  /** The user whose factors to list: required. */
+  user_id: string;
+  /** Only factors of this type. */
+  type?: "totp" | (string & {});
+  /** Only factors in this state. */
+  status?: "unverified" | "verified" | "disabled" | (string & {});
+  /** Page size: 20 by default, 100 at most. */
+  limit?: number;
+  /** Zero-based index of the first row. Prefer following `next`. */
+  offset?: number;
+  /** `json` (default) for a page, or `csv` to export every row that matches the filters as CSV. */
+  format?: "json" | "csv" | (string & {});
+}
+
+export interface PhoneFactorsUpdateParams {
+  /** A new name for the authenticator app. */
+  friendly_name?: string;
+  /** Replaces your keys and values with these, up to 10. */
+  metadata?: Record<string, string>;
+  /** `disabled` stops the factor's checks; `verified` turns a disabled factor back on. */
+  status?: "disabled" | "verified" | (string & {});
+}
+
+export interface PhoneNetworkRegistrationsCreateParams {
+  /** The network feature to ask approval for. */
+  feature: "silent_verification" | "sim_swap" | "number_verification" | (string & {});
+  /** The ISO 3166-1 alpha-2 country it runs in. */
+  country: string;
+  /** What you use the feature for. */
+  use_case: "signup" | "login" | "payment" | "account_recovery" | "fraud_check" | (string & {});
+  /** Only these mobile networks; left out, every network in the country. */
+  networks?: string[];
+  /** Your legal company name, as the networks see it. */
+  company_name: string;
+  /** Where the flow runs, so the networks can review it. */
+  website: string;
+  /** Why the flow needs the feature, shown to the networks. */
+  purpose?: string;
+  /** Expected requests a month. */
+  monthly_volume?: number;
+}
+
+export interface PhoneNetworkRegistrationsListParams {
+  /** Only registrations of this network feature. */
+  feature?: "silent_verification" | "sim_swap" | "number_verification" | (string & {});
+  /** Only this ISO 3166-1 alpha-2 country. */
+  country?: string;
+  /** Only rows in this state. */
+  status?: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
+  /** Page size: 20 by default, 100 at most. */
+  limit?: number;
+  /** Zero-based index of the first row. Prefer following `next`. */
+  offset?: number;
+  /** `json` (default) for a page, or `csv` to export every row that matches the filters as CSV. */
+  format?: "json" | "csv" | (string & {});
+}
+
+export interface PhoneNetworkRegistrationsTestNumbersCreateParams {
+  /** A number you hold, in E.164. Didit sends it a code to confirm it. */
+  phone_number: string;
+}
+
+export interface PhoneSdkKeysCreateParams {
+  /** The platform the key is for: `ios`, `android` or `web`. */
+  platform: "ios" | "android" | "web" | (string & {});
+  /** The bundle ids, package names or `https` origins the key works for. */
+  app_ids: string[];
+  /** Shown in API keys. */
+  name?: string;
+}
+
+export interface PhoneSdkKeysListParams {
+  /** Only keys for this platform. */
+  platform?: "ios" | "android" | "web" | (string & {});
+}
+
+/** How long the old value of a rotated key keeps working. */
+export interface PhoneSdkKeysRotateParams {
+  /** How long the value being replaced keeps working, from 0 to 168 hours, while the app update ships. */
+  overlap_hours?: number;
 }
 
 export interface PhoneSendCodeParams {
@@ -88,4 +185,33 @@ export interface PhoneSendCodeParamsSignals {
   app_version?: string;
   /** User agent of the end user's browser or app. */
   user_agent?: string;
+}
+
+export interface PhoneSilentCoverageParams {
+  /** Only this ISO 3166-1 alpha-2 country. */
+  country?: string;
+}
+
+export interface PhoneSilentEligibilityParams {
+  /** The number in international format (E.164), for example `+34600000012`. */
+  phone_number: string;
+  /** The phone's public IP, so the answer also confirms the device is on mobile data. */
+  ip_address?: string;
+}
+
+export interface PhoneSilentRegistrationsCreateParams {
+  /** The ISO 3166-1 alpha-2 country to ask approval for. */
+  country: string;
+  /** Only these mobile networks; left out, every network in the country. */
+  networks?: string[];
+  /** What silent verification is used for. */
+  use_case: "signup" | "login" | "payment" | "account_recovery" | (string & {});
+  /** Your legal company name, as the networks see it. */
+  company_name: string;
+  /** Where the flow runs, so the networks can review it. */
+  website: string;
+  /** Expected silent checks a month. */
+  monthly_volume?: number;
+  /** Links to screens of the flow, as the networks ask for them. */
+  flow_screenshots?: string[];
 }

@@ -4,12 +4,29 @@ import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { BankVerificationPricing, PublicPriceBook } from "../types/components.js";
+import type {
+  BankVerificationCountryCoverage,
+  BankVerificationCoverage,
+  BankVerificationPricing,
+  PublicPriceBook,
+} from "../types/components.js";
 
 const PRICING_BANK_VERIFICATION: OperationSpec = {
   method: "GET",
   path: "/v3/organization/bank-verification-pricing/",
   auth: "none",
+};
+const PRICING_BANK_VERIFICATION_COUNTRY_COVERAGE: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/bank-verification-coverage/{country}/",
+  auth: "none",
+  dates: "BankVerificationCountryCoverage",
+};
+const PRICING_BANK_VERIFICATION_COVERAGE: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/bank-verification-coverage/",
+  auth: "none",
+  dates: "BankVerificationCoverage",
 };
 const PRICING_PRICE_BOOK: OperationSpec = {
   method: "GET",
@@ -34,6 +51,38 @@ export class Pricing extends APIResource {
    */
   bankVerification(options?: RequestOptions): APIPromise<BankVerificationPricing> {
     return this._client.request(PRICING_BANK_VERIFICATION, [], undefined, options);
+  }
+
+  /**
+   * List the banks of one country (public, unauthenticated)
+   *
+   * Lists the banks Didit covers in one country: id, name, segments, access modes, history days, pending transactions and whether the bank is operational. Public: no auth header. One cached document per country.
+   *
+   * `GET /v3/organization/bank-verification-coverage/{country}/`
+   *
+   * @param country ISO 3166-1 alpha-3 code, for example `ESP`.
+   */
+  bankVerificationCountryCoverage(
+    country: string,
+    options?: RequestOptions,
+  ): APIPromise<BankVerificationCountryCoverage> {
+    return this._client.request(
+      PRICING_BANK_VERIFICATION_COUNTRY_COVERAGE,
+      [country],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * List the countries with bank coverage (public, unauthenticated)
+   *
+   * Lists the countries where Didit covers banks, how many, and what is open today for each product. Public: no auth header. Cached publicly and revalidated with an `ETag`. What is open is read on every request from the switches the API uses, so a product that is not open today reads `false` even when its banks are listed. It carries no prices (see the bank verification pricing feed) and never names a supplier.
+   *
+   * `GET /v3/organization/bank-verification-coverage/`
+   */
+  bankVerificationCoverage(options?: RequestOptions): APIPromise<BankVerificationCoverage> {
+    return this._client.request(PRICING_BANK_VERIFICATION_COVERAGE, [], undefined, options);
   }
 
   /**

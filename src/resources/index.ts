@@ -142,7 +142,16 @@ export { Messages } from "./messages.js";
 export { MonitoringEvents } from "./monitoring-events.js";
 export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";
-export { Phone } from "./phone.js";
+export {
+  Phone,
+  PhoneFactors,
+  PhoneNetwork,
+  PhoneNetworkRegistrations,
+  PhoneNetworkRegistrationsTestNumbers,
+  PhoneSdkKeys,
+  PhoneSilent,
+  PhoneSilentRegistrations,
+} from "./phone.js";
 export { Pricing } from "./pricing.js";
 export { ProofOfAddress } from "./proof-of-address.js";
 export { Questionnaires } from "./questionnaires.js";

@@ -84,7 +84,7 @@ export interface AuthenticationSetupUpdateProtectionParams {
   policies?: Record<string, "off" | "log" | "challenge" | "block" | (string & {})>;
 }
 
-/** Every field is optional. Changing the application’s `agent_humans_only` setting requires an owner or admin. Enabling it also requires an enrolled passkey. A named key receives 403 `owner_or_admin_required`. */
+/** Every field is optional. Changing the application’s `agent_humans_only` setting requires an owner or admin. Enabling it also requires an enrolled passkey. An API key receives 403 `owner_or_admin_required`. */
 export interface AuthenticationSetupUpdateSettingsParams {
   sign_in_ui?: "hosted" | "own" | (string & {});
   agent_humans_only?: boolean;

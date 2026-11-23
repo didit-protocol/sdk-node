@@ -2,19 +2,142 @@
 
 import type { APIPromise } from "../core/api-promise.js";
 import type { OperationSpec } from "../core/operation.js";
+import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  PhoneFactor,
+  PhoneFactorCheckResponse,
+  PhoneFactorEnrollment,
+  PhoneFactorsPage,
+  PhoneNetworkRegistration,
+  PhoneNetworkRegistrationSummary,
+  PhoneNetworkRegistrationTestNumber,
+  PhoneNetworkRegistrationsPage,
   PhoneRiskResponse,
+  PhoneSdkKey,
+  PhoneSdkKeyRotated,
+  PhoneSdkKeysPage,
+  PhoneSilentCoverage,
+  PhoneSilentEligibility,
+  PhoneSilentRegistration,
   PhoneVerificationCheckResponse,
   PhoneVerificationSendResponse,
 } from "../types/components.js";
 import type {
   PhoneAssessRiskParams,
   PhoneCheckCodeParams,
+  PhoneFactorsCreateParams,
+  PhoneFactorsListParams,
+  PhoneFactorsUpdateParams,
+  PhoneNetworkRegistrationsCreateParams,
+  PhoneNetworkRegistrationsListParams,
+  PhoneNetworkRegistrationsTestNumbersCreateParams,
+  PhoneSdkKeysCreateParams,
+  PhoneSdkKeysListParams,
+  PhoneSdkKeysRotateParams,
   PhoneSendCodeParams,
+  PhoneSilentCoverageParams,
+  PhoneSilentEligibilityParams,
+  PhoneSilentRegistrationsCreateParams,
 } from "../types/phone.js";
 
+const PHONE_FACTORS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/factors/",
+  body: "json",
+};
+const PHONE_FACTORS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/factors/{factor_id}/",
+  response: "none",
+};
+const PHONE_FACTORS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/factors/",
+  query: ["user_id", "type", "status", "limit", "offset", "format"],
+  dates: "PhoneFactorsPage",
+};
+const PHONE_FACTORS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/factors/{factor_id}/",
+  dates: "PhoneFactor",
+};
+const PHONE_FACTORS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/factors/{factor_id}/",
+  body: "json",
+  dates: "PhoneFactor",
+};
+const PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/network/registrations/{registration_id}/test-numbers/",
+  body: "json",
+};
+const PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/",
+  response: "none",
+};
+const PHONE_NETWORK_REGISTRATIONS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/network/registrations/",
+  body: "json",
+  dates: "PhoneNetworkRegistration",
+};
+const PHONE_NETWORK_REGISTRATIONS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/network/registrations/",
+  query: ["feature", "country", "status", "limit", "offset", "format"],
+};
+const PHONE_NETWORK_REGISTRATIONS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/network/registrations/{registration_id}/",
+  dates: "PhoneNetworkRegistration",
+};
+const PHONE_SDK_KEYS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/sdk-keys/",
+  body: "json",
+  dates: "PhoneSdkKey",
+};
+const PHONE_SDK_KEYS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/sdk-keys/",
+  query: ["platform"],
+};
+const PHONE_SDK_KEYS_REVOKE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/sdk-keys/{key_id}/",
+  response: "none",
+};
+const PHONE_SDK_KEYS_ROTATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/sdk-keys/{key_id}/rotate/",
+  body: "json",
+  dates: "PhoneSdkKeyRotated",
+};
+const PHONE_SILENT_REGISTRATIONS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/silent/registrations/",
+  body: "json",
+  dates: "PhoneSilentRegistration",
+};
+const PHONE_SILENT_REGISTRATIONS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/silent/registrations/{registration_id}/",
+  dates: "PhoneSilentRegistration",
+};
+const PHONE_SILENT_COVERAGE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/silent/coverage/",
+  query: ["country"],
+};
+const PHONE_SILENT_ELIGIBILITY: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/silent/eligibility/",
+  body: "json",
+};
 const PHONE_ASSESS_RISK: OperationSpec = {
   method: "POST",
   path: "/v3/phone/risk/",
@@ -29,8 +152,450 @@ const PHONE_CHECK_CODE: OperationSpec = {
 };
 const PHONE_SEND_CODE: OperationSpec = { method: "POST", path: "/v3/phone/send/", body: "json" };
 
+/** `phone.factors` */
+export class PhoneFactors extends APIResource {
+  /**
+   * Enroll a TOTP factor
+   *
+   * Enroll a TOTP factor for one of your users, so they confirm a verification with an authenticator app instead of a code. `type` is `totp` and `user_id` is your id for the user.
+   *
+   * The answer carries `totp.uri`, the `otpauth://` URI to show as a QR code; the authenticator app scans it and starts producing codes.
+   *
+   * **State.** A new factor is `unverified` until its first code passes `POST /v3/phone/check/`, then `verified`.
+   *
+   * **One of each type.** A user holds at most one factor: a second one answers `409 factor_exists`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/factors/`
+   */
+  create(
+    params: PhoneFactorsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneFactorEnrollment> {
+    return this._client.request(PHONE_FACTORS_CREATE, [], params, options);
+  }
+
+  /**
+   * Remove a factor
+   *
+   * Delete an enrolled factor. The factor is deleted at once: its `factor_id` stops working and the TOTP secret it held stop verifying, and the deletion cannot be undone. Verifications the factor already completed stay verified, and the user's other factors are not affected.
+   *
+   * Enroll the user again with `POST /v3/phone/factors/` to give them a new factor.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `DELETE /v3/phone/factors/{factor_id}/`
+   *
+   * @param factorId The factor to delete.
+   */
+  delete(factorId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_FACTORS_DELETE, [factorId], undefined, options);
+  }
+
+  /**
+   * List a user's enrolled factors
+   *
+   * List the factors enrolled for one of your users, so your app can show them and let the user pick the one to check with. `user_id` is required; `type` and `status` narrow the list.
+   *
+   * The answer is a page: `count`, `next`, `previous` and `results`, each result a factor as Retrieve returns it.
+   *
+   * **Export.** `format: csv` answers every row that matches the filters as a CSV file.
+   *
+   * **Paging.** `limit` is 20 by default and 100 at most.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/factors/`
+   */
+  list(
+    params: PhoneFactorsListParams,
+    options?: RequestOptions,
+  ): PagePromise<PhoneFactorsPage, PhoneFactor> {
+    return this._client.requestPage(PHONE_FACTORS_LIST, [], params, options);
+  }
+
+  /**
+   * Retrieve one enrolled factor
+   *
+   * One enrolled factor: its type, state, user, name, metadata and when it was last used. Read it to show a factor's state after a check changed it, or after it was disabled, without reading the whole list.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/factors/{factor_id}/`
+   *
+   * @param factorId The factor.
+   */
+  retrieve(factorId: string, options?: RequestOptions): APIPromise<PhoneFactor> {
+    return this._client.request(PHONE_FACTORS_RETRIEVE, [factorId], undefined, options);
+  }
+
+  /**
+   * Change a factor's name, metadata or state
+   *
+   * Change a factor without enrolling it again: rename it (`friendly_name`), replace your `metadata`, or disable it or turn it back on (`status`). The answer is the factor as it now stands.
+   *
+   * `disabled` stops the factor's checks and `verified` turns a disabled factor back on. A factor that was never verified cannot be turned on: finish its first check instead, or the call answers `409 factor_unverified`.
+   *
+   * `metadata` replaces the keys and values you sent before: up to 10 keys, each value at most 500 characters, or the call answers `400 invalid_metadata`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `PATCH /v3/phone/factors/{factor_id}/`
+   *
+   * @param factorId The factor to change.
+   */
+  update(
+    factorId: string,
+    params: PhoneFactorsUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneFactor> {
+    return this._client.request(PHONE_FACTORS_UPDATE, [factorId], params, options);
+  }
+}
+
+/** `phone.network.registrations.test_numbers` */
+export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
+  /**
+   * Add a test number while the networks review
+   *
+   * Add a number you hold as a test number while the networks review a registration, so you can try the feature before it is approved: send it in E.164 (`phone_number`).
+   *
+   * Didit sends it a code and answers with `verification_id` and `status: code_sent`; check the code with `POST /v3/phone/check/` and the number. Once the code is checked the number is `verified`, and the feature answers for it under test access, marked `test: true`.
+   *
+   * **Limits.** A registration takes up to 5 test numbers (`409 too_many_test_numbers`), and test access ends when the networks decide (`409 review_finished`).
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`
+   *
+   * @param registrationId The network feature registration.
+   */
+  create(
+    registrationId: string,
+    params: PhoneNetworkRegistrationsTestNumbersCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneNetworkRegistrationTestNumber> {
+    return this._client.request(
+      PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_CREATE,
+      [registrationId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Remove a test number
+   *
+   * Remove a test number from a registration: it is deleted at once, the feature stops answering for it, and the number can be added again while test access is on.
+   *
+   * The number is in the path in E.164, URL-encoded: `+34600000012` becomes `%2B34600000012`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/`
+   *
+   * @param registrationId The network feature registration.
+   * @param phoneNumber The test number, in E.164 and URL-encoded.
+   */
+  delete(registrationId: string, phoneNumber: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(
+      PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_DELETE,
+      [registrationId, phoneNumber],
+      undefined,
+      options,
+    );
+  }
+}
+
+/** `phone.network.registrations` */
+export class PhoneNetworkRegistrations extends APIResource {
+  readonly testNumbers: PhoneNetworkRegistrationsTestNumbers =
+    new PhoneNetworkRegistrationsTestNumbers(this._client);
+
+  /**
+   * Ask the networks to approve a network feature
+   *
+   * Ask the mobile networks to approve a network feature for one country, so your application can use it for production traffic there: `feature` (`silent_verification`, `sim_swap` or `number_verification`), `country`, `use_case`, `company_name` and the `website` where the flow runs, plus optionally the `networks` to ask, a `purpose` shown to them and your expected `monthly_volume`.
+   *
+   * The answer is the registration with each network's decision (`networks[].status`) and the overall `status`: `submitted`, `in_review`, `approved`, `partly_approved` or `rejected`.
+   *
+   * **Test access.** While the networks review, `test_access` is `on`: the feature answers for the registration's verified test numbers and marks those answers `test: true`. Add up to 5 with `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`. It turns `off` once the registration is approved or rejected.
+   *
+   * **One per feature, use case and country.** The same three again while one is open answers `409 registration_exists`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/network/registrations/`
+   */
+  create(
+    params: PhoneNetworkRegistrationsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneNetworkRegistration> {
+    return this._client.request(PHONE_NETWORK_REGISTRATIONS_CREATE, [], params, options);
+  }
+
+  /**
+   * List your network feature registrations
+   *
+   * List your network feature registrations, newest first, with each one's feature, country, use case and status. `feature`, `country` and `status` narrow the list, and `format: csv` exports every row that matches the filters instead of a page. Read one in full with `GET /v3/phone/network/registrations/{registration_id}/`.
+   *
+   * **Paging.** `limit` is 20 by default and 100 at most.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/network/registrations/`
+   */
+  list(
+    params: PhoneNetworkRegistrationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneNetworkRegistrationsPage, PhoneNetworkRegistrationSummary> {
+    return this._client.requestPage(PHONE_NETWORK_REGISTRATIONS_LIST, [], params, options);
+  }
+
+  /**
+   * Track a feature approval, network by network
+   *
+   * Track one feature approval, network by network: the feature, country and use case you submitted, the overall `status`, each mobile network's decision (`status`, `decided_at` and, when it rejected the request, `reason`), `live_at` once the feature is live for you in the country, and the `test_numbers` that answer it while `test_access` is `on`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/network/registrations/{registration_id}/`
+   *
+   * @param registrationId The network feature registration.
+   */
+  retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneNetworkRegistration> {
+    return this._client.request(
+      PHONE_NETWORK_REGISTRATIONS_RETRIEVE,
+      [registrationId],
+      undefined,
+      options,
+    );
+  }
+}
+
+/** `phone.network` */
+export class PhoneNetwork extends APIResource {
+  readonly registrations: PhoneNetworkRegistrations = new PhoneNetworkRegistrations(this._client);
+}
+
+/** `phone.sdk_keys` */
+export class PhoneSdkKeys extends APIResource {
+  /**
+   * Issue a publishable key for a client SDK
+   *
+   * Issue a publishable key for the iOS, Android or web build of your app: `platform`, the `app_ids` it may run in (bundle ids, package names or `https` origins) and an optional `name` shown in API keys. The answer carries `publishable_key`, which is safe to ship inside the app because it can only start the client SDK's checks.
+   *
+   * **Rotation.** To replace a key in an app that is already installed, rotate it (`POST /v3/phone/sdk-keys/{key_id}/rotate/`) rather than issuing a second one: the old value keeps working while your update ships.
+   *
+   * **Permissions.** Only an Owner or Admin API key may issue a publishable key.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/sdk-keys/`
+   */
+  create(params: PhoneSdkKeysCreateParams, options?: RequestOptions): APIPromise<PhoneSdkKey> {
+    return this._client.request(PHONE_SDK_KEYS_CREATE, [], params, options);
+  }
+
+  /**
+   * List the publishable keys of your client SDKs
+   *
+   * List the key ID, platform and status of each client SDK key for your application.
+   *
+   * `platform` narrows the list to one platform.
+   *
+   * **Permissions.** Only an Owner or Admin API key may read publishable keys.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/sdk-keys/`
+   */
+  list(
+    params: PhoneSdkKeysListParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneSdkKeysPage> {
+    return this._client.request(PHONE_SDK_KEYS_LIST, [], params, options);
+  }
+
+  /**
+   * Revoke a publishable key
+   *
+   * Revoke a publishable key at once: it stops starting the client SDK's checks immediately, its status becomes `revoked`, and it can neither be restored nor rotated. Apps that still ship it fail until they are updated, so issue the replacement first (`POST /v3/phone/sdk-keys/`).
+   *
+   * **Permissions.** Only an Owner or Admin API key may revoke a publishable key.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `DELETE /v3/phone/sdk-keys/{key_id}/`
+   *
+   * @param keyId The publishable key to revoke.
+   */
+  revoke(keyId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_SDK_KEYS_REVOKE, [keyId], undefined, options);
+  }
+
+  /**
+   * Rotate a publishable key with an overlap
+   *
+   * Rotate a publishable key without breaking the app versions already installed: Didit issues a new value and keeps the old one working for `overlap_hours` (0 to 168), long enough for your update to ship. The answer is the key with its new `publishable_key`, and `previous_expires_at` is when the value it replaced stops working.
+   *
+   * Ship the new value, then let the overlap end. A revoked key cannot be rotated: the call answers `409 revoked`.
+   *
+   * **Permissions.** Only an Owner or Admin API key may rotate a publishable key.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/sdk-keys/{key_id}/rotate/`
+   *
+   * @param keyId The publishable key to rotate.
+   */
+  rotate(
+    keyId: string,
+    params: PhoneSdkKeysRotateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneSdkKeyRotated> {
+    return this._client.request(PHONE_SDK_KEYS_ROTATE, [keyId], params, options);
+  }
+}
+
+/** `phone.silent.registrations` */
+export class PhoneSilentRegistrations extends APIResource {
+  /**
+   * Submit a country for carrier approval of silent verification
+   *
+   * Submit a country for carrier approval of silent verification, so silent checks run for your application's production traffic there: `country`, the `use_case` it runs in, your `company_name` and the `website` where the flow runs. Optionally name the `networks` to ask, your expected `monthly_volume` and links to `flow_screenshots`.
+   *
+   * The answer is the registration. `status` starts `submitted`, moves to `in_review`, and ends as `approved`, `partly_approved` (some networks approved and some rejected) or `rejected`. `networks` lists each mobile network's own decision and `live_at` is when silent verification went live for you in the country.
+   *
+   * **One per country.** A country with an open registration answers `409 registration_exists`: track that one with `GET /v3/phone/silent/registrations/{registration_id}/` instead.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/silent/registrations/`
+   */
+  create(
+    params: PhoneSilentRegistrationsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneSilentRegistration> {
+    return this._client.request(PHONE_SILENT_REGISTRATIONS_CREATE, [], params, options);
+  }
+
+  /**
+   * Track a carrier approval, network by network
+   *
+   * Track a carrier approval, network by network: the registration's `status`, each mobile network's decision (`status`, `decided_at` and, when it rejected the request, `reason`), and `live_at` once silent verification is live for you in the country.
+   *
+   * A registration that is `partly_approved` runs silent verification on the networks that approved it.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/silent/registrations/{registration_id}/`
+   *
+   * @param registrationId The silent verification registration.
+   */
+  retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneSilentRegistration> {
+    return this._client.request(
+      PHONE_SILENT_REGISTRATIONS_RETRIEVE,
+      [registrationId],
+      undefined,
+      options,
+    );
+  }
+}
+
+/** `phone.silent` */
+export class PhoneSilent extends APIResource {
+  readonly registrations: PhoneSilentRegistrations = new PhoneSilentRegistrations(this._client);
+
+  /**
+   * List where silent verification runs
+   *
+   * Where silent verification runs: every country where at least one mobile network can run the check, and per country the networks that can. Read this instead of hardcoding a list, because coverage grows as networks approve the feature.
+   *
+   * `approval` says whether a network answers for production traffic (`live`) or only while it approves production use (`test`), in which case it answers for the verified test numbers of a registration. `wifi` says whether the SIM check also runs over Wi-Fi, so a device without mobile data can still complete it.
+   *
+   * **Narrowing.** `country` answers for one ISO 3166-1 alpha-2 country.
+   *
+   * **Before you start.** `POST /v3/phone/silent/eligibility/` answers for one number, and a silent check that cannot run falls back to the verification's code channels.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `GET /v3/phone/silent/coverage/`
+   */
+  coverage(
+    params: PhoneSilentCoverageParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneSilentCoverage> {
+    return this._client.request(PHONE_SILENT_COVERAGE, [], params, options);
+  }
+
+  /**
+   * Check silent eligibility before you start
+   *
+   * Whether a silent check can run for one number now, so you can decide whether to offer it before you start a verification. `eligible` is the answer and, when it is `false`, `reason` says why: `unsupported_network` (the number's mobile network cannot run the check), `not_mobile_data` (the device is not on mobile data) or `country_not_covered` (silent verification does not run in the number's country).
+   *
+   * `network` is the mobile network the number belongs to, `country` its ISO 3166-1 alpha-2 code, and `wifi_possible` whether the SIM check can still run over Wi-Fi when the device has no mobile data.
+   *
+   * **Mobile data.** Send `ip_address`, the phone's public IP, to have the answer also confirm the device is on mobile data. Without it, the answer is about the network alone.
+   *
+   * **What follows.** A verification that runs the silent check first falls back to its next code channel when the check cannot run.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`. To check a client SDK's publishable key as well, include it in `X-Publishable-Key`.
+   *
+   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
+   *
+   * `POST /v3/phone/silent/eligibility/`
+   */
+  eligibility(
+    params: PhoneSilentEligibilityParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneSilentEligibility> {
+    return this._client.request(PHONE_SILENT_ELIGIBILITY, [], params, options);
+  }
+}
+
 /** `phone` */
 export class Phone extends APIResource {
+  readonly factors: PhoneFactors = new PhoneFactors(this._client);
+  readonly network: PhoneNetwork = new PhoneNetwork(this._client);
+  readonly sdkKeys: PhoneSdkKeys = new PhoneSdkKeys(this._client);
+  readonly silent: PhoneSilent = new PhoneSilent(this._client);
+
   /**
    * Risk-score a phone number
    *
@@ -40,7 +605,7 @@ export class Phone extends APIResource {
    *
    * **Compatibility aliases.** Live responses expose the normalized intelligence object as both `phone.phone_intelligence` and `phone.enrichment`. The values are identical. New integrations can read `phone.enrichment`. Both keys are absent when no usable intelligence data was returned.
    *
-   * **Billing.** Live calls use Phone Risk API pricing. The request is billable once the lookup starts, even when some best-effort fields are unavailable.
+   * **Billing.** Live calls use Phone Risk API pricing. The request is billable once the lookup starts, even when some best-effort fields are unavailable. Phone Risk, including the optional `enable_social` add-on, is Phone usage: the free credit pays it only up to $1 a month, shared with phone verification codes, messages and the other Phone lookups. On the Free plan, what the $1 does not cover is paid from your top-up balance; Growth and Scale included credit pays for Phone in full. The request is refused with `403` only when the credit available to Phone, including the add-on, cannot cover it. Phone Risk has no first-top-up requirement; a top-up is needed only when the credit available to Phone (the free $1 or paid credit) cannot cover the lookup.
    *
    * **Sandbox.** Sandbox keys validate the request and return deterministic approved data without sending an OTP, consuming credits, creating a session, or contributing to Networks.
    *
@@ -91,9 +656,9 @@ export class Phone extends APIResource {
    * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   checkCode(
-    params: PhoneCheckCodeParams,
+    params: PhoneCheckCodeParams = {},
     options?: RequestOptions,
-  ): APIPromise<PhoneVerificationCheckResponse> {
+  ): APIPromise<PhoneVerificationCheckResponse | PhoneFactorCheckResponse> {
     return this._client.request(PHONE_CHECK_CODE, [], params, options);
   }
 

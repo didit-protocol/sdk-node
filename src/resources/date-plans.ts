@@ -116,6 +116,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: { added: { i: "BankTransaction" }, modified: { i: "BankTransaction" } },
   },
   BankTransactionPage: { p: { items: { i: "BankTransaction" } } },
+  BankVerificationCountryCoverage: { p: { updated_at: 1 } },
+  BankVerificationCoverage: { p: { updated_at: 1 } },
   BankVerificationResult: {
     p: {
       connection: { p: { connected_at: 1, consent_expires_at: 1, last_refreshed_at: 1 } },
@@ -427,9 +429,16 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   PaginatedApplicationList: { p: { results: { i: "Application" } } },
   PaginatedOrganizationList: { p: { results: { i: "Organization" } } },
   PassiveLivenessCheckResponse: { p: { created_at: 1 } },
+  PhoneFactor: { p: { created_at: 1, last_used_at: 1 } },
+  PhoneFactorsPage: { p: { results: { i: "PhoneFactor" } } },
+  PhoneNetworkDecision: { p: { decided_at: 1 } },
+  PhoneNetworkRegistration: { p: { networks: { i: "PhoneNetworkDecision" }, live_at: 1 } },
   PhoneRiskResponse: {
     p: { created_at: 1, phone: { p: { verified_at: 1, lifecycle: { i: "RiskLifecycleEvent" } } } },
   },
+  PhoneSdkKey: { p: { created_at: 1 } },
+  PhoneSdkKeyRotated: { p: { created_at: 1, previous_expires_at: 1 } },
+  PhoneSilentRegistration: { p: { networks: { i: "PhoneNetworkDecision" }, live_at: 1 } },
   PhoneVerificationCheckResponse: {
     p: {
       phone: { p: { verified_at: 1, lifecycle: { i: { p: { timestamp: 1 } } } } },
