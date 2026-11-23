@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.39.0](https://github.com/didit-protocol/sdk-node/compare/v2.38.0...v2.39.0) (2026-11-23)
+
+
+### Features
+
+* **spec:** sync API spec 2026-11-23 ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+
+
+### API changes that can break typed code
+
+* **spec:** `DELETE /v3/phone/factors/{factor_id}/` was removed (`phone.factors.delete` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/` was removed (`phone.network.registrations.test_numbers.delete` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `DELETE /v3/phone/sdk-keys/{key_id}/` was removed (`phone.sdk_keys.revoke` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/factors/{factor_id}/` was removed (`phone.factors.retrieve` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/factors/` was removed (`phone.factors.list` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/network/registrations/{registration_id}/` was removed (`phone.network.registrations.retrieve` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/network/registrations/` was removed (`phone.network.registrations.list` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/sdk-keys/` was removed (`phone.sdk_keys.list` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/silent/coverage/` was removed (`phone.silent.coverage` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `GET /v3/phone/silent/registrations/{registration_id}/` was removed (`phone.silent.registrations.retrieve` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `PATCH /v3/phone/factors/{factor_id}/` was removed (`phone.factors.update` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` request field `code` is now required ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` request field `factor_id` was removed ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` request field `phone_number` is now required ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` response field `status` is no longer required (it can be missing) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` the request body changed type from any to object ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` the request body lost 1 of its anyOf variants (changed type from any or any to object) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/check/` the response lost 1 of its oneOf variants (changed type from object or object to object) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/factors/` was removed (`phone.factors.create` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/network/registrations/{registration_id}/test-numbers/` was removed (`phone.network.registrations.test_numbers.create` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/network/registrations/` was removed (`phone.network.registrations.create` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/sdk-keys/{key_id}/rotate/` was removed (`phone.sdk_keys.rotate` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/sdk-keys/` was removed (`phone.sdk_keys.create` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/silent/eligibility/` was removed (`phone.silent.eligibility` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+* **spec:** `POST /v3/phone/silent/registrations/` was removed (`phone.silent.registrations.create` stays as a deprecated method until version 2.40.0) ([4b84bfb](https://github.com/didit-protocol/sdk-node/commit/4b84bfbd8c051d9fa394b09146e02894362e816c))
+
 ## [2.38.0](https://github.com/didit-protocol/sdk-node/compare/v2.37.0...v2.38.0) (2026-11-23)
 
 

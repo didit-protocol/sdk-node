@@ -1,2 +1,2 @@
 // Updated by release-please (release-please-config.json, extra-files).
-export const VERSION = "2.38.0"; // x-release-please-version
+export const VERSION = "2.39.0"; // x-release-please-version
