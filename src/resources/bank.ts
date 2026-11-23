@@ -452,7 +452,7 @@ export class Bank extends APIResource {
    *
    * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
    *
-   * Refreshing a deleted connection answers `409 connection_not_active`.
+   * Refreshing a deleted connection answers `409 connection_not_active`. A one-time connection is read once and its access then ends, so refreshing it answers `409 one_time_connection`: create a new link to read the bank again.
    *
    * `POST /v3/bank/connections/{id}/refresh/`
    *
@@ -475,6 +475,8 @@ export class Bank extends APIResource {
    *
    * Send the returned `url` to the person: the hosted page shows what continues to be shared and until when, the person signs in at their bank once and returns to your `redirect_url`, and `bank.connection.renewed` confirms it. Afterwards the connection's `consent` shows a new `version`, `renewed_count`, `expires_at` and `renew_by`, with `renewal_action` `bank_auth`.
    *
+   * A one-time connection has no consent to renew: it answers `409 one_time_connection`, and a new link reads the bank again.
+   *
    * Until the consent has 30 days left or fewer it answers `409 renewal_not_needed`; after `consent.renewable_until` it answers `409 renewal_window_expired` and the person connects again.
    *
    * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
@@ -496,7 +498,7 @@ export class Bank extends APIResource {
   /**
    * Revoke a bank connection
    *
-   * Stops access to the bank. Bank fetches stop the moment you ask, even while the bank's confirmation is pending: the consent reads `revocation_pending`, then `revoked` once the bank confirms access is terminated, or `revocation_failed` while the call is retried automatically. `consent.ended_by` is `customer`.
+   * Stops access to the bank. Bank fetches stop the moment you ask, even while the bank's confirmation is pending: the consent reads `revocation_pending`, then `revoked` once the bank confirms access is terminated, or `revocation_failed` while the call is retried automatically. `consent.ended_by` is `customer`. Until the bank confirms, `status` keeps its value and `status_reason` is `null`; once `status` is `revoked`, `status_reason` is `revoked_by_customer`.
    *
    * Revoking does not delete anything: stored accounts, balances and transactions stay readable until `consent.retain_until`, the retention setting of your application, and nothing is charged. To delete them now, call `delete_connection`. Repeating the call returns the current state.
    *
