@@ -1289,7 +1289,7 @@ export interface AsyncReportListCounts {
 
 /** One account inside a connection. */
 export interface BankAccount {
-  /** Account id. Belongs to the connection and never changes while it exists, renewals included. */
+  /** Account id. Belongs to the connection and never changes while it exists, renewals included; a new connection of the same bank account has a new id (use `account_ref` to recognise the account). */
   id: string;
   connection_id: string;
   name: string | null;
@@ -1305,7 +1305,7 @@ export interface BankAccount {
   holders: BankAccountHolder[];
   /** Full identifiers, returned to server-side callers with access to Bank data. */
   identifiers: BankAccountIdentifiers;
-  /** Identifies the same bank account across connections of one application and environment: a keyed hash of the bank's own identifiers. `null` when the bank gives no reliable identifier. Use it to recognise a bank account you already know. */
+  /** Identifies the same bank account across connections of one application and environment: a keyed hash of the bank's own identifiers. `null` when the bank gives no reliable identifier. Use it to recognise a bank account you already know. It is the same for one bank account in every connection of the application, while `id` and the transaction ids are new in each connection. */
   account_ref: string | null;
   /** The previous `account_ref`, only for a verified alias such as a bank migration. */
   account_ref_previous: string | null;
@@ -1986,7 +1986,7 @@ export interface BankSyncRunResult {
 
 /** One movement of an account. Any field the bank does not send is `null`; the institution capabilities list which fields a bank is known to send. */
 export interface BankTransaction {
-  /** Didit's id, opaque and stored at first sight. The same movement keeps its id across reads, syncs and renewals. `identity_quality` says how strong that guarantee is. */
+  /** Didit's id, opaque and stored at first sight, per connection. The same movement keeps its id across reads, syncs and renewals within one connection; a new connection of the same bank account has new transaction ids. To recognise a transaction across connections, use the account's `account_ref` with `bank_reference` (when `identity_quality` is `bank_reference`), or match on content as a probable match. `identity_quality` says how strong the guarantee is within the connection. */
   id: string;
   account_id: string;
   /** A pending transaction has its own id. When the bank books it, the booked transaction carries `pending_id` where the bank links them, and the pending one appears in `removed` with `reason: pending_booked`. */
@@ -2010,9 +2010,9 @@ export interface BankTransaction {
   counterparty: BankTransactionCounterparty;
   remittance: BankTransactionRemittance;
   bank_transaction_code: string | null;
-  /** The bank's immutable entry reference where it provides one. `null` otherwise, never invented. */
+  /** The bank's immutable entry reference where it provides one. `null` otherwise, never invented. It is the same in every connection, so with the account's `account_ref` it is the reliable key across connections when `identity_quality` is `bank_reference`. */
   bank_reference: string | null;
-  /** How `id` was matched. `bank_reference` and `route_id` are stable. `derived` is matched by content: it is stable while the bank keeps reporting the entry unchanged, and a correction by the bank can then appear as one `removed` and one `added`. */
+  /** How `id` was matched within the connection. `bank_reference` and `route_id` are stable. `derived` is matched by content: it is stable while the bank keeps reporting the entry unchanged, and a correction by the bank can then appear as one `removed` and one `added`. Across connections only a `bank_reference` is a reliable key. */
   identity_quality: "bank_reference" | "route_id" | "derived" | (string & {});
   end_to_end_id: string | null;
   mandate_id: string | null;
@@ -7278,15 +7278,6 @@ export interface PhoneFactor {
   last_used_at?: Date | null;
 }
 
-/** The answer to a factor check (a request that names `factor_id`). */
-export interface PhoneFactorCheckResponse {
-  /** The factor id. */
-  verification_id: string;
-  /** `verified` when the code matched; the factor is then `verified` too. */
-  status: "verified" | "failed" | (string & {});
-  attempts: number;
-}
-
 /** The enrollment of a TOTP factor: `totp.uri` is what the authenticator app needs. */
 export interface PhoneFactorEnrollment {
   /** Check it with `POST /v3/phone/check/` by naming it as `factor_id` together with the `code` its app shows. */
@@ -7644,7 +7635,7 @@ export interface PhoneVerificationCheckResponse {
   /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
   /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. */
-  status: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
+  status?: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
   /** Human-readable explanation of the outcome, including the number of attempts remaining after a wrong code. */
   message?: string;
   /** Full phone report. Present (non-null) only on finalized outcomes (`Approved`/`Declined`); `null` on `Failed` and absent on `Expired or Not Found`. */
