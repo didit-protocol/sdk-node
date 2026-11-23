@@ -219,7 +219,7 @@ export class Bank extends APIResource {
    *
    * Confirm the outcome yourself with `get_link` or the `bank.link.completed` webhook; never trust a link id sent by the browser. History: send `history_from` or `history_days`, not both. Where the bank allows, ongoing access keeps working until the consent ends; the real date is on each connection.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `POST /v3/bank/links/`
    *
@@ -238,7 +238,7 @@ export class Bank extends APIResource {
    *
    * Not affected: your other connections, the charges already made (they are not refunded), and any data you already downloaded, which is your own copy. Repeating the call is safe. To stop access without deleting, use `revoke_connection`.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `DELETE /v3/bank/connections/{id}/`
    *
@@ -255,7 +255,7 @@ export class Bank extends APIResource {
    *
    * Returns one account with full identifiers, holders, sync state and `history_coverage`, which says what the bank delivered of the history you asked for. `sync.last_synced_at` is when the data was fetched from the bank, not when you read it.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
    * `GET /v3/bank/accounts/{account_id}/`
    *
@@ -270,7 +270,7 @@ export class Bank extends APIResource {
    *
    * Returns the typed balances of an account with their reference dates. Balances are replaced at each sync.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
    * `GET /v3/bank/accounts/{account_id}/balances/`
    *
@@ -285,7 +285,7 @@ export class Bank extends APIResource {
    *
    * Returns the connection with its consent, sync state and a summary of each account. Read the data itself with the accounts, balances and transactions operations. A connection that was deleted reads as a minimal record: its id, `status: deleted`, the reason, its dates and its `erasure` status, and no accounts, balances, transactions, consent or sync data.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/connections/{id}/`
    *
@@ -300,7 +300,7 @@ export class Bank extends APIResource {
    *
    * Returns one entry per country: whether bank sign-in and the account check are available, and whether ongoing access is available, with how many banks offer it, the longest consent and deepest history any of them allows, and whether business accounts are supported. Ongoing access is counted only where a bank is switched on for it. Use it to decide which countries to offer; use `list_institutions` for a single bank.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/coverage/`
    */
@@ -313,7 +313,7 @@ export class Bank extends APIResource {
    *
    * Returns one bank with its capabilities. The id is Didit's slug, as listed by `list_institutions`.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/institutions/{id}/`
    *
@@ -330,7 +330,7 @@ export class Bank extends APIResource {
    *
    * A link that fails is not an HTTP error: it reads `200` with `status: failed` and an `error` object, for example `duplicate_conflict` with `conflicts_with`. `url` and `client_token` are returned only when the link is created.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/links/{id}/`
    *
@@ -345,7 +345,7 @@ export class Bank extends APIResource {
    *
    * Returns one sync run with its results per account and resource.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/connections/{id}/sync-runs/{sync_id}/`
    *
@@ -361,7 +361,7 @@ export class Bank extends APIResource {
    *
    * Lists every account of the connection, oldest first, with full identifiers and holders. A read never bills.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
    * `GET /v3/bank/connections/{id}/accounts/`
    *
@@ -382,7 +382,7 @@ export class Bank extends APIResource {
    *
    * Connections that were deleted are left out of the list by default. To list them, ask with `status=deleted`, which returns only them. The `status` filter takes one value, so a list of statuses answers `400 invalid_request` with `field` `status`. A deleted connection is a record that the deletion happened: it carries no bank data, and reading it by id returns the same minimal record (`id`, `status`, `status_reason`, `created_at` and `erasure`).
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * In this list `sync.budgets` shows only the budgets that exist already; `GET /v3/bank/connections/{id}/` opens today's budgets.
    *
@@ -400,7 +400,7 @@ export class Bank extends APIResource {
    *
    * Lists the banks per country with their capabilities: segments, access modes, the longest consent and deepest history the bank offers, whether it reports pending transactions, which transaction fields it is known to send, and how the person signs in. Values come from observed data, refreshed daily; a value never observed is `null`. The same data feeds the bank picker, so use it to know what to expect before you create a link. `access` lists `ongoing` only where ongoing access is available.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * The list is sorted by name, then id.
    *
@@ -420,7 +420,7 @@ export class Bank extends APIResource {
    *
    * Lists what each sync of a connection did, newest first, per account and resource.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `GET /v3/bank/connections/{id}/sync-runs/`
    *
@@ -443,7 +443,7 @@ export class Bank extends APIResource {
    *
    * Response headers: `X-Bank-Last-Synced-At` and `Cache-Control: no-store`.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
    * `GET /v3/bank/accounts/{account_id}/transactions/`
    *
@@ -466,7 +466,7 @@ export class Bank extends APIResource {
    *
    * When a sync stores changes, `bank.data.updated` tells you; then read the change feed.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * Refreshing a deleted connection answers `409 connection_not_active`. A one-time connection is read once and its access then ends, so refreshing it answers `409 one_time_connection`: create a new link to read the bank again.
    *
@@ -495,7 +495,7 @@ export class Bank extends APIResource {
    *
    * Until the consent has 30 days left or fewer it answers `409 renewal_not_needed`; after `consent.renewable_until` it answers `409 renewal_window_expired` and the person connects again.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * `POST /v3/bank/connections/{id}/renew/`
    *
@@ -518,7 +518,7 @@ export class Bank extends APIResource {
    *
    * Revoking does not delete anything: stored accounts, balances and transactions stay readable until `consent.retain_until`, the retention setting of your application, and nothing is charged. To delete them now, call `delete_connection`. Repeating the call returns the current state.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`.
    *
    * Revoking a connection that was deleted answers `200` with the deleted connection, so repeating the call is safe.
    *
@@ -554,7 +554,7 @@ export class Bank extends APIResource {
    *
    * `days` is only accepted with `consent_expiring` and `count` only with `new_transactions`: sent with another action, each answers `400 invalid_request` with `field` naming it.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Sandbox only: a live application, or a link or connection that belongs to the live environment, answers `404 not_found`, exactly as an unknown route does.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`. Sandbox only: a live application, or a link or connection that belongs to the live environment, answers `404 not_found`, exactly as an unknown route does.
    *
    * `POST /v3/bank/connections/{id}/simulate/`
    *
@@ -579,7 +579,7 @@ export class Bank extends APIResource {
    *
    * A link that allows the one-time fallback and meets a bank that cannot keep access open accepts the reduced access and finishes in the same call. A link that is no longer open (completed, cancelled, expired or failed) is returned unchanged, so the call is safe to repeat.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): write for this operation, which changes something. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. Sandbox only: a live application, or a link or connection that belongs to the live environment, answers `404 not_found`, exactly as an unknown route does.
+   * Needs an API key with write access to Bank data, because this operation changes something: a full-access key has it, and a scoped key needs `bank-data` write in its scopes. Otherwise the call answers `403 bank_data_access_denied`. Sandbox only: a live application, or a link or connection that belongs to the live environment, answers `404 not_found`, exactly as an unknown route does.
    *
    * `POST /v3/bank/links/{id}/simulate/`
    *
@@ -604,7 +604,7 @@ export class Bank extends APIResource {
    *
    * The change log is replayable for 90 days. An older cursor answers `410 cursor_expired` with `bootstrap: true`: start again from an empty cursor. Stored history is never aged out while the connection exists. A booked pending transaction appears in `added` and the pending one in `removed` with `reason: pending_booked`. Webhook `bank.data.updated` tells you when to call.
    *
-   * Needs an API key with the Bank data permission (`bank-data`): read for this operation. A key with full access does not include it: grant it explicitly when you create the key, or the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
+   * Needs an API key with read access to Bank data: a full-access key has it, and a scoped key needs `bank-data` read in its scopes. Otherwise the call answers `403 bank_data_access_denied`. A sandbox application reads its Test Bank data with the key alone. A request without an API key (client credentials) is refused on raw data with the same `403`.
    *
    * `GET /v3/bank/connections/{id}/transactions/sync/`
    *
