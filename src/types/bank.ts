@@ -98,7 +98,7 @@ export interface BankCreateLinkParams {
 
 /** Sandbox applications only: picks the Didit Test Bank customer. A live application that sends it, with any key, answers `400 invalid_request` with `field: sandbox` and no link is created. */
 export interface BankCreateLinkParamsSandbox {
-  /** The Test Bank customer: `personal_basic` (one current account, 60 movements), `business_multi` (three accounts held by a company), `long_history` (one account with 400 days and 1,400 movements; a read returns the last 365 days, so set `history_days` to 365), `pending` (includes pending transactions), `sparse_fields` (no value date, no counterparty IBAN, no bank reference) or `no_ongoing` (a bank that only allows one-time access: use `allow_one_time_fallback`). */
+  /** The Test Bank customer: `personal_basic` (one current account, 60 movements), `business_multi` (three accounts held by a company), `long_history` (one account with 400 days and 1,400 movements; a read returns the last 365 days, so set `history_days` to 365), `pending` (includes pending transactions), `sparse_fields` (no value date, no counterparty IBAN, no bank reference) or `no_ongoing` (a bank that only allows one-time access: use `allow_one_time_fallback`). `requires_email`: the Test Bank behaves as a bank that needs the person's email, so the link asks for an email address and a code before the bank. In sandbox no email is sent and the code is always `123456`; ignored for live applications. */
   persona?:
     | "personal_basic"
     | "business_multi"
@@ -106,6 +106,7 @@ export interface BankCreateLinkParamsSandbox {
     | "pending"
     | "sparse_fields"
     | "no_ongoing"
+    | "requires_email"
     | (string & {});
   /** Accepted and reserved for the sandbox simulator: the values change nothing today. */
   switches?: (
@@ -128,7 +129,7 @@ export interface BankListAccountsParams {
 }
 
 export interface BankListConnectionsParams {
-  /** Only connections in this status. */
+  /** Only connections in this status, one value. Without this filter the list leaves out `deleted` connections; `status=deleted` returns only them. A deleted connection carries no bank data. */
   status?:
     | "pending"
     | "active"
