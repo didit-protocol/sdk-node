@@ -1,4 +1,3488 @@
 {
  "description": "Public SDK methods kept for one more minor version after the API contract dropped them (docs/DESIGN.md section 3.1). Written by codegen/spec-sync.ts, keyed by resource.method. reason is removed (the operation left the contract or is no longer a server operation) or renamed (its x-didit-sdk naming changed; replacement names the new method). Each entry holds its operation with the component schemas it uses, so its types keep their names and nothing depends on the current documents. tests/contract.test.ts fails once the package version reaches remove_in: delete the entry and regenerate in that release.",
- "methods": {}
+ "methods": {
+  "phone.factors.delete": {
+   "reason": "removed",
+   "operation_key": "DELETE /v3/phone/factors/{factor_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.factors",
+    "method": "delete",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Remove a factor",
+    "description": "Delete an enrolled factor. The factor is deleted at once: its `factor_id` stops working and the TOTP secret it held stop verifying, and the deletion cannot be undone. Verifications the factor already completed stay verified, and the user's other factors are not affected.\n\nEnroll the user again with `POST /v3/phone/factors/` to give them a new factor.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "delete_phone_factor",
+    "x-didit-sdk": {
+     "resource": "phone.factors",
+     "method": "delete",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "factor_id",
+      "in": "path",
+      "required": true,
+      "description": "The factor to delete.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "The resource is gone. The answer has no body."
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No factor with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.network.registrations.test_numbers.delete": {
+   "reason": "removed",
+   "operation_key": "DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/",
+   "x-didit-sdk": {
+    "resource": "phone.network.registrations.test_numbers",
+    "method": "delete",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Remove a test number",
+    "description": "Remove a test number from a registration: it is deleted at once, the feature stops answering for it, and the number can be added again while test access is on.\n\nThe number is in the path in E.164, URL-encoded: `+34600000012` becomes `%2B34600000012`.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "delete_phone_network_registration_test_number",
+    "x-didit-sdk": {
+     "resource": "phone.network.registrations.test_numbers",
+     "method": "delete",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "registration_id",
+      "in": "path",
+      "required": true,
+      "description": "The network feature registration.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "phone_number",
+      "in": "path",
+      "required": true,
+      "description": "The test number, in E.164 and URL-encoded.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "The resource is gone. The answer has no body."
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No test number with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.sdk_keys.revoke": {
+   "reason": "removed",
+   "operation_key": "DELETE /v3/phone/sdk-keys/{key_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.sdk_keys",
+    "method": "revoke",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Revoke a publishable key",
+    "description": "Revoke a publishable key at once: it stops starting the client SDK's checks immediately, its status becomes `revoked`, and it can neither be restored nor rotated. Apps that still ship it fail until they are updated, so issue the replacement first (`POST /v3/phone/sdk-keys/`).\n\n**Permissions.** Only an Owner or Admin API key may revoke a publishable key.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "revoke_phone_sdk_key",
+    "x-didit-sdk": {
+     "resource": "phone.sdk_keys",
+     "method": "revoke",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "description": "The publishable key to revoke.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "The resource is gone. The answer has no body."
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or the key is not an Owner or Admin key of the application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No key with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.factors.list": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/factors/",
+   "x-didit-sdk": {
+    "resource": "phone.factors",
+    "method": "list",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "List a user's enrolled factors",
+    "description": "List the factors enrolled for one of your users, so your app can show them and let the user pick the one to check with. `user_id` is required; `type` and `status` narrow the list.\n\nThe answer is a page: `count`, `next`, `previous` and `results`, each result a factor as Retrieve returns it.\n\n**Export.** `format: csv` answers every row that matches the filters as a CSV file.\n\n**Paging.** `limit` is 20 by default and 100 at most.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "list_phone_factors",
+    "x-didit-sdk": {
+     "resource": "phone.factors",
+     "method": "list",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "query",
+      "required": true,
+      "description": "The user whose factors to list: required.",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "description": "Only factors of this type.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ]
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "description": "Only factors in this state.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "unverified",
+        "verified",
+        "disabled"
+       ]
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "description": "Page size: 20 by default, 100 at most.",
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 100,
+       "default": 20
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "description": "Zero-based index of the first row. Prefer following `next`.",
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0
+      }
+     },
+     {
+      "name": "format",
+      "in": "query",
+      "required": false,
+      "description": "`json` (default) for a page, or `csv` to export every row that matches the filters as CSV.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "json",
+        "csv"
+       ],
+       "default": "json"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The factors of this user.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneFactorsPage"
+        }
+       },
+       "text/csv": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_filter` - A filter value is not valid.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneFactorsPage": {
+     "type": "object",
+     "properties": {
+      "count": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "Rows that match the filters."
+      },
+      "next": {
+       "type": "string",
+       "format": "uri",
+       "nullable": true,
+       "description": "The next page, or `null` on the last one."
+      },
+      "previous": {
+       "type": "string",
+       "format": "uri",
+       "nullable": true,
+       "description": "The previous page, or `null` on the first one."
+      },
+      "results": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneFactor"
+       },
+       "description": "The factors of this user."
+      }
+     },
+     "required": [
+      "count",
+      "next",
+      "previous",
+      "results"
+     ]
+    },
+    "PhoneFactor": {
+     "type": "object",
+     "properties": {
+      "factor_id": {
+       "type": "string",
+       "description": "The factor."
+      },
+      "type": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ],
+       "description": "The factor."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "unverified",
+        "verified",
+        "disabled"
+       ],
+       "description": "`unverified` until the first successful check, `verified` after it, `disabled` while its checks are turned off."
+      },
+      "user_id": {
+       "type": "string",
+       "description": "Your id for the user it belongs to."
+      },
+      "friendly_name": {
+       "type": "string",
+       "description": "Shown in the authenticator app and in the factor list."
+      },
+      "metadata": {
+       "type": "object",
+       "description": "Your keys and values, as you sent them.",
+       "maxProperties": 10,
+       "additionalProperties": {
+        "type": "string",
+        "maxLength": 500
+       }
+      },
+      "created_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When it was enrolled."
+      },
+      "last_used_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "Its last successful check, `null` until there is one."
+      }
+     },
+     "required": [
+      "factor_id",
+      "type",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.factors.retrieve": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/factors/{factor_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.factors",
+    "method": "retrieve",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Retrieve one enrolled factor",
+    "description": "One enrolled factor: its type, state, user, name, metadata and when it was last used. Read it to show a factor's state after a check changed it, or after it was disabled, without reading the whole list.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "get_phone_factor",
+    "x-didit-sdk": {
+     "resource": "phone.factors",
+     "method": "retrieve",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "factor_id",
+      "in": "path",
+      "required": true,
+      "description": "The factor.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The factor.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneFactor"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No factor with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneFactor": {
+     "type": "object",
+     "properties": {
+      "factor_id": {
+       "type": "string",
+       "description": "The factor."
+      },
+      "type": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ],
+       "description": "The factor."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "unverified",
+        "verified",
+        "disabled"
+       ],
+       "description": "`unverified` until the first successful check, `verified` after it, `disabled` while its checks are turned off."
+      },
+      "user_id": {
+       "type": "string",
+       "description": "Your id for the user it belongs to."
+      },
+      "friendly_name": {
+       "type": "string",
+       "description": "Shown in the authenticator app and in the factor list."
+      },
+      "metadata": {
+       "type": "object",
+       "description": "Your keys and values, as you sent them.",
+       "maxProperties": 10,
+       "additionalProperties": {
+        "type": "string",
+        "maxLength": 500
+       }
+      },
+      "created_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When it was enrolled."
+      },
+      "last_used_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "Its last successful check, `null` until there is one."
+      }
+     },
+     "required": [
+      "factor_id",
+      "type",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.network.registrations.list": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/network/registrations/",
+   "x-didit-sdk": {
+    "resource": "phone.network.registrations",
+    "method": "list",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "List your network feature registrations",
+    "description": "List your network feature registrations, newest first, with each one's feature, country, use case and status. `feature`, `country` and `status` narrow the list, and `format: csv` exports every row that matches the filters instead of a page. Read one in full with `GET /v3/phone/network/registrations/{registration_id}/`.\n\n**Paging.** `limit` is 20 by default and 100 at most.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "list_phone_network_registrations",
+    "x-didit-sdk": {
+     "resource": "phone.network.registrations",
+     "method": "list",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "feature",
+      "in": "query",
+      "required": false,
+      "description": "Only registrations of this network feature.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "silent_verification",
+        "sim_swap",
+        "number_verification"
+       ]
+      }
+     },
+     {
+      "name": "country",
+      "in": "query",
+      "required": false,
+      "description": "Only this ISO 3166-1 alpha-2 country.",
+      "schema": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "description": "Only rows in this state.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ]
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "description": "Page size: 20 by default, 100 at most.",
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "maximum": 100,
+       "default": 20
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "description": "Zero-based index of the first row. Prefer following `next`.",
+      "schema": {
+       "type": "integer",
+       "minimum": 0,
+       "default": 0
+      }
+     },
+     {
+      "name": "format",
+      "in": "query",
+      "required": false,
+      "description": "`json` (default) for a page, or `csv` to export every row that matches the filters as CSV.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "json",
+        "csv"
+       ],
+       "default": "json"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Your network feature registrations.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneNetworkRegistrationsPage"
+        }
+       },
+       "text/csv": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_filter` - A filter value is not valid.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneNetworkRegistrationsPage": {
+     "type": "object",
+     "properties": {
+      "count": {
+       "type": "integer",
+       "minimum": 0,
+       "description": "Rows that match the filters."
+      },
+      "next": {
+       "type": "string",
+       "format": "uri",
+       "nullable": true,
+       "description": "The next page, or `null` on the last one."
+      },
+      "previous": {
+       "type": "string",
+       "format": "uri",
+       "nullable": true,
+       "description": "The previous page, or `null` on the first one."
+      },
+      "results": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkRegistrationSummary"
+       },
+       "description": "Your network feature registrations."
+      }
+     },
+     "required": [
+      "count",
+      "next",
+      "previous",
+      "results"
+     ]
+    },
+    "PhoneNetworkRegistrationSummary": {
+     "type": "object",
+     "properties": {
+      "registration_id": {
+       "type": "string",
+       "description": "The registration."
+      },
+      "feature": {
+       "type": "string",
+       "enum": [
+        "silent_verification",
+        "sim_swap",
+        "number_verification"
+       ],
+       "description": "The network feature."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The ISO 3166-1 alpha-2 country."
+      },
+      "use_case": {
+       "type": "string",
+       "description": "What you use the feature for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ],
+       "description": "Where the registration stands."
+      }
+     },
+     "required": [
+      "registration_id",
+      "feature",
+      "country",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.network.registrations.retrieve": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/network/registrations/{registration_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.network.registrations",
+    "method": "retrieve",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Track a feature approval, network by network",
+    "description": "Track one feature approval, network by network: the feature, country and use case you submitted, the overall `status`, each mobile network's decision (`status`, `decided_at` and, when it rejected the request, `reason`), `live_at` once the feature is live for you in the country, and the `test_numbers` that answer it while `test_access` is `on`.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "get_phone_network_registration",
+    "x-didit-sdk": {
+     "resource": "phone.network.registrations",
+     "method": "retrieve",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "registration_id",
+      "in": "path",
+      "required": true,
+      "description": "The network feature registration.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The registration and each network's decision.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneNetworkRegistration"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No registration with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneNetworkRegistration": {
+     "type": "object",
+     "properties": {
+      "registration_id": {
+       "type": "string",
+       "description": "The registration: track it with it."
+      },
+      "feature": {
+       "type": "string",
+       "enum": [
+        "silent_verification",
+        "sim_swap",
+        "number_verification"
+       ],
+       "description": "The network feature."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The ISO 3166-1 alpha-2 country."
+      },
+      "use_case": {
+       "type": "string",
+       "description": "What you use the feature for, as submitted."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ],
+       "description": "`submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkDecision"
+       },
+       "description": "Each mobile network's decision, network by network."
+      },
+      "live_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the feature went live for you in the country, `null` until it has."
+      },
+      "test_access": {
+       "type": "string",
+       "enum": [
+        "on",
+        "off"
+       ],
+       "description": "`on` while the networks review: the feature answers for your verified test numbers, marked `test: true`. `off` once the registration is approved or rejected."
+      },
+      "test_numbers": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkRegistrationTestNumber"
+       },
+       "description": "Your test numbers for this registration, up to 5."
+      }
+     },
+     "required": [
+      "registration_id",
+      "feature",
+      "country",
+      "status"
+     ]
+    },
+    "PhoneNetworkDecision": {
+     "type": "object",
+     "description": "One mobile network's decision on a registration.",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "The mobile network."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected"
+       ],
+       "description": "Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`."
+      },
+      "decided_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the network decided, `null` until it has."
+      },
+      "reason": {
+       "type": "string",
+       "nullable": true,
+       "description": "Why a network rejected it, `null` when it approved or has not decided."
+      }
+     },
+     "required": [
+      "name",
+      "status"
+     ]
+    },
+    "PhoneNetworkRegistrationTestNumber": {
+     "type": "object",
+     "properties": {
+      "phone_number": {
+       "type": "string",
+       "pattern": "^\\+[1-9]\\d{6,14}$",
+       "description": "The test number."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "code_sent",
+        "verified"
+       ],
+       "description": "`code_sent` - Didit sent it a code, which makes it a verified test number once checked; `verified` - it answers the feature under test access."
+      },
+      "verification_id": {
+       "type": "string",
+       "description": "The verification carrying the code: check it with `POST /v3/phone/check/`."
+      },
+      "test_access": {
+       "type": "string",
+       "enum": [
+        "on"
+       ],
+       "description": "`on` - the registration is under review, so the feature answers for its test numbers, with `test: true` in the answer."
+      }
+     },
+     "required": [
+      "phone_number",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.sdk_keys.list": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/sdk-keys/",
+   "x-didit-sdk": {
+    "resource": "phone.sdk_keys",
+    "method": "list",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "List the publishable keys of your client SDKs",
+    "description": "List the key ID, platform and status of each client SDK key for your application.\n\n`platform` narrows the list to one platform.\n\n**Permissions.** Only an Owner or Admin API key may read publishable keys.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "list_phone_sdk_keys",
+    "x-didit-sdk": {
+     "resource": "phone.sdk_keys",
+     "method": "list",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "platform",
+      "in": "query",
+      "required": false,
+      "description": "Only keys for this platform.",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "ios",
+        "android",
+        "web"
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Your publishable keys.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSdkKeysPage"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or the key is not an Owner or Admin key of the application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSdkKeysPage": {
+     "type": "object",
+     "description": "The publishable keys of your client SDKs.",
+     "properties": {
+      "results": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneSdkKeySummary"
+       },
+       "description": "One entry for each key that matches the platform filter."
+      }
+     },
+     "required": [
+      "results"
+     ]
+    },
+    "PhoneSdkKeySummary": {
+     "type": "object",
+     "description": "A client SDK key as returned by the list operation.",
+     "properties": {
+      "key_id": {
+       "type": "string",
+       "description": "The key."
+      },
+      "platform": {
+       "type": "string",
+       "enum": [
+        "ios",
+        "android",
+        "web"
+       ],
+       "description": "The platform it is for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "active",
+        "expiring",
+        "revoked"
+       ],
+       "description": "An active key works, an expiring key works until its rotation overlap ends, and a revoked key has stopped working."
+      }
+     },
+     "required": [
+      "key_id",
+      "platform",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.silent.coverage": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/silent/coverage/",
+   "x-didit-sdk": {
+    "resource": "phone.silent",
+    "method": "coverage",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "List where silent verification runs",
+    "description": "Where silent verification runs: every country where at least one mobile network can run the check, and per country the networks that can. Read this instead of hardcoding a list, because coverage grows as networks approve the feature.\n\n`approval` says whether a network answers for production traffic (`live`) or only while it approves production use (`test`), in which case it answers for the verified test numbers of a registration. `wifi` says whether the SIM check also runs over Wi-Fi, so a device without mobile data can still complete it.\n\n**Narrowing.** `country` answers for one ISO 3166-1 alpha-2 country.\n\n**Before you start.** `POST /v3/phone/silent/eligibility/` answers for one number, and a silent check that cannot run falls back to the verification's code channels.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "get_phone_silent_coverage",
+    "x-didit-sdk": {
+     "resource": "phone.silent",
+     "method": "coverage",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "country",
+      "in": "query",
+      "required": false,
+      "description": "Only this ISO 3166-1 alpha-2 country.",
+      "schema": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Every country where silent verification runs, with its networks.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSilentCoverage"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSilentCoverage": {
+     "type": "object",
+     "description": "Where silent verification runs: one entry per country, and per country the mobile networks that can run the check.",
+     "properties": {
+      "countries": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneSilentCoverageCountry"
+       },
+       "description": "One entry per country where silent verification runs."
+      }
+     },
+     "required": [
+      "countries"
+     ]
+    },
+    "PhoneSilentCoverageCountry": {
+     "type": "object",
+     "properties": {
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "ISO 3166-1 alpha-2 country code."
+      },
+      "wifi": {
+       "type": "boolean",
+       "description": "`true` when the SIM check also runs over Wi-Fi, so a device without mobile data can still complete it."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneSilentCoverageNetwork"
+       },
+       "description": "The mobile networks in this country that can run a silent check."
+      }
+     },
+     "required": [
+      "country",
+      "networks"
+     ]
+    },
+    "PhoneSilentCoverageNetwork": {
+     "type": "object",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "The mobile network, as the console names it in Coverage, for example `Mobile network A`."
+      },
+      "approval": {
+       "type": "string",
+       "enum": [
+        "live",
+        "test"
+       ],
+       "description": "`live` - the network answers silent checks for production traffic. `test` - it answers only while it approves production use, for the verified test numbers of a registration."
+      }
+     },
+     "required": [
+      "name",
+      "approval"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.silent.registrations.retrieve": {
+   "reason": "removed",
+   "operation_key": "GET /v3/phone/silent/registrations/{registration_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.silent.registrations",
+    "method": "retrieve",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Track a carrier approval, network by network",
+    "description": "Track a carrier approval, network by network: the registration's `status`, each mobile network's decision (`status`, `decided_at` and, when it rejected the request, `reason`), and `live_at` once silent verification is live for you in the country.\n\nA registration that is `partly_approved` runs silent verification on the networks that approved it.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "get_phone_silent_registration",
+    "x-didit-sdk": {
+     "resource": "phone.silent.registrations",
+     "method": "retrieve",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "registration_id",
+      "in": "path",
+      "required": true,
+      "description": "The silent verification registration.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "The registration and each network's decision.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSilentRegistration"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No registration with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSilentRegistration": {
+     "type": "object",
+     "properties": {
+      "registration_id": {
+       "type": "string",
+       "description": "The registration: track it with it."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The country it asks approval for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ],
+       "description": "`submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkDecision"
+       },
+       "description": "Each mobile network's decision, network by network."
+      },
+      "live_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When silent verification went live for you in the country, `null` until it has."
+      }
+     },
+     "required": [
+      "registration_id",
+      "country",
+      "status"
+     ]
+    },
+    "PhoneNetworkDecision": {
+     "type": "object",
+     "description": "One mobile network's decision on a registration.",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "The mobile network."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected"
+       ],
+       "description": "Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`."
+      },
+      "decided_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the network decided, `null` until it has."
+      },
+      "reason": {
+       "type": "string",
+       "nullable": true,
+       "description": "Why a network rejected it, `null` when it approved or has not decided."
+      }
+     },
+     "required": [
+      "name",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.factors.update": {
+   "reason": "removed",
+   "operation_key": "PATCH /v3/phone/factors/{factor_id}/",
+   "x-didit-sdk": {
+    "resource": "phone.factors",
+    "method": "update",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Change a factor's name, metadata or state",
+    "description": "Change a factor without enrolling it again: rename it (`friendly_name`), replace your `metadata`, or disable it or turn it back on (`status`). The answer is the factor as it now stands.\n\n`disabled` stops the factor's checks and `verified` turns a disabled factor back on. A factor that was never verified cannot be turned on: finish its first check instead, or the call answers `409 factor_unverified`.\n\n`metadata` replaces the keys and values you sent before: up to 10 keys, each value at most 500 characters, or the call answers `400 invalid_metadata`.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "update_phone_factor",
+    "x-didit-sdk": {
+     "resource": "phone.factors",
+     "method": "update",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "factor_id",
+      "in": "path",
+      "required": true,
+      "description": "The factor to change.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneFactorUpdateRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The factor as it now stands.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneFactor"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_metadata` - More than 10 keys, or a value over 500 characters.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No factor with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`factor_unverified` - An unverified factor cannot be turned back on: finish its first check.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneFactorUpdateRequest": {
+     "type": "object",
+     "properties": {
+      "friendly_name": {
+       "type": "string",
+       "description": "A new name for the authenticator app."
+      },
+      "metadata": {
+       "type": "object",
+       "description": "Replaces your keys and values with these, up to 10.",
+       "maxProperties": 10,
+       "additionalProperties": {
+        "type": "string",
+        "maxLength": 500
+       }
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "disabled",
+        "verified"
+       ],
+       "description": "`disabled` stops the factor's checks; `verified` turns a disabled factor back on."
+      }
+     }
+    },
+    "PhoneFactor": {
+     "type": "object",
+     "properties": {
+      "factor_id": {
+       "type": "string",
+       "description": "The factor."
+      },
+      "type": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ],
+       "description": "The factor."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "unverified",
+        "verified",
+        "disabled"
+       ],
+       "description": "`unverified` until the first successful check, `verified` after it, `disabled` while its checks are turned off."
+      },
+      "user_id": {
+       "type": "string",
+       "description": "Your id for the user it belongs to."
+      },
+      "friendly_name": {
+       "type": "string",
+       "description": "Shown in the authenticator app and in the factor list."
+      },
+      "metadata": {
+       "type": "object",
+       "description": "Your keys and values, as you sent them.",
+       "maxProperties": 10,
+       "additionalProperties": {
+        "type": "string",
+        "maxLength": 500
+       }
+      },
+      "created_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When it was enrolled."
+      },
+      "last_used_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "Its last successful check, `null` until there is one."
+      }
+     },
+     "required": [
+      "factor_id",
+      "type",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.factors.create": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/factors/",
+   "x-didit-sdk": {
+    "resource": "phone.factors",
+    "method": "create",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Enroll a TOTP factor",
+    "description": "Enroll a TOTP factor for one of your users, so they confirm a verification with an authenticator app instead of a code. `type` is `totp` and `user_id` is your id for the user.\n\nThe answer carries `totp.uri`, the `otpauth://` URI to show as a QR code; the authenticator app scans it and starts producing codes.\n\n**State.** A new factor is `unverified` until its first code passes `POST /v3/phone/check/`, then `verified`.\n\n**One of each type.** A user holds at most one factor: a second one answers `409 factor_exists`.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "create_phone_factor",
+    "x-didit-sdk": {
+     "resource": "phone.factors",
+     "method": "create",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneFactorCreateRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The factor, with what the app needs to finish enrolling it.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneFactorEnrollment"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_type` - `type` is not `totp`.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`factor_exists` - This user already has a factor of this type.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneFactorCreateRequest": {
+     "type": "object",
+     "properties": {
+      "type": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ],
+       "description": "The factor to enroll: `totp`, for an authenticator app."
+      },
+      "user_id": {
+       "type": "string",
+       "description": "Your id for the user the factor belongs to; a check names the factor and the user."
+      },
+      "friendly_name": {
+       "type": "string",
+       "description": "Shown in the authenticator app and in the factor list."
+      },
+      "metadata": {
+       "type": "object",
+       "description": "Up to 10 keys and values of your own, returned with the factor.",
+       "maxProperties": 10,
+       "additionalProperties": {
+        "type": "string",
+        "maxLength": 500
+       }
+      }
+     },
+     "required": [
+      "type",
+      "user_id"
+     ]
+    },
+    "PhoneFactorEnrollment": {
+     "type": "object",
+     "description": "The enrollment of a TOTP factor: `totp.uri` is what the authenticator app needs.",
+     "properties": {
+      "factor_id": {
+       "type": "string",
+       "description": "Check it with `POST /v3/phone/check/` by naming it as `factor_id` together with the `code` its app shows."
+      },
+      "type": {
+       "type": "string",
+       "enum": [
+        "totp"
+       ],
+       "description": "The factor type."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "unverified",
+        "verified",
+        "disabled"
+       ],
+       "description": "`unverified` until the first successful check, then `verified`."
+      },
+      "totp": {
+       "type": "object",
+       "description": "A `totp` factor: what the authenticator app needs.",
+       "properties": {
+        "uri": {
+         "type": "string",
+         "description": "The `otpauth://` URI to show as a QR code; the authenticator app scans it and starts producing codes."
+        }
+       },
+       "required": [
+        "uri"
+       ]
+      }
+     },
+     "required": [
+      "factor_id",
+      "type",
+      "status",
+      "totp"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.network.registrations.create": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/network/registrations/",
+   "x-didit-sdk": {
+    "resource": "phone.network.registrations",
+    "method": "create",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Ask the networks to approve a network feature",
+    "description": "Ask the mobile networks to approve a network feature for one country, so your application can use it for production traffic there: `feature` (`silent_verification`, `sim_swap` or `number_verification`), `country`, `use_case`, `company_name` and the `website` where the flow runs, plus optionally the `networks` to ask, a `purpose` shown to them and your expected `monthly_volume`.\n\nThe answer is the registration with each network's decision (`networks[].status`) and the overall `status`: `submitted`, `in_review`, `approved`, `partly_approved` or `rejected`.\n\n**Test access.** While the networks review, `test_access` is `on`: the feature answers for the registration's verified test numbers and marks those answers `test: true`. Add up to 5 with `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`. It turns `off` once the registration is approved or rejected.\n\n**One per feature, use case and country.** The same three again while one is open answers `409 registration_exists`.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "create_phone_network_registration",
+    "x-didit-sdk": {
+     "resource": "phone.network.registrations",
+     "method": "create",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneNetworkRegistrationRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The registration, submitted to the networks.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneNetworkRegistration"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_feature` - Not a network feature, or not offered in the country.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`registration_exists` - A registration for this feature, use case and country is already open.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneNetworkRegistrationRequest": {
+     "type": "object",
+     "properties": {
+      "feature": {
+       "type": "string",
+       "enum": [
+        "silent_verification",
+        "sim_swap",
+        "number_verification"
+       ],
+       "description": "The network feature to ask approval for."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The ISO 3166-1 alpha-2 country it runs in."
+      },
+      "use_case": {
+       "type": "string",
+       "enum": [
+        "signup",
+        "login",
+        "payment",
+        "account_recovery",
+        "fraud_check"
+       ],
+       "description": "What you use the feature for."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "Only these mobile networks; left out, every network in the country."
+      },
+      "company_name": {
+       "type": "string",
+       "description": "Your legal company name, as the networks see it."
+      },
+      "website": {
+       "type": "string",
+       "format": "uri",
+       "description": "Where the flow runs, so the networks can review it."
+      },
+      "purpose": {
+       "type": "string",
+       "description": "Why the flow needs the feature, shown to the networks."
+      },
+      "monthly_volume": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "Expected requests a month."
+      }
+     },
+     "required": [
+      "feature",
+      "country",
+      "use_case",
+      "company_name",
+      "website"
+     ]
+    },
+    "PhoneNetworkRegistration": {
+     "type": "object",
+     "properties": {
+      "registration_id": {
+       "type": "string",
+       "description": "The registration: track it with it."
+      },
+      "feature": {
+       "type": "string",
+       "enum": [
+        "silent_verification",
+        "sim_swap",
+        "number_verification"
+       ],
+       "description": "The network feature."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The ISO 3166-1 alpha-2 country."
+      },
+      "use_case": {
+       "type": "string",
+       "description": "What you use the feature for, as submitted."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ],
+       "description": "`submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkDecision"
+       },
+       "description": "Each mobile network's decision, network by network."
+      },
+      "live_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the feature went live for you in the country, `null` until it has."
+      },
+      "test_access": {
+       "type": "string",
+       "enum": [
+        "on",
+        "off"
+       ],
+       "description": "`on` while the networks review: the feature answers for your verified test numbers, marked `test: true`. `off` once the registration is approved or rejected."
+      },
+      "test_numbers": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkRegistrationTestNumber"
+       },
+       "description": "Your test numbers for this registration, up to 5."
+      }
+     },
+     "required": [
+      "registration_id",
+      "feature",
+      "country",
+      "status"
+     ]
+    },
+    "PhoneNetworkDecision": {
+     "type": "object",
+     "description": "One mobile network's decision on a registration.",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "The mobile network."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected"
+       ],
+       "description": "Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`."
+      },
+      "decided_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the network decided, `null` until it has."
+      },
+      "reason": {
+       "type": "string",
+       "nullable": true,
+       "description": "Why a network rejected it, `null` when it approved or has not decided."
+      }
+     },
+     "required": [
+      "name",
+      "status"
+     ]
+    },
+    "PhoneNetworkRegistrationTestNumber": {
+     "type": "object",
+     "properties": {
+      "phone_number": {
+       "type": "string",
+       "pattern": "^\\+[1-9]\\d{6,14}$",
+       "description": "The test number."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "code_sent",
+        "verified"
+       ],
+       "description": "`code_sent` - Didit sent it a code, which makes it a verified test number once checked; `verified` - it answers the feature under test access."
+      },
+      "verification_id": {
+       "type": "string",
+       "description": "The verification carrying the code: check it with `POST /v3/phone/check/`."
+      },
+      "test_access": {
+       "type": "string",
+       "enum": [
+        "on"
+       ],
+       "description": "`on` - the registration is under review, so the feature answers for its test numbers, with `test: true` in the answer."
+      }
+     },
+     "required": [
+      "phone_number",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.network.registrations.test_numbers.create": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/network/registrations/{registration_id}/test-numbers/",
+   "x-didit-sdk": {
+    "resource": "phone.network.registrations.test_numbers",
+    "method": "create",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Add a test number while the networks review",
+    "description": "Add a number you hold as a test number while the networks review a registration, so you can try the feature before it is approved: send it in E.164 (`phone_number`).\n\nDidit sends it a code and answers with `verification_id` and `status: code_sent`; check the code with `POST /v3/phone/check/` and the number. Once the code is checked the number is `verified`, and the feature answers for it under test access, marked `test: true`.\n\n**Limits.** A registration takes up to 5 test numbers (`409 too_many_test_numbers`), and test access ends when the networks decide (`409 review_finished`).\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "create_phone_network_registration_test_number",
+    "x-didit-sdk": {
+     "resource": "phone.network.registrations.test_numbers",
+     "method": "create",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "registration_id",
+      "in": "path",
+      "required": true,
+      "description": "The network feature registration.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneNetworkRegistrationTestNumberRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The test number, with the verification that confirms it.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneNetworkRegistrationTestNumber"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_phone_number` - Not a valid number in E.164.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No registration with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`too_many_test_numbers` - A registration takes up to 5 test numbers. `review_finished` - The networks decided: test access has ended.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneNetworkRegistrationTestNumberRequest": {
+     "type": "object",
+     "properties": {
+      "phone_number": {
+       "type": "string",
+       "pattern": "^\\+[1-9]\\d{6,14}$",
+       "description": "A number you hold, in E.164. Didit sends it a code to confirm it."
+      }
+     },
+     "required": [
+      "phone_number"
+     ]
+    },
+    "PhoneNetworkRegistrationTestNumber": {
+     "type": "object",
+     "properties": {
+      "phone_number": {
+       "type": "string",
+       "pattern": "^\\+[1-9]\\d{6,14}$",
+       "description": "The test number."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "code_sent",
+        "verified"
+       ],
+       "description": "`code_sent` - Didit sent it a code, which makes it a verified test number once checked; `verified` - it answers the feature under test access."
+      },
+      "verification_id": {
+       "type": "string",
+       "description": "The verification carrying the code: check it with `POST /v3/phone/check/`."
+      },
+      "test_access": {
+       "type": "string",
+       "enum": [
+        "on"
+       ],
+       "description": "`on` - the registration is under review, so the feature answers for its test numbers, with `test: true` in the answer."
+      }
+     },
+     "required": [
+      "phone_number",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.sdk_keys.create": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/sdk-keys/",
+   "x-didit-sdk": {
+    "resource": "phone.sdk_keys",
+    "method": "create",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Issue a publishable key for a client SDK",
+    "description": "Issue a publishable key for the iOS, Android or web build of your app: `platform`, the `app_ids` it may run in (bundle ids, package names or `https` origins) and an optional `name` shown in API keys. The answer carries `publishable_key`, which is safe to ship inside the app because it can only start the client SDK's checks.\n\n**Rotation.** To replace a key in an app that is already installed, rotate it (`POST /v3/phone/sdk-keys/{key_id}/rotate/`) rather than issuing a second one: the old value keeps working while your update ships.\n\n**Permissions.** Only an Owner or Admin API key may issue a publishable key.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "create_phone_sdk_key",
+    "x-didit-sdk": {
+     "resource": "phone.sdk_keys",
+     "method": "create",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneSdkKeyRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The key, with the value to ship in the app.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSdkKey"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_app_id` - Not a bundle id, package name or `https` origin.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or the key is not an Owner or Admin key of the application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSdkKeyRequest": {
+     "type": "object",
+     "properties": {
+      "platform": {
+       "type": "string",
+       "enum": [
+        "ios",
+        "android",
+        "web"
+       ],
+       "description": "The platform the key is for: `ios`, `android` or `web`."
+      },
+      "app_ids": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "minItems": 1,
+       "description": "The bundle ids, package names or `https` origins the key works for."
+      },
+      "name": {
+       "type": "string",
+       "description": "Shown in API keys."
+      }
+     },
+     "required": [
+      "platform",
+      "app_ids"
+     ]
+    },
+    "PhoneSdkKey": {
+     "type": "object",
+     "description": "A publishable key of a client SDK. It is not a secret: it is bound to the app ids it may run in and cannot make a server call.",
+     "properties": {
+      "key_id": {
+       "type": "string",
+       "description": "The key."
+      },
+      "platform": {
+       "type": "string",
+       "enum": [
+        "ios",
+        "android",
+        "web"
+       ],
+       "description": "The platform it is for."
+      },
+      "publishable_key": {
+       "type": "string",
+       "description": "Safe to ship inside the app: it can only start the checks the client SDK runs, never a server call."
+      },
+      "app_ids": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "The bundle ids, package names or `https` origins it works for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "active",
+        "expiring",
+        "revoked"
+       ],
+       "description": "`active` - it works; `expiring` - it was rotated and stops working at `previous_expires_at`; `revoked` - it stopped working."
+      },
+      "created_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When it was issued."
+      }
+     },
+     "required": [
+      "key_id",
+      "platform",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.sdk_keys.rotate": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/sdk-keys/{key_id}/rotate/",
+   "x-didit-sdk": {
+    "resource": "phone.sdk_keys",
+    "method": "rotate",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Rotate a publishable key with an overlap",
+    "description": "Rotate a publishable key without breaking the app versions already installed: Didit issues a new value and keeps the old one working for `overlap_hours` (0 to 168), long enough for your update to ship. The answer is the key with its new `publishable_key`, and `previous_expires_at` is when the value it replaced stops working.\n\nShip the new value, then let the overlap end. A revoked key cannot be rotated: the call answers `409 revoked`.\n\n**Permissions.** Only an Owner or Admin API key may rotate a publishable key.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "rotate_phone_sdk_key",
+    "x-didit-sdk": {
+     "resource": "phone.sdk_keys",
+     "method": "rotate",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "key_id",
+      "in": "path",
+      "required": true,
+      "description": "The publishable key to rotate.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneSdkKeyRotateRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The key with its new value.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSdkKeyRotated"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or the key is not an Owner or Admin key of the application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "`not_found` - No key with this id in your application.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`revoked` - A revoked key cannot be rotated.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSdkKeyRotateRequest": {
+     "type": "object",
+     "description": "How long the old value of a rotated key keeps working.",
+     "properties": {
+      "overlap_hours": {
+       "type": "integer",
+       "minimum": 0,
+       "maximum": 168,
+       "description": "How long the value being replaced keeps working, from 0 to 168 hours, while the app update ships."
+      }
+     }
+    },
+    "PhoneSdkKeyRotated": {
+     "type": "object",
+     "properties": {
+      "key_id": {
+       "type": "string",
+       "description": "The key."
+      },
+      "platform": {
+       "type": "string",
+       "enum": [
+        "ios",
+        "android",
+        "web"
+       ],
+       "description": "The platform it is for."
+      },
+      "publishable_key": {
+       "type": "string",
+       "description": "The new value to ship in the app."
+      },
+      "app_ids": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "The bundle ids, package names or `https` origins it works for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "active",
+        "expiring",
+        "revoked"
+       ],
+       "description": "`active` - the new value works; `expiring` - it was rotated again; `revoked` - it stopped working."
+      },
+      "created_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When the key was first issued."
+      },
+      "previous_expires_at": {
+       "type": "string",
+       "format": "date-time",
+       "description": "When the value this rotation replaced stops working."
+      }
+     },
+     "required": [
+      "key_id",
+      "platform",
+      "publishable_key",
+      "previous_expires_at"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.silent.eligibility": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/silent/eligibility/",
+   "x-didit-sdk": {
+    "resource": "phone.silent",
+    "method": "eligibility",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Check silent eligibility before you start",
+    "description": "Whether a silent check can run for one number now, so you can decide whether to offer it before you start a verification. `eligible` is the answer and, when it is `false`, `reason` says why: `unsupported_network` (the number's mobile network cannot run the check), `not_mobile_data` (the device is not on mobile data) or `country_not_covered` (silent verification does not run in the number's country).\n\n`network` is the mobile network the number belongs to, `country` its ISO 3166-1 alpha-2 code, and `wifi_possible` whether the SIM check can still run over Wi-Fi when the device has no mobile data.\n\n**Mobile data.** Send `ip_address`, the phone's public IP, to have the answer also confirm the device is on mobile data. Without it, the answer is about the network alone.\n\n**What follows.** A verification that runs the silent check first falls back to its next code channel when the check cannot run.\n\n**Authentication.** Send your application's API key in `x-api-key`. To check a client SDK's publishable key as well, include it in `X-Publishable-Key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "check_phone_silent_eligibility",
+    "x-didit-sdk": {
+     "resource": "phone.silent",
+     "method": "eligibility",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "X-Publishable-Key",
+      "in": "header",
+      "required": false,
+      "description": "The client SDK's publishable key for this application.",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneSilentEligibilityRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "The answer for this number.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSilentEligibility"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_phone_number` - Not a valid number in E.164.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "`invalid_publishable_key` — the supplied publishable key is unknown, revoked, expired or belongs to another application. A wrong, revoked or expired `x-api-key` is also `401`: replace the credential.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSilentEligibilityRequest": {
+     "type": "object",
+     "properties": {
+      "phone_number": {
+       "type": "string",
+       "pattern": "^\\+[1-9]\\d{6,14}$",
+       "description": "The number in international format (E.164), for example `+34600000012`."
+      },
+      "ip_address": {
+       "type": "string",
+       "description": "The phone's public IP, so the answer also confirms the device is on mobile data."
+      }
+     },
+     "required": [
+      "phone_number"
+     ]
+    },
+    "PhoneSilentEligibility": {
+     "type": "object",
+     "properties": {
+      "eligible": {
+       "type": "boolean",
+       "description": "`true` when a silent check can run for this number now."
+      },
+      "reason": {
+       "type": "string",
+       "enum": [
+        "unsupported_network",
+        "not_mobile_data",
+        "country_not_covered",
+        null
+       ],
+       "nullable": true,
+       "description": "When `eligible` is `false`, why: `unsupported_network` - the number's mobile network cannot run the check; `not_mobile_data` - the device is not on mobile data (send `ip_address` to have this checked); `country_not_covered` - silent verification does not run in the number's country."
+      },
+      "network": {
+       "type": "string",
+       "description": "The mobile network, or `null` when Didit has no supported network for the number.",
+       "nullable": true
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "ISO 3166-1 alpha-2 country code of the number."
+      },
+      "wifi_possible": {
+       "type": "boolean",
+       "description": "`true` when the SIM check can run over Wi-Fi instead, so the device can complete it without mobile data."
+      }
+     },
+     "required": [
+      "eligible"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  },
+  "phone.silent.registrations.create": {
+   "reason": "removed",
+   "operation_key": "POST /v3/phone/silent/registrations/",
+   "x-didit-sdk": {
+    "resource": "phone.silent.registrations",
+    "method": "create",
+    "auth": "api_key",
+    "server": true
+   },
+   "operation": {
+    "summary": "Submit a country for carrier approval of silent verification",
+    "description": "Submit a country for carrier approval of silent verification, so silent checks run for your application's production traffic there: `country`, the `use_case` it runs in, your `company_name` and the `website` where the flow runs. Optionally name the `networks` to ask, your expected `monthly_volume` and links to `flow_screenshots`.\n\nThe answer is the registration. `status` starts `submitted`, moves to `in_review`, and ends as `approved`, `partly_approved` (some networks approved and some rejected) or `rejected`. `networks` lists each mobile network's own decision and `live_at` is when silent verification went live for you in the country.\n\n**One per country.** A country with an open registration answers `409 registration_exists`: track that one with `GET /v3/phone/silent/registrations/{registration_id}/` instead.\n\n**Authentication.** Send your application's API key in `x-api-key`.\n\n**Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.",
+    "operationId": "create_phone_silent_registration",
+    "x-didit-sdk": {
+     "resource": "phone.silent.registrations",
+     "method": "create",
+     "auth": "api_key",
+     "server": true
+    },
+    "tags": [
+     "Standalone APIs"
+    ],
+    "security": [
+     {
+      "ApiKeyAuth": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PhoneSilentRegistrationRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "The registration, submitted to the networks.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneSilentRegistration"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "`invalid_country` - Not a country with silent verification.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "The `x-api-key` is wrong, revoked or expired: replace the credential."
+     },
+     "403": {
+      "description": "The `x-api-key` header is missing, or a scoped key lacks the permission this call needs.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "409": {
+      "description": "`registration_exists` - A registration for this country is already open.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     },
+     "429": {
+      "description": "`rate_limited` - Over 600 requests a minute for the key: wait for Retry-After.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PhoneApiError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "components": {
+    "PhoneSilentRegistrationRequest": {
+     "type": "object",
+     "properties": {
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The ISO 3166-1 alpha-2 country to ask approval for."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       },
+       "description": "Only these mobile networks; left out, every network in the country."
+      },
+      "use_case": {
+       "type": "string",
+       "enum": [
+        "signup",
+        "login",
+        "payment",
+        "account_recovery"
+       ],
+       "description": "What silent verification is used for."
+      },
+      "company_name": {
+       "type": "string",
+       "description": "Your legal company name, as the networks see it."
+      },
+      "website": {
+       "type": "string",
+       "format": "uri",
+       "description": "Where the flow runs, so the networks can review it."
+      },
+      "monthly_volume": {
+       "type": "integer",
+       "minimum": 1,
+       "description": "Expected silent checks a month."
+      },
+      "flow_screenshots": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "format": "uri"
+       },
+       "description": "Links to screens of the flow, as the networks ask for them."
+      }
+     },
+     "required": [
+      "country",
+      "use_case",
+      "company_name",
+      "website"
+     ]
+    },
+    "PhoneSilentRegistration": {
+     "type": "object",
+     "properties": {
+      "registration_id": {
+       "type": "string",
+       "description": "The registration: track it with it."
+      },
+      "country": {
+       "type": "string",
+       "pattern": "^[A-Z]{2}$",
+       "description": "The country it asks approval for."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "partly_approved",
+        "rejected"
+       ],
+       "description": "`submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved."
+      },
+      "networks": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/PhoneNetworkDecision"
+       },
+       "description": "Each mobile network's decision, network by network."
+      },
+      "live_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When silent verification went live for you in the country, `null` until it has."
+      }
+     },
+     "required": [
+      "registration_id",
+      "country",
+      "status"
+     ]
+    },
+    "PhoneNetworkDecision": {
+     "type": "object",
+     "description": "One mobile network's decision on a registration.",
+     "properties": {
+      "name": {
+       "type": "string",
+       "description": "The mobile network."
+      },
+      "status": {
+       "type": "string",
+       "enum": [
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected"
+       ],
+       "description": "Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`."
+      },
+      "decided_at": {
+       "type": "string",
+       "format": "date-time",
+       "nullable": true,
+       "description": "When the network decided, `null` until it has."
+      },
+      "reason": {
+       "type": "string",
+       "nullable": true,
+       "description": "Why a network rejected it, `null` when it approved or has not decided."
+      }
+     },
+     "required": [
+      "name",
+      "status"
+     ]
+    },
+    "PhoneApiError": {
+     "type": "object",
+     "description": "An error answer. The HTTP status says the class of failure; `code` names the reason and `detail` says it in words.",
+     "properties": {
+      "code": {
+       "type": "string",
+       "description": "Machine-readable reason, as each response documents it."
+      },
+      "detail": {
+       "type": "string",
+       "description": "What went wrong, in one sentence a user can act on."
+      }
+     },
+     "required": [
+      "detail"
+     ]
+    }
+   },
+   "since": "2026-11-23",
+   "deprecated_since": "2.38.0",
+   "remove_in": "2.40.0",
+   "note": "Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0."
+  }
+ }
 }

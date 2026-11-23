@@ -7,7 +7,6 @@ import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   PhoneFactor,
-  PhoneFactorCheckResponse,
   PhoneFactorEnrollment,
   PhoneFactorsPage,
   PhoneNetworkRegistration,
@@ -170,6 +169,8 @@ export class PhoneFactors extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `POST /v3/phone/factors/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   create(
     params: PhoneFactorsCreateParams,
@@ -192,6 +193,7 @@ export class PhoneFactors extends APIResource {
    * `DELETE /v3/phone/factors/{factor_id}/`
    *
    * @param factorId The factor to delete.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   delete(factorId: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(PHONE_FACTORS_DELETE, [factorId], undefined, options);
@@ -213,6 +215,8 @@ export class PhoneFactors extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/factors/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   list(
     params: PhoneFactorsListParams,
@@ -233,6 +237,7 @@ export class PhoneFactors extends APIResource {
    * `GET /v3/phone/factors/{factor_id}/`
    *
    * @param factorId The factor.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   retrieve(factorId: string, options?: RequestOptions): APIPromise<PhoneFactor> {
     return this._client.request(PHONE_FACTORS_RETRIEVE, [factorId], undefined, options);
@@ -254,6 +259,7 @@ export class PhoneFactors extends APIResource {
    * `PATCH /v3/phone/factors/{factor_id}/`
    *
    * @param factorId The factor to change.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   update(
     factorId: string,
@@ -282,6 +288,7 @@ export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
    * `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`
    *
    * @param registrationId The network feature registration.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   create(
     registrationId: string,
@@ -311,6 +318,7 @@ export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
    *
    * @param registrationId The network feature registration.
    * @param phoneNumber The test number, in E.164 and URL-encoded.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   delete(registrationId: string, phoneNumber: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(
@@ -343,6 +351,8 @@ export class PhoneNetworkRegistrations extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `POST /v3/phone/network/registrations/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   create(
     params: PhoneNetworkRegistrationsCreateParams,
@@ -363,6 +373,8 @@ export class PhoneNetworkRegistrations extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/network/registrations/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   list(
     params: PhoneNetworkRegistrationsListParams = {},
@@ -383,6 +395,7 @@ export class PhoneNetworkRegistrations extends APIResource {
    * `GET /v3/phone/network/registrations/{registration_id}/`
    *
    * @param registrationId The network feature registration.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneNetworkRegistration> {
     return this._client.request(
@@ -415,6 +428,8 @@ export class PhoneSdkKeys extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `POST /v3/phone/sdk-keys/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   create(params: PhoneSdkKeysCreateParams, options?: RequestOptions): APIPromise<PhoneSdkKey> {
     return this._client.request(PHONE_SDK_KEYS_CREATE, [], params, options);
@@ -434,6 +449,8 @@ export class PhoneSdkKeys extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/sdk-keys/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   list(
     params: PhoneSdkKeysListParams = {},
@@ -456,6 +473,7 @@ export class PhoneSdkKeys extends APIResource {
    * `DELETE /v3/phone/sdk-keys/{key_id}/`
    *
    * @param keyId The publishable key to revoke.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   revoke(keyId: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(PHONE_SDK_KEYS_REVOKE, [keyId], undefined, options);
@@ -477,6 +495,7 @@ export class PhoneSdkKeys extends APIResource {
    * `POST /v3/phone/sdk-keys/{key_id}/rotate/`
    *
    * @param keyId The publishable key to rotate.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   rotate(
     keyId: string,
@@ -503,6 +522,8 @@ export class PhoneSilentRegistrations extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `POST /v3/phone/silent/registrations/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   create(
     params: PhoneSilentRegistrationsCreateParams,
@@ -525,6 +546,7 @@ export class PhoneSilentRegistrations extends APIResource {
    * `GET /v3/phone/silent/registrations/{registration_id}/`
    *
    * @param registrationId The silent verification registration.
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneSilentRegistration> {
     return this._client.request(
@@ -556,6 +578,8 @@ export class PhoneSilent extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/silent/coverage/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   coverage(
     params: PhoneSilentCoverageParams = {},
@@ -580,6 +604,8 @@ export class PhoneSilent extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `POST /v3/phone/silent/eligibility/`
+   *
+   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   eligibility(
     params: PhoneSilentEligibilityParams,
@@ -656,9 +682,9 @@ export class Phone extends APIResource {
    * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   checkCode(
-    params: PhoneCheckCodeParams = {},
+    params: PhoneCheckCodeParams,
     options?: RequestOptions,
-  ): APIPromise<PhoneVerificationCheckResponse | PhoneFactorCheckResponse> {
+  ): APIPromise<PhoneVerificationCheckResponse> {
     return this._client.request(PHONE_CHECK_CODE, [], params, options);
   }
 

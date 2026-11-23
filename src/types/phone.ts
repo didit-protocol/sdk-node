@@ -17,12 +17,11 @@ export interface PhoneAssessRiskParams {
   enable_social?: boolean;
 }
 
-/** Send `phone_number` and `code` to check a phone code, or `factor_id` and `code` to check a TOTP factor enrolled with `POST /v3/phone/factors/`. */
 export interface PhoneCheckCodeParams {
   /** The same phone number used in the matching [`POST /v3/phone/send/`](/standalone-apis/phone-send) call, in E.164 format. This is what links the check to the send. */
-  phone_number?: string;
+  phone_number: string;
   /** The OTP the end user received. Must be 4–8 numeric digits - anything else returns `400` without consuming an attempt. A well-formed but wrong code returns `200` with `status: "Failed"` and consumes one of the 3 attempts. */
-  code?: string;
+  code: string;
   /** What to do when the same number was already used by a different user (different `vendor_data`) of your application. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings` and fills `phone.matches`. */
   duplicated_phone_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** What to do when the carrier lookup flags the number as a temporary/burner line (`phone.is_disposable`). `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings`. */
@@ -43,8 +42,6 @@ export interface PhoneCheckCodeParams {
   enable_social?: boolean;
   /** Action when the social footprint check finds the number registered on none of the platforms it covers. Only NO_ACTION and DECLINE are accepted on this endpoint; REVIEW is available on the workflow configuration key of the same name. */
   phone_no_social_presence_action?: "NO_ACTION" | "DECLINE" | (string & {});
-  /** A TOTP factor being checked instead of a phone code, as returned when it was enrolled; send the 4-8 digit `code` its authenticator app shows. The answer is `{verification_id, status, attempts}` with `status` `verified` or `failed`; a factor that is `disabled` answers `400 factor_disabled`, an unknown one `404 not_found`. */
-  factor_id?: string;
 }
 
 export interface PhoneFactorsCreateParams {
