@@ -1425,7 +1425,7 @@ export interface BankConnection {
   id: string;
   environment?: "live" | "sandbox" | (string & {});
   access?: "one_time" | "ongoing" | (string & {});
-  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you. `deleted`: only `id`, `status`, `status_reason`, `created_at` and `erasure` remain. `failed`: the first sync never succeeded. */
+  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you, or ended because the read of a one-time connection is complete. `deleted`: only `id`, `status`, `status_reason`, `created_at` and `erasure` remain. `failed`: the first sync never succeeded. */
   status:
     | "pending"
     | "active"
@@ -1435,7 +1435,7 @@ export interface BankConnection {
     | "deleted"
     | "failed"
     | (string & {});
-  /** Why the connection is in this status. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed` or `application_deleted`. */
+  /** Why the connection is in this status. `collection_complete`: a one-time connection whose read is complete, so its access has ended. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed` or `application_deleted`. */
   status_reason:
     | "collection_complete"
     | "consent_expired"
