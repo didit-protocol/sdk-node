@@ -1621,7 +1621,7 @@ export interface BankCoverageCountry {
   ongoing_institutions: number;
   /** The longest consent any bank in the country allows, in days. */
   consent_days_max: number | null;
-  /** The deepest history any bank in the country delivers, in days. */
+  /** The most history a link can obtain at any bank in the country today, in days. */
   history_days_max: number | null;
   /** Whether at least one bank supports business accounts. */
   business_accounts: boolean;
@@ -1662,7 +1662,7 @@ export interface BankInstitution {
   ongoing_access: boolean;
   /** The longest consent the bank allows, in days. `null` when not observed. */
   consent_days_max: number | null;
-  /** The deepest history the bank delivers, in days. `null` when not observed. */
+  /** The most history a link can obtain at this bank today, in days. `null` when not observed. */
   history_days_max: number | null;
   /** Whether the bank reports pending transactions. */
   pending_transactions: boolean | null;
