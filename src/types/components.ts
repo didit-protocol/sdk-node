@@ -1303,7 +1303,7 @@ export interface BankAccount {
   holder_name: string | null;
   /** Holders the bank shares. Ownership counts only `holder` and `joint_holder`. */
   holders: BankAccountHolder[];
-  /** Full identifiers, returned to server-side callers with the bank data permission. */
+  /** Full identifiers, returned to server-side callers with access to Bank data. */
   identifiers: BankAccountIdentifiers;
   /** Identifies the same bank account across connections of one application and environment: a keyed hash of the bank's own identifiers. `null` when the bank gives no reliable identifier. Use it to recognise a bank account you already know. */
   account_ref: string | null;
@@ -1362,7 +1362,7 @@ export interface BankAccountHolder {
   role: "holder" | "joint_holder" | "representative" | "unknown" | (string & {});
 }
 
-/** Full identifiers, returned to server-side callers with the bank data permission. */
+/** Full identifiers, returned to server-side callers with access to Bank data. */
 export interface BankAccountIdentifiers {
   /** Full IBAN, upper case without spaces. */
   iban: string | null;
