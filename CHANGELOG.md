@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.38.0](https://github.com/didit-protocol/sdk-node/compare/v2.37.0...v2.38.0) (2026-11-23)
+
+
+### Features
+
+* **spec:** sync API spec 2026-11-23 ([b8d1582](https://github.com/didit-protocol/sdk-node/commit/b8d158256ee5be01644458b1b243bb554a645c06))
+
+
+### API changes that can break typed code
+
+* **spec:** `POST /v3/phone/check/` request field `(anyOf 1)` changed type from object to any ([b8d1582](https://github.com/didit-protocol/sdk-node/commit/b8d158256ee5be01644458b1b243bb554a645c06))
+
 ## [2.37.0](https://github.com/didit-protocol/sdk-node/compare/v2.36.0...v2.37.0) (2026-11-23)
 
 
