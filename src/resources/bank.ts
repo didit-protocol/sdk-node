@@ -129,7 +129,7 @@ const BANK_REFRESH_CONNECTION: OperationSpec = {
   method: "POST",
   path: "/v3/bank/connections/{id}/refresh/",
   body: "json",
-  dates: "BankSyncCompleted",
+  datesByStatus: { "200": "BankSyncCompleted", "202": "BankRefreshAccepted" },
 };
 const BANK_RENEW_CONNECTION: OperationSpec = {
   method: "POST",

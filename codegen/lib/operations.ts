@@ -54,6 +54,7 @@ export interface ResponseInfo {
   status: number;
   contentType: string | undefined;
   plan: DatePlan | null;
+  plansByStatus?: Record<number, DatePlan>;
   example: Json;
   hasExample: boolean;
 }
@@ -356,9 +357,11 @@ function buildResponse(
   if (jsonResponses.length) {
     const types: TypeRef[] = [];
     const seen: [string, TypeRef][] = [];
-    const plans: (DatePlan | null)[] = [];
+    const plansByStatus: Record<number, DatePlan> = {};
     jsonResponses.forEach(([code, media], index) => {
       const schema = media.schema;
+      const plan = builder.datePlan(spec, schema);
+      if (plan !== null) plansByStatus[code] = plan;
       const key = JSON.stringify(schema);
       const reuse = seen.find(([s]) => s === key);
       if (reuse) {
@@ -369,8 +372,7 @@ function buildResponse(
       const type = builder.type(spec, schema, hint, module, "response");
       seen.push([key, type]);
       types.push(type);
-      const plan = builder.datePlan(spec, schema);
-      plans.push(plan);
+
       // Named response types get a named plan too, so hand-written code (webhook
       // events carry the session decision) can decode the same type.
       if (plan !== null && typeof plan !== "string" && builder.decls.has(type.expr)) {
@@ -381,7 +383,10 @@ function buildResponse(
     if (empty) type = nullable(type);
     const [status, media] = jsonResponses[0]!;
     const ex = exampleOf(media, spec.resolveObject(media.schema));
-    const plan = plans.find((p) => p !== null) ?? null;
+    const firstPlan = plansByStatus[status] ?? null;
+    const samePlan = jsonResponses.every(
+      ([code]) => JSON.stringify(plansByStatus[code] ?? null) === JSON.stringify(firstPlan),
+    );
     const item = pageItem(op, builder, type);
     return {
       kind: item ? "page" : "json",
@@ -390,7 +395,8 @@ function buildResponse(
       accept: "application/json",
       status,
       contentType: "application/json",
-      plan,
+      plan: samePlan ? firstPlan : null,
+      plansByStatus: samePlan ? undefined : plansByStatus,
       example: ex.value,
       hasExample: ex.has,
     };

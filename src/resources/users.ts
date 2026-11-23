@@ -96,7 +96,7 @@ const USERS_SET_AML_MONITORING: OperationSpec = {
   method: "POST",
   path: "/v3/users/aml-monitoring/",
   body: "json",
-  dates: "AMLMonitoringToggleResult",
+  datesByStatus: { "200": "AMLMonitoringToggleResult", "202": "AMLMonitoringJob" },
 };
 const USERS_SET_ONGOING_MONITORING: OperationSpec = {
   method: "PATCH",

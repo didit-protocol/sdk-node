@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { decodeDates, type DatePlan } from "../../src/core/dates.js";
 
+import { mockClient, responseExample } from "../helpers/mock-api.js";
+
 const ISO = "2026-10-17T10:00:00Z";
 const at = (s: string): number => new Date(s).getTime();
 
@@ -80,5 +82,34 @@ describe("decodeDates", () => {
   it("stops on a cycle of names", () => {
     const named: Record<string, DatePlan> = { A: "B", B: "A" };
     expect(decodeDates({ a: ISO }, "A", named)).toEqual({ a: ISO });
+  });
+});
+
+describe("bank.refreshConnection", () => {
+  const operation = "POST /v3/bank/connections/{id}/refresh/";
+
+  it("decodes the completed sync dates on HTTP 200", async () => {
+    const json = responseExample(operation, undefined, 200) as {
+      started_at: string;
+      finished_at: string;
+    };
+    const { client } = mockClient({ status: 200, json });
+    expect(await client.bank.refreshConnection("id-1")).toMatchObject({
+      started_at: new Date(json.started_at),
+      finished_at: new Date(json.finished_at),
+    });
+  });
+
+  it.each([null, ISO])("decodes next_refresh_at on HTTP 202 (%s)", async (nextRefreshAt) => {
+    // The queued example has a null date. Exercise the populated form as well.
+    const queued = responseExample(operation, undefined, 202) as { sync_id: string };
+    const { client } = mockClient({
+      status: 202,
+      json: { ...queued, next_refresh_at: nextRefreshAt },
+    });
+    expect(await client.bank.refreshConnection("id-1")).toMatchObject({
+      sync_id: queued.sync_id,
+      next_refresh_at: nextRefreshAt === null ? null : new Date(nextRefreshAt),
+    });
   });
 });

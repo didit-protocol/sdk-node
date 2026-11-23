@@ -783,7 +783,11 @@ export class APIClient {
           { cause: error },
         );
       }
-      return decodeDates(data, op.dates, this.datePlans) as T;
+      return decodeDates(
+        data,
+        op.datesByStatus?.[response.status] ?? op.dates,
+        this.datePlans,
+      ) as T;
     } catch (error) {
       if (error instanceof DiditError) throw error;
       if (raw.timedOut()) throw new APITimeoutError(undefined, { cause: error });

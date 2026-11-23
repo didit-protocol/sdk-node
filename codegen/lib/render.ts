@@ -39,6 +39,36 @@ export const RESERVED_NAMES = new Set([
   "AuthenticationOptions",
   "AuthenticationSession",
   "BadRequestError",
+  "BankConnectionConsentExpiringData",
+  "BankConnectionConsentExpiringEvent",
+  "BankConnectionCreatedData",
+  "BankConnectionCreatedEvent",
+  "BankConnectionDeletedData",
+  "BankConnectionDeletedEvent",
+  "BankConnectionHistoryCompleteData",
+  "BankConnectionHistoryCompleteEvent",
+  "BankConnectionRenewalRequiredData",
+  "BankConnectionRenewalRequiredEvent",
+  "BankConnectionRenewedData",
+  "BankConnectionRenewedEvent",
+  "BankConnectionRevokedData",
+  "BankConnectionRevokedEvent",
+  "BankConnectionUpdatedData",
+  "BankConnectionUpdatedEvent",
+  "BankDataUpdatedAccount",
+  "BankDataUpdatedData",
+  "BankDataUpdatedEvent",
+  "BankLinkCancelledEvent",
+  "BankLinkCompletedEvent",
+  "BankLinkEventData",
+  "BankLinkExpiredEvent",
+  "BankLinkFailedEvent",
+  "BankSyncCompletedData",
+  "BankSyncCompletedEvent",
+  "BankSyncFailedData",
+  "BankSyncFailedEvent",
+  "BankSyncRecoveredData",
+  "BankSyncRecoveredEvent",
   "BusinessDataUpdatedEvent",
   "BusinessStatusUpdatedEvent",
   "canonicalJson",
@@ -228,6 +258,8 @@ function descriptorFor(method: Method): string {
     parts.push(`response: "binary"`, `accept: ${JSON.stringify(method.response.accept)}`);
   if (method.response.kind === "none") parts.push(`response: "none"`);
   if (method.response.plan !== null) parts.push(`dates: ${literalPlan(method.response.plan)}`);
+  if (method.response.plansByStatus)
+    parts.push(`datesByStatus: ${JSON.stringify(method.response.plansByStatus)}`);
   return `const ${method.constName}: OperationSpec = { ${parts.join(", ")} };`;
 }
 
