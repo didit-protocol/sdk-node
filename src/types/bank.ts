@@ -98,7 +98,7 @@ export interface BankCreateLinkParams {
 
 /** Sandbox applications only: picks the Didit Test Bank customer. A live application that sends it, with any key, answers `400 invalid_request` with `field: sandbox` and no link is created. */
 export interface BankCreateLinkParamsSandbox {
-  /** The Test Bank customer: `personal_basic` (one current account, 60 movements), `business_multi` (three accounts held by a company), `long_history` (one account with 400 days and 1,400 movements; a read returns the last 365 days, so set `history_days` to 365), `pending` (includes pending transactions), `sparse_fields` (no value date, no counterparty IBAN, no bank reference) or `no_ongoing` (a bank that only allows one-time access: use `allow_one_time_fallback`). `requires_email`: the Test Bank behaves as a bank that needs the person's email, so the link asks for an email address and a code before the bank. In sandbox no email is sent and the code is always `123456`; ignored for live applications. */
+  /** The Test Bank customer: `personal_basic` (one current account, 60 movements), `business_multi` (three accounts held by a company), `long_history` (one account with 400 days and 1,400 movements; a read returns the last 365 days, so set `history_days` to 365), `pending` (includes pending transactions), `sparse_fields` (no value date, no counterparty IBAN, no bank reference), `no_ongoing` (a bank that only allows one-time access: use `allow_one_time_fallback`) or `multi_currency` (one multi-currency account that the bank lists as an EUR and a USD account on the same IBAN; a link that selects both stores both, and they share one `account_ref` and differ by `id` and `currency`). `requires_email`: the Test Bank behaves as a bank that needs the person's email, so the link asks for an email address and a code before the bank. In sandbox no email is sent and the code is always `123456`; ignored for live applications. */
   persona?:
     | "personal_basic"
     | "business_multi"
@@ -106,6 +106,7 @@ export interface BankCreateLinkParamsSandbox {
     | "pending"
     | "sparse_fields"
     | "no_ongoing"
+    | "multi_currency"
     | "requires_email"
     | (string & {});
   /** Accepted and reserved for the sandbox simulator: the values change nothing today. */
@@ -238,7 +239,7 @@ export interface BankSimulateConnectionParams {
 
 /** How a sandbox link ends. Every field is optional: an empty body completes the link for the `personal_basic` Test Bank customer. */
 export interface BankSimulateLinkParams {
-  /** The Test Bank customer who signs in: `personal_basic` (one current account), `business_multi` (several business accounts), `long_history` (a long transaction history), `pending` (pending rows), `sparse_fields` (transactions with fields missing, one automatic sync a day) or `no_ongoing` (a bank that cannot keep access open). */
+  /** The Test Bank customer who signs in: `personal_basic` (one current account), `business_multi` (several business accounts), `long_history` (a long transaction history), `pending` (pending rows), `sparse_fields` (transactions with fields missing, one automatic sync a day), `no_ongoing` (a bank that cannot keep access open) or `multi_currency` (an EUR and a USD account on one IBAN; the connection keeps both, with one `account_ref` and a different `id` and `currency` each). */
   persona?:
     | "personal_basic"
     | "business_multi"
@@ -246,6 +247,7 @@ export interface BankSimulateLinkParams {
     | "pending"
     | "sparse_fields"
     | "no_ongoing"
+    | "multi_currency"
     | (string & {});
   /** How the link ends. */
   outcome?:
