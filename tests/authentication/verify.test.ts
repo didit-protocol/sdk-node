@@ -24,6 +24,7 @@ import {
   SESSION_ID,
   SigningKey,
   accessClaims,
+  asInstance,
   b64url,
   freezeClock,
   idClaims,
@@ -170,7 +171,7 @@ describe("verifyAccessToken", () => {
     expect(token.endsWith(".")).toBe(true);
     const error = await rejection(auth.verifyAccessToken(token));
     expect(error).toBeInstanceOf(TokenVerificationError);
-    expect((error as TokenVerificationError).reason).toBe("unsupported_algorithm");
+    expect(asInstance(error, TokenVerificationError).reason).toBe("unsupported_algorithm");
     expect(error.message).toMatch(/only ES256/);
     expect(issuer.requests).toEqual([]);
   });
@@ -251,7 +252,7 @@ describe("verifyAccessToken", () => {
     const impostor = await SigningKey.generate(key.kid);
     const token = await impostor.sign(accessClaims());
     const error = await rejection(auth.verifyAccessToken(token));
-    expect((error as TokenVerificationError).reason).toBe("invalid_signature");
+    expect(asInstance(error, TokenVerificationError).reason).toBe("invalid_signature");
     expect(error.message).not.toContain(token);
     expect(error.message).not.toContain(token.split(".")[2]);
   });
@@ -437,7 +438,7 @@ describe("verifyAccessToken", () => {
       for (const [name, token] of malformed(key.kid)) {
         const error = await rejection(auth.verifyAccessToken(token as string));
         expect(error, name).toBeInstanceOf(TokenVerificationError);
-        expect((error as TokenVerificationError).reason, name).toBe("malformed");
+        expect(asInstance(error, TokenVerificationError).reason, name).toBe("malformed");
         if (typeof token === "string" && token.length > 10) {
           expect(error.message, name).not.toContain(token);
         }

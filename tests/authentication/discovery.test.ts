@@ -22,6 +22,7 @@ import {
   SigningKey,
   accessClaims,
   advance,
+  asInstance,
   b64url,
   freezeClock,
   json,
@@ -238,7 +239,7 @@ describe("discovery and JWKS", () => {
       // Forged tokens pick their own kid; none of them may stay in memory.
       for (let i = 0; i < 1000; i++) {
         const error = await rejection(keySet.publicKey(`forged-${"x".repeat(1000)}-${i}`, subtle));
-        expect((error as TokenVerificationError).reason).toBe("unknown_key");
+        expect(asInstance(error, TokenVerificationError).reason).toBe("unknown_key");
       }
       expect(keySet.importedCount).toBe(0);
       expect(importKey).not.toHaveBeenCalled();
@@ -428,14 +429,14 @@ describe("discovery and JWKS", () => {
     issuer.route("GET", path, respond);
     const error = await rejection(auth.verifyAccessToken(await key.sign(accessClaims())));
     expect(error).toBeInstanceOf(APIResponseValidationError);
-    expect((error as APIResponseValidationError).status).toBeGreaterThanOrEqual(200);
+    expect(asInstance(error, APIResponseValidationError).status).toBeGreaterThanOrEqual(200);
   });
 
   it("maps metadata HTTP errors to status errors", async () => {
     issuer.route("GET", DISCOVERY, () => new Response("upstream unavailable", { status: 503 }));
     const error = await rejection(auth.verifyAccessToken(await key.sign(accessClaims())));
     expect(error).toBeInstanceOf(InternalServerError);
-    expect((error as InternalServerError).status).toBe(503);
+    expect(asInstance(error, InternalServerError).status).toBe(503);
     expect(error.message).toBe("HTTP 503: upstream unavailable");
     expect(issuer.paths()).toEqual([DISCOVERY]);
   });

@@ -39,6 +39,7 @@ import {
   STEP_UP_ID,
   SigningKey,
   accessClaims,
+  asInstance,
   formOf,
   freezeClock,
   json,
@@ -206,9 +207,9 @@ describe("exchangeCode", () => {
       auth.exchangeCode({ code: CODE, codeVerifier: CODE_VERIFIER, redirectUri: REDIRECT_URI }),
     );
     expect(error).toBeInstanceOf(BadRequestError);
-    expect((error as BadRequestError).status).toBe(400);
-    expect((error as BadRequestError).body).toEqual(body);
-    expect((error as BadRequestError).requestId).toBe("req_synthetic");
+    expect(asInstance(error, BadRequestError).status).toBe(400);
+    expect(asInstance(error, BadRequestError).body).toEqual(body);
+    expect(asInstance(error, BadRequestError).requestId).toBe("req_synthetic");
     expect(error.message).toBe(`${message} (request id req_synthetic)`);
     expect(error.message).not.toContain(CODE);
     expect(error.message).not.toContain(CODE_VERIFIER);
@@ -221,7 +222,7 @@ describe("exchangeCode", () => {
       auth.exchangeCode({ code: CODE, codeVerifier: CODE_VERIFIER, redirectUri: REDIRECT_URI }),
     );
     expect(error.message).toBe("HTTP 400: [redacted] / [redacted] (request id req_synthetic)");
-    expect(JSON.stringify((error as BadRequestError).body)).not.toContain(CODE);
+    expect(JSON.stringify(asInstance(error, BadRequestError).body)).not.toContain(CODE);
   });
 });
 
@@ -281,8 +282,8 @@ describe("refresh", () => {
       issuer.reply("POST", "/token/", status, body);
       const error = await rejection(auth.refresh(REFRESH_TOKEN));
       expect(error.constructor).toBe(ErrorClass);
-      expect((error as APIStatusError).status).toBe(status);
-      expect((error as APIStatusError).body).toEqual(body ?? null);
+      expect(asInstance(error, APIStatusError).status).toBe(status);
+      expect(asInstance(error, APIStatusError).body).toEqual(body ?? null);
       expect(error.message.startsWith(message)).toBe(true);
       expect(error.message).not.toContain(REFRESH_TOKEN);
       expect(issuer.count("/token/")).toBe(1);
@@ -304,7 +305,7 @@ describe("refresh", () => {
     );
     const error = await rejection(auth.refresh(REFRESH_TOKEN));
     expect(error).toBeInstanceOf(APIStatusError);
-    expect((error as APIStatusError).status).toBe(307);
+    expect(asInstance(error, APIStatusError).status).toBe(307);
     expect(issuer.requests.every((request) => request.url.origin === ISSUER)).toBe(true);
     expect(issuer.last("/token/").init.redirect).toBe("manual");
   });
@@ -313,7 +314,7 @@ describe("refresh", () => {
     issuer.route("POST", "/token/", () => new Response("Bad Gateway", { status: 502 }));
     const error = await rejection(auth.refresh(REFRESH_TOKEN));
     expect(error).toBeInstanceOf(InternalServerError);
-    expect((error as InternalServerError).body).toBe("Bad Gateway");
+    expect(asInstance(error, InternalServerError).body).toBe("Bad Gateway");
   });
 });
 
@@ -353,7 +354,7 @@ describe("getSession and revokeSession", () => {
     const error = await rejection(auth.getSession(ACCESS_TOKEN));
     expect(error).toBeInstanceOf(AuthenticationError);
     expect(error.message).not.toContain(ACCESS_TOKEN);
-    expect(JSON.stringify((error as AuthenticationError).body)).not.toContain(ACCESS_TOKEN);
+    expect(JSON.stringify(asInstance(error, AuthenticationError).body)).not.toContain(ACCESS_TOKEN);
   });
 
   it("refuses an empty token or one that cannot be a header, without echoing it", async () => {
