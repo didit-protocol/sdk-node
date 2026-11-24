@@ -138,7 +138,14 @@ export { Investigator } from "./investigator.js";
 export { Ip } from "./ip.js";
 export { Kyb } from "./kyb.js";
 export { Lists, ListsEntries } from "./lists.js";
-export { Messages, MessagesRules } from "./messages.js";
+export {
+  Messages,
+  MessagesConsent,
+  MessagesConversations,
+  MessagesConversationsWebhooks,
+  MessagesRules,
+  MessagesTemplates,
+} from "./messages.js";
 export { MonitoringEvents } from "./monitoring-events.js";
 export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";

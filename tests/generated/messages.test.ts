@@ -29,6 +29,137 @@ describe("messages", () => {
     expectMatchesExample(result, responseExample("POST /v3/messages/{message_id}/cancel/"));
   });
 
+  it("messages.consent.retrieve: GET /v3/messages/contacts/{to}/consent/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/messages/contacts/{to}/consent/"),
+    });
+    const result = await client.messages.consent.retrieve("to-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/contacts/to-1/consent/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/messages/contacts/{to}/consent/"));
+  });
+
+  it("messages.consent.update: PATCH /v3/messages/contacts/{to}/consent/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/messages/contacts/{to}/consent/"),
+    });
+    const result = await client.messages.consent.update("to-1", {
+      channel: "sms",
+      status: "opted_in",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/contacts/to-1/consent/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ channel: "sms", status: "opted_in" });
+    expectMatchesExample(result, responseExample("PATCH /v3/messages/contacts/{to}/consent/"));
+  });
+
+  it("messages.conversations.list: GET /v3/messages/conversations/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/messages/conversations/", "page"),
+    });
+    const page = await client.messages.conversations.list();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/conversations/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample({ ...page }, responseExample("GET /v3/messages/conversations/", "page"));
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("messages.conversations.update: PATCH /v3/messages/conversations/{conversation_id}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/messages/conversations/{conversation_id}/"),
+    });
+    const result = await client.messages.conversations.update(
+      "6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/conversations/6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(
+      result,
+      responseExample("PATCH /v3/messages/conversations/{conversation_id}/"),
+    );
+  });
+
+  it("messages.conversations.webhooks.create: POST /v3/messages/conversations/{conversation_id}/webhooks/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/messages/conversations/{conversation_id}/webhooks/"),
+    });
+    const result = await client.messages.conversations.webhooks.create(
+      "6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90",
+      { url: "https://YOUR_PUBLIC_HOST/didit/conversations/6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90" },
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/messages/conversations/6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90/webhooks/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({
+      url: "https://YOUR_PUBLIC_HOST/didit/conversations/6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90",
+    });
+    expectMatchesExample(
+      result,
+      responseExample("POST /v3/messages/conversations/{conversation_id}/webhooks/"),
+    );
+  });
+
+  it("messages.conversations.webhooks.delete: DELETE /v3/messages/conversations/{conversation_id}/webhooks/{webhook_id}/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.messages.conversations.webhooks.delete(
+      "6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90",
+      "b3e1d7a2-5c4f-4e8b-9d16-0a7c3f2e8b51",
+    );
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe(
+      "/v3/messages/conversations/6f0c2a8e-3b1d-4c5e-9a7f-2d8b1e4c6a90/webhooks/b3e1d7a2-5c4f-4e8b-9d16-0a7c3f2e8b51/",
+    );
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+  });
+
   it("messages.delete: DELETE /v3/messages/{message_id}/", async () => {
     const { client, calls } = mockClient({ status: 204 });
     await client.messages.delete("message-id-1");
@@ -152,6 +283,76 @@ describe("messages", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({ to: "value" });
     expectMatchesExample(result, responseExample("POST /v3/messages/"));
+  });
+
+  it("messages.templates.delete: DELETE /v3/messages/templates/{template_id}/", async () => {
+    const { client, calls } = mockClient({ status: 204 });
+    await client.messages.templates.delete("template-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("DELETE");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/templates/template-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+  });
+
+  it("messages.templates.list: GET /v3/messages/templates/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/messages/templates/", "page"),
+    });
+    const page = await client.messages.templates.list();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/templates/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample({ ...page }, responseExample("GET /v3/messages/templates/", "page"));
+    expect(page.hasNextPage()).toBe(false);
+  });
+
+  it("messages.templates.retrieve: GET /v3/messages/templates/{template_id}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/messages/templates/{template_id}/"),
+    });
+    const result = await client.messages.templates.retrieve("template-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/templates/template-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/messages/templates/{template_id}/"));
+  });
+
+  it("messages.templates.update: PATCH /v3/messages/templates/{template_id}/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("PATCH /v3/messages/templates/{template_id}/"),
+    });
+    const result = await client.messages.templates.update("template-id-1");
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("PATCH");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/templates/template-id-1/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({});
+    expectMatchesExample(result, responseExample("PATCH /v3/messages/templates/{template_id}/"));
   });
 
   it("messages.update_settings: PATCH /v3/messages/settings/", async () => {

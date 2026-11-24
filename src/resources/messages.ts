@@ -5,20 +5,91 @@ import type { OperationSpec } from "../core/operation.js";
 import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
-import type { Message, MessageList, MessagePrices, MessagesSettings } from "../types/components.js";
 import type {
+  Message,
+  MessageConsent,
+  MessageConsentChannels,
+  MessageConversation,
+  MessageConversationList,
+  MessageConversationWebhook,
+  MessageList,
+  MessagePrices,
+  MessageTemplate,
+  MessageTemplateList,
+  MessagesSettings,
+} from "../types/components.js";
+import type {
+  MessagesConsentUpdateParams,
+  MessagesConversationsListParams,
+  MessagesConversationsUpdateParams,
+  MessagesConversationsWebhooksCreateParams,
   MessagesListParams,
   MessagesListPricesParams,
   MessagesRulesCreateParams,
   MessagesRulesCreateResponse,
   MessagesSendParams,
+  MessagesTemplatesListParams,
+  MessagesTemplatesUpdateParams,
   MessagesUpdateSettingsParams,
 } from "../types/messages.js";
 
+const MESSAGES_CONSENT_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/contacts/{to}/consent/",
+  dates: "MessageConsent",
+};
+const MESSAGES_CONSENT_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/messages/contacts/{to}/consent/",
+  body: "json",
+  dates: "MessageConsentChannels",
+};
+const MESSAGES_CONVERSATIONS_WEBHOOKS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/messages/conversations/{conversation_id}/webhooks/",
+  body: "json",
+};
+const MESSAGES_CONVERSATIONS_WEBHOOKS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/messages/conversations/{conversation_id}/webhooks/{webhook_id}/",
+  response: "none",
+};
+const MESSAGES_CONVERSATIONS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/conversations/",
+  query: ["status", "assignee", "limit", "offset"],
+};
+const MESSAGES_CONVERSATIONS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/messages/conversations/{conversation_id}/",
+  body: "json",
+};
 const MESSAGES_RULES_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/messages/rules/",
   body: "json",
+};
+const MESSAGES_TEMPLATES_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/messages/templates/{template_id}/",
+  response: "none",
+};
+const MESSAGES_TEMPLATES_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/templates/",
+  query: ["status", "channel", "locale", "limit", "offset"],
+  dates: "MessageTemplateList",
+};
+const MESSAGES_TEMPLATES_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/templates/{template_id}/",
+  dates: "MessageTemplate",
+};
+const MESSAGES_TEMPLATES_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/messages/templates/{template_id}/",
+  body: "json",
+  dates: "MessageTemplate",
 };
 const MESSAGES_CANCEL: OperationSpec = {
   method: "POST",
@@ -68,6 +139,149 @@ const MESSAGES_UPDATE_SETTINGS: OperationSpec = {
   body: "json",
 };
 
+/** `messages.consent` */
+export class MessagesConsent extends APIResource {
+  /**
+   * Retrieve a recipient's consent
+   *
+   * The recipient's consent for every channel your application has a record on, with where each record came from and when it changed. A channel with no record is not listed, and a `to` that is none of the three recipient types below answers `{"channels": [], "reassigned": false}`.
+   *
+   * `reassigned` is always `false`: this release does not detect that a number changed owner, and no send is skipped for it.
+   *
+   * `to` is one of three recipient types, and each has its own channels: an E.164 number (`+` and up to 15 ASCII digits `[0-9]`) is on `sms`, `whatsapp`, `telegram`, `rcs`, `viber` and `voice`; an email address is on `email` only; a WhatsApp business-scoped user id (a country code, a dot and an id, such as `US.13491208655302741918`) is on `whatsapp` only. Percent-encode it in the path: a number's `+` becomes `%2B`.
+   *
+   * A scoped API key needs read access to messages.
+   *
+   * `GET /v3/messages/contacts/{to}/consent/`
+   *
+   * @param to The recipient: an E.164 number (`+` and up to 15 ASCII digits), an email address, or a WhatsApp business-scoped user id.
+   */
+  retrieve(to: string, options?: RequestOptions): APIPromise<MessageConsent> {
+    return this._client.request(MESSAGES_CONSENT_RETRIEVE, [to], undefined, options);
+  }
+
+  /**
+   * Update a recipient's consent
+   *
+   * Record an opt-in or an opt-out for one channel. The record applies from now on: a send to an opted-out recipient on that channel is refused with `opted_out` and not charged. Each send reads the record of its own channel only, and a record for a channel Didit does not send on yet is kept for when it does. `source` records where the choice came from, `api` when left out.
+   *
+   * `to` is one of three recipient types, and each has its own channels: an E.164 number (`+` and up to 15 ASCII digits `[0-9]`) is on `sms`, `whatsapp`, `telegram`, `rcs`, `viber` and `voice`; an email address is on `email` only; a WhatsApp business-scoped user id (a country code, a dot and an id, such as `US.13491208655302741918`) is on `whatsapp` only. Percent-encode it in the path: a number's `+` becomes `%2B`. `channel` has to fit the recipient.
+   *
+   * A scoped API key needs write access to messages.
+   *
+   * `PATCH /v3/messages/contacts/{to}/consent/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param to The recipient: an E.164 number (`+` and up to 15 ASCII digits), an email address, or a WhatsApp business-scoped user id.
+   */
+  update(
+    to: string,
+    params: MessagesConsentUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<MessageConsentChannels> {
+    return this._client.request(MESSAGES_CONSENT_UPDATE, [to], params, options);
+  }
+}
+
+/** `messages.conversations.webhooks` */
+export class MessagesConversationsWebhooks extends APIResource {
+  /**
+   * Subscribe a URL to one conversation's events
+   *
+   * Subscribe an HTTPS endpoint to one conversation's events: `message.received`, `message.status.updated` and `contact.consent.updated`, all three when `events` is left out. Every delivery is signed with `X-Signature-V2` using the returned `secret`, which this answer shows only once; other conversations keep their own subscriptions and endpoints.
+   *
+   * A scoped API key needs write access to messages. It also needs read access to sessions, and its workflow and approved-only session limits apply: a conversation outside them, or one whose session was deleted, answers 404 as another application's would.
+   *
+   * `POST /v3/messages/conversations/{conversation_id}/webhooks/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param conversationId The conversation whose events the subscription carries.
+   */
+  create(
+    conversationId: string,
+    params: MessagesConversationsWebhooksCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<MessageConversationWebhook> {
+    return this._client.request(
+      MESSAGES_CONVERSATIONS_WEBHOOKS_CREATE,
+      [conversationId],
+      params,
+      options,
+    );
+  }
+
+  /**
+   * Stop one conversation's events
+   *
+   * Remove one of a conversation's webhook subscriptions: deliveries to its URL stop. Other subscriptions, and the conversation itself, are not touched.
+   *
+   * A scoped API key needs write access to messages. It also needs read access to sessions, and its workflow and approved-only session limits apply: a conversation outside them, or one whose session was deleted, answers 404 as another application's would.
+   *
+   * `DELETE /v3/messages/conversations/{conversation_id}/webhooks/{webhook_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param conversationId The conversation.
+   * @param webhookId The subscription to remove.
+   */
+  delete(conversationId: string, webhookId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(
+      MESSAGES_CONVERSATIONS_WEBHOOKS_DELETE,
+      [conversationId, webhookId],
+      undefined,
+      options,
+    );
+  }
+}
+
+/** `messages.conversations` */
+export class MessagesConversations extends APIResource {
+  readonly webhooks: MessagesConversationsWebhooks = new MessagesConversationsWebhooks(
+    this._client,
+  );
+
+  /**
+   * List conversations
+   *
+   * Your application's conversations: the member who owns each thread and how many replies arrived since the conversation was last read. A conversation groups every message exchanged with one person, on every channel.
+   *
+   * `status` filters on `open`, `needs_reply` (the person wrote last and nobody answered) or `closed`; `assignee` takes a member id, exactly as a conversation's `assignee` shows it, and lists only that member's conversations.
+   *
+   * A scoped API key needs read access to messages and to sessions, and its workflow and approved-only session limits apply: a conversation outside them is left out of the list.
+   *
+   * `GET /v3/messages/conversations/`
+   */
+  list(
+    params: MessagesConversationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<MessageConversationList, MessageConversation> {
+    return this._client.requestPage(MESSAGES_CONVERSATIONS_LIST, [], params, options);
+  }
+
+  /**
+   * Update a conversation
+   *
+   * Assign the conversation to a member or unassign it, open or close it, and mark it read up to a message. A field left out keeps its value; closing only takes the thread out of the open list, and opening it puts it back.
+   *
+   * A scoped API key needs write access to messages. It also needs read access to sessions, and its workflow and approved-only session limits apply: a conversation outside them, or one whose session was deleted, answers 404 as another application's would.
+   *
+   * `PATCH /v3/messages/conversations/{conversation_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param conversationId The conversation.
+   */
+  update(
+    conversationId: string,
+    params: MessagesConversationsUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<MessageConversation> {
+    return this._client.request(MESSAGES_CONVERSATIONS_UPDATE, [conversationId], params, options);
+  }
+}
+
 /** `messages.rules` */
 export class MessagesRules extends APIResource {
   /**
@@ -89,9 +303,86 @@ export class MessagesRules extends APIResource {
   }
 }
 
+/** `messages.templates` */
+export class MessagesTemplates extends APIResource {
+  /**
+   * Delete a message template
+   *
+   * Delete the template. Messages already sent keep their history, with no template. A template that a scheduled or queued message, or a message with a channel left to fall back to, was made from cannot be deleted until they are done: cancel the scheduled messages first (`409 template_in_use`).
+   *
+   * A scoped API key needs write access to messages.
+   *
+   * `DELETE /v3/messages/templates/{template_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param templateId The template's id.
+   */
+  delete(templateId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(MESSAGES_TEMPLATES_DELETE, [templateId], undefined, options);
+  }
+
+  /**
+   * List message templates
+   *
+   * The templates you created through the API, newest first, each with its texts and the state of WhatsApp's review of its WhatsApp texts.
+   *
+   * `status` keeps the templates in one review state, `channel` those with a text on that channel, and `locale` those with a text in that language; `channel` and `locale` match the same text.
+   *
+   * A scoped API key needs read access to messages.
+   *
+   * `GET /v3/messages/templates/`
+   */
+  list(
+    params: MessagesTemplatesListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<MessageTemplateList, MessageTemplate> {
+    return this._client.requestPage(MESSAGES_TEMPLATES_LIST, [], params, options);
+  }
+
+  /**
+   * Retrieve a message template
+   *
+   * One template with its texts and the state of WhatsApp's review of each WhatsApp text.
+   *
+   * A scoped API key needs read access to messages.
+   *
+   * `GET /v3/messages/templates/{template_id}/`
+   *
+   * @param templateId The template's id.
+   */
+  retrieve(templateId: string, options?: RequestOptions): APIPromise<MessageTemplate> {
+    return this._client.request(MESSAGES_TEMPLATES_RETRIEVE, [templateId], undefined, options);
+  }
+
+  /**
+   * Update a message template
+   *
+   * Change the name, the description, the examples or the texts. The texts you send replace all of the template's texts. A change makes a new version and WhatsApp reviews the new WhatsApp texts again: until they are approved a message cannot go out on WhatsApp from this template. Messages already accepted keep the text they were accepted with, a scheduled WhatsApp message included.
+   *
+   * A scoped API key needs write access to messages.
+   *
+   * `PATCH /v3/messages/templates/{template_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param templateId The template's id.
+   */
+  update(
+    templateId: string,
+    params: MessagesTemplatesUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<MessageTemplate> {
+    return this._client.request(MESSAGES_TEMPLATES_UPDATE, [templateId], params, options);
+  }
+}
+
 /** `messages` */
 export class Messages extends APIResource {
+  readonly consent: MessagesConsent = new MessagesConsent(this._client);
+  readonly conversations: MessagesConversations = new MessagesConversations(this._client);
   readonly rules: MessagesRules = new MessagesRules(this._client);
+  readonly templates: MessagesTemplates = new MessagesTemplates(this._client);
 
   /**
    * Cancel a scheduled message
@@ -190,7 +481,7 @@ export class Messages extends APIResource {
    *
    * **Fallback.** List several `channels`: each is tried in order, and the next one is used when a channel cannot take the message (switched off, the recipient opted out, no approved WhatsApp template, balance) or when the message fails on it later (rejected, undeliverable, expired). Every attempt is in `attempts`; a skipped channel is a `failed` attempt with its `error` and no price.
    *
-   * **Statuses** reach your webhook destinations subscribed to `message.status.updated`.
+   * **Statuses** reach your webhook destinations subscribed to `message.status.updated`; a reply from the person reaches `message.received` (WhatsApp and Telegram) and a change of their consent `contact.consent.updated`.
    *
    * **Billing.** SMS: the carrier's price plus Didit's fee, per segment. WhatsApp from Didit's number: WhatsApp's rate for the market plus Didit's fee; from your own connected WhatsApp Business account, WhatsApp bills its rate to your account directly and Didit charges only its fee. Email: a flat price. Your plan's discount applies to the fee, never to the carrier's or WhatsApp's part. A failed SMS or WhatsApp attempt, a skipped one and a cancelled one are free; an email is charged once the receiving mail system accepts it, so an email that bounces later is charged. SMS and WhatsApp open with a paid plan or after your first top-up (`403 plan_locked`); a sandbox application simulates every message and charges nothing. See the [prices per country](/getting-started/pricing).
    *

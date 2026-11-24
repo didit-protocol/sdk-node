@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 519 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -435,11 +435,41 @@ Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi
 | `didit.messages.send(params: MessagesSendParams)`                     | `POST /v3/messages/`                     | `Message`          | `idempotencyKey` |
 | `didit.messages.updateSettings(params: MessagesUpdateSettingsParams)` | `PATCH /v3/messages/settings/`           | `MessagesSettings` |                  |
 
+## `didit.messages.consent`
+
+| Method                                                                   | HTTP                                        | Returns                  | Notes            |
+| ------------------------------------------------------------------------ | ------------------------------------------- | ------------------------ | ---------------- |
+| `didit.messages.consent.retrieve(to)`                                    | `GET /v3/messages/contacts/{to}/consent/`   | `MessageConsent`         |                  |
+| `didit.messages.consent.update(to, params: MessagesConsentUpdateParams)` | `PATCH /v3/messages/contacts/{to}/consent/` | `MessageConsentChannels` | `idempotencyKey` |
+
+## `didit.messages.conversations`
+
+| Method                                                                                            | HTTP                                                  | Returns                       | Notes            |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------- | ---------------- |
+| `didit.messages.conversations.list(params?: MessagesConversationsListParams)`                     | `GET /v3/messages/conversations/`                     | page of `MessageConversation` |                  |
+| `didit.messages.conversations.update(conversationId, params?: MessagesConversationsUpdateParams)` | `PATCH /v3/messages/conversations/{conversation_id}/` | `MessageConversation`         | `idempotencyKey` |
+
+## `didit.messages.conversations.webhooks`
+
+| Method                                                                                                            | HTTP                                                                         | Returns                      | Notes            |
+| ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------- | ---------------- |
+| `didit.messages.conversations.webhooks.create(conversationId, params: MessagesConversationsWebhooksCreateParams)` | `POST /v3/messages/conversations/{conversation_id}/webhooks/`                | `MessageConversationWebhook` | `idempotencyKey` |
+| `didit.messages.conversations.webhooks.delete(conversationId, webhookId)`                                         | `DELETE /v3/messages/conversations/{conversation_id}/webhooks/{webhook_id}/` | nothing                      | `idempotencyKey` |
+
 ## `didit.messages.rules`
 
 | Method                                                           | HTTP                       | Returns                       | Notes            |
 | ---------------------------------------------------------------- | -------------------------- | ----------------------------- | ---------------- |
 | `didit.messages.rules.create(params: MessagesRulesCreateParams)` | `POST /v3/messages/rules/` | `MessagesRulesCreateResponse` | `idempotencyKey` |
+
+## `didit.messages.templates`
+
+| Method                                                                                | HTTP                                           | Returns                   | Notes            |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------- | ---------------- |
+| `didit.messages.templates.delete(templateId)`                                         | `DELETE /v3/messages/templates/{template_id}/` | nothing                   | `idempotencyKey` |
+| `didit.messages.templates.list(params?: MessagesTemplatesListParams)`                 | `GET /v3/messages/templates/`                  | page of `MessageTemplate` |                  |
+| `didit.messages.templates.retrieve(templateId)`                                       | `GET /v3/messages/templates/{template_id}/`    | `MessageTemplate`         |                  |
+| `didit.messages.templates.update(templateId, params?: MessagesTemplatesUpdateParams)` | `PATCH /v3/messages/templates/{template_id}/`  | `MessageTemplate`         | `idempotencyKey` |
 
 ## `didit.monitoringEvents`
 
