@@ -11,8 +11,11 @@ rules:
   - purpose: "Every change merges on one approving review of its exact commit and green checks. Nobody is asked here, and Claude doesn't approve."
     paths:
       - "**"
-    advisory: ["claude/code_review"]  # keeps automatic reviews as they are set today
-    verdict: { claude: comments, seats: 0 }
+    # keeps automatic reviews as they are set today
+    advisory: ["claude/code_review"]
+    verdict:
+      claude: comments
+      seats: 0
   - purpose: "Deeper review by the strongest model: money, access, customer data, fraud decisions, migrations, deploys, CI, shared rules, native SDK source. Nobody is asked here."
     paths:
       - "**/*{billing,Billing,pricing,Pricing,price,Price,credit,Credit,invoice,Invoice,charge,Charge,refund,Refund,payment,Payment,subscription,Subscription,usage_event,usage-event,usageEvent,UsageEvent,contract,Contract}*"
@@ -65,12 +68,16 @@ rules:
       - "!**/*.{test,spec}.{js,jsx,ts,tsx,mjs}"
       - "!**/*_test.{go,py}"
       - "!**/{test_,test-}*.py"
-    verdict: { claude: comments, seats: 0 }
+    verdict:
+      claude: comments
+      seats: 0
   - purpose: "Deeper review by the strongest model: a very large change. Nobody is asked here."
     paths:
       - "**"
     if: "pr/files_changed > 100 OR pr/diff_lines > 2500"
-    verdict: { claude: comments, seats: 0 }
+    verdict:
+      claude: comments
+      seats: 0
   - purpose: "A second person with write access looks, and a repository owner decides outside this file: the rules that decide what merges or deploys, infrastructure, published addresses, legal text."
     paths:
       - ".claude/approvals.yml"
@@ -96,4 +103,8 @@ rules:
       - "!**/*.{test,spec}.{js,jsx,ts,tsx,mjs}"
       - "!**/*_test.{go,py}"
       - "!**/{test_,test-}*.py"
-    verdict: { claude: comments, seats: [{ count: 1, from: [humans, "!pr/authors"] }] }
+    verdict:
+      claude: comments
+      seats:
+        - count: 1
+          from: [humans, "!pr/authors"]
