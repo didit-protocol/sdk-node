@@ -71,16 +71,20 @@ export interface PhoneCheckCodeParams {
   enable_social?: boolean;
   /** Action when the social footprint check finds the number registered on none of the platforms it covers. Only NO_ACTION and DECLINE are accepted on this endpoint; REVIEW is available on the workflow configuration key of the same name. */
   phone_no_social_presence_action?: "NO_ACTION" | "DECLINE" | (string & {});
+  /** Check a TOTP factor enrolled with `POST /v3/phone/factors/` instead of a phone code: send the 4-8 digit `code` its authenticator app shows. With `factor_id` the service does not read `phone_number` (typed SDKs still take it, because it stays a required field of this request, so pass the user's number or any valid E.164 number). The answer carries `verification_id`, `status` (`verified` or `failed`) and `attempts`. A `disabled` factor answers `409 factor_disabled`, an unknown one `404 not_found` and a request without `code` `400 code_required`. */
+  factor_id?: string;
+  /** Check the code Didit sent to a registration test number: send the `verification_id` that `POST /v3/phone/network/registrations/{registration_id}/test-numbers/` returned with the `code`. The number itself still goes in `phone_number`. */
+  verification_id?: string;
 }
 
 export interface PhoneFactorsCreateParams {
-  /** The factor to enroll: `totp`, for an authenticator app. */
+  /** The factor to enroll: `totp`, an authenticator app. Any other value answers `400 invalid_type`. */
   type: "totp" | (string & {});
   /** Your id for the user the factor belongs to; a check names the factor and the user. */
   user_id: string;
   /** Shown in the authenticator app and in the factor list. */
   friendly_name?: string;
-  /** Up to 10 keys and values of your own, returned with the factor. */
+  /** Your own small object returned with the factor: up to 10 keys, each value at most 500 characters. */
   metadata?: Record<string, string>;
 }
 
@@ -404,7 +408,7 @@ export interface PhoneNetworkRegistrationsCreateParams {
   /** Why the flow needs the feature, shown to the networks. */
   purpose?: string;
   /** Expected requests a month. */
-  monthly_volume?: number;
+  monthly_volume?: number | null;
 }
 
 export interface PhoneNetworkRegistrationsListParams {
@@ -474,7 +478,7 @@ export interface PhoneRateLimitsUpdateParamsBuckets {
 export interface PhoneSdkKeysCreateParams {
   /** The platform the key is for: `ios`, `android` or `web`. */
   platform: "ios" | "android" | "web" | (string & {});
-  /** The bundle ids, package names or `https` origins the key works for. */
+  /** The apps the key may run in: iOS bundle ids, Android package names or web origins (`https://` and the host), matching `platform` */
   app_ids: string[];
   /** Shown in API keys. */
   name?: string;
@@ -552,7 +556,7 @@ export interface PhoneSilentEligibilityParams {
 export interface PhoneSilentRegistrationsCreateParams {
   /** The ISO 3166-1 alpha-2 country to ask approval for. */
   country: string;
-  /** Only these mobile networks; left out, every network in the country. */
+  /** The mobile networks to ask, by the names `GET /v3/phone/silent/coverage/` lists; all the country's networks when you send none */
   networks?: string[];
   /** What silent verification is used for. */
   use_case: "signup" | "login" | "payment" | "account_recovery" | (string & {});
@@ -561,7 +565,7 @@ export interface PhoneSilentRegistrationsCreateParams {
   /** Where the flow runs, so the networks can review it. */
   website: string;
   /** Expected silent checks a month. */
-  monthly_volume?: number;
+  monthly_volume?: number | null;
   /** Links to screens of the flow, as the networks ask for them. */
   flow_screenshots?: string[];
 }

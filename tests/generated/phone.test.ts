@@ -103,7 +103,7 @@ describe("phone", () => {
       status: 201,
       json: responseExample("POST /v3/phone/factors/"),
     });
-    const result = await client.phone.factors.create({ type: "totp", user_id: "value" });
+    const result = await client.phone.factors.create({ type: "totp", user_id: "u_481" });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("POST");
@@ -113,7 +113,7 @@ describe("phone", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({ type: "totp", user_id: "value" });
+    expect(request.json).toEqual({ type: "totp", user_id: "u_481" });
     expectMatchesExample(result, responseExample("POST /v3/phone/factors/"));
   });
 
@@ -136,13 +136,17 @@ describe("phone", () => {
       status: 200,
       json: responseExample("GET /v3/phone/factors/", "page"),
     });
-    const page = await client.phone.factors.list({ user_id: "value" });
+    const page = await client.phone.factors.list({
+      user_id: "u_481",
+      type: "totp",
+      status: "verified",
+    });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
     expect(request.origin).toBe(API_ORIGIN);
     expect(request.path).toBe("/v3/phone/factors/");
-    expect(request.query).toEqual({ user_id: "value" });
+    expect(request.query).toEqual({ user_id: "u_481", type: "totp", status: "verified" });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
@@ -457,10 +461,10 @@ describe("phone", () => {
     });
     const result = await client.phone.network.registrations.create({
       feature: "silent_verification",
-      country: "value",
+      country: "BR",
       use_case: "signup",
-      company_name: "value",
-      website: "https://example.com/",
+      company_name: "Demo Application S.L.",
+      website: "https://app.example.com",
     });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -473,10 +477,10 @@ describe("phone", () => {
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({
       feature: "silent_verification",
-      country: "value",
+      country: "BR",
       use_case: "signup",
-      company_name: "value",
-      website: "https://example.com/",
+      company_name: "Demo Application S.L.",
+      website: "https://app.example.com",
     });
     expectMatchesExample(result, responseExample("POST /v3/phone/network/registrations/"));
   });
@@ -486,13 +490,21 @@ describe("phone", () => {
       status: 200,
       json: responseExample("GET /v3/phone/network/registrations/", "page"),
     });
-    const page = await client.phone.network.registrations.list();
+    const page = await client.phone.network.registrations.list({
+      feature: "sim_swap",
+      country: "ES",
+      status: "partly_approved",
+    });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
     expect(request.origin).toBe(API_ORIGIN);
     expect(request.path).toBe("/v3/phone/network/registrations/");
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({
+      feature: "sim_swap",
+      country: "ES",
+      status: "partly_approved",
+    });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
@@ -531,7 +543,7 @@ describe("phone", () => {
     });
     const result = await client.phone.network.registrations.testNumbers.create(
       "registration-id-1",
-      { phone_number: "value" },
+      { phone_number: "+34600000012" },
     );
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -542,7 +554,7 @@ describe("phone", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({ phone_number: "value" });
+    expect(request.json).toEqual({ phone_number: "+34600000012" });
     expectMatchesExample(
       result,
       responseExample("POST /v3/phone/network/registrations/{registration_id}/test-numbers/"),
@@ -723,13 +735,13 @@ describe("phone", () => {
       status: 200,
       json: responseExample("GET /v3/phone/sdk-keys/"),
     });
-    const result = await client.phone.sdkKeys.list();
+    const result = await client.phone.sdkKeys.list({ platform: "ios" });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
     expect(request.origin).toBe(API_ORIGIN);
     expect(request.path).toBe("/v3/phone/sdk-keys/");
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({ platform: "ios" });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
@@ -793,13 +805,13 @@ describe("phone", () => {
       status: 200,
       json: responseExample("GET /v3/phone/silent/coverage/"),
     });
-    const result = await client.phone.silent.coverage();
+    const result = await client.phone.silent.coverage({ country: "ES" });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("GET");
     expect(request.origin).toBe(API_ORIGIN);
     expect(request.path).toBe("/v3/phone/silent/coverage/");
-    expect(request.query).toEqual({});
+    expect(request.query).toEqual({ country: "ES" });
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.bodyText).toBe("");
@@ -811,7 +823,7 @@ describe("phone", () => {
       status: 200,
       json: responseExample("POST /v3/phone/silent/eligibility/"),
     });
-    const result = await client.phone.silent.eligibility({ phone_number: "value" });
+    const result = await client.phone.silent.eligibility({ phone_number: "+34600000012" });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
     expect(request.method).toBe("POST");
@@ -821,7 +833,7 @@ describe("phone", () => {
     expectAuth(request, "api_key");
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
-    expect(request.json).toEqual({ phone_number: "value" });
+    expect(request.json).toEqual({ phone_number: "+34600000012" });
     expectMatchesExample(result, responseExample("POST /v3/phone/silent/eligibility/"));
   });
 
@@ -831,10 +843,10 @@ describe("phone", () => {
       json: responseExample("POST /v3/phone/silent/registrations/"),
     });
     const result = await client.phone.silent.registrations.create({
-      country: "value",
+      country: "BR",
       use_case: "signup",
-      company_name: "value",
-      website: "https://example.com/",
+      company_name: "Demo Application S.L.",
+      website: "https://app.example.com",
     });
     expect(calls).toHaveLength(1);
     const request = calls[0]!;
@@ -846,10 +858,10 @@ describe("phone", () => {
     expect(request.headers.get("accept")).toBe("application/json");
     expect(request.contentType).toBe("application/json");
     expect(request.json).toEqual({
-      country: "value",
+      country: "BR",
       use_case: "signup",
-      company_name: "value",
-      website: "https://example.com/",
+      company_name: "Demo Application S.L.",
+      website: "https://app.example.com",
     });
     expectMatchesExample(result, responseExample("POST /v3/phone/silent/registrations/"));
   });

@@ -7267,25 +7267,25 @@ export interface PhoneFactor {
   /** `unverified` until the first successful check, `verified` after it, `disabled` while its checks are turned off. */
   status: "unverified" | "verified" | "disabled" | (string & {});
   /** Your id for the user it belongs to. */
-  user_id?: string;
+  user_id: string;
   /** Shown in the authenticator app and in the factor list. */
-  friendly_name?: string;
+  friendly_name: string;
   /** Your keys and values, as you sent them. */
-  metadata?: Record<string, string>;
+  metadata: Record<string, string>;
   /** When it was enrolled. */
-  created_at?: Date;
+  created_at: Date;
   /** Its last successful check, `null` until there is one. */
-  last_used_at?: Date | null;
+  last_used_at: Date | null;
 }
 
-/** The enrollment of a TOTP factor: `totp.uri` is what the authenticator app needs. */
+/** A new TOTP factor and the authenticator URI to show as a QR code. The secret is shown only here. */
 export interface PhoneFactorEnrollment {
   /** Check it with `POST /v3/phone/check/` by naming it as `factor_id` together with the `code` its app shows. */
   factor_id: string;
   /** The factor type. */
   type: "totp" | (string & {});
-  /** `unverified` until the first successful check, then `verified`. */
-  status: "unverified" | "verified" | "disabled" | (string & {});
+  /** A new factor is `unverified` until its first check passes */
+  status: "unverified" | (string & {});
   /** A `totp` factor: what the authenticator app needs. */
   totp: PhoneFactorEnrollmentTotp;
 }
@@ -7471,9 +7471,9 @@ export interface PhoneNetworkDecision {
   /** Where this network stands: `submitted` - the request reached it; `in_review` - it is reviewing; `approved`; `rejected`. */
   status: "submitted" | "in_review" | "approved" | "rejected" | (string & {});
   /** When the network decided, `null` until it has. */
-  decided_at?: Date | null;
+  decided_at: Date | null;
   /** Why a network rejected it, `null` when it approved or has not decided. */
-  reason?: string | null;
+  reason: string | null;
 }
 
 export interface PhoneNetworkRegistration {
@@ -7484,17 +7484,17 @@ export interface PhoneNetworkRegistration {
   /** The ISO 3166-1 alpha-2 country. */
   country: string;
   /** What you use the feature for, as submitted. */
-  use_case?: string;
+  use_case: string;
   /** `submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved. */
   status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
   /** Each mobile network's decision, network by network. */
-  networks?: PhoneNetworkDecision[];
+  networks: PhoneNetworkDecision[];
   /** When the feature went live for you in the country, `null` until it has. */
-  live_at?: Date | null;
+  live_at: Date | null;
   /** `on` while the networks review: the feature answers for your verified test numbers, marked `test: true`. `off` once the registration is approved or rejected. */
-  test_access?: "on" | "off" | (string & {});
+  test_access: "on" | "off" | (string & {});
   /** Your test numbers for this registration, up to 5. */
-  test_numbers?: PhoneNetworkRegistrationTestNumber[];
+  test_numbers: PhoneNetworkRegistrationTestNumberSummary[];
 }
 
 export interface PhoneNetworkRegistrationSummary {
@@ -7505,7 +7505,7 @@ export interface PhoneNetworkRegistrationSummary {
   /** The ISO 3166-1 alpha-2 country. */
   country: string;
   /** What you use the feature for. */
-  use_case?: string;
+  use_case: string;
   /** Where the registration stands. */
   status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
 }
@@ -7514,11 +7514,18 @@ export interface PhoneNetworkRegistrationTestNumber {
   /** The test number. */
   phone_number: string;
   /** `code_sent` - Didit sent it a code, which makes it a verified test number once checked; `verified` - it answers the feature under test access. */
-  status: "code_sent" | "verified" | (string & {});
-  /** The verification carrying the code: check it with `POST /v3/phone/check/`. */
-  verification_id?: string;
+  status: "code_sent" | (string & {});
+  /** The verification of the code Didit sent: `pv_` followed by 32 hexadecimal characters. Check the code with `POST /v3/phone/check/` and this `verification_id`. */
+  verification_id: string;
   /** `on` - the registration is under review, so the feature answers for its test numbers, with `test: true` in the answer. */
-  test_access?: "on" | (string & {});
+  test_access: "on" | (string & {});
+}
+
+export interface PhoneNetworkRegistrationTestNumberSummary {
+  /** The test number in E.164 format */
+  phone_number: string;
+  /** `code_sent` until the code Didit sent is checked, then `verified` */
+  status: "code_sent" | "verified" | (string & {});
 }
 
 export interface PhoneNetworkRegistrationsPage {
@@ -7631,18 +7638,18 @@ export interface PhoneRiskResponsePhoneCarrier {
 
 /** A publishable key of a client SDK. It is not a secret: it is bound to the app ids it may run in and cannot make a server call. */
 export interface PhoneSdkKey {
-  /** The key. */
+  /** The key: `sk_` followed by 32 hexadecimal characters */
   key_id: string;
   /** The platform it is for. */
   platform: "ios" | "android" | "web" | (string & {});
   /** Safe to ship inside the app: it can only start the checks the client SDK runs, never a server call. */
-  publishable_key?: string;
+  publishable_key: string;
   /** The bundle ids, package names or `https` origins it works for. */
-  app_ids?: string[];
+  app_ids: string[];
   /** `active` - it works; `expiring` - it was rotated and stops working at `previous_expires_at`; `revoked` - it stopped working. */
   status: "active" | "expiring" | "revoked" | (string & {});
   /** When it was issued. */
-  created_at?: Date;
+  created_at: Date;
 }
 
 export interface PhoneSdkKeyRotated {
@@ -7653,11 +7660,11 @@ export interface PhoneSdkKeyRotated {
   /** The new value to ship in the app. */
   publishable_key: string;
   /** The bundle ids, package names or `https` origins it works for. */
-  app_ids?: string[];
+  app_ids: string[];
   /** `active` - the new value works; `expiring` - it was rotated again; `revoked` - it stopped working. */
-  status?: "active" | "expiring" | "revoked" | (string & {});
+  status: "active" | (string & {});
   /** When the key was first issued. */
-  created_at?: Date;
+  created_at: Date;
   /** When the value this rotation replaced stops working. */
   previous_expires_at: Date;
 }
@@ -7688,7 +7695,7 @@ export interface PhoneSilentCoverageCountry {
   /** ISO 3166-1 alpha-2 country code. */
   country: string;
   /** `true` when the SIM check also runs over Wi-Fi, so a device without mobile data can still complete it. */
-  wifi?: boolean;
+  wifi: boolean;
   /** The mobile networks in this country that can run a silent check. */
   networks: PhoneSilentCoverageNetwork[];
 }
@@ -7704,26 +7711,26 @@ export interface PhoneSilentEligibility {
   /** `true` when a silent check can run for this number now. */
   eligible: boolean;
   /** When `eligible` is `false`, why: `unsupported_network` - the number's mobile network cannot run the check; `not_mobile_data` - the device is not on mobile data (send `ip_address` to have this checked); `country_not_covered` - silent verification does not run in the number's country. */
-  reason?: "unsupported_network" | "not_mobile_data" | "country_not_covered" | (string & {}) | null;
+  reason: "unsupported_network" | "not_mobile_data" | "country_not_covered" | (string & {}) | null;
   /** The mobile network, or `null` when Didit has no supported network for the number. */
-  network?: string | null;
+  network: string | null;
   /** ISO 3166-1 alpha-2 country code of the number. */
-  country?: string;
+  country: string | null;
   /** `true` when the SIM check can run over Wi-Fi instead, so the device can complete it without mobile data. */
-  wifi_possible?: boolean;
+  wifi_possible: boolean;
 }
 
 export interface PhoneSilentRegistration {
-  /** The registration: track it with it. */
+  /** The registration: `sr_` followed by 32 hexadecimal characters */
   registration_id: string;
   /** The country it asks approval for. */
   country: string;
   /** `submitted` - sent to the networks; `in_review` - they are reviewing; `approved` - every network approved; `partly_approved` - some approved and some rejected; `rejected` - none approved. */
   status: "submitted" | "in_review" | "approved" | "partly_approved" | "rejected" | (string & {});
   /** Each mobile network's decision, network by network. */
-  networks?: PhoneNetworkDecision[];
+  networks: PhoneNetworkDecision[];
   /** When silent verification went live for you in the country, `null` until it has. */
-  live_at?: Date | null;
+  live_at: Date | null;
 }
 
 /** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
@@ -7768,8 +7775,15 @@ export interface PhoneSocialFootprint {
 export interface PhoneVerificationCheckResponse {
   /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
-  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. */
-  status?: "Approved" | "Declined" | "Failed" | "Expired or Not Found" | (string & {});
+  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. For a TOTP factor check (a request that names `factor_id`) the status is `verified` (the code matched) or `failed`. */
+  status?:
+    | "Approved"
+    | "Declined"
+    | "Failed"
+    | "Expired or Not Found"
+    | "verified"
+    | "failed"
+    | (string & {});
   /** Human-readable explanation of the outcome, including the number of attempts remaining after a wrong code. */
   message?: string;
   /** Full phone report. Present (non-null) only on finalized outcomes (`Approved`/`Declined`); `null` on `Failed` and absent on `Expired or Not Found`. */
@@ -7780,6 +7794,10 @@ export interface PhoneVerificationCheckResponse {
   metadata?: Record<string, unknown> | null;
   /** Timestamp of this check response. */
   created_at?: Date;
+  /** A TOTP factor check only: the id of the factor that was checked, `fa_` followed by 32 hexadecimal characters. Not present in the answer to a phone code check. */
+  verification_id?: string;
+  /** A TOTP factor check only: the failed codes in the current window including this one. Not present in the answer to a phone code check. */
+  attempts?: number;
 }
 
 /** Full phone report. Present (non-null) only on finalized outcomes (`Approved`/`Declined`); `null` on `Failed` and absent on `Expired or Not Found`. */
