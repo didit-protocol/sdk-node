@@ -138,16 +138,23 @@ export { Investigator } from "./investigator.js";
 export { Ip } from "./ip.js";
 export { Kyb } from "./kyb.js";
 export { Lists, ListsEntries } from "./lists.js";
-export { Messages } from "./messages.js";
+export { Messages, MessagesRules } from "./messages.js";
 export { MonitoringEvents } from "./monitoring-events.js";
 export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";
 export {
   Phone,
   PhoneFactors,
+  PhoneFraud,
+  PhoneFraudEvents,
+  PhoneFraudPolicies,
+  PhoneLineTypeOverrides,
+  PhoneLists,
   PhoneNetwork,
   PhoneNetworkRegistrations,
   PhoneNetworkRegistrationsTestNumbers,
+  PhoneRateLimits,
+  PhoneRateLimitsBuckets,
   PhoneSdkKeys,
   PhoneSilent,
   PhoneSilentRegistrations,

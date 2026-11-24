@@ -27,6 +27,23 @@ export interface MessagesListPricesParams {
   country: string;
 }
 
+/** Send exactly one of `match.country`, `match.prefix` or `match.number`. */
+export interface MessagesRulesCreateParams {
+  /** allow or block */
+  action: "allow" | "block" | (string & {});
+  /** outbound (default) or inbound */
+  direction?: "outbound" | "inbound" | (string & {});
+  /** Exactly one of `country`, `prefix` or `number`. */
+  match: unknown;
+  /** The channels it covers, for example `sms`, `whatsapp` or `voice`; all channels when you send none */
+  channels?: string[];
+}
+
+export interface MessagesRulesCreateResponse {
+  /** The rule */
+  rule_id: string;
+}
+
 /** Send exactly one of `body` or `template_id`: a request with both, or with neither, returns `400`. */
 export interface MessagesSendParams {
   /** Recipient: an E.164 phone number (`+447700900123`), or an email address for email. */

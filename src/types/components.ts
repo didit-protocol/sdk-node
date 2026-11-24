@@ -7307,6 +7307,82 @@ export interface PhoneFactorsPage {
   results: PhoneFactor[];
 }
 
+export interface PhoneFraudEventResult {
+  /** The event's place in events */
+  index: number;
+  /** The event; present only for an accepted event */
+  event_id?: string;
+  /** accepted or rejected */
+  status: "accepted" | "rejected" | (string & {});
+  /** Why it was rejected: `invalid_event`; `null` for an accepted event */
+  error?: "invalid_event" | (string & {}) | null;
+}
+
+export interface PhoneFraudPolicy {
+  /** The policy */
+  policy_id: string;
+  /** Its name */
+  name: string;
+  /** The flow it scores, as sent in action on evaluate and send */
+  flow: string;
+  /** The score at which action applies */
+  threshold: number;
+  /** allow, review, challenge or block */
+  action: "allow" | "review" | "challenge" | "block" | (string & {});
+  /** Last change */
+  updated_at: Date;
+  /** The conditions that add their weight to the score when they hold. */
+  conditions: PhoneFraudPolicyCondition[];
+}
+
+export interface PhoneFraudPolicyCondition {
+  /** risk_score, sim_swap, line_type, country, velocity, ip_risk, device, email_risk or existing_user */
+  signal:
+    | "risk_score"
+    | "sim_swap"
+    | "line_type"
+    | "country"
+    | "velocity"
+    | "ip_risk"
+    | "device"
+    | "email_risk"
+    | "existing_user"
+    | (string & {});
+  /** eq, neq, gt, lt, in or within_hours */
+  operator: "eq" | "neq" | "gt" | "lt" | "in" | "within_hours" | (string & {});
+  /** What the signal is compared with */
+  value: string;
+  /** Points added to the score when the condition holds, 0 to 100 */
+  weight: number;
+}
+
+/** The fields of a fraud policy you can write. A field you leave out stays as it is on an update; on a create `name` and `flow` are required, `threshold` defaults to 60 and `action` to `review`. */
+export interface PhoneFraudPolicyInput {
+  /** Its name */
+  name?: string;
+  /** The flow it scores: `signup`, `login`, `payment` or a flow of your own, as sent in `action` on evaluate and send. */
+  flow?: string;
+  conditions?: PhoneFraudPolicyCondition[];
+  /** The score at which action applies */
+  threshold?: number;
+  /** allow, review, challenge or block */
+  action?: "allow" | "review" | "challenge" | "block" | (string & {});
+}
+
+/** One fraud rule: the signal it reads, the action it takes and where it applies. */
+export interface PhoneFraudRule {
+  /** velocity, pumping, risk_score, sim_swap, device or country */
+  key?: "velocity" | "pumping" | "risk_score" | "sim_swap" | "device" | "country" | (string & {});
+  /** allow, review, require_code, challenge or block: challenge continues the verification on challenge_channels only */
+  action?: "allow" | "review" | "require_code" | "challenge" | "block" | (string & {});
+  /** The rule applies only to these countries */
+  countries?: string[];
+  /** The rule applies only to web, ios or android */
+  platforms?: ("web" | "ios" | "android" | (string & {}))[];
+  /** codes (the only value): the rule applies to verification codes */
+  scope?: "codes" | (string & {});
+}
+
 /** Normalized phone-intelligence block. Present only when the intelligence add-on ran for this lookup; when present it is also exposed under the `enrichment` alias with identical values. */
 export interface PhoneIntelligence {
   /** Normalized 0-100 risk score. Higher is riskier. */
@@ -7340,6 +7416,30 @@ export interface PhoneIntelligenceReasonCodes {
   message?: string;
   /** How strongly the signal moved the score, for example `low`, `medium` or `high`. */
   impact_level?: string | null;
+}
+
+export interface PhoneListEntry {
+  /** The entry */
+  entry_id: string;
+  /** The list it is on */
+  list_id: "allow" | "block" | (string & {});
+  /** The number in E.164 format, the prefix, the ISO 3166-1 alpha-3 country code or the network */
+  value: string;
+  /** Its type */
+  type: "number" | "prefix" | "country" | "network" | (string & {});
+  /** When a temporary entry ends; `null` for a permanent one */
+  expires_at: Date | null;
+  /** Who added it: `manual` in the console, `api` through this API or `alert` */
+  source: "manual" | "api" | "alert" | (string & {});
+}
+
+export interface PhoneListMatch {
+  /** allow or block */
+  list_id: "allow" | "block" | (string & {});
+  /** The entry that matched */
+  entry_id: string;
+  /** number, prefix, country or network */
+  type: "number" | "prefix" | "country" | "network" | (string & {});
 }
 
 /** Another session of your application that used the same phone number with a different `vendor_data`. */
@@ -7430,6 +7530,40 @@ export interface PhoneNetworkRegistrationsPage {
   previous: string | null;
   /** Your network feature registrations. */
   results: PhoneNetworkRegistrationSummary[];
+}
+
+export interface PhoneRateLimit {
+  /** The limit */
+  rate_limit_id: string;
+  /** Its key */
+  key: string;
+  /** The buckets of the limit: each allows `max` starts in `interval` seconds. */
+  buckets: PhoneRateLimitBucket[];
+}
+
+export interface PhoneRateLimitBucket {
+  /** Each bucket */
+  bucket_id: string;
+  /** Starts allowed in the interval */
+  max: number;
+  /** The interval, in seconds, from 1 second to 30 days (2,592,000) */
+  interval: number;
+  /** The starts already counted in the current interval */
+  in_use: number;
+}
+
+/** A bulk risk job. */
+export interface PhoneRiskBulkJob {
+  /** The job. */
+  job_id: string;
+  /** `queued`, `running`, `done`, or `failed`. A job fails when your organization balance cannot pay for the next paid lookup (the rows already answered stay downloadable) or after 3 failed retries. */
+  status: "queued" | "running" | "done" | "failed" | (string & {});
+  /** Numbers in the file. */
+  total: number;
+  /** Numbers answered so far. */
+  processed: number;
+  /** The relative path `/v3/phone/risk/bulk/{job_id}/results/` of the CSV, present once a result file exists (also for a failed job); otherwise `null`. */
+  results_url: string | null;
 }
 
 export interface PhoneRiskResponse {

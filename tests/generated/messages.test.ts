@@ -116,6 +116,25 @@ describe("messages", () => {
     expectMatchesExample(result, responseExample("GET /v3/messages/settings/"));
   });
 
+  it("messages.rules.create: POST /v3/messages/rules/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/messages/rules/"),
+    });
+    const result = await client.messages.rules.create({ action: "allow", match: "value" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/rules/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ action: "allow", match: "value" });
+    expectMatchesExample(result, responseExample("POST /v3/messages/rules/"));
+  });
+
   it("messages.send: POST /v3/messages/", async () => {
     const { client, calls } = mockClient({
       status: 201,

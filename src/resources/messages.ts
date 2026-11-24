@@ -9,10 +9,17 @@ import type { Message, MessageList, MessagePrices, MessagesSettings } from "../t
 import type {
   MessagesListParams,
   MessagesListPricesParams,
+  MessagesRulesCreateParams,
+  MessagesRulesCreateResponse,
   MessagesSendParams,
   MessagesUpdateSettingsParams,
 } from "../types/messages.js";
 
+const MESSAGES_RULES_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/messages/rules/",
+  body: "json",
+};
 const MESSAGES_CANCEL: OperationSpec = {
   method: "POST",
   path: "/v3/messages/{message_id}/cancel/",
@@ -61,8 +68,31 @@ const MESSAGES_UPDATE_SETTINGS: OperationSpec = {
   body: "json",
 };
 
+/** `messages.rules` */
+export class MessagesRules extends APIResource {
+  /**
+   * Create a messaging rule
+   *
+   * Add a messaging rule that allows or blocks by country, prefix or number. Send exactly one of `match.country` (an ISO country code), `match.prefix` or `match.number`; `direction` is `outbound` (the default) or `inbound`, and `channels` limits the rule to the channels it names.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/messages/rules/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: MessagesRulesCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<MessagesRulesCreateResponse> {
+    return this._client.request(MESSAGES_RULES_CREATE, [], params, options);
+  }
+}
+
 /** `messages` */
 export class Messages extends APIResource {
+  readonly rules: MessagesRules = new MessagesRules(this._client);
+
   /**
    * Cancel a scheduled message
    *

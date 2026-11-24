@@ -431,6 +431,12 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   PassiveLivenessCheckResponse: { p: { created_at: 1 } },
   PhoneFactor: { p: { created_at: 1, last_used_at: 1 } },
   PhoneFactorsPage: { p: { results: { i: "PhoneFactor" } } },
+  PhoneFraudPoliciesListResponse: { p: { results: { i: "PhoneFraudPolicy" } } },
+  PhoneFraudPolicy: { p: { updated_at: 1 } },
+  PhoneFraudUpdateResponse: { p: { updated_at: 1 } },
+  PhoneLineTypeOverridesCreateResponse: { p: { created_at: 1 } },
+  PhoneListEntry: { p: { expires_at: 1 } },
+  PhoneListsListEntriesResponse: { p: { results: { i: "PhoneListEntry" } } },
   PhoneNetworkDecision: { p: { decided_at: 1 } },
   PhoneNetworkRegistration: { p: { networks: { i: "PhoneNetworkDecision" }, live_at: 1 } },
   PhoneRiskResponse: {
