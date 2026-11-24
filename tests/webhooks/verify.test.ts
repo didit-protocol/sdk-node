@@ -7,7 +7,7 @@ import type { IncomingHttpHeaders } from "node:http";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { APIClient } from "../../src/core/api-client.js";
+import { APIClient } from "../../src/core/api-client.js";
 import { ConfigurationError, DiditError, WebhookVerificationError } from "../../src/core/errors.js";
 import * as publicApi from "../../src/webhooks/index.js";
 import { WebhookHelpers } from "../../src/webhooks/resource.js";
@@ -712,7 +712,7 @@ describe("entry points", () => {
     expect(publicApi.webhooks.verifyParsed).toBe(verifyWebhookParsed);
     expect(publicApi.DEFAULT_WEBHOOK_TOLERANCE).toBe(300);
     expect((await publicApi.webhooks.verify(body, headers, SECRET)).verifiedBy).toBe("signature");
-    const resource = new WebhookHelpers({} as APIClient);
+    const resource = new WebhookHelpers(new APIClient({ apiKey: "test" }));
     expect((await resource.verify(body, headers, SECRET)).verifiedBy).toBe("signature");
     expect(
       (

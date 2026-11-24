@@ -314,6 +314,15 @@ export async function rejection(promise: Promise<unknown>): Promise<Error> {
   return error as Error;
 }
 
+/** `value` checked to be an instance of `Class` and narrowed to it, so a test reads a subclass's
+ * fields without a cast; fails the test when it is something else. */
+export function asInstance<T>(value: unknown, Class: abstract new (...args: never[]) => T): T {
+  if (!(value instanceof Class)) {
+    throw new Error(`expected an instance of ${Class.name}`);
+  }
+  return value;
+}
+
 export function formOf(request: Recorded): Record<string, string> {
   return Object.fromEntries(new URLSearchParams(request.body ?? ""));
 }
