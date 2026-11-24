@@ -497,13 +497,13 @@ Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi
 
 ## `didit.phone.factors`
 
-| Method                                                                    | HTTP                                    | Returns                 | Notes          |
-| ------------------------------------------------------------------------- | --------------------------------------- | ----------------------- | -------------- |
-| `didit.phone.factors.create(params: PhoneFactorsCreateParams)`            | `POST /v3/phone/factors/`               | `PhoneFactorEnrollment` | **deprecated** |
-| `didit.phone.factors.delete(factorId)`                                    | `DELETE /v3/phone/factors/{factor_id}/` | nothing                 | **deprecated** |
-| `didit.phone.factors.list(params: PhoneFactorsListParams)`                | `GET /v3/phone/factors/`                | page of `PhoneFactor`   | **deprecated** |
-| `didit.phone.factors.retrieve(factorId)`                                  | `GET /v3/phone/factors/{factor_id}/`    | `PhoneFactor`           | **deprecated** |
-| `didit.phone.factors.update(factorId, params?: PhoneFactorsUpdateParams)` | `PATCH /v3/phone/factors/{factor_id}/`  | `PhoneFactor`           | **deprecated** |
+| Method                                                                    | HTTP                                    | Returns                 | Notes            |
+| ------------------------------------------------------------------------- | --------------------------------------- | ----------------------- | ---------------- |
+| `didit.phone.factors.create(params: PhoneFactorsCreateParams)`            | `POST /v3/phone/factors/`               | `PhoneFactorEnrollment` | `idempotencyKey` |
+| `didit.phone.factors.delete(factorId)`                                    | `DELETE /v3/phone/factors/{factor_id}/` | nothing                 | `idempotencyKey` |
+| `didit.phone.factors.list(params: PhoneFactorsListParams)`                | `GET /v3/phone/factors/`                | page of `PhoneFactor`   |                  |
+| `didit.phone.factors.retrieve(factorId)`                                  | `GET /v3/phone/factors/{factor_id}/`    | `PhoneFactor`           |                  |
+| `didit.phone.factors.update(factorId, params?: PhoneFactorsUpdateParams)` | `PATCH /v3/phone/factors/{factor_id}/`  | `PhoneFactor`           | `idempotencyKey` |
 
 ## `didit.phone.fraud`
 
@@ -546,18 +546,18 @@ Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi
 
 ## `didit.phone.network.registrations`
 
-| Method                                                                                    | HTTP                                                     | Returns                                   | Notes          |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- | -------------- |
-| `didit.phone.network.registrations.create(params: PhoneNetworkRegistrationsCreateParams)` | `POST /v3/phone/network/registrations/`                  | `PhoneNetworkRegistration`                | **deprecated** |
-| `didit.phone.network.registrations.list(params?: PhoneNetworkRegistrationsListParams)`    | `GET /v3/phone/network/registrations/`                   | page of `PhoneNetworkRegistrationSummary` | **deprecated** |
-| `didit.phone.network.registrations.retrieve(registrationId)`                              | `GET /v3/phone/network/registrations/{registration_id}/` | `PhoneNetworkRegistration`                | **deprecated** |
+| Method                                                                                    | HTTP                                                     | Returns                                   | Notes            |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- | ---------------- |
+| `didit.phone.network.registrations.create(params: PhoneNetworkRegistrationsCreateParams)` | `POST /v3/phone/network/registrations/`                  | `PhoneNetworkRegistration`                | `idempotencyKey` |
+| `didit.phone.network.registrations.list(params?: PhoneNetworkRegistrationsListParams)`    | `GET /v3/phone/network/registrations/`                   | page of `PhoneNetworkRegistrationSummary` |                  |
+| `didit.phone.network.registrations.retrieve(registrationId)`                              | `GET /v3/phone/network/registrations/{registration_id}/` | `PhoneNetworkRegistration`                |                  |
 
 ## `didit.phone.network.registrations.testNumbers`
 
-| Method                                                                                                                           | HTTP                                                                                    | Returns                              | Notes          |
-| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ | -------------- |
-| `didit.phone.network.registrations.testNumbers.create(registrationId, params: PhoneNetworkRegistrationsTestNumbersCreateParams)` | `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`                  | `PhoneNetworkRegistrationTestNumber` | **deprecated** |
-| `didit.phone.network.registrations.testNumbers.delete(registrationId, phoneNumber)`                                              | `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/` | nothing                              | **deprecated** |
+| Method                                                                                                                           | HTTP                                                                                    | Returns                              | Notes            |
+| -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ | ---------------- |
+| `didit.phone.network.registrations.testNumbers.create(registrationId, params: PhoneNetworkRegistrationsTestNumbersCreateParams)` | `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`                  | `PhoneNetworkRegistrationTestNumber` | `idempotencyKey` |
+| `didit.phone.network.registrations.testNumbers.delete(registrationId, phoneNumber)`                                              | `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/` | nothing                              | `idempotencyKey` |
 
 ## `didit.phone.rateLimits`
 
@@ -577,26 +577,26 @@ Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi
 
 ## `didit.phone.sdkKeys`
 
-| Method                                                                 | HTTP                                       | Returns              | Notes          |
-| ---------------------------------------------------------------------- | ------------------------------------------ | -------------------- | -------------- |
-| `didit.phone.sdkKeys.create(params: PhoneSdkKeysCreateParams)`         | `POST /v3/phone/sdk-keys/`                 | `PhoneSdkKey`        | **deprecated** |
-| `didit.phone.sdkKeys.list(params?: PhoneSdkKeysListParams)`            | `GET /v3/phone/sdk-keys/`                  | `PhoneSdkKeysPage`   | **deprecated** |
-| `didit.phone.sdkKeys.revoke(keyId)`                                    | `DELETE /v3/phone/sdk-keys/{key_id}/`      | nothing              | **deprecated** |
-| `didit.phone.sdkKeys.rotate(keyId, params?: PhoneSdkKeysRotateParams)` | `POST /v3/phone/sdk-keys/{key_id}/rotate/` | `PhoneSdkKeyRotated` | **deprecated** |
+| Method                                                                 | HTTP                                       | Returns              | Notes            |
+| ---------------------------------------------------------------------- | ------------------------------------------ | -------------------- | ---------------- |
+| `didit.phone.sdkKeys.create(params: PhoneSdkKeysCreateParams)`         | `POST /v3/phone/sdk-keys/`                 | `PhoneSdkKey`        | `idempotencyKey` |
+| `didit.phone.sdkKeys.list(params?: PhoneSdkKeysListParams)`            | `GET /v3/phone/sdk-keys/`                  | `PhoneSdkKeysPage`   |                  |
+| `didit.phone.sdkKeys.revoke(keyId)`                                    | `DELETE /v3/phone/sdk-keys/{key_id}/`      | nothing              | `idempotencyKey` |
+| `didit.phone.sdkKeys.rotate(keyId, params?: PhoneSdkKeysRotateParams)` | `POST /v3/phone/sdk-keys/{key_id}/rotate/` | `PhoneSdkKeyRotated` | `idempotencyKey` |
 
 ## `didit.phone.silent`
 
-| Method                                                                 | HTTP                                 | Returns                  | Notes          |
-| ---------------------------------------------------------------------- | ------------------------------------ | ------------------------ | -------------- |
-| `didit.phone.silent.coverage(params?: PhoneSilentCoverageParams)`      | `GET /v3/phone/silent/coverage/`     | `PhoneSilentCoverage`    | **deprecated** |
-| `didit.phone.silent.eligibility(params: PhoneSilentEligibilityParams)` | `POST /v3/phone/silent/eligibility/` | `PhoneSilentEligibility` | **deprecated** |
+| Method                                                                 | HTTP                                 | Returns                  | Notes            |
+| ---------------------------------------------------------------------- | ------------------------------------ | ------------------------ | ---------------- |
+| `didit.phone.silent.coverage(params?: PhoneSilentCoverageParams)`      | `GET /v3/phone/silent/coverage/`     | `PhoneSilentCoverage`    |                  |
+| `didit.phone.silent.eligibility(params: PhoneSilentEligibilityParams)` | `POST /v3/phone/silent/eligibility/` | `PhoneSilentEligibility` | `idempotencyKey` |
 
 ## `didit.phone.silent.registrations`
 
-| Method                                                                                  | HTTP                                                    | Returns                   | Notes          |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------- | -------------- |
-| `didit.phone.silent.registrations.create(params: PhoneSilentRegistrationsCreateParams)` | `POST /v3/phone/silent/registrations/`                  | `PhoneSilentRegistration` | **deprecated** |
-| `didit.phone.silent.registrations.retrieve(registrationId)`                             | `GET /v3/phone/silent/registrations/{registration_id}/` | `PhoneSilentRegistration` | **deprecated** |
+| Method                                                                                  | HTTP                                                    | Returns                   | Notes            |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------- | ---------------- |
+| `didit.phone.silent.registrations.create(params: PhoneSilentRegistrationsCreateParams)` | `POST /v3/phone/silent/registrations/`                  | `PhoneSilentRegistration` | `idempotencyKey` |
+| `didit.phone.silent.registrations.retrieve(registrationId)`                             | `GET /v3/phone/silent/registrations/{registration_id}/` | `PhoneSilentRegistration` |                  |
 
 ## `didit.pricing`
 

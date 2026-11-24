@@ -303,21 +303,21 @@ export class PhoneFactors extends APIResource {
   /**
    * Enroll a TOTP factor
    *
-   * Enroll a TOTP factor for one of your users, so they confirm a verification with an authenticator app instead of a code. `type` is `totp` and `user_id` is your id for the user.
+   * Enroll a TOTP factor for one of your users, so they confirm a verification with the code of an authenticator app instead of a phone code: `type` is `totp` and `user_id` is your id for the user.
    *
-   * The answer carries `totp.uri`, the `otpauth://` URI to show as a QR code; the authenticator app scans it and starts producing codes.
+   * The answer carries `totp.uri`, the `otpauth://` URI to show as a QR code. It is the only time the secret is shown.
    *
-   * **State.** A new factor is `unverified` until its first code passes `POST /v3/phone/check/`, then `verified`.
+   * **State.** A new factor is `unverified`. It becomes `verified` when its first code passes `POST /v3/phone/check/` with the `factor_id`.
    *
-   * **One of each type.** A user holds at most one factor: a second one answers `409 factor_exists`.
+   * **One of each type.** A user holds at most one factor of each type: a second one answers `409 factor_exists`.
+   *
+   * **Permissions.** Only an Owner or Admin API key can enroll factors.
    *
    * **Authentication.** Send your application's API key in `x-api-key`.
    *
-   * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
-   *
    * `POST /v3/phone/factors/`
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: PhoneFactorsCreateParams,
@@ -329,7 +329,7 @@ export class PhoneFactors extends APIResource {
   /**
    * Remove a factor
    *
-   * Delete an enrolled factor. The factor is deleted at once: its `factor_id` stops working and the TOTP secret it held stop verifying, and the deletion cannot be undone. Verifications the factor already completed stay verified, and the user's other factors are not affected.
+   * Delete an enrolled factor. The factor is deleted at once: its `factor_id` stops working, the TOTP secret it held stops verifying, and the deletion cannot be undone. Verifications the factor already completed stay verified, and the user's other factors are not affected.
    *
    * Enroll the user again with `POST /v3/phone/factors/` to give them a new factor.
    *
@@ -339,8 +339,9 @@ export class PhoneFactors extends APIResource {
    *
    * `DELETE /v3/phone/factors/{factor_id}/`
    *
-   * @param factorId The factor to delete.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param factorId The factor id, `fa_` followed by 32 hexadecimal characters, as enrollment returned it.
    */
   delete(factorId: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(PHONE_FACTORS_DELETE, [factorId], undefined, options);
@@ -349,7 +350,7 @@ export class PhoneFactors extends APIResource {
   /**
    * List a user's enrolled factors
    *
-   * List the factors enrolled for one of your users, so your app can show them and let the user pick the one to check with. `user_id` is required; `type` and `status` narrow the list.
+   * List the factors enrolled for one of your users, newest first, so your app can show them and let the user pick the one to check with. `user_id` is required; `type` and `status` narrow the list.
    *
    * The answer is a page: `count`, `next`, `previous` and `results`, each result a factor as Retrieve returns it.
    *
@@ -361,9 +362,9 @@ export class PhoneFactors extends APIResource {
    *
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
-   * `GET /v3/phone/factors/`
+   * **Permissions.** Only an Owner or Admin API key can list factors.
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * `GET /v3/phone/factors/`
    */
   list(
     params: PhoneFactorsListParams,
@@ -383,8 +384,7 @@ export class PhoneFactors extends APIResource {
    *
    * `GET /v3/phone/factors/{factor_id}/`
    *
-   * @param factorId The factor.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * @param factorId The factor id, `fa_` followed by 32 hexadecimal characters, as enrollment returned it.
    */
   retrieve(factorId: string, options?: RequestOptions): APIPromise<PhoneFactor> {
     return this._client.request(PHONE_FACTORS_RETRIEVE, [factorId], undefined, options);
@@ -393,7 +393,7 @@ export class PhoneFactors extends APIResource {
   /**
    * Change a factor's name, metadata or state
    *
-   * Change a factor without enrolling it again: rename it (`friendly_name`), replace your `metadata`, or disable it or turn it back on (`status`). The answer is the factor as it now stands.
+   * Change a factor without enrolling it again: rename it (`friendly_name`), replace your `metadata`, disable it or turn it back on (`status`). The answer is the factor as it now stands.
    *
    * `disabled` stops the factor's checks and `verified` turns a disabled factor back on. A factor that was never verified cannot be turned on: finish its first check instead, or the call answers `409 factor_unverified`.
    *
@@ -405,8 +405,9 @@ export class PhoneFactors extends APIResource {
    *
    * `PATCH /v3/phone/factors/{factor_id}/`
    *
-   * @param factorId The factor to change.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param factorId The factor id, `fa_` followed by 32 hexadecimal characters, as enrollment returned it.
    */
   update(
     factorId: string,
@@ -705,7 +706,7 @@ export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
    *
    * Add a number you hold as a test number while the networks review a registration, so you can try the feature before it is approved: send it in E.164 (`phone_number`).
    *
-   * Didit sends it a code and answers with `verification_id` and `status: code_sent`; check the code with `POST /v3/phone/check/` and the number. Once the code is checked the number is `verified`, and the feature answers for it under test access, marked `test: true`.
+   * Didit sends it a code and answers with `verification_id` and `status: code_sent`; check the code with `POST /v3/phone/check/` and the `verification_id`. Once the code is checked the number is `verified`, and the feature answers for it under test access, marked `test: true`.
    *
    * **Limits.** A registration takes up to 5 test numbers (`409 too_many_test_numbers`), and test access ends when the networks decide (`409 review_finished`).
    *
@@ -715,8 +716,9 @@ export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
    *
    * `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`
    *
-   * @param registrationId The network feature registration.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param registrationId The registration id, `nr_` followed by 32 hexadecimal characters, as it was created.
    */
   create(
     registrationId: string,
@@ -744,9 +746,10 @@ export class PhoneNetworkRegistrationsTestNumbers extends APIResource {
    *
    * `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/`
    *
-   * @param registrationId The network feature registration.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param registrationId The registration id, `nr_` followed by 32 hexadecimal characters, as it was created.
    * @param phoneNumber The test number, in E.164 and URL-encoded.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   delete(registrationId: string, phoneNumber: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(
@@ -780,7 +783,7 @@ export class PhoneNetworkRegistrations extends APIResource {
    *
    * `POST /v3/phone/network/registrations/`
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: PhoneNetworkRegistrationsCreateParams,
@@ -801,8 +804,6 @@ export class PhoneNetworkRegistrations extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/network/registrations/`
-   *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   list(
     params: PhoneNetworkRegistrationsListParams = {},
@@ -822,8 +823,7 @@ export class PhoneNetworkRegistrations extends APIResource {
    *
    * `GET /v3/phone/network/registrations/{registration_id}/`
    *
-   * @param registrationId The network feature registration.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * @param registrationId The registration id, `nr_` followed by 32 hexadecimal characters, as it was created.
    */
   retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneNetworkRegistration> {
     return this._client.request(
@@ -977,7 +977,7 @@ export class PhoneSdkKeys extends APIResource {
    *
    * `POST /v3/phone/sdk-keys/`
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(params: PhoneSdkKeysCreateParams, options?: RequestOptions): APIPromise<PhoneSdkKey> {
     return this._client.request(PHONE_SDK_KEYS_CREATE, [], params, options);
@@ -997,8 +997,6 @@ export class PhoneSdkKeys extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/sdk-keys/`
-   *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   list(
     params: PhoneSdkKeysListParams = {},
@@ -1020,8 +1018,9 @@ export class PhoneSdkKeys extends APIResource {
    *
    * `DELETE /v3/phone/sdk-keys/{key_id}/`
    *
-   * @param keyId The publishable key to revoke.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param keyId The key id, `sk_` followed by 32 hexadecimal characters.
    */
   revoke(keyId: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(PHONE_SDK_KEYS_REVOKE, [keyId], undefined, options);
@@ -1032,7 +1031,7 @@ export class PhoneSdkKeys extends APIResource {
    *
    * Rotate a publishable key without breaking the app versions already installed: Didit issues a new value and keeps the old one working for `overlap_hours` (0 to 168), long enough for your update to ship. The answer is the key with its new `publishable_key`, and `previous_expires_at` is when the value it replaced stops working.
    *
-   * Ship the new value, then let the overlap end. A revoked key cannot be rotated: the call answers `409 revoked`.
+   * Ship the new value, then let the overlap end. A revoked key cannot be rotated (`409 revoked`) and neither can a key that was rotated already (`409 already_rotated`).
    *
    * **Permissions.** Only an Owner or Admin API key may rotate a publishable key.
    *
@@ -1042,8 +1041,9 @@ export class PhoneSdkKeys extends APIResource {
    *
    * `POST /v3/phone/sdk-keys/{key_id}/rotate/`
    *
-   * @param keyId The publishable key to rotate.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param keyId The key id, `sk_` followed by 32 hexadecimal characters.
    */
   rotate(
     keyId: string,
@@ -1071,7 +1071,7 @@ export class PhoneSilentRegistrations extends APIResource {
    *
    * `POST /v3/phone/silent/registrations/`
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   create(
     params: PhoneSilentRegistrationsCreateParams,
@@ -1093,8 +1093,7 @@ export class PhoneSilentRegistrations extends APIResource {
    *
    * `GET /v3/phone/silent/registrations/{registration_id}/`
    *
-   * @param registrationId The silent verification registration.
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * @param registrationId The registration id, `sr_` followed by 32 hexadecimal characters (an `nr_` id of a silent verification registration works too).
    */
   retrieve(registrationId: string, options?: RequestOptions): APIPromise<PhoneSilentRegistration> {
     return this._client.request(
@@ -1126,8 +1125,6 @@ export class PhoneSilent extends APIResource {
    * **Rate limit.** Requests count against the key's budget; over it the answer is `429` with `Retry-After`.
    *
    * `GET /v3/phone/silent/coverage/`
-   *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
    */
   coverage(
     params: PhoneSilentCoverageParams = {},
@@ -1153,7 +1150,7 @@ export class PhoneSilent extends APIResource {
    *
    * `POST /v3/phone/silent/eligibility/`
    *
-   * @deprecated Removed from the API contract on 2026-11-23; this method is removed in version 2.40.0.
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
    */
   eligibility(
     params: PhoneSilentEligibilityParams,
@@ -1248,6 +1245,8 @@ export class Phone extends APIResource {
    * **Rate limits.** Shared write budget of 300 requests/min per API key, plus the upstream anti-abuse cap of 4 attempts per number per hour; exceeding either returns `429`.
    *
    * **Social footprint.** Set `enable_social` to `true` to add a `phone_social` block: the online platforms this number is registered on, with per-category counts and any profile details available. `profiles_registered: 0` means the platforms were checked and the number was found on none of them - a valid, billable answer. The block is absent when the add-on was not requested or the check could not be completed, and it is not billed in that case. Billing adds one `phone_social` unit per request on top of this endpoint's own price.
+   *
+   * **TOTP factors and test numbers.** A request that names a `factor_id` checks that TOTP factor instead of a phone code: the service does not read `phone_number` then, but it stays a required field of the request, so typed SDK calls keep their shape. The answer is the same object with only `verification_id` (the factor), `status` (`verified` or `failed`) and `attempts`; the phone fields (`request_id`, `message`, `phone`, `vendor_data`, `metadata`, `created_at`) come back only from a phone code check. A factor that passes its first check becomes `verified`. A code is accepted once: a code already used for the factor fails. After 3 failed codes in the verification window the answer is `429` with `code: too_many_attempts`. A request that names the `verification_id` of a registration test number checks the code Didit sent to it and answers like a phone code check.
    *
    * `POST /v3/phone/check/`
    *
