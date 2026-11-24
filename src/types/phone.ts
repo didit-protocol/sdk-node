@@ -523,6 +523,25 @@ export interface PhoneRateLimitsUpdateParamsBuckets {
   interval?: number;
 }
 
+export interface PhoneSandboxNumbersCreateParams {
+  /** A fictional number, or your own handset with `real_device`. */
+  phone_number: string;
+  /** What the number answers in the sandbox: a correct code, no delivery, a blocked number, an expired code, a silent check that matches, one that does not, or one that falls back to a code. */
+  outcome:
+    | "verified"
+    | "not_delivered"
+    | "blocked"
+    | "expired"
+    | "silent_match"
+    | "silent_mismatch"
+    | "silent_fallback"
+    | (string & {});
+  /** Fixed code accepted by `/v3/phone/check/` for this test number. Send 4 to 8 digits as a string to preserve leading zeros. */
+  code?: string;
+  /** Set to `true` to mark the test number as your own handset. */
+  real_device?: boolean;
+}
+
 export interface PhoneSdkKeysCreateParams {
   /** The platform the key is for: `ios`, `android` or `web`. */
   platform: "ios" | "android" | "web" | (string & {});
@@ -700,6 +719,24 @@ export interface PhoneSilentRegistrationsCreateParams {
   flow_screenshots?: string[];
 }
 
+export interface PhoneStatsRetrieveParams {
+  /** The product to report on. */
+  product?: "verification" | "messages" | "lookups" | (string & {});
+  /** For `verification`, use `country`, `channel`, `network`, `line_type` or `day`. For `messages`, use `country`, `channel` or `day`. For `lookups`, use `country`, `network`, `line_type` or `day`. Defaults to `day`. */
+  group_by?: "country" | "channel" | "network" | "line_type" | "day" | (string & {});
+  /** The first day, as YYYY-MM-DD. */
+  from?: string;
+  /** The last day, as YYYY-MM-DD, before `9999-12-31`. */
+  to?: string;
+}
+
+export interface PhoneValidateParams {
+  /** The number in international format, or a national number with `country`. */
+  phone_number: string;
+  /** The ISO 3166-1 alpha-2 code of a national number. */
+  country?: string;
+}
+
 /** Why the verification is approved. */
 export interface PhoneVerificationsApproveParams {
   /** own_code_check (default): your backend checked the code it sent with code. */
@@ -766,4 +803,9 @@ export interface PhoneVerificationsRetryParams {
     | "totp"
     | "passkey"
     | (string & {});
+}
+
+export interface PhoneVoicesListParams {
+  /** Filter by a canonical BCP 47 tag such as `es-ES` or `pt-BR`. A language alone returns every matching locale. For example, `pt` returns both `pt-BR` and `pt-PT`. */
+  locale?: string;
 }

@@ -6014,6 +6014,15 @@ export interface MessageError {
   message: string;
 }
 
+export interface MessageFeedbackResponse {
+  /** The message. */
+  message_id: string;
+  /** As sent. */
+  outcome: "converted" | "not_converted" | (string & {});
+  /** Whole seconds from delivery to the action. If there is no delivery receipt, the interval starts at send time. An earlier action returns `0`. A message with neither timestamp, such as a scheduled message awaiting send, returns `null`. */
+  conversion_seconds: number | null;
+}
+
 export interface MessageList {
   count: number;
   next: string | null;
@@ -7442,6 +7451,21 @@ export interface PaginatedOrganizationList {
   results: Organization[];
 }
 
+export interface PhoneAutoTopUp {
+  /** On or off. */
+  enabled: boolean;
+  /** Added each time, in USD. */
+  amount: string;
+  /** When the balance falls below, in USD. */
+  below: string;
+}
+
+export interface PhoneBalanceResponse {
+  /** The balance in USD. */
+  balance: string;
+  auto_top_up: PhoneAutoTopUp;
+}
+
 /** A verification channel. */
 export type PhoneChannel =
   | "silent"
@@ -7501,6 +7525,16 @@ export interface PhoneCountryUpdate {
   objective?: "price" | "balanced" | "conversion" | (string & {});
   /** Didit checks each `closed_channels` entry on the initial send and every fallback hop. The entry blocks its channel when `signals.device_platform` matches a listed platform (`web`, `ios`, or `android`). Both `ipados` and `tvos` match `ios`. Omit `platforms` or pass `[]` to block the channel for every send. Listing all three platforms also blocks the channel for every send, including a send that omits `signals.device_platform`. A list of one or two platforms applies only when the send matches one of them. Send an empty `closed_channels` list to remove the country's channel closures. */
   closed_channels?: PhoneCountryClosedChannel[];
+}
+
+/** Time from send to delivery, in seconds. */
+export interface PhoneDeliverySeconds {
+  /** Median. */
+  p50: number;
+  /** 90th percentile. */
+  p90: number;
+  /** 99th percentile. */
+  p99: number;
 }
 
 export interface PhoneFactor {
@@ -7853,6 +7887,14 @@ export interface PhoneNetworkRegistrationsPage {
   results: PhoneNetworkRegistrationSummary[];
 }
 
+/** The number in international and national form. */
+export interface PhoneNumberFormat {
+  /** International format. */
+  e164: string;
+  /** National format. */
+  national: string;
+}
+
 export interface PhoneRateLimit {
   /** The limit */
   rate_limit_id: string;
@@ -7948,6 +7990,13 @@ export interface PhoneRiskResponsePhoneCarrier {
   name?: string;
   /** Line type reported by the lookup: `mobile`, `fixed_line`, `voip`, `isp`, `vpn`, `toll_free`, `premium_rate`, or similar. */
   type?: string;
+}
+
+export interface PhoneSandboxNumberResponse {
+  /** The UUID of the registered sandbox number. */
+  number_id: string;
+  /** What it plays. */
+  outcome: string;
 }
 
 /** A publishable key of a client SDK. It is not a secret: it is bound to the app ids it may run in and cannot make a server call. */
@@ -8151,6 +8200,42 @@ export interface PhoneSocialFootprint {
   categories?: Record<string, SocialFootprintCategorySummary>;
   /** Per-platform profile details, keyed by platform, when the platform exposes them. */
   profiles?: Record<string, SocialFootprintProfile>;
+}
+
+export interface PhoneStatsResponse {
+  /** One entry per group, in the requested grouping. */
+  rows: PhoneStatsRow[];
+}
+
+/** One group of the filtered figures. */
+export interface PhoneStatsRow {
+  /** The group: a country, channel, network, line type or day. */
+  key: string;
+  /** Approved verifications per verification started, or converted messages per delivered message. Zero for lookups. */
+  conversion_rate: number;
+  /** Verifications approved without a code per verification started. Zero for messages and lookups. */
+  silent_success_rate: number;
+  /** Share of approved verifications that needed no code. Zero for messages and lookups. */
+  code_free_share: number;
+  /** Time from send to delivery, in seconds. */
+  delivery_seconds: PhoneDeliverySeconds;
+  /** Read messages per delivered message. Zero for verifications and lookups. */
+  read_rate: number;
+  /** Inbound replies per delivered message in the same group and date range. Zero for verifications and lookups. */
+  reply_rate: number;
+  /** Spend in USD. */
+  spend: string;
+}
+
+export interface PhoneValidateResponse {
+  /** Whether the number can exist. */
+  valid: boolean;
+  /** The number in international and national form. */
+  format: PhoneNumberFormat;
+  /** The number's ISO 3166-1 alpha-2 country code, or `null` when no single country can be identified, as with an international freephone number. */
+  country: string | null;
+  /** Always `false`: validation and formatting are free. */
+  charged: boolean;
 }
 
 export interface PhoneVerificationApproveResponse {
@@ -8467,6 +8552,24 @@ export interface PhoneVerificationSendResponseFraud {
   channels_allowed?: PhoneChannel[];
   /** trusted_user when this request went past your fraud rules as a trusted user; null otherwise. */
   exception?: "trusted_user" | (string & {}) | null;
+}
+
+export interface PhoneVoice {
+  /** Identifies the voice in this list. */
+  voice_id: string;
+  /** Its language, as a BCP 47 tag. */
+  locale: string;
+  /** Its voice. */
+  gender: "female" | "male" | "neutral" | (string & {});
+  /** URL of a sample recording. This field is currently `null` for every voice because no recordings are published. */
+  sample_url: string | null;
+  /** Whether this is the default voice for its locale. Each supported locale has one voice. */
+  default: boolean;
+}
+
+export interface PhoneVoiceListResponse {
+  /** The available voices, one per locale. */
+  voices: PhoneVoice[];
 }
 
 export interface PublicPriceBook {
@@ -16158,6 +16261,15 @@ export interface WebhookConfigDestination {
   subscribed_events: WebhookEventType[];
   created_at: Date;
   updated_at: Date;
+}
+
+export interface WebhookCreateResponse {
+  /** The endpoint's id. It is the destination's `destination_uuid`: `GET /v3/webhook/destinations/{destination_uuid}/` reads the endpoint back, and `PATCH` and `DELETE` on that path change it. */
+  webhook_id: string;
+  /** Use this HMAC signing secret to verify `X-Signature-V2` on deliveries. Authorized callers can retrieve it as `secret_shared_key` with `GET /v3/webhook/destinations/{destination_uuid}/`. */
+  secret: string;
+  /** The events the endpoint now receives, with `*` already expanded to every event it covered when the endpoint was created. */
+  events: WebhookEventType[];
 }
 
 export interface WebhookDestinationActivity {

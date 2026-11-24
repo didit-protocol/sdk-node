@@ -145,6 +145,7 @@ export {
   MessagesConsent,
   MessagesConversations,
   MessagesConversationsWebhooks,
+  MessagesFeedback,
   MessagesRules,
   MessagesTemplates,
 } from "./messages.js";
@@ -153,6 +154,7 @@ export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";
 export {
   Phone,
+  PhoneBalance,
   PhoneCountries,
   PhoneFactors,
   PhoneFeedback,
@@ -167,11 +169,14 @@ export {
   PhoneNetworkRegistrationsTestNumbers,
   PhoneRateLimits,
   PhoneRateLimitsBuckets,
+  PhoneSandboxNumbers,
   PhoneSdkKeys,
   PhoneSettingsResource,
   PhoneSilent,
   PhoneSilentRegistrations,
+  PhoneStats,
   PhoneVerifications,
+  PhoneVoices,
 } from "./phone.js";
 export { Pricing } from "./pricing.js";
 export { ProofOfAddress } from "./proof-of-address.js";

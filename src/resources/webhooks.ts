@@ -7,12 +7,14 @@ import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   WebhookConfig,
+  WebhookCreateResponse,
   WebhookDestinationActivity,
   WebhookDestinationActivityList,
   WebhookDestinationDelivery,
   WebhookDestinationDeliveryDetail,
 } from "../types/components.js";
 import type {
+  WebhooksCreateParams,
   WebhooksDestinationsCreateParams,
   WebhooksDestinationsCreateResponse,
   WebhooksDestinationsListActivityParams,
@@ -120,6 +122,7 @@ const WEBHOOKS_DESTINATIONS_UPDATE: OperationSpec = {
     },
   },
 };
+const WEBHOOKS_CREATE: OperationSpec = { method: "POST", path: "/v3/webhooks/", body: "json" };
 const WEBHOOKS_RETRIEVE_CONFIG: OperationSpec = {
   method: "GET",
   path: "/v3/webhook/",
@@ -339,6 +342,30 @@ export class WebhooksDestinations extends APIResource {
 /** `webhooks` */
 export class Webhooks extends WebhookHelpers {
   readonly destinations: WebhooksDestinations = new WebhooksDestinations(this._client);
+
+  /**
+   * Add a webhook endpoint
+   *
+   * Create a webhook endpoint: an HTTPS endpoint that receives the events in `events`. Send the event types to deliver, or `["*"]` for every event Didit lists: `*` is expanded when the endpoint is created and the answer lists the event names it now carries. An event Didit does not know answers `400 invalid_events`.
+   *
+   * The endpoint it creates is the destination the Business Console lists and `GET /v3/webhook/destinations/` returns: `webhook_id` is that destination's `destination_uuid`, `secret` is the same signing secret as `secret_shared_key`, and `events` is its stored `subscribed_events`, changed later through `PATCH /v3/webhook/destinations/{destination_uuid}/`. `description` names it in the console; left out, it takes the host of `url`. The `(application, url)` pair must be unique among the application's destinations.
+   *
+   * Didit delivers events only to the HTTPS endpoint in `url`.
+   *
+   * **Errors.** `400 invalid_url`: `url` is not an HTTPS URL, or the application already has an endpoint at it. `400 invalid_events`: an event in `events` is not one Didit lists.
+   *
+   * A scoped API key needs `webhooks: write`.
+   *
+   * `POST /v3/webhooks/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: WebhooksCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<WebhookCreateResponse> {
+    return this._client.request(WEBHOOKS_CREATE, [], params, options);
+  }
 
   /**
    * Get webhook configuration

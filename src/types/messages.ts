@@ -126,6 +126,13 @@ export interface MessagesConversationsWebhooksCreateParams {
   )[];
 }
 
+export interface MessagesFeedbackCreateParams {
+  /** What the recipient did after the message. */
+  outcome: "converted" | "not_converted" | (string & {});
+  /** When the recipient acted. The timestamp can be up to five minutes ahead of the service clock. Omit it to use the time of the request. */
+  occurred_at?: string | Date;
+}
+
 export interface MessagesListParams {
   limit?: number;
   offset?: number;

@@ -268,6 +268,27 @@ describe("messages", () => {
     expect(request.bodyText).toBe("");
   });
 
+  it("messages.feedback.create: POST /v3/messages/{message_id}/feedback/", async () => {
+    const { client, calls } = mockClient({
+      status: 202,
+      json: responseExample("POST /v3/messages/{message_id}/feedback/"),
+    });
+    const result = await client.messages.feedback.create("3f6c9a52-8d1e-4b7a-9c20-5e1f7a3b8d44", {
+      outcome: "converted",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/3f6c9a52-8d1e-4b7a-9c20-5e1f7a3b8d44/feedback/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ outcome: "converted" });
+    expectMatchesExample(result, responseExample("POST /v3/messages/{message_id}/feedback/"));
+  });
+
   it("messages.list: GET /v3/messages/", async () => {
     const { client, calls } = mockClient({
       status: 200,

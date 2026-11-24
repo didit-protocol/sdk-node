@@ -60,6 +60,24 @@ describe("phone", () => {
     expectMatchesExample(result, responseExample("POST /v3/phone/risk/bulk/"));
   });
 
+  it("phone.balance.retrieve: GET /v3/phone/balance/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/phone/balance/"),
+    });
+    const result = await client.phone.balance.retrieve();
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/phone/balance/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/phone/balance/"));
+  });
+
   it("phone.check_code: POST /v3/phone/check/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -787,6 +805,28 @@ describe("phone", () => {
     expectMatchesExample(result, responseExample("GET /v3/phone/risk/bulk/{job_id}/"));
   });
 
+  it("phone.sandbox_numbers.create: POST /v3/phone/sandbox/numbers/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/phone/sandbox/numbers/"),
+    });
+    const result = await client.phone.sandboxNumbers.create({
+      phone_number: "+34600000099",
+      outcome: "verified",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/phone/sandbox/numbers/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ phone_number: "+34600000099", outcome: "verified" });
+    expectMatchesExample(result, responseExample("POST /v3/phone/sandbox/numbers/"));
+  });
+
   it("phone.sdk_keys.create: POST /v3/phone/sdk-keys/", async () => {
     const { client, calls } = mockClient({
       status: 201,
@@ -1000,6 +1040,53 @@ describe("phone", () => {
     );
   });
 
+  it("phone.stats.retrieve: GET /v3/phone/stats/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/phone/stats/"),
+    });
+    const result = await client.phone.stats.retrieve({
+      product: "verification",
+      group_by: "network",
+      from: "2026-10-22",
+      to: "2026-11-20",
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/phone/stats/");
+    expect(request.query).toEqual({
+      product: "verification",
+      group_by: "network",
+      from: "2026-10-22",
+      to: "2026-11-20",
+    });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/phone/stats/"));
+  });
+
+  it("phone.validate: POST /v3/phone/validate/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("POST /v3/phone/validate/"),
+    });
+    const result = await client.phone.validate({ phone_number: "0600000012" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/phone/validate/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ phone_number: "0600000012" });
+    expectMatchesExample(result, responseExample("POST /v3/phone/validate/"));
+  });
+
   it("phone.verifications.approve: POST /v3/phone/verifications/{verification_id}/approve/", async () => {
     const { client, calls } = mockClient({
       status: 200,
@@ -1142,5 +1229,23 @@ describe("phone", () => {
       result,
       responseExample("POST /v3/phone/verifications/{verification_id}/retry/"),
     );
+  });
+
+  it("phone.voices.list: GET /v3/phone/voices/", async () => {
+    const { client, calls } = mockClient({
+      status: 200,
+      json: responseExample("GET /v3/phone/voices/"),
+    });
+    const result = await client.phone.voices.list({ locale: "es-ES" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("GET");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/phone/voices/");
+    expect(request.query).toEqual({ locale: "es-ES" });
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.bodyText).toBe("");
+    expectMatchesExample(result, responseExample("GET /v3/phone/voices/"));
   });
 });

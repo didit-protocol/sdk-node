@@ -13,6 +13,7 @@ import type {
   MessageConversation,
   MessageConversationList,
   MessageConversationWebhook,
+  MessageFeedbackResponse,
   MessageList,
   MessagePrices,
   MessageTemplate,
@@ -30,6 +31,7 @@ import type {
   MessagesConversationsListParams,
   MessagesConversationsUpdateParams,
   MessagesConversationsWebhooksCreateParams,
+  MessagesFeedbackCreateParams,
   MessagesListParams,
   MessagesListPricesParams,
   MessagesRulesCreateParams,
@@ -94,6 +96,11 @@ const MESSAGES_CONVERSATIONS_LIST: OperationSpec = {
 const MESSAGES_CONVERSATIONS_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/messages/conversations/{conversation_id}/",
+  body: "json",
+};
+const MESSAGES_FEEDBACK_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/messages/{message_id}/feedback/",
   body: "json",
 };
 const MESSAGES_RULES_CREATE: OperationSpec = {
@@ -403,6 +410,32 @@ export class MessagesConversations extends APIResource {
   }
 }
 
+/** `messages.feedback` */
+export class MessagesFeedback extends APIResource {
+  /**
+   * Report what the recipient did after a message
+   *
+   * Record what the recipient did after a message: `converted` or `not_converted`, and when. Analytics groups outcomes by channel and template. It measures time to the action from delivery, or from send time when there is no delivery receipt. One outcome per message: a second one answers `409 feedback_exists`.
+   *
+   * An `occurred_at` more than five minutes in the future returns `400` with an error on that field. If the application has no message with this ID, the API returns `404` with a `detail` message.
+   *
+   * A scoped API key needs `messages: write`.
+   *
+   * `POST /v3/messages/{message_id}/feedback/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param messageId The message's id, or the id of any of its attempts.
+   */
+  create(
+    messageId: string,
+    params: MessagesFeedbackCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<MessageFeedbackResponse> {
+    return this._client.request(MESSAGES_FEEDBACK_CREATE, [messageId], params, options);
+  }
+}
+
 /** `messages.rules` */
 export class MessagesRules extends APIResource {
   /**
@@ -504,6 +537,7 @@ export class Messages extends APIResource {
   readonly configurations: MessagesConfigurations = new MessagesConfigurations(this._client);
   readonly consent: MessagesConsent = new MessagesConsent(this._client);
   readonly conversations: MessagesConversations = new MessagesConversations(this._client);
+  readonly feedback: MessagesFeedback = new MessagesFeedback(this._client);
   readonly rules: MessagesRules = new MessagesRules(this._client);
   readonly templates: MessagesTemplates = new MessagesTemplates(this._client);
 
