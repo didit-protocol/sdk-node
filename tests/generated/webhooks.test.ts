@@ -11,6 +11,28 @@ import {
 } from "../helpers/mock-api.js";
 
 describe("webhooks", () => {
+  it("webhooks.create: POST /v3/webhooks/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/webhooks/"),
+    });
+    const result = await client.webhooks.create({
+      url: "https://example.com/",
+      events: ["status.updated"],
+    });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/webhooks/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ url: "https://example.com/", events: ["status.updated"] });
+    expectMatchesExample(result, responseExample("POST /v3/webhooks/"));
+  });
+
   it("webhooks.destinations.create: POST /v3/webhook/destinations/", async () => {
     const { client, calls } = mockClient({
       status: 201,

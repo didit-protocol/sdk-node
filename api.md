@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 543 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -471,6 +471,12 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 | `didit.messages.conversations.webhooks.create(conversationId, params: MessagesConversationsWebhooksCreateParams)` | `POST /v3/messages/conversations/{conversation_id}/webhooks/`                | `MessageConversationWebhook` | `idempotencyKey` |
 | `didit.messages.conversations.webhooks.delete(conversationId, webhookId)`                                         | `DELETE /v3/messages/conversations/{conversation_id}/webhooks/{webhook_id}/` | nothing                      | `idempotencyKey` |
 
+## `didit.messages.feedback`
+
+| Method                                                                            | HTTP                                       | Returns                   | Notes            |
+| --------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------- | ---------------- |
+| `didit.messages.feedback.create(messageId, params: MessagesFeedbackCreateParams)` | `POST /v3/messages/{message_id}/feedback/` | `MessageFeedbackResponse` | `idempotencyKey` |
+
 ## `didit.messages.rules`
 
 | Method                                                           | HTTP                       | Returns                       | Notes            |
@@ -539,6 +545,13 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 | `didit.phone.downloadRiskBulkResults(jobId)`                    | `GET /v3/phone/risk/bulk/{job_id}/results/` | `Blob`                           |                          |
 | `didit.phone.retrieveRiskBulk(jobId)`                           | `GET /v3/phone/risk/bulk/{job_id}/`         | `PhoneRiskBulkJob`               |                          |
 | `didit.phone.sendCode(params: PhoneSendCodeParams)`             | `POST /v3/phone/send/`                      | `PhoneVerificationSendResponse`  | `idempotencyKey`         |
+| `didit.phone.validate(params: PhoneValidateParams)`             | `POST /v3/phone/validate/`                  | `PhoneValidateResponse`          | `idempotencyKey`         |
+
+## `didit.phone.balance`
+
+| Method                           | HTTP                     | Returns                | Notes |
+| -------------------------------- | ------------------------ | ---------------------- | ----- |
+| `didit.phone.balance.retrieve()` | `GET /v3/phone/balance/` | `PhoneBalanceResponse` |       |
 
 ## `didit.phone.countries`
 
@@ -639,6 +652,12 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 | -------------------------------------------------------------- | ------------------------------------------------------------------- | ------- | ---------------- |
 | `didit.phone.rateLimits.buckets.delete(rateLimitId, bucketId)` | `DELETE /v3/phone/rate-limits/{rate_limit_id}/buckets/{bucket_id}/` | nothing | `idempotencyKey` |
 
+## `didit.phone.sandboxNumbers`
+
+| Method                                                                       | HTTP                              | Returns                      | Notes            |
+| ---------------------------------------------------------------------------- | --------------------------------- | ---------------------------- | ---------------- |
+| `didit.phone.sandboxNumbers.create(params: PhoneSandboxNumbersCreateParams)` | `POST /v3/phone/sandbox/numbers/` | `PhoneSandboxNumberResponse` | `idempotencyKey` |
+
 ## `didit.phone.sdkKeys`
 
 | Method                                                                 | HTTP                                       | Returns              | Notes            |
@@ -669,6 +688,12 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 | `didit.phone.silent.registrations.create(params: PhoneSilentRegistrationsCreateParams)` | `POST /v3/phone/silent/registrations/`                  | `PhoneSilentRegistration` | `idempotencyKey` |
 | `didit.phone.silent.registrations.retrieve(registrationId)`                             | `GET /v3/phone/silent/registrations/{registration_id}/` | `PhoneSilentRegistration` |                  |
 
+## `didit.phone.stats`
+
+| Method                                                          | HTTP                   | Returns              | Notes |
+| --------------------------------------------------------------- | ---------------------- | -------------------- | ----- |
+| `didit.phone.stats.retrieve(params?: PhoneStatsRetrieveParams)` | `GET /v3/phone/stats/` | `PhoneStatsResponse` |       |
+
 ## `didit.phone.verifications`
 
 | Method                                                                                        | HTTP                                                      | Returns                            | Notes            |
@@ -679,6 +704,12 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 | `didit.phone.verifications.next(verificationId, params?: PhoneVerificationsNextParams)`       | `POST /v3/phone/verifications/{verification_id}/next/`    | `PhoneVerificationNextResponse`    | `idempotencyKey` |
 | `didit.phone.verifications.retrieve(verificationId)`                                          | `GET /v3/phone/verifications/{verification_id}/`          | `PhoneVerificationDetail`          |                  |
 | `didit.phone.verifications.retry(verificationId, params?: PhoneVerificationsRetryParams)`     | `POST /v3/phone/verifications/{verification_id}/retry/`   | `PhoneVerificationRetryResponse`   | `idempotencyKey` |
+
+## `didit.phone.voices`
+
+| Method                                                    | HTTP                    | Returns                  | Notes |
+| --------------------------------------------------------- | ----------------------- | ------------------------ | ----- |
+| `didit.phone.voices.list(params?: PhoneVoicesListParams)` | `GET /v3/phone/voices/` | `PhoneVoiceListResponse` |       |
 
 ## `didit.pricing`
 
@@ -1005,10 +1036,11 @@ Every method of `@didit-protocol/sdk-node`: 536 methods, generated from `openapi
 
 ## `didit.webhooks`
 
-| Method                                                             | HTTP                 | Returns         | Notes            |
-| ------------------------------------------------------------------ | -------------------- | --------------- | ---------------- |
-| `didit.webhooks.retrieveConfig()`                                  | `GET /v3/webhook/`   | `WebhookConfig` |                  |
-| `didit.webhooks.updateConfig(params?: WebhooksUpdateConfigParams)` | `PATCH /v3/webhook/` | `WebhookConfig` | `idempotencyKey` |
+| Method                                                             | HTTP                 | Returns                 | Notes            |
+| ------------------------------------------------------------------ | -------------------- | ----------------------- | ---------------- |
+| `didit.webhooks.create(params: WebhooksCreateParams)`              | `POST /v3/webhooks/` | `WebhookCreateResponse` | `idempotencyKey` |
+| `didit.webhooks.retrieveConfig()`                                  | `GET /v3/webhook/`   | `WebhookConfig`         |                  |
+| `didit.webhooks.updateConfig(params?: WebhooksUpdateConfigParams)` | `PATCH /v3/webhook/` | `WebhookConfig`         | `idempotencyKey` |
 
 ## `didit.webhooks.destinations`
 

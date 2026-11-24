@@ -6,6 +6,7 @@ import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  PhoneBalanceResponse,
   PhoneCountriesUpdateResponse,
   PhoneFactor,
   PhoneFactorEnrollment,
@@ -24,6 +25,7 @@ import type {
   PhoneRateLimit,
   PhoneRiskBulkJob,
   PhoneRiskResponse,
+  PhoneSandboxNumberResponse,
   PhoneSdkKey,
   PhoneSdkKeyRotated,
   PhoneSdkKeysPage,
@@ -32,6 +34,8 @@ import type {
   PhoneSilentCoverage,
   PhoneSilentEligibility,
   PhoneSilentRegistration,
+  PhoneStatsResponse,
+  PhoneValidateResponse,
   PhoneVerificationApproveResponse,
   PhoneVerificationCancelResponse,
   PhoneVerificationCheckResponse,
@@ -40,6 +44,7 @@ import type {
   PhoneVerificationNextResponse,
   PhoneVerificationRetryResponse,
   PhoneVerificationSendResponse,
+  PhoneVoiceListResponse,
 } from "../types/components.js";
 import type {
   PhoneAssessRiskBulkParams,
@@ -74,6 +79,7 @@ import type {
   PhoneRateLimitsListParams,
   PhoneRateLimitsListResponse,
   PhoneRateLimitsUpdateParams,
+  PhoneSandboxNumbersCreateParams,
   PhoneSdkKeysCreateParams,
   PhoneSdkKeysListParams,
   PhoneSdkKeysRotateParams,
@@ -82,12 +88,16 @@ import type {
   PhoneSilentCoverageParams,
   PhoneSilentEligibilityParams,
   PhoneSilentRegistrationsCreateParams,
+  PhoneStatsRetrieveParams,
+  PhoneValidateParams,
   PhoneVerificationsApproveParams,
   PhoneVerificationsListParams,
   PhoneVerificationsNextParams,
   PhoneVerificationsRetryParams,
+  PhoneVoicesListParams,
 } from "../types/phone.js";
 
+const PHONE_BALANCE_RETRIEVE: OperationSpec = { method: "GET", path: "/v3/phone/balance/" };
 const PHONE_COUNTRIES_UPDATE: OperationSpec = {
   method: "PATCH",
   path: "/v3/phone/countries/",
@@ -268,6 +278,11 @@ const PHONE_RATE_LIMITS_UPDATE: OperationSpec = {
   path: "/v3/phone/rate-limits/{rate_limit_id}/",
   body: "json",
 };
+const PHONE_SANDBOX_NUMBERS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/sandbox/numbers/",
+  body: "json",
+};
 const PHONE_SDK_KEYS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/sdk-keys/",
@@ -318,6 +333,11 @@ const PHONE_SILENT_ELIGIBILITY: OperationSpec = {
   path: "/v3/phone/silent/eligibility/",
   body: "json",
 };
+const PHONE_STATS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/stats/",
+  query: ["product", "group_by", "from", "to"],
+};
 const PHONE_VERIFICATIONS_APPROVE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/verifications/{verification_id}/approve/",
@@ -361,6 +381,11 @@ const PHONE_VERIFICATIONS_RETRY: OperationSpec = {
   body: "json",
   dates: "PhoneVerificationRetryResponse",
 };
+const PHONE_VOICES_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/voices/",
+  query: ["locale"],
+};
 const PHONE_ASSESS_RISK: OperationSpec = {
   method: "POST",
   path: "/v3/phone/risk/",
@@ -390,6 +415,23 @@ const PHONE_RETRIEVE_RISK_BULK: OperationSpec = {
   path: "/v3/phone/risk/bulk/{job_id}/",
 };
 const PHONE_SEND_CODE: OperationSpec = { method: "POST", path: "/v3/phone/send/", body: "json" };
+const PHONE_VALIDATE: OperationSpec = { method: "POST", path: "/v3/phone/validate/", body: "json" };
+
+/** `phone.balance` */
+export class PhoneBalance extends APIResource {
+  /**
+   * Read the balance and auto top-up
+   *
+   * The account's Phone balance in USD, and the auto top-up that keeps it funded: whether it is on, the amount added each time, and the balance that triggers it. See [Phone pricing](/getting-started/phone-verification-pricing) for what a code or a lookup costs.
+   *
+   * A scoped API key needs `phone: read`.
+   *
+   * `GET /v3/phone/balance/`
+   */
+  retrieve(options?: RequestOptions): APIPromise<PhoneBalanceResponse> {
+    return this._client.request(PHONE_BALANCE_RETRIEVE, [], undefined, options);
+  }
+}
 
 /** `phone.countries` */
 export class PhoneCountries extends APIResource {
@@ -1124,6 +1166,31 @@ export class PhoneRateLimits extends APIResource {
   }
 }
 
+/** `phone.sandbox_numbers` */
+export class PhoneSandboxNumbers extends APIResource {
+  /**
+   * Add your own test number, its code and outcome
+   *
+   * Define a test number in the sandbox: what it answers when a code is sent to it, and what it accepts. `outcome` plays the result: `verified`, `not_delivered`, `blocked`, `expired`, `silent_match`, `silent_mismatch` or `silent_fallback`. To set a fixed code for `/v3/phone/check/`, send `code` as a string of 4 to 8 digits. An invalid format returns `400` at registration.
+   *
+   * A test number behaves this way in the sandbox only and is never billed. Set `real_device` to `true` to identify your own handset.
+   *
+   * **Errors.** `403 sandbox_only`: the key belongs to a Live application, where a test number could approve a real one for free. `409 number_exists`: this number already has a test outcome.
+   *
+   * A scoped API key needs `phone: write`.
+   *
+   * `POST /v3/phone/sandbox/numbers/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: PhoneSandboxNumbersCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneSandboxNumberResponse> {
+    return this._client.request(PHONE_SANDBOX_NUMBERS_CREATE, [], params, options);
+  }
+}
+
 /** `phone.sdk_keys` */
 export class PhoneSdkKeys extends APIResource {
   /**
@@ -1354,6 +1421,29 @@ export class PhoneSilent extends APIResource {
   }
 }
 
+/** `phone.stats` */
+export class PhoneStats extends APIResource {
+  /**
+   * Conversion, delivery time and spend, grouped
+   *
+   * Read conversion, delivery times and spend in USD for the requested product and date range. Each entry in `rows` identifies its group in `key`. Choose a grouping supported by that product in `group_by`.
+   *
+   * For `verification`, read and reply rates are always `0`. For `messages`, silent success and code-free share are always `0`. For `lookups`, only spend applies, so all rates and delivery percentiles are `0`. A rate or percentile a group has no events for is `0`, never `null`.
+   *
+   * **Errors.** `400 invalid_product`: not a product this endpoint groups. `400 invalid_group`: not a grouping this product supports. `400 stats_window_too_wide`: the range is longer than a year. `400` naming `to`: `to` is a date no window can end on, such as `9999-12-31`, the last date there is; the body is `{"to": ["to must be a date a window can end on, before 9999-12-31."]}`.
+   *
+   * A scoped API key needs `phone: read`.
+   *
+   * `GET /v3/phone/stats/`
+   */
+  retrieve(
+    params: PhoneStatsRetrieveParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneStatsResponse> {
+    return this._client.request(PHONE_STATS_RETRIEVE, [], params, options);
+  }
+}
+
 /** `phone.verifications` */
 export class PhoneVerifications extends APIResource {
   /**
@@ -1459,8 +1549,28 @@ export class PhoneVerifications extends APIResource {
   }
 }
 
+/** `phone.voices` */
+export class PhoneVoices extends APIResource {
+  /**
+   * List the voices that read codes aloud, per language
+   *
+   * List the voices that read verification codes aloud. Each locale has one default voice. Every voice includes `sample_url`, which is currently `null` because no recordings are published. No operation takes a `voice_id` yet.
+   *
+   * A scoped API key needs `phone: read`.
+   *
+   * `GET /v3/phone/voices/`
+   */
+  list(
+    params: PhoneVoicesListParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneVoiceListResponse> {
+    return this._client.request(PHONE_VOICES_LIST, [], params, options);
+  }
+}
+
 /** `phone` */
 export class Phone extends APIResource {
+  readonly balance: PhoneBalance = new PhoneBalance(this._client);
   readonly countries: PhoneCountries = new PhoneCountries(this._client);
   readonly factors: PhoneFactors = new PhoneFactors(this._client);
   readonly feedback: PhoneFeedback = new PhoneFeedback(this._client);
@@ -1470,10 +1580,13 @@ export class Phone extends APIResource {
   readonly lookups: PhoneLookups = new PhoneLookups(this._client);
   readonly network: PhoneNetwork = new PhoneNetwork(this._client);
   readonly rateLimits: PhoneRateLimits = new PhoneRateLimits(this._client);
+  readonly sandboxNumbers: PhoneSandboxNumbers = new PhoneSandboxNumbers(this._client);
   readonly sdkKeys: PhoneSdkKeys = new PhoneSdkKeys(this._client);
   readonly settings: PhoneSettingsResource = new PhoneSettingsResource(this._client);
   readonly silent: PhoneSilent = new PhoneSilent(this._client);
+  readonly stats: PhoneStats = new PhoneStats(this._client);
   readonly verifications: PhoneVerifications = new PhoneVerifications(this._client);
+  readonly voices: PhoneVoices = new PhoneVoices(this._client);
 
   /**
    * Risk-score a phone number
@@ -1542,7 +1655,7 @@ export class Phone extends APIResource {
    *
    * **Session persistence.** A finalized check updates the session created by the send (visible in the Business Console, queryable via `GET /v3/session/{sessionId}/decision/`) and fires a `status.updated` webhook.
    *
-   * **Sandbox.** Sandbox API keys skip all processing and charge nothing; malformed input still returns `400`. In a sandbox application, use the code `123456` or the fixed code of a sandbox test number. Today the sandbox check also approves any other well-formed code for a number that has no fixed code; that is being tightened to the two codes above, so do not rely on it.
+   * **Sandbox.** Sandbox API keys skip all processing and charge nothing; malformed input still returns `400`. A number you registered with `POST /v3/phone/sandbox/numbers/` answers by its outcome: with `verified` or `silent_fallback` it accepts the fixed code it was registered with (any well-formed code when it has none), a wrong code answers `Failed` and the last attempt `Declined`; `silent_match` answers `Approved`; `not_delivered`, `blocked` and `silent_mismatch` answer `Declined`; `expired` answers `Expired or Not Found`. For any other number, the code is `123456`, or the `code` your send set; any other code answers `Failed`, and the last attempt `Declined`.
    *
    * **Authentication.** Send your application's API key in the `x-api-key` header. A missing `x-api-key` header, or a key that is scoped and does not carry write access to `sessions`, returns `403`; a wrong, revoked or expired key returns `401`.
    *
@@ -1608,13 +1721,13 @@ export class Phone extends APIResource {
    *
    * **Branding.** SMS codes carry your application's SMS sender name, set in the Business Console, at no extra cost. Pass `options.sms_sender_name` to sign one code with another name, or `options.use_white_label_customization: true` to fall back to your white-label public name when no sender name is set. WhatsApp codes use a fixed message; connect your own WhatsApp Business number in the Business Console to send them from your business name and number, billed at the Didit fee only.
    *
-   * **Send statuses.** `Success` - OTP sent for a new verification; `Retry` - OTP re-sent for the pending verification; `Blocked` - the anti-fraud layer refused to send (see `reason`, e.g. `repeated_attempts`, `suspicious`, `spam`). A `Blocked` send immediately finalizes the verification as `Declined` with a high-risk warning, so a follow-up check returns `Expired or Not Found`.
+   * **Send statuses.** `Success` - OTP sent for a new verification; `Retry` - OTP re-sent for the pending verification; `Blocked` - the anti-fraud layer refused to send (see `reason`, e.g. `repeated_attempts`, `suspicious`, `spam`). A `Blocked` send immediately finalizes the verification as `Declined` with a high-risk warning, so a follow-up check returns `Expired or Not Found`. A sandbox test number registered as `blocked` is the exception: its send answers `Blocked` and its check answers `Declined`.
    *
    * **Billing.** The price depends on the destination country and the channel that actually delivers the message - see [Phone Verification Pricing](/getting-started/phone-verification-pricing). Only `Blocked` sends are guaranteed free: any other unbilled send attempt is charged at verification finalization or expiration, even if delivery was never confirmed or the delivery provider reported the message undeliverable. Checks are always free. As an anti-abuse measure, phone verification is disabled until your organization has a paid plan or makes its first top-up (`403`).
    *
    * **Session persistence.** Every new verification is persisted as an API-type session: `request_id` is a real session id you can pass to `GET /v3/session/{sessionId}/decision/`, the verification appears in the Business Console, and `status.updated` webhooks fire as it progresses.
    *
-   * **Sandbox.** A sandbox application's send takes the same path as a live one: the same validation, `on_conflict` handling, channel policy and refusals (an unsupported destination included) and the same answer, with a `verification_id` you can read, cancel or approve. Only the delivery is simulated: no message is sent and nothing is charged. In a sandbox application, use the code `123456` or the fixed code of a sandbox test number. Today the sandbox check also approves any other well-formed code for a number that has no fixed code; that is being tightened to the two codes above, so do not rely on it.
+   * **Sandbox.** A sandbox application's send takes the same path as a live one: the same validation, `on_conflict` handling, channel policy and refusals (an unsupported destination included) and the same answer, with a `verification_id` you can read, cancel or approve. Only the delivery is simulated: no message is sent and nothing is charged. A number you registered with `POST /v3/phone/sandbox/numbers/` plays the outcome it was registered with: `blocked` answers `Blocked`, every other outcome answers `Success`, and the outcomes that end the verification at send time (`not_delivered`, `silent_match`, `silent_mismatch`) settle it. For any other number, check with `123456`, or with the `code` your send set.
    *
    * **Authentication.** Send your application's API key in the `x-api-key` header. A missing `x-api-key` header, or a key that is scoped and does not carry write access to `sessions`, returns `403`; a wrong, revoked or expired key returns `401`.
    *
@@ -1629,5 +1742,27 @@ export class Phone extends APIResource {
     options?: RequestOptions,
   ): APIPromise<PhoneVerificationSendResponse> {
     return this._client.request(PHONE_SEND_CODE, [], params, options);
+  }
+
+  /**
+   * Validate and format a phone number
+   *
+   * Check that a number can exist and return it formatted, without looking anything up: `valid`, `format.e164`, `format.national` and `country`. Send the number in international format, or a national number with `country`.
+   *
+   * If the number parses but is invalid for its numbering plan, the response is `200` with `valid: false` and both formats. Validation and formatting are free: `charged` is always `false`.
+   *
+   * **Errors.** `400 invalid_phone_number`: not a number at all.
+   *
+   * A scoped API key needs `phone: write`.
+   *
+   * `POST /v3/phone/validate/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  validate(
+    params: PhoneValidateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneValidateResponse> {
+    return this._client.request(PHONE_VALIDATE, [], params, options);
   }
 }
