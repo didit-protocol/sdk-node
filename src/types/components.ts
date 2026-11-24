@@ -5916,6 +5916,58 @@ export interface MessageChannelPrice {
   price: string | null;
 }
 
+export interface MessageConsent {
+  /** The recipient's consent per channel, for the channels you have a record on. */
+  channels: MessageConsentChannel[];
+  /** Always `false`: this release does not detect that a number changed owner, and no send is skipped for it. */
+  reassigned: boolean;
+}
+
+/** One channel's consent record for the recipient. */
+export interface MessageConsentChannel {
+  /** The channel this consent applies to. */
+  channel: "sms" | "whatsapp" | "telegram" | "rcs" | "viber" | "voice" | "email" | (string & {});
+  /** `opted_out` refuses every send on this channel with `opted_out`, uncharged. */
+  status: "opted_in" | "opted_out" | (string & {});
+  /** Where the choice came from. `stop_reply` and `start_reply`: the recipient's own STOP or START reply; an email bounce or spam complaint reads `stop_reply`, and a completed Telegram opt-in link `start_reply`. `bot_left`: the recipient blocked or left the sender on the channel. `console`: a team member in the console. `api`: your API call without a `source`. A `source` your API call sets, `reassigned` included, is returned as you sent it; Didit never records `reassigned` itself. */
+  source:
+    "stop_reply" | "start_reply" | "bot_left" | "api" | "console" | "reassigned" | (string & {});
+  updated_at: Date;
+}
+
+export interface MessageConsentChannels {
+  /** The recipient's consent per channel, as the retrieve call returns it. */
+  channels: MessageConsentChannel[];
+}
+
+/** One conversation: every message exchanged with one person, on every channel. */
+export interface MessageConversation {
+  /** The conversation. */
+  conversation_id: string;
+  /** The member who owns the conversation, or `null` when nobody does. */
+  assignee: string | null;
+  /** Inbound messages that arrived after the conversation was last read (with `read_up_to`). It belongs to the conversation, not to a member. */
+  unread_count: number;
+}
+
+export interface MessageConversationList {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: MessageConversation[];
+}
+
+export interface MessageConversationWebhook {
+  /** The subscription; remove it with the delete call. */
+  webhook_id: string;
+  /** The signing secret for this subscription's deliveries, shown only in this answer. */
+  secret: string;
+  /** The events this subscription delivers. */
+  events: (
+    "message.received" | "message.status.updated" | "contact.consent.updated" | (string & {})
+  )[];
+}
+
 /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
 export interface MessageError {
   /** `invalid_recipient`: the address is not valid for the channel, or the number has no account on it. `unreachable`: the carrier could not reach the device. `rejected`: the carrier or platform refused the message. `opted_out`: the recipient opted out of the channel. `expired`: `expires_at` passed before it could go out. `template_required`: WhatsApp only delivers an approved WhatsApp template. `channel_unavailable`: the channel is switched off, not configured, not in your contract or locked until a paid plan or your first top-up. `insufficient_credits`: the balance does not cover it. `rate_limited`: throttled and retries ran out. `delivery_unconfirmed`: the outcome is unknown and it is not sent again automatically. `cancelled`: cancelled before its time. `template_channel_missing`, `template_variable_missing`, `empty_body`, `body_too_long`: the content cannot go out on this channel. `unknown`: any other failure. */
@@ -5961,6 +6013,65 @@ export interface MessagePrices {
   country: string;
   currency: string;
   channels: MessageChannelPrice[];
+}
+
+/** A message you write once and send in several channels and languages, with variables you name. */
+export interface MessageTemplate {
+  id: string;
+  name: string;
+  description: string;
+  /** The channels the template has a text for: SMS, WhatsApp or email. */
+  channels: ("sms" | "whatsapp" | "email" | (string & {}))[];
+  /** The languages the template has texts in. */
+  languages: string[];
+  /** Every variable any text uses. */
+  variables: string[];
+  /** Examples are optional for variables used only in SMS or email. WhatsApp requires an example for each variable in a WhatsApp text except `app_name`. Each example must name a variable used by at least one text. A template can hold up to 500 examples. Each text can use up to 50 distinct variables plus `app_name`. Didit fills `app_name` with your application's name by default. If you supply it when sending, it counts toward the limit of 50 values per send. */
+  variable_examples: Record<string, string>;
+  /** WhatsApp's review of a WhatsApp text; `null` when there is no WhatsApp text (a text of any other channel, or a template with none). Only an `approved` text can be sent on WhatsApp. */
+  whatsapp: MessageTemplateWhatsApp | null;
+  /** Goes up by one with every change. */
+  version: number;
+  contents: MessageTemplateContent[];
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface MessageTemplateContent {
+  channel: "sms" | "whatsapp" | "email" | (string & {});
+  language: string;
+  /** Email only. */
+  subject: string | null;
+  body: string;
+  /** WhatsApp's review of a WhatsApp text; `null` when there is no WhatsApp text (a text of any other channel, or a template with none). Only an `approved` text can be sent on WhatsApp. */
+  whatsapp: MessageTemplateWhatsApp | null;
+  updated_at: Date;
+}
+
+/** One text of a template, for one channel and one language. */
+export interface MessageTemplateContentInput {
+  channel: "sms" | "whatsapp" | "email" | (string & {});
+  /** Two or three lowercase letters, optionally a hyphen and two to four letters: `en`, `pt-BR`, `zh-Hant`. A region is stored in its usual spelling, so `pt-br` is `pt-BR`. */
+  language: string;
+  /** Email only: the subject line. It may use the same `{{variables}}`. */
+  subject?: string;
+  /** The text. Write `{{variables}}` with names you choose (letters, digits and `_`). At most 1,000 characters on SMS, 4,096 on WhatsApp, and 10,000 on email. */
+  body: string;
+}
+
+export interface MessageTemplateList {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: MessageTemplate[];
+}
+
+/** WhatsApp's review of a WhatsApp text; `null` when there is no WhatsApp text (a text of any other channel, or a template with none). Only an `approved` text can be sent on WhatsApp. */
+export interface MessageTemplateWhatsApp {
+  /** `draft`: not submitted yet. `pending`: in review. `approved`: can be sent. `rejected`, `paused` and `disabled`: WhatsApp refused or stopped it; the `reason` says why. */
+  status: "draft" | "pending" | "approved" | "rejected" | "paused" | "disabled" | (string & {});
+  /** Why a text was refused or could not be submitted; empty otherwise. */
+  reason: string;
 }
 
 /** Your application's settings for the Messages API. */
@@ -15713,6 +15824,8 @@ export type WebhookEventType =
   | "bank.sync.failed"
   | "bank.sync.recovered"
   | "message.status.updated"
+  | "message.received"
+  | "contact.consent.updated"
   | (string & {});
 
 /** Event filter for this webhook destination. Didit delivers only webhooks whose event type exactly matches one of these values - there is no wildcard subscription. When sent, the list must contain at least one valid event (an explicit `[]` is rejected with 400); a destination whose list is empty (field omitted at create) receives nothing. On update the list is replaced wholesale, never merged. */

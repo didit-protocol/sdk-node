@@ -357,7 +357,15 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     },
   },
   MessageAttempt: { p: { created_at: 1, sent_at: 1, delivered_at: 1, read_at: 1, failed_at: 1 } },
+  MessageConsent: { p: { channels: { i: "MessageConsentChannel" } } },
+  MessageConsentChannel: { p: { updated_at: 1 } },
+  MessageConsentChannels: { p: { channels: { i: "MessageConsentChannel" } } },
   MessageList: { p: { results: { i: "Message" } } },
+  MessageTemplate: {
+    p: { contents: { i: "MessageTemplateContent" }, created_at: 1, updated_at: 1 },
+  },
+  MessageTemplateContent: { p: { updated_at: 1 } },
+  MessageTemplateList: { p: { results: { i: "MessageTemplate" } } },
   MonitoringEvent: { p: { occurred_at: 1, received_at: 1 } },
   MonitoringEventDetail: {
     p: {
