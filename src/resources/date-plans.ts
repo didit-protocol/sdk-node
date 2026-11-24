@@ -445,6 +445,8 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   PhoneLineTypeOverridesCreateResponse: { p: { created_at: 1 } },
   PhoneListEntry: { p: { expires_at: 1 } },
   PhoneListsListEntriesResponse: { p: { results: { i: "PhoneListEntry" } } },
+  PhoneLookupList: { p: { results: { i: "PhoneLookupSummary" } } },
+  PhoneLookupSummary: { p: { created_at: 1 } },
   PhoneNetworkDecision: { p: { decided_at: 1 } },
   PhoneNetworkRegistration: { p: { networks: { i: "PhoneNetworkDecision" }, live_at: 1 } },
   PhoneRiskResponse: {
@@ -452,13 +454,21 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
   },
   PhoneSdkKey: { p: { created_at: 1 } },
   PhoneSdkKeyRotated: { p: { created_at: 1, previous_expires_at: 1 } },
+  PhoneSettingsUpdateResponse: { p: { updated_at: 1 } },
   PhoneSilentRegistration: { p: { networks: { i: "PhoneNetworkDecision" }, live_at: 1 } },
+  PhoneVerificationApproveResponse: { p: { verified_at: 1 } },
+  PhoneVerificationAttempt: { p: { sent_at: 1, delivered_at: 1, read_at: 1, expired_at: 1 } },
   PhoneVerificationCheckResponse: {
     p: {
       phone: { p: { verified_at: 1, lifecycle: { i: { p: { timestamp: 1 } } } } },
       created_at: 1,
     },
   },
+  PhoneVerificationDetail: {
+    p: { attempts: { i: "PhoneVerificationAttempt" }, created_at: 1, verified_at: 1 },
+  },
+  PhoneVerificationList: { p: { results: { i: "PhoneVerificationDetail" } } },
+  PhoneVerificationRetryResponse: { p: { expires_at: 1 } },
   ProofOfAddressVerifyResponse: { p: { created_at: 1 } },
   QuestionnaireDetail: { p: { published_at: 1 } },
   QuestionnaireListItem: { p: { created_at: 1, updated_at: 1, published_at: 1 } },

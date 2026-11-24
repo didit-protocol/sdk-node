@@ -140,6 +140,8 @@ export { Kyb } from "./kyb.js";
 export { Lists, ListsEntries } from "./lists.js";
 export {
   Messages,
+  MessagesCapabilities,
+  MessagesConfigurations,
   MessagesConsent,
   MessagesConversations,
   MessagesConversationsWebhooks,
@@ -151,20 +153,25 @@ export { Networks, NetworksNotes } from "./networks.js";
 export { PassiveLiveness } from "./passive-liveness.js";
 export {
   Phone,
+  PhoneCountries,
   PhoneFactors,
+  PhoneFeedback,
   PhoneFraud,
   PhoneFraudEvents,
   PhoneFraudPolicies,
   PhoneLineTypeOverrides,
   PhoneLists,
+  PhoneLookups,
   PhoneNetwork,
   PhoneNetworkRegistrations,
   PhoneNetworkRegistrationsTestNumbers,
   PhoneRateLimits,
   PhoneRateLimitsBuckets,
   PhoneSdkKeys,
+  PhoneSettingsResource,
   PhoneSilent,
   PhoneSilentRegistrations,
+  PhoneVerifications,
 } from "./phone.js";
 export { Pricing } from "./pricing.js";
 export { ProofOfAddress } from "./proof-of-address.js";

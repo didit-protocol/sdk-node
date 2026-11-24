@@ -5903,6 +5903,28 @@ export interface MessageAttempt {
   failed_at: Date | null;
 }
 
+/** Channels a number can receive now. */
+export interface MessageCapabilities {
+  /** What the number can receive now. */
+  channels?: MessageCapabilitiesChannels;
+}
+
+/** What the number can receive now. */
+export interface MessageCapabilitiesChannels {
+  /** True for a mobile number or one classified as fixed-line or mobile. */
+  sms?: boolean;
+  /** True for a mobile number or one classified as fixed-line or mobile. */
+  whatsapp?: boolean;
+  /** Connected to your bot. */
+  telegram?: boolean;
+  /** True for a mobile number or one classified as fixed-line or mobile. */
+  rcs?: boolean;
+  /** Whether this channel is available. Currently always false. */
+  viber?: boolean;
+  /** True for a mobile number or one classified as fixed-line or mobile. */
+  mms?: boolean;
+}
+
 export interface MessageChannelPrice {
   channel: "sms" | "whatsapp" | "email" | (string & {});
   unit: "segment" | "message" | (string & {});
@@ -6078,6 +6100,56 @@ export interface MessageTemplateWhatsApp {
 export interface MessagesSettings {
   /** Days after a message's last event (created, sent, delivered, read, failed or cancelled) before Didit erases its text and recipient (`to`, `body`, `subject` and template variables read `null` from then on). Status, channel, country, segments, price and timestamps stay. A message still waiting to go out (`scheduled`, `queued`, `sending`) is erased only after it went out; one cancelled before it went out counts from its cancellation. A request no channel can take is refused and nothing of it is stored. A change applies to every message of the application, already sent ones included, within the hour. */
   retention_days: number;
+}
+
+/** A messaging configuration. */
+export interface MessagingConfiguration {
+  /** The configuration UUID. */
+  configuration_id: string;
+  /** Its name. */
+  name: string;
+  /** Stored sender or sender pool. Leave empty to use this configuration in a send. */
+  from: string;
+  /** Channel order for this workload. Message sends use the supported channels in this order unless the request sets its own channels. */
+  channels: (
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "mms"
+    | (string & {})
+  )[];
+  /** Default URL for this workload's message.status.updated events. */
+  status_callback_url: string;
+  /** Stored inbound URL. Leave empty to use this configuration in a send. */
+  inbound_url: string;
+  /** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+  opt_out: MessagingConfigurationOptOut;
+  /** Add the opt-out line to its SMS. */
+  append_opt_out_line: boolean;
+}
+
+export interface MessagingConfigurationList {
+  /** The number of configurations, normally capped at 100. Follow the next page URL until it is null to read every configuration. */
+  count?: number;
+  /** Absolute URL of the next page, or null on the last page. */
+  next?: string | null;
+  /** Absolute URL of the previous page, or null on the first page. */
+  previous?: string | null;
+  /** The configurations. */
+  results?: MessagingConfiguration[];
+}
+
+/** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+export interface MessagingConfigurationOptOut {
+  /** Words that opt a recipient out, STOP included. */
+  keywords?: string[];
+  /** The reply sent after an opt-out. */
+  confirmation?: string;
 }
 
 /** One stored monitoring event as returned by the list and subject-timeline endpoints. Restricted evidence (payload, device context, rule evidence) is only returned by `GET /v3/events/{event_uuid}/`. */
@@ -7370,6 +7442,67 @@ export interface PaginatedOrganizationList {
   results: Organization[];
 }
 
+/** A verification channel. */
+export type PhoneChannel =
+  | "silent"
+  | "sms"
+  | "whatsapp"
+  | "telegram"
+  | "voice"
+  | "rcs"
+  | "viber"
+  | "zalo"
+  | "email"
+  | "push"
+  | "totp"
+  | "passkey"
+  | (string & {});
+
+/** How many country entries the request carried. */
+export interface PhoneCountriesUpdateResponse {
+  /** How many country entries the request carried, whether or not an entry changed a saved value. */
+  updated: number;
+}
+
+export interface PhoneCountryClosedChannel {
+  /** Channel to block for this country. */
+  channel:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
+  /** Didit checks each `closed_channels` entry on the initial send and every fallback hop. The entry blocks its channel when `signals.device_platform` matches a listed platform (`web`, `ios`, or `android`). Both `ipados` and `tvos` match `ios`. Omit `platforms` or pass `[]` to block the channel for every send. Listing all three platforms also blocks the channel for every send, including a send that omits `signals.device_platform`. A list of one or two platforms applies only when the send matches one of them. */
+  platforms?: ("web" | "ios" | "android" | (string & {}))[];
+}
+
+export interface PhoneCountryUpdate {
+  /** ISO country code. */
+  country: string;
+  /** SMS on or off for the country. */
+  sms?: boolean;
+  /** Voice on or off. */
+  voice?: boolean;
+  /** WhatsApp on or off. */
+  whatsapp?: boolean;
+  /** Silent verification on or off. */
+  silent?: boolean;
+  /** Route A or Route B for SMS. */
+  route?: "Route A" | "Route B" | (string & {});
+  /** What routing optimises in the country: price, balanced (default) or conversion. */
+  objective?: "price" | "balanced" | "conversion" | (string & {});
+  /** Didit checks each `closed_channels` entry on the initial send and every fallback hop. The entry blocks its channel when `signals.device_platform` matches a listed platform (`web`, `ios`, or `android`). Both `ipados` and `tvos` match `ios`. Omit `platforms` or pass `[]` to block the channel for every send. Listing all three platforms also blocks the channel for every send, including a send that omits `signals.device_platform`. A list of one or two platforms applies only when the send matches one of them. Send an empty `closed_channels` list to remove the country's channel closures. */
+  closed_channels?: PhoneCountryClosedChannel[];
+}
+
 export interface PhoneFactor {
   /** The factor. */
   factor_id: string;
@@ -7416,6 +7549,47 @@ export interface PhoneFactorsPage {
   previous: string | null;
   /** The factors of this user. */
   results: PhoneFactor[];
+}
+
+/** Send at least one of `verification_id`, `phone_number` or `email`: with none of them the answer is `target_required`. */
+export interface PhoneFeedbackBatchItem {
+  /** The verification, by the `verification_id` the send returned. */
+  verification_id?: string;
+  /** Or the number. */
+  phone_number?: string;
+  /** Or the email address. */
+  email?: string;
+  /** fraud, legitimate, converted or abuse. */
+  outcome: "fraud" | "legitimate" | "converted" | "abuse" | (string & {});
+  /** Your own label, for abuse. */
+  event?: string;
+  /** low, medium or high. */
+  confidence?: "low" | "medium" | "high" | (string & {});
+  /** When it happened, ISO 8601. */
+  occurred_at?: string | Date;
+}
+
+export interface PhoneFeedbackBatchResponse {
+  /** Items recorded. Those that name a verification or a phone number are used by that number's fraud rules from its next send; an `email`-only item changes no score. */
+  accepted?: number;
+  /** One result per item, in the same order. */
+  results?: PhoneFeedbackBatchResponseResults[];
+}
+
+export interface PhoneFeedbackBatchResponseResults {
+  /** The item's place in items. */
+  index?: number;
+  /** accepted or rejected. */
+  status?: "accepted" | "rejected" | (string & {});
+  /** Why it was rejected. */
+  error?: string | null;
+}
+
+export interface PhoneFeedbackResponse {
+  /** `true` when the outcome was recorded. One that names a verification or a phone number is used by that number's fraud rules from its next send. */
+  received?: boolean;
+  /** How much it counts toward the number's future sends, from the confidence. An outcome that names only an `email` does not change any score. */
+  weight?: number;
 }
 
 export interface PhoneFraudEventResult {
@@ -7551,6 +7725,35 @@ export interface PhoneListMatch {
   entry_id: string;
   /** number, prefix, country or network */
   type: "number" | "prefix" | "country" | "network" | (string & {});
+}
+
+export interface PhoneLookupList {
+  /** Rows that match the filters. */
+  count?: number;
+  /** Offset of the next page of lookups, as a string such as `"20"`, or null on the last page. It is not a URL: send it as `offset` to read that page. */
+  next?: string | null;
+  /** Offset of the previous page of lookups, as a string such as `"0"`, or null on the first page. It is not a URL: send it as `offset` to read that page. */
+  previous?: string | null;
+  /** The rows, newest first. */
+  results?: PhoneLookupSummary[];
+}
+
+/** One result from your application's Phone risk lookup history. */
+export interface PhoneLookupSummary {
+  /** Unique identifier for the lookup. */
+  lookup_id: string;
+  /** Full phone number used for the lookup. */
+  phone_number: string;
+  /** Status returned by the Phone risk lookup. */
+  status: string;
+  /** Country code of the number, or an empty string when unknown. */
+  country: string;
+  /** Line type, or an empty string when unknown. */
+  line_type: string;
+  /** Risk score when available. */
+  risk_score: number | null;
+  /** When the lookup was recorded. */
+  created_at: Date;
 }
 
 /** Another session of your application that used the same phone number with a different `vendor_data`. */
@@ -7796,6 +7999,73 @@ export interface PhoneSdkKeysPage {
   results: PhoneSdkKeySummary[];
 }
 
+/** Your Phone settings. */
+export interface PhoneSettings {
+  /** Verification settings. */
+  verification?: PhoneSettingsVerification;
+  /** Message settings. */
+  messages?: PhoneSettingsMessages;
+  /** The application's saved data region preference. */
+  data_region?: "eu" | "us" | (string & {});
+}
+
+/** Message settings. */
+export interface PhoneSettingsMessages {
+  /** 7, 30, 90 or 365. */
+  retention_days?: number;
+}
+
+export interface PhoneSettingsUpdateResponse {
+  /** When the settings changed. */
+  updated_at?: Date;
+}
+
+/** Verification settings. */
+export interface PhoneSettingsVerification {
+  /** 4 to 10. */
+  code_length?: number;
+  /** How long a code works. */
+  valid_minutes?: number;
+  /** Maximum wrong code entries per standalone verification. The default is 5. */
+  max_attempts?: number;
+  /** Codes per number per hour. */
+  resend_limit?: number;
+  /** The default order. */
+  channel_order?: (
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {})
+  )[];
+  /** fixed or conversion. */
+  routing?: "fixed" | "conversion" | (string & {});
+  /** Voice policy. */
+  voice?: PhoneSettingsVerificationVoice;
+  /** Email policy. */
+  email?: PhoneSettingsVerificationEmail;
+}
+
+/** Email policy. */
+export interface PhoneSettingsVerificationEmail {
+  /** The verified domain email codes go out from. */
+  domain_id?: string;
+}
+
+/** Voice policy. */
+export interface PhoneSettingsVerificationVoice {
+  /** The identifier of the voice that reads verification codes aloud. */
+  tts_voice?: string;
+}
+
 /** Where silent verification runs: one entry per country, and per country the mobile networks that can run the check. */
 export interface PhoneSilentCoverage {
   /** One entry per country where silent verification runs. */
@@ -7883,10 +8153,69 @@ export interface PhoneSocialFootprint {
   profiles?: Record<string, SocialFootprintProfile>;
 }
 
+export interface PhoneVerificationApproveResponse {
+  /** The verification. */
+  verification_id?: string;
+  /** verified: it counts in Verifications, Analytics and the events like any other. */
+  status?: "verified" | (string & {});
+  /** api: your backend approved it. */
+  verified_by?: "api" | (string & {});
+  /** When. */
+  verified_at?: Date;
+}
+
+/** One channel tried for a verification. */
+export interface PhoneVerificationAttempt {
+  /** The channel this attempt used. */
+  channel?:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
+  /** Its status: sent, delivered, read, failed or expired. */
+  status?: "sent" | "delivered" | "read" | "failed" | "expired" | (string & {});
+  /** The mobile network it went through. */
+  network?: string | null;
+  /** The route Didit picked. */
+  route?: string | null;
+  /** The reason for a failed attempt, when available. Possible reasons include `undelivered`, `unreachable`, `unsupported_network`, `channel_closed`, `silent_mismatch` and `silent_retryable`. Other reasons can occur. */
+  error?: string | null;
+  /** match, mismatch or failed, for a silent attempt. */
+  silent_result?: "match" | "mismatch" | "failed" | (string & {}) | null;
+  /** When it went out. */
+  sent_at?: Date;
+  /** When the network reported delivery. */
+  delivered_at?: Date | null;
+  /** When the channel reported that the recipient read the code. */
+  read_at?: Date | null;
+  /** When the code ran out before delivery. */
+  expired_at?: Date | null;
+  /** True when the attempt has been billed or has a nonzero actual price. See `status` for the delivery outcome. */
+  charged?: boolean;
+  /** The price line of one attempt. */
+  price?: PhoneVerificationPrice;
+}
+
+export interface PhoneVerificationCancelResponse {
+  /** The verification. */
+  verification_id?: string;
+  /** cancelled: the code stops working, unsent steps are not charged. */
+  status?: "cancelled" | (string & {});
+}
+
 export interface PhoneVerificationCheckResponse {
   /** On `Approved`/`Declined`: the session id of the matched verification - identical to the `request_id` returned by `POST /v3/phone/send/`. On `Failed` and `Expired or Not Found`: a random one-off UUID that cannot be looked up later. */
   request_id?: string;
-  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (3) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. For a TOTP factor check (a request that names `factor_id`) the status is `verified` (the code matched) or `failed`. */
+  /** `Approved` - correct code, no declining risk. `Declined` - terminal: a declining risk matched or the attempt budget (your `verification.max_attempts` setting, 5 by default) was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - no pending verification for this number in the last 5 minutes. For a TOTP factor check (a request that names `factor_id`) the status is `verified` (the code matched) or `failed`. */
   status?:
     | "Approved"
     | "Declined"
@@ -8004,6 +8333,109 @@ export interface PhoneVerificationCheckResponsePhoneWarnings {
   long_description?: string;
 }
 
+/** One verification with every attempt. */
+export interface PhoneVerificationDetail {
+  /** The verification. */
+  verification_id?: string;
+  /** Its status. */
+  status?:
+    "pending" | "verified" | "not_delivered" | "expired" | "blocked" | "cancelled" | (string & {});
+  /** The number. */
+  phone_number?: string | null;
+  /** ISO country code. */
+  country?: string | null;
+  /** One entry per send, in the order the sends went out. A same-window retry repeats the last channel, so one channel can appear more than once. */
+  attempts?: PhoneVerificationAttempt[];
+  /** Your reference. */
+  reference?: string | null;
+  /** The verification's session metadata. Values can include nested JSON objects and arrays. */
+  tags?: Record<string, unknown> | null;
+  /** When it started. */
+  created_at?: Date;
+  /** When it was verified. */
+  verified_at?: Date | null;
+}
+
+export interface PhoneVerificationList {
+  /** Rows that match the filters. */
+  count?: number;
+  /** Offset of the next page of verifications, as a string such as `"20"`, or null on the last page. It is not a URL: send it as `offset` to read that page. */
+  next?: string | null;
+  /** Offset of the previous page of verifications, as a string such as `"0"`, or null on the first page. It is not a URL: send it as `offset` to read that page. */
+  previous?: string | null;
+  /** The verifications, newest first, each one as Retrieve returns it. */
+  results?: PhoneVerificationDetail[];
+}
+
+export interface PhoneVerificationNextResponse {
+  /** The verification. */
+  verification_id: string;
+  /** The channel trying now. */
+  channel:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
+  /** A successful send remains pending. A blocked send ends the verification. */
+  status: "pending" | "blocked" | (string & {});
+  /** Returned on a blocked send. May be null when no reason is available. */
+  reason?: string | null;
+}
+
+/** The price line of one attempt. */
+export interface PhoneVerificationPrice {
+  /** What it cost, in USD. */
+  amount?: string;
+  /** The carrier part, passed on at cost. */
+  carrier?: string | null;
+  /** Didit's fee. */
+  fee?: string | null;
+  /** false until the carrier reports delivery, then the reported price. */
+  final?: boolean;
+}
+
+/** A pending retry includes sends, sends_left, expires_at and charged. A blocked retry returns the reason instead. */
+export interface PhoneVerificationRetryResponse {
+  /** The same verification. */
+  verification_id: string;
+  /** A successful send remains pending. A blocked send ends the verification. */
+  status: "pending" | "blocked" | (string & {});
+  /** The channel this send went by. */
+  channel:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
+  /** Sends of this code so far, the first one included. */
+  sends?: number;
+  /** Retries left in this window. */
+  sends_left?: number;
+  /** Unchanged: a retry keeps the window and the code. */
+  expires_at?: Date;
+  /** True when the channel accepts the retry and returns a send ID. Delivery confirmation can arrive later. Check the verification's attempt history for the delivery status and price. */
+  charged?: boolean;
+  /** Returned on a blocked send. May be null when no reason is available. */
+  reason?: string | null;
+}
+
 export interface PhoneVerificationSendResponse {
   /** Session id of the verification. A `Retry` send returns the same `request_id` as the original send. This id appears in the Business Console, is returned again by a finalized `POST /v3/phone/check/`, and can be passed to `GET /v3/session/{sessionId}/decision/`. */
   request_id?: string;
@@ -8017,6 +8449,24 @@ export interface PhoneVerificationSendResponse {
   vendor_data?: string | null;
   /** Echo of the `metadata` stored on the session (from the first send). */
   metadata?: Record<string, unknown> | null;
+  /** UUID of the phone verification. Pass this value to check the code, retrieve the record, cancel, change channels, approve or retry. A same-window retry keeps this UUID. Use `request_id` to retrieve the session decision. */
+  verification_id?: string;
+  /** Seconds the code stays valid. A new send returns the full configured window; a same-window retry or a `reuse` of a pending verification returns the seconds left, because a retry keeps the expiry of the first send. */
+  expires_in?: number;
+  /** The fraud decision for this send. */
+  fraud?: PhoneVerificationSendResponseFraud;
+}
+
+/** The fraud decision for this send. */
+export interface PhoneVerificationSendResponseFraud {
+  /** allow, or challenge: the verification continues on fraud-resistant channels only. */
+  action?: "allow" | "challenge" | (string & {});
+  /** caller (your force_challenge) or policy (a fraud rule), when challenged. */
+  challenge_source?: "caller" | "policy" | (string & {}) | null;
+  /** The channels it may use, when challenged. */
+  channels_allowed?: PhoneChannel[];
+  /** trusted_user when this request went past your fraud rules as a trusted user; null otherwise. */
+  exception?: "trusted_user" | (string & {}) | null;
 }
 
 export interface PublicPriceBook {

@@ -2,6 +2,92 @@
 
 import type { MessageTemplateContentInput } from "./components.js";
 
+export interface MessagesCapabilitiesRetrieveParams {
+  /** An E.164 number. */
+  to: string;
+}
+
+/** A messaging configuration to create. */
+export interface MessagesConfigurationsCreateParams {
+  /** Its name. */
+  name: string;
+  /** Stored sender or sender pool. Leave empty to use this configuration in a send. */
+  from?: string;
+  /** Channel order for this workload. Message sends use the supported channels in this order unless the request sets its own channels. */
+  channels?: (
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "mms"
+    | (string & {})
+  )[];
+  /** Use a publicly reachable HTTPS URL for this workload's message.status.updated events. An empty string clears the callback. */
+  status_callback_url?: string;
+  /** Stored inbound URL. Leave empty to use this configuration in a send. */
+  inbound_url?: string;
+  /** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+  opt_out?: MessagesConfigurationsCreateParamsOptOut;
+  /** Add the opt-out line to its SMS. */
+  append_opt_out_line?: boolean;
+}
+
+/** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+export interface MessagesConfigurationsCreateParamsOptOut {
+  /** Words that opt a recipient out, STOP included. */
+  keywords?: string[];
+  /** The reply sent after an opt-out. */
+  confirmation?: string;
+}
+
+export interface MessagesConfigurationsListParams {
+  /** 20 by default, 100 at most. */
+  limit?: number;
+  /** Where the page starts. */
+  offset?: number;
+}
+
+/** The messaging configuration fields to change. */
+export interface MessagesConfigurationsUpdateParams {
+  /** Its name. */
+  name?: string;
+  /** Stored sender or sender pool. Leave empty to use this configuration in a send. */
+  from?: string;
+  /** Channel order for this workload. Message sends use the supported channels in this order unless the request sets its own channels. */
+  channels?: (
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "mms"
+    | (string & {})
+  )[];
+  /** Use a publicly reachable HTTPS URL for this workload's message.status.updated events. An empty string clears the callback. */
+  status_callback_url?: string;
+  /** Stored inbound URL. Leave empty to use this configuration in a send. */
+  inbound_url?: string;
+  /** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+  opt_out?: MessagesConfigurationsUpdateParamsOptOut;
+  /** Add the opt-out line to its SMS. */
+  append_opt_out_line?: boolean;
+}
+
+/** Stored opt-out rules. Leave this object empty to use this configuration in a send. */
+export interface MessagesConfigurationsUpdateParamsOptOut {
+  /** Words that opt a recipient out, STOP included. */
+  keywords?: string[];
+  /** The reply sent after an opt-out. */
+  confirmation?: string;
+}
+
 export interface MessagesConsentUpdateParams {
   /** The channel the choice applies to. */
   channel: "sms" | "whatsapp" | "telegram" | "rcs" | "viber" | "voice" | "email" | (string & {});
@@ -109,6 +195,8 @@ export interface MessagesSendParams {
   /** Your reference, returned in every response and webhook, filterable in the list. */
   correlation_id?: string;
   options?: MessagesSendParamsOptions;
+  /** One of your messaging configurations (`POST /v3/messages/configurations/`): its channel order applies unless this request sets `channels` itself, its status callback URL is used for the message's status events, and its `append_opt_out_line` applies unless `options.append_opt_out_line` is sent. A configuration that sets a sender (`from`), an `inbound_url` or `opt_out` rules cannot be used in a send yet and answers `400` on `configuration_id`, as does an id that is not one of your application's configurations or a configuration that lists no channel Messages can send on. */
+  configuration_id?: string;
 }
 
 export interface MessagesSendParamsOptions {
