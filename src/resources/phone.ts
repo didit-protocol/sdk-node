@@ -9,10 +9,15 @@ import type {
   PhoneFactor,
   PhoneFactorEnrollment,
   PhoneFactorsPage,
+  PhoneFraudPolicy,
+  PhoneFraudPolicyInput,
+  PhoneListEntry,
   PhoneNetworkRegistration,
   PhoneNetworkRegistrationSummary,
   PhoneNetworkRegistrationTestNumber,
   PhoneNetworkRegistrationsPage,
+  PhoneRateLimit,
+  PhoneRiskBulkJob,
   PhoneRiskResponse,
   PhoneSdkKey,
   PhoneSdkKeyRotated,
@@ -24,14 +29,34 @@ import type {
   PhoneVerificationSendResponse,
 } from "../types/components.js";
 import type {
+  PhoneAssessRiskBulkParams,
   PhoneAssessRiskParams,
   PhoneCheckCodeParams,
   PhoneFactorsCreateParams,
   PhoneFactorsListParams,
   PhoneFactorsUpdateParams,
+  PhoneFraudEvaluateParams,
+  PhoneFraudEvaluateResponse,
+  PhoneFraudEventsCreateBatchParams,
+  PhoneFraudEventsCreateBatchResponse,
+  PhoneFraudPoliciesListParams,
+  PhoneFraudPoliciesListResponse,
+  PhoneFraudUpdateParams,
+  PhoneFraudUpdateResponse,
+  PhoneLineTypeOverridesCreateParams,
+  PhoneLineTypeOverridesCreateResponse,
+  PhoneListsAddParams,
+  PhoneListsCheckParams,
+  PhoneListsCheckResponse,
+  PhoneListsListEntriesParams,
+  PhoneListsListEntriesResponse,
   PhoneNetworkRegistrationsCreateParams,
   PhoneNetworkRegistrationsListParams,
   PhoneNetworkRegistrationsTestNumbersCreateParams,
+  PhoneRateLimitsCreateParams,
+  PhoneRateLimitsListParams,
+  PhoneRateLimitsListResponse,
+  PhoneRateLimitsUpdateParams,
   PhoneSdkKeysCreateParams,
   PhoneSdkKeysListParams,
   PhoneSdkKeysRotateParams,
@@ -68,6 +93,83 @@ const PHONE_FACTORS_UPDATE: OperationSpec = {
   body: "json",
   dates: "PhoneFactor",
 };
+const PHONE_FRAUD_EVENTS_CREATE_BATCH: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/fraud/events/batch/",
+  body: "json",
+};
+const PHONE_FRAUD_POLICIES_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/fraud/policies/",
+  body: "whole",
+  dates: "PhoneFraudPolicy",
+};
+const PHONE_FRAUD_POLICIES_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/fraud/policies/{policy_id}/",
+  response: "none",
+};
+const PHONE_FRAUD_POLICIES_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/fraud/policies/",
+  query: ["flow", "limit", "offset"],
+  dates: { p: { results: { i: "PhoneFraudPolicy" } } },
+};
+const PHONE_FRAUD_POLICIES_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/fraud/policies/{policy_id}/",
+  dates: "PhoneFraudPolicy",
+};
+const PHONE_FRAUD_POLICIES_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/fraud/policies/{policy_id}/",
+  body: "whole",
+  dates: "PhoneFraudPolicy",
+};
+const PHONE_FRAUD_EVALUATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/fraud/evaluate/",
+  body: "json",
+};
+const PHONE_FRAUD_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/fraud/",
+  body: "json",
+  dates: { p: { updated_at: 1 } },
+};
+const PHONE_LINE_TYPE_OVERRIDES_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/line-type-overrides/",
+  body: "json",
+  dates: { p: { created_at: 1 } },
+};
+const PHONE_LINE_TYPE_OVERRIDES_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/line-type-overrides/{override_id}/",
+  response: "none",
+};
+const PHONE_LISTS_ADD: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/lists/{list_id}/entries/",
+  body: "json",
+  dates: "PhoneListEntry",
+};
+const PHONE_LISTS_CHECK: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/lists/check/",
+  body: "json",
+};
+const PHONE_LISTS_LIST_ENTRIES: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/lists/{list_id}/entries/",
+  query: ["type", "search", "limit", "offset", "format"],
+  dates: { p: { results: { i: "PhoneListEntry" } } },
+};
+const PHONE_LISTS_REMOVE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/lists/{list_id}/entries/{entry_id}/",
+  response: "none",
+};
 const PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/network/registrations/{registration_id}/test-numbers/",
@@ -93,6 +195,35 @@ const PHONE_NETWORK_REGISTRATIONS_RETRIEVE: OperationSpec = {
   method: "GET",
   path: "/v3/phone/network/registrations/{registration_id}/",
   dates: "PhoneNetworkRegistration",
+};
+const PHONE_RATE_LIMITS_BUCKETS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/rate-limits/{rate_limit_id}/buckets/{bucket_id}/",
+  response: "none",
+};
+const PHONE_RATE_LIMITS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/rate-limits/",
+  body: "json",
+};
+const PHONE_RATE_LIMITS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/phone/rate-limits/{rate_limit_id}/",
+  response: "none",
+};
+const PHONE_RATE_LIMITS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/rate-limits/",
+  query: ["limit", "offset"],
+};
+const PHONE_RATE_LIMITS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/rate-limits/{rate_limit_id}/",
+};
+const PHONE_RATE_LIMITS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/rate-limits/{rate_limit_id}/",
+  body: "json",
 };
 const PHONE_SDK_KEYS_CREATE: OperationSpec = {
   method: "POST",
@@ -143,11 +274,27 @@ const PHONE_ASSESS_RISK: OperationSpec = {
   body: "json",
   dates: "PhoneRiskResponse",
 };
+const PHONE_ASSESS_RISK_BULK: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/risk/bulk/",
+  body: "multipart",
+  files: ["file"],
+};
 const PHONE_CHECK_CODE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/check/",
   body: "json",
   dates: "PhoneVerificationCheckResponse",
+};
+const PHONE_DOWNLOAD_RISK_BULK_RESULTS: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/risk/bulk/{job_id}/results/",
+  response: "binary",
+  accept: "text/csv",
+};
+const PHONE_RETRIEVE_RISK_BULK: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/risk/bulk/{job_id}/",
 };
 const PHONE_SEND_CODE: OperationSpec = { method: "POST", path: "/v3/phone/send/", body: "json" };
 
@@ -267,6 +414,287 @@ export class PhoneFactors extends APIResource {
     options?: RequestOptions,
   ): APIPromise<PhoneFactor> {
     return this._client.request(PHONE_FACTORS_UPDATE, [factorId], params, options);
+  }
+}
+
+/** `phone.fraud.events` */
+export class PhoneFraudEvents extends APIResource {
+  /**
+   * Send fraud events in a batch
+   *
+   * Send up to 1,000 of your own events - a `signup`, a `login`, a `payment`, a `password_reset`, an `account_change` or a type of your own - to the fraud scoring, with the number, the email address, the IP address and the device signals of each one.
+   *
+   * The answer is `207 Multi-Status`: `accepted` counts the events the scoring uses from the next request, and `results` gives each event's place in `events`, its id, whether it was accepted and, when it was rejected, why. An event with no `type` or `occurred_at` is rejected on its own as `invalid_event` in `results` while the valid events of the same batch are accepted: the answer is still `207`. A request whose `events` is not a list of objects with correctly typed fields is a malformed request.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/fraud/events/batch/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  createBatch(
+    params: PhoneFraudEventsCreateBatchParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneFraudEventsCreateBatchResponse> {
+    return this._client.request(PHONE_FRAUD_EVENTS_CREATE_BATCH, [], params, options);
+  }
+}
+
+/** `phone.fraud.policies` */
+export class PhoneFraudPolicies extends APIResource {
+  /**
+   * Create a fraud policy
+   *
+   * Create a weighted fraud policy for one flow. Each condition names a `signal` (`risk_score`, `sim_swap`, `line_type`, `country`, `velocity`, `ip_risk`, `device`, `email_risk` or `existing_user`), an `operator` (`eq`, `neq`, `gt`, `lt`, `in` or `within_hours`), the `value` to compare with and the `weight` its points add to the score (0 to 100). The weights of the conditions that hold add up to a score, and `threshold` is the score at which `action` applies (`allow`, `review`, `challenge` or `block`).
+   *
+   * A flow has one policy: a second one answers `409 flow_has_policy`, and the existing policy is changed instead.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/fraud/policies/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(params: PhoneFraudPolicyInput, options?: RequestOptions): APIPromise<PhoneFraudPolicy> {
+    return this._client.request(PHONE_FRAUD_POLICIES_CREATE, [], params, options);
+  }
+
+  /**
+   * Delete a fraud policy
+   *
+   * Delete a fraud policy. The flow it scored falls back to the fraud level and the rules in the fraud settings. Deletion is irreversible.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `DELETE /v3/phone/fraud/policies/{policy_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param policyId The policy
+   */
+  delete(policyId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_FRAUD_POLICIES_DELETE, [policyId], undefined, options);
+  }
+
+  /**
+   * List fraud policies
+   *
+   * List the application's weighted fraud policies, one per flow, each with its conditions, weights, threshold and action. Filter by `flow`. They are listed oldest first.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/fraud/policies/`
+   */
+  list(
+    params: PhoneFraudPoliciesListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneFraudPoliciesListResponse, PhoneFraudPolicy> {
+    return this._client.requestPage(PHONE_FRAUD_POLICIES_LIST, [], params, options);
+  }
+
+  /**
+   * Retrieve a fraud policy
+   *
+   * Read one weighted fraud policy of your application: its flow, conditions, weights, threshold and action.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/fraud/policies/{policy_id}/`
+   *
+   * @param policyId The policy
+   */
+  retrieve(policyId: string, options?: RequestOptions): APIPromise<PhoneFraudPolicy> {
+    return this._client.request(PHONE_FRAUD_POLICIES_RETRIEVE, [policyId], undefined, options);
+  }
+
+  /**
+   * Update a fraud policy
+   *
+   * Change a fraud policy: its conditions, their weights, its threshold or its action. A field you leave out stays as it is.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `PATCH /v3/phone/fraud/policies/{policy_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param policyId The policy
+   */
+  update(
+    policyId: string,
+    params: PhoneFraudPolicyInput,
+    options?: RequestOptions,
+  ): APIPromise<PhoneFraudPolicy> {
+    return this._client.request(PHONE_FRAUD_POLICIES_UPDATE, [policyId], params, options);
+  }
+}
+
+/** `phone.fraud` */
+export class PhoneFraud extends APIResource {
+  readonly events: PhoneFraudEvents = new PhoneFraudEvents(this._client);
+  readonly policies: PhoneFraudPolicies = new PhoneFraudPolicies(this._client);
+
+  /**
+   * Score a number, an email address or both against your fraud rules
+   *
+   * Score a request before a code is sent: the number, the email address or both are evaluated against your fraud rules and the weighted policy of the flow in `action` (`signup`, `login`, `payment` or a flow of your own). Send `phone_number`, `email`, or both; a request with neither answers `400 target_required`.
+   *
+   * The answer carries the `decision` (`allow`, `review`, `challenge` or `block`), a `score` from 0 to 100, the rules that decided, the flow policy's score and the conditions that met it, and an email block when an address was scored. `challenge_channels` lists where a challenged verification may continue: SMS and voice are withheld.
+   *
+   * Send `ip_address` and `device_signals` when you have them; the `existing_user` flag tells the scoring a returning user is asking. `trusted_user` with a `fraud_override` signed for this one request takes it past your fraud rules, and a block list still stops the number.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/fraud/evaluate/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  evaluate(
+    params: PhoneFraudEvaluateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneFraudEvaluateResponse> {
+    return this._client.request(PHONE_FRAUD_EVALUATE, [], params, options);
+  }
+
+  /**
+   * Update fraud settings
+   *
+   * Change the application's fraud protection: the level, the rules and where each rule applies. `level` is `standard` or `strict`, or `custom` when your own rules decide.
+   *
+   * A rule names a `key` - `velocity`, `pumping`, `risk_score`, `sim_swap`, `device` or `country` - and its `action`: `allow`, `review`, `require_code` or `block`, and `challenge`, which continues the verification only on the channels in `challenge_channels`. A rule applies only to the `countries` and `platforms` you name, and to verification codes: `scope` is `codes`, the only value, and any other value answers `400`.
+   *
+   * `sim_swap_within` is the window, in hours, after a SIM change in which a code is required instead of a silent check, or the number is blocked. `daily_cap` stops new codes at this spend per day, in USD.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `PATCH /v3/phone/fraud/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  update(
+    params: PhoneFraudUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneFraudUpdateResponse> {
+    return this._client.request(PHONE_FRAUD_UPDATE, [], params, options);
+  }
+}
+
+/** `phone.line_type_overrides` */
+export class PhoneLineTypeOverrides extends APIResource {
+  /**
+   * Correct the line type of a number
+   *
+   * Correct the line type of a number for your future lookups: later lookups of that number report the corrected type (`mobile`, `landline`, `fixed_voip`, `non_fixed_voip`, `toll_free`, `premium` or `pager`) instead of the one the network gives, A second correction for the same number replaces the first and answers `201` too.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/line-type-overrides/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: PhoneLineTypeOverridesCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneLineTypeOverridesCreateResponse> {
+    return this._client.request(PHONE_LINE_TYPE_OVERRIDES_CREATE, [], params, options);
+  }
+
+  /**
+   * Delete a line-type correction
+   *
+   * Delete a line-type correction so lookups report the type the network gives again. Deletion is irreversible.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `DELETE /v3/phone/line-type-overrides/{override_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param overrideId The override
+   */
+  delete(overrideId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_LINE_TYPE_OVERRIDES_DELETE, [overrideId], undefined, options);
+  }
+}
+
+/** `phone.lists` */
+export class PhoneLists extends APIResource {
+  /**
+   * Add an entry to an allow or block list
+   *
+   * Add an entry to one of the application's phone lists. `list_id` is `allow` or `block`, and `value` is a number, a prefix, a country code or a network, which `type` names (`number`, `prefix`, `country` or `network`).
+   *
+   * An `expires_at` makes a temporary entry that ends on its own; `note` records why it was listed. `POST /v3/phone/lists/check/` answers with the entries that match a number, and the fraud rules read both lists.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/lists/{list_id}/entries/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param listId The list: `allow` or `block`. Any other value answers `404`.
+   */
+  add(
+    listId: string,
+    params: PhoneListsAddParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneListEntry> {
+    return this._client.request(PHONE_LISTS_ADD, [listId], params, options);
+  }
+
+  /**
+   * Check a number against your allow and block lists
+   *
+   * Answer whether a number is on the allow or the block list, and which entries match it: a number, a prefix, the country or the number's network. A match on the block list answers `blocked`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/lists/check/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  check(
+    params: PhoneListsCheckParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneListsCheckResponse> {
+    return this._client.request(PHONE_LISTS_CHECK, [], params, options);
+  }
+
+  /**
+   * List the entries of an allow or block list
+   *
+   * Read one of the application's lists: its entries, their type and the source that added each one (`manual`, `api` or `alert`). Filter by `type` or by part of a `value` or a `note`; `format=csv` exports every row of the filtered list instead of a page. Only the application's own phone and country lists are covered: `number`, `prefix` and `network` entries are in the phone list and `country` entries in the country list.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/lists/{list_id}/entries/`
+   *
+   * @param listId The list: `allow` or `block`. Any other value answers `404`.
+   */
+  listEntries(
+    listId: string,
+    params: PhoneListsListEntriesParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneListsListEntriesResponse, PhoneListEntry> {
+    return this._client.requestPage(PHONE_LISTS_LIST_ENTRIES, [listId], params, options);
+  }
+
+  /**
+   * Delete an entry from an allow or block list
+   *
+   * Delete an entry from an allow or block list, for example to unblock a network. Deletion is irreversible: the number, prefix, country or network is no longer listed from the next request. Only the application's own phone and country lists are covered: `number`, `prefix` and `network` entries are in the phone list and `country` entries in the country list.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `DELETE /v3/phone/lists/{list_id}/entries/{entry_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param listId The list: `allow` or `block`. Any other value answers `404`.
+   * @param entryId The entry
+   */
+  remove(listId: string, entryId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_LISTS_REMOVE, [listId, entryId], undefined, options);
   }
 }
 
@@ -410,6 +838,126 @@ export class PhoneNetworkRegistrations extends APIResource {
 /** `phone.network` */
 export class PhoneNetwork extends APIResource {
   readonly registrations: PhoneNetworkRegistrations = new PhoneNetworkRegistrations(this._client);
+}
+
+/** `phone.rate_limits.buckets` */
+export class PhoneRateLimitsBuckets extends APIResource {
+  /**
+   * Delete a bucket of a velocity limit
+   *
+   * Delete one bucket of a velocity limit. A limit keeps at least one bucket, so the last one answers `409 last_bucket`: delete the limit instead. Deletion is irreversible.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `DELETE /v3/phone/rate-limits/{rate_limit_id}/buckets/{bucket_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param rateLimitId The limit
+   * @param bucketId The bucket
+   */
+  delete(rateLimitId: string, bucketId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(
+      PHONE_RATE_LIMITS_BUCKETS_DELETE,
+      [rateLimitId, bucketId],
+      undefined,
+      options,
+    );
+  }
+}
+
+/** `phone.rate_limits` */
+export class PhoneRateLimits extends APIResource {
+  readonly buckets: PhoneRateLimitsBuckets = new PhoneRateLimitsBuckets(this._client);
+
+  /**
+   * Create a velocity limit
+   *
+   * Create a velocity limit of your own. A limit is keyed by the name of the value your sends are counted by, for example `user_id`, and each of its `buckets` allows `max` starts in `interval` seconds, at most 30 days (2,592,000 seconds). Send history is kept for that longest window, so every bucket counts the starts of its whole interval.
+   *
+   * A request over a bucket answers `429` with `Retry-After`, and the key is refused until the interval ends.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/rate-limits/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: PhoneRateLimitsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneRateLimit> {
+    return this._client.request(PHONE_RATE_LIMITS_CREATE, [], params, options);
+  }
+
+  /**
+   * Delete a velocity limit
+   *
+   * Delete a velocity limit and every bucket in it. The key it was created for no longer limits sends. Deletion is irreversible.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `DELETE /v3/phone/rate-limits/{rate_limit_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param rateLimitId The limit
+   */
+  delete(rateLimitId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(PHONE_RATE_LIMITS_DELETE, [rateLimitId], undefined, options);
+  }
+
+  /**
+   * List velocity limits
+   *
+   * List the application's velocity limits, oldest first, each with its key and its buckets.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/rate-limits/`
+   */
+  list(
+    params: PhoneRateLimitsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneRateLimitsListResponse, PhoneRateLimit> {
+    return this._client.requestPage(PHONE_RATE_LIMITS_LIST, [], params, options);
+  }
+
+  /**
+   * Retrieve a velocity limit
+   *
+   * One velocity limit with its buckets, each bucket's `max`, `interval` and the starts already counted in the current interval as `in_use`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/rate-limits/{rate_limit_id}/`
+   *
+   * @param rateLimitId The limit
+   */
+  retrieve(rateLimitId: string, options?: RequestOptions): APIPromise<PhoneRateLimit> {
+    return this._client.request(PHONE_RATE_LIMITS_RETRIEVE, [rateLimitId], undefined, options);
+  }
+
+  /**
+   * Update a velocity limit
+   *
+   * Change a velocity limit's buckets: send a `bucket_id` to change that bucket, or leave it out to add one. `max` and `interval` must be positive, and `interval` at most 30 days (2,592,000 seconds), or the answer is `400`. A `bucket_id` that is not a bucket of this limit answers `404` and nothing is changed; a bucket can be removed with Delete a bucket of a velocity limit.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `PATCH /v3/phone/rate-limits/{rate_limit_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param rateLimitId The limit
+   */
+  update(
+    rateLimitId: string,
+    params: PhoneRateLimitsUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneRateLimit> {
+    return this._client.request(PHONE_RATE_LIMITS_UPDATE, [rateLimitId], params, options);
+  }
 }
 
 /** `phone.sdk_keys` */
@@ -618,7 +1166,11 @@ export class PhoneSilent extends APIResource {
 /** `phone` */
 export class Phone extends APIResource {
   readonly factors: PhoneFactors = new PhoneFactors(this._client);
+  readonly fraud: PhoneFraud = new PhoneFraud(this._client);
+  readonly lineTypeOverrides: PhoneLineTypeOverrides = new PhoneLineTypeOverrides(this._client);
+  readonly lists: PhoneLists = new PhoneLists(this._client);
   readonly network: PhoneNetwork = new PhoneNetwork(this._client);
+  readonly rateLimits: PhoneRateLimits = new PhoneRateLimits(this._client);
   readonly sdkKeys: PhoneSdkKeys = new PhoneSdkKeys(this._client);
   readonly silent: PhoneSilent = new PhoneSilent(this._client);
 
@@ -650,6 +1202,26 @@ export class Phone extends APIResource {
     options?: RequestOptions,
   ): APIPromise<PhoneRiskResponse> {
     return this._client.request(PHONE_ASSESS_RISK, [], params, options);
+  }
+
+  /**
+   * Start a bulk lookup
+   *
+   * Look up a CSV of numbers as one job: one number per line, up to 100,000 numbers, with `fields` naming the signals to return for each number. The call answers `202` with the job (`status` `queued`, `processed` 0, `results_url` `null`). Read it with `GET /v3/phone/risk/bulk/{job_id}/`; when it is done, download the CSV from `results_url`. `callback_url`, a public HTTPS URL, receives `{job_id, status, total, results_url}` when the job finishes (described by `PhoneRiskBulkCallback`).
+   *
+   * Billing follows Phone Risk API pricing for each number in the file; a number that is not valid is not charged.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `POST /v3/phone/risk/bulk/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  assessRiskBulk(
+    params: PhoneAssessRiskBulkParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneRiskBulkJob> {
+    return this._client.request(PHONE_ASSESS_RISK_BULK, [], params, options);
   }
 
   /**
@@ -686,6 +1258,36 @@ export class Phone extends APIResource {
     options?: RequestOptions,
   ): APIPromise<PhoneVerificationCheckResponse> {
     return this._client.request(PHONE_CHECK_CODE, [], params, options);
+  }
+
+  /**
+   * Download bulk lookup results
+   *
+   * Download the CSV of a bulk risk job: the column `phone_number` plus one column per requested signal, one row per number in the order of the uploaded file. A failed job still has the rows it answered. While no result file exists the answer is `409 results_not_ready`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/risk/bulk/{job_id}/results/`
+   *
+   * @param jobId The job, as returned when it was started.
+   */
+  downloadRiskBulkResults(jobId: string, options?: RequestOptions): APIPromise<Blob> {
+    return this._client.request(PHONE_DOWNLOAD_RISK_BULK_RESULTS, [jobId], undefined, options);
+  }
+
+  /**
+   * Get a bulk lookup job
+   *
+   * Read a bulk risk job of your application: its `status`, how many numbers it has `processed` of its `total`, and the `results_url` of the CSV once a result file exists. An unknown job, or one of another application, answers `404`.
+   *
+   * **Authentication.** Send your application's API key in `x-api-key`.
+   *
+   * `GET /v3/phone/risk/bulk/{job_id}/`
+   *
+   * @param jobId The job, as returned when it was started.
+   */
+  retrieveRiskBulk(jobId: string, options?: RequestOptions): APIPromise<PhoneRiskBulkJob> {
+    return this._client.request(PHONE_RETRIEVE_RISK_BULK, [jobId], undefined, options);
   }
 
   /**

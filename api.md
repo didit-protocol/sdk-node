@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 509 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -435,6 +435,12 @@ Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi
 | `didit.messages.send(params: MessagesSendParams)`                     | `POST /v3/messages/`                     | `Message`          | `idempotencyKey` |
 | `didit.messages.updateSettings(params: MessagesUpdateSettingsParams)` | `PATCH /v3/messages/settings/`           | `MessagesSettings` |                  |
 
+## `didit.messages.rules`
+
+| Method                                                           | HTTP                       | Returns                       | Notes            |
+| ---------------------------------------------------------------- | -------------------------- | ----------------------------- | ---------------- |
+| `didit.messages.rules.create(params: MessagesRulesCreateParams)` | `POST /v3/messages/rules/` | `MessagesRulesCreateResponse` | `idempotencyKey` |
+
 ## `didit.monitoringEvents`
 
 | Method                                                                                                               | HTTP                                     | Returns                                             | Notes            |
@@ -480,11 +486,14 @@ Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi
 
 ## `didit.phone`
 
-| Method                                                  | HTTP                    | Returns                          | Notes            |
-| ------------------------------------------------------- | ----------------------- | -------------------------------- | ---------------- |
-| `didit.phone.assessRisk(params: PhoneAssessRiskParams)` | `POST /v3/phone/risk/`  | `PhoneRiskResponse`              | `idempotencyKey` |
-| `didit.phone.checkCode(params: PhoneCheckCodeParams)`   | `POST /v3/phone/check/` | `PhoneVerificationCheckResponse` | `idempotencyKey` |
-| `didit.phone.sendCode(params: PhoneSendCodeParams)`     | `POST /v3/phone/send/`  | `PhoneVerificationSendResponse`  | `idempotencyKey` |
+| Method                                                          | HTTP                                        | Returns                          | Notes                    |
+| --------------------------------------------------------------- | ------------------------------------------- | -------------------------------- | ------------------------ |
+| `didit.phone.assessRisk(params: PhoneAssessRiskParams)`         | `POST /v3/phone/risk/`                      | `PhoneRiskResponse`              | `idempotencyKey`         |
+| `didit.phone.assessRiskBulk(params: PhoneAssessRiskBulkParams)` | `POST /v3/phone/risk/bulk/`                 | `PhoneRiskBulkJob`               | upload, `idempotencyKey` |
+| `didit.phone.checkCode(params: PhoneCheckCodeParams)`           | `POST /v3/phone/check/`                     | `PhoneVerificationCheckResponse` | `idempotencyKey`         |
+| `didit.phone.downloadRiskBulkResults(jobId)`                    | `GET /v3/phone/risk/bulk/{job_id}/results/` | `Blob`                           |                          |
+| `didit.phone.retrieveRiskBulk(jobId)`                           | `GET /v3/phone/risk/bulk/{job_id}/`         | `PhoneRiskBulkJob`               |                          |
+| `didit.phone.sendCode(params: PhoneSendCodeParams)`             | `POST /v3/phone/send/`                      | `PhoneVerificationSendResponse`  | `idempotencyKey`         |
 
 ## `didit.phone.factors`
 
@@ -495,6 +504,45 @@ Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi
 | `didit.phone.factors.list(params: PhoneFactorsListParams)`                | `GET /v3/phone/factors/`                | page of `PhoneFactor`   | **deprecated** |
 | `didit.phone.factors.retrieve(factorId)`                                  | `GET /v3/phone/factors/{factor_id}/`    | `PhoneFactor`           | **deprecated** |
 | `didit.phone.factors.update(factorId, params?: PhoneFactorsUpdateParams)` | `PATCH /v3/phone/factors/{factor_id}/`  | `PhoneFactor`           | **deprecated** |
+
+## `didit.phone.fraud`
+
+| Method                                                          | HTTP                             | Returns                      | Notes            |
+| --------------------------------------------------------------- | -------------------------------- | ---------------------------- | ---------------- |
+| `didit.phone.fraud.evaluate(params?: PhoneFraudEvaluateParams)` | `POST /v3/phone/fraud/evaluate/` | `PhoneFraudEvaluateResponse` | `idempotencyKey` |
+| `didit.phone.fraud.update(params?: PhoneFraudUpdateParams)`     | `PATCH /v3/phone/fraud/`         | `PhoneFraudUpdateResponse`   | `idempotencyKey` |
+
+## `didit.phone.fraud.events`
+
+| Method                                                                            | HTTP                                 | Returns                               | Notes            |
+| --------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------- | ---------------- |
+| `didit.phone.fraud.events.createBatch(params: PhoneFraudEventsCreateBatchParams)` | `POST /v3/phone/fraud/events/batch/` | `PhoneFraudEventsCreateBatchResponse` | `idempotencyKey` |
+
+## `didit.phone.fraud.policies`
+
+| Method                                                                       | HTTP                                           | Returns                    | Notes            |
+| ---------------------------------------------------------------------------- | ---------------------------------------------- | -------------------------- | ---------------- |
+| `didit.phone.fraud.policies.create(params: PhoneFraudPolicyInput)`           | `POST /v3/phone/fraud/policies/`               | `PhoneFraudPolicy`         | `idempotencyKey` |
+| `didit.phone.fraud.policies.delete(policyId)`                                | `DELETE /v3/phone/fraud/policies/{policy_id}/` | nothing                    | `idempotencyKey` |
+| `didit.phone.fraud.policies.list(params?: PhoneFraudPoliciesListParams)`     | `GET /v3/phone/fraud/policies/`                | page of `PhoneFraudPolicy` |                  |
+| `didit.phone.fraud.policies.retrieve(policyId)`                              | `GET /v3/phone/fraud/policies/{policy_id}/`    | `PhoneFraudPolicy`         |                  |
+| `didit.phone.fraud.policies.update(policyId, params: PhoneFraudPolicyInput)` | `PATCH /v3/phone/fraud/policies/{policy_id}/`  | `PhoneFraudPolicy`         | `idempotencyKey` |
+
+## `didit.phone.lineTypeOverrides`
+
+| Method                                                                             | HTTP                                                  | Returns                                | Notes            |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------- | ---------------- |
+| `didit.phone.lineTypeOverrides.create(params: PhoneLineTypeOverridesCreateParams)` | `POST /v3/phone/line-type-overrides/`                 | `PhoneLineTypeOverridesCreateResponse` | `idempotencyKey` |
+| `didit.phone.lineTypeOverrides.delete(overrideId)`                                 | `DELETE /v3/phone/line-type-overrides/{override_id}/` | nothing                                | `idempotencyKey` |
+
+## `didit.phone.lists`
+
+| Method                                                                        | HTTP                                                   | Returns                   | Notes            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------- | ---------------- |
+| `didit.phone.lists.add(listId, params: PhoneListsAddParams)`                  | `POST /v3/phone/lists/{list_id}/entries/`              | `PhoneListEntry`          | `idempotencyKey` |
+| `didit.phone.lists.check(params: PhoneListsCheckParams)`                      | `POST /v3/phone/lists/check/`                          | `PhoneListsCheckResponse` | `idempotencyKey` |
+| `didit.phone.lists.listEntries(listId, params?: PhoneListsListEntriesParams)` | `GET /v3/phone/lists/{list_id}/entries/`               | page of `PhoneListEntry`  |                  |
+| `didit.phone.lists.remove(listId, entryId)`                                   | `DELETE /v3/phone/lists/{list_id}/entries/{entry_id}/` | nothing                   | `idempotencyKey` |
 
 ## `didit.phone.network.registrations`
 
@@ -510,6 +558,22 @@ Every method of `@didit-protocol/sdk-node`: 485 methods, generated from `openapi
 | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ | -------------- |
 | `didit.phone.network.registrations.testNumbers.create(registrationId, params: PhoneNetworkRegistrationsTestNumbersCreateParams)` | `POST /v3/phone/network/registrations/{registration_id}/test-numbers/`                  | `PhoneNetworkRegistrationTestNumber` | **deprecated** |
 | `didit.phone.network.registrations.testNumbers.delete(registrationId, phoneNumber)`                                              | `DELETE /v3/phone/network/registrations/{registration_id}/test-numbers/{phone_number}/` | nothing                              | **deprecated** |
+
+## `didit.phone.rateLimits`
+
+| Method                                                                            | HTTP                                            | Returns                  | Notes            |
+| --------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------ | ---------------- |
+| `didit.phone.rateLimits.create(params: PhoneRateLimitsCreateParams)`              | `POST /v3/phone/rate-limits/`                   | `PhoneRateLimit`         | `idempotencyKey` |
+| `didit.phone.rateLimits.delete(rateLimitId)`                                      | `DELETE /v3/phone/rate-limits/{rate_limit_id}/` | nothing                  | `idempotencyKey` |
+| `didit.phone.rateLimits.list(params?: PhoneRateLimitsListParams)`                 | `GET /v3/phone/rate-limits/`                    | page of `PhoneRateLimit` |                  |
+| `didit.phone.rateLimits.retrieve(rateLimitId)`                                    | `GET /v3/phone/rate-limits/{rate_limit_id}/`    | `PhoneRateLimit`         |                  |
+| `didit.phone.rateLimits.update(rateLimitId, params: PhoneRateLimitsUpdateParams)` | `PATCH /v3/phone/rate-limits/{rate_limit_id}/`  | `PhoneRateLimit`         | `idempotencyKey` |
+
+## `didit.phone.rateLimits.buckets`
+
+| Method                                                         | HTTP                                                                | Returns | Notes            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- | ------- | ---------------- |
+| `didit.phone.rateLimits.buckets.delete(rateLimitId, bucketId)` | `DELETE /v3/phone/rate-limits/{rate_limit_id}/buckets/{bucket_id}/` | nothing | `idempotencyKey` |
 
 ## `didit.phone.sdkKeys`
 
