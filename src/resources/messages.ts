@@ -7,6 +7,7 @@ import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
   Message,
+  MessageCapabilities,
   MessageConsent,
   MessageConsentChannels,
   MessageConversation,
@@ -17,8 +18,14 @@ import type {
   MessageTemplate,
   MessageTemplateList,
   MessagesSettings,
+  MessagingConfiguration,
+  MessagingConfigurationList,
 } from "../types/components.js";
 import type {
+  MessagesCapabilitiesRetrieveParams,
+  MessagesConfigurationsCreateParams,
+  MessagesConfigurationsListParams,
+  MessagesConfigurationsUpdateParams,
   MessagesConsentUpdateParams,
   MessagesConversationsListParams,
   MessagesConversationsUpdateParams,
@@ -33,6 +40,31 @@ import type {
   MessagesUpdateSettingsParams,
 } from "../types/messages.js";
 
+const MESSAGES_CAPABILITIES_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/capabilities/",
+  query: ["to"],
+};
+const MESSAGES_CONFIGURATIONS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/messages/configurations/",
+  body: "json",
+};
+const MESSAGES_CONFIGURATIONS_DELETE: OperationSpec = {
+  method: "DELETE",
+  path: "/v3/messages/configurations/{configuration_id}/",
+  response: "none",
+};
+const MESSAGES_CONFIGURATIONS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/messages/configurations/",
+  query: ["limit", "offset"],
+};
+const MESSAGES_CONFIGURATIONS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/messages/configurations/{configuration_id}/",
+  body: "json",
+};
 const MESSAGES_CONSENT_RETRIEVE: OperationSpec = {
   method: "GET",
   path: "/v3/messages/contacts/{to}/consent/",
@@ -138,6 +170,95 @@ const MESSAGES_UPDATE_SETTINGS: OperationSpec = {
   path: "/v3/messages/settings/",
   body: "json",
 };
+
+/** `messages.capabilities` */
+export class MessagesCapabilities extends APIResource {
+  /**
+   * Channels a number can receive now
+   *
+   * Check which messaging channels are available for the E.164 phone number in `to`. The response reports a boolean for each channel.
+   *
+   * `GET /v3/messages/capabilities/`
+   */
+  retrieve(
+    params: MessagesCapabilitiesRetrieveParams,
+    options?: RequestOptions,
+  ): APIPromise<MessageCapabilities> {
+    return this._client.request(MESSAGES_CAPABILITIES_RETRIEVE, [], params, options);
+  }
+}
+
+/** `messages.configurations` */
+export class MessagesConfigurations extends APIResource {
+  /**
+   * Create a messaging configuration
+   *
+   * Save the channel order, status callback URL and SMS opt-out line for a workload. Pass the returned `configuration_id` to send a message with `POST /v3/messages/`. Leave `from`, `inbound_url` and `opt_out` empty for a configuration used to send messages.
+   *
+   * `POST /v3/messages/configurations/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: MessagesConfigurationsCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<MessagingConfiguration> {
+    return this._client.request(MESSAGES_CONFIGURATIONS_CREATE, [], params, options);
+  }
+
+  /**
+   * Remove a messaging configuration
+   *
+   * Permanently delete a messaging configuration by its UUID.
+   *
+   * `DELETE /v3/messages/configurations/{configuration_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param configurationId The configuration.
+   */
+  delete(configurationId: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.request(
+      MESSAGES_CONFIGURATIONS_DELETE,
+      [configurationId],
+      undefined,
+      options,
+    );
+  }
+
+  /**
+   * List your messaging configurations
+   *
+   * List your messaging configurations. `limit` is 20 by default and 100 at most; `offset` starts another page.
+   *
+   * `GET /v3/messages/configurations/`
+   */
+  list(
+    params: MessagesConfigurationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<MessagingConfigurationList, MessagingConfiguration> {
+    return this._client.requestPage(MESSAGES_CONFIGURATIONS_LIST, [], params, options);
+  }
+
+  /**
+   * Change a messaging configuration
+   *
+   * Change a messaging configuration. Only the fields you send change.
+   *
+   * `PATCH /v3/messages/configurations/{configuration_id}/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param configurationId The configuration.
+   */
+  update(
+    configurationId: string,
+    params: MessagesConfigurationsUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<MessagingConfiguration> {
+    return this._client.request(MESSAGES_CONFIGURATIONS_UPDATE, [configurationId], params, options);
+  }
+}
 
 /** `messages.consent` */
 export class MessagesConsent extends APIResource {
@@ -379,6 +500,8 @@ export class MessagesTemplates extends APIResource {
 
 /** `messages` */
 export class Messages extends APIResource {
+  readonly capabilities: MessagesCapabilities = new MessagesCapabilities(this._client);
+  readonly configurations: MessagesConfigurations = new MessagesConfigurations(this._client);
   readonly consent: MessagesConsent = new MessagesConsent(this._client);
   readonly conversations: MessagesConversations = new MessagesConversations(this._client);
   readonly rules: MessagesRules = new MessagesRules(this._client);

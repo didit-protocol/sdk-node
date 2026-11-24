@@ -6,12 +6,17 @@ import type { PagePromise } from "../core/pagination.js";
 import type { RequestOptions } from "../core/request-options.js";
 import { APIResource } from "../core/resource.js";
 import type {
+  PhoneCountriesUpdateResponse,
   PhoneFactor,
   PhoneFactorEnrollment,
   PhoneFactorsPage,
+  PhoneFeedbackBatchResponse,
+  PhoneFeedbackResponse,
   PhoneFraudPolicy,
   PhoneFraudPolicyInput,
   PhoneListEntry,
+  PhoneLookupList,
+  PhoneLookupSummary,
   PhoneNetworkRegistration,
   PhoneNetworkRegistrationSummary,
   PhoneNetworkRegistrationTestNumber,
@@ -22,19 +27,30 @@ import type {
   PhoneSdkKey,
   PhoneSdkKeyRotated,
   PhoneSdkKeysPage,
+  PhoneSettings,
+  PhoneSettingsUpdateResponse,
   PhoneSilentCoverage,
   PhoneSilentEligibility,
   PhoneSilentRegistration,
+  PhoneVerificationApproveResponse,
+  PhoneVerificationCancelResponse,
   PhoneVerificationCheckResponse,
+  PhoneVerificationDetail,
+  PhoneVerificationList,
+  PhoneVerificationNextResponse,
+  PhoneVerificationRetryResponse,
   PhoneVerificationSendResponse,
 } from "../types/components.js";
 import type {
   PhoneAssessRiskBulkParams,
   PhoneAssessRiskParams,
   PhoneCheckCodeParams,
+  PhoneCountriesUpdateParams,
   PhoneFactorsCreateParams,
   PhoneFactorsListParams,
   PhoneFactorsUpdateParams,
+  PhoneFeedbackCreateBatchParams,
+  PhoneFeedbackCreateParams,
   PhoneFraudEvaluateParams,
   PhoneFraudEvaluateResponse,
   PhoneFraudEventsCreateBatchParams,
@@ -50,6 +66,7 @@ import type {
   PhoneListsCheckResponse,
   PhoneListsListEntriesParams,
   PhoneListsListEntriesResponse,
+  PhoneLookupsListParams,
   PhoneNetworkRegistrationsCreateParams,
   PhoneNetworkRegistrationsListParams,
   PhoneNetworkRegistrationsTestNumbersCreateParams,
@@ -61,11 +78,21 @@ import type {
   PhoneSdkKeysListParams,
   PhoneSdkKeysRotateParams,
   PhoneSendCodeParams,
+  PhoneSettingsUpdateParams,
   PhoneSilentCoverageParams,
   PhoneSilentEligibilityParams,
   PhoneSilentRegistrationsCreateParams,
+  PhoneVerificationsApproveParams,
+  PhoneVerificationsListParams,
+  PhoneVerificationsNextParams,
+  PhoneVerificationsRetryParams,
 } from "../types/phone.js";
 
+const PHONE_COUNTRIES_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/countries/",
+  body: "json",
+};
 const PHONE_FACTORS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/factors/",
@@ -92,6 +119,16 @@ const PHONE_FACTORS_UPDATE: OperationSpec = {
   path: "/v3/phone/factors/{factor_id}/",
   body: "json",
   dates: "PhoneFactor",
+};
+const PHONE_FEEDBACK_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/feedback/",
+  body: "json",
+};
+const PHONE_FEEDBACK_CREATE_BATCH: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/feedback/batch/",
+  body: "json",
 };
 const PHONE_FRAUD_EVENTS_CREATE_BATCH: OperationSpec = {
   method: "POST",
@@ -170,6 +207,12 @@ const PHONE_LISTS_REMOVE: OperationSpec = {
   path: "/v3/phone/lists/{list_id}/entries/{entry_id}/",
   response: "none",
 };
+const PHONE_LOOKUPS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/lookups/",
+  query: ["phone_number", "created_after", "created_before", "limit", "offset"],
+  dates: "PhoneLookupList",
+};
 const PHONE_NETWORK_REGISTRATIONS_TEST_NUMBERS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/network/registrations/{registration_id}/test-numbers/",
@@ -247,6 +290,13 @@ const PHONE_SDK_KEYS_ROTATE: OperationSpec = {
   body: "json",
   dates: "PhoneSdkKeyRotated",
 };
+const PHONE_SETTINGS_RETRIEVE: OperationSpec = { method: "GET", path: "/v3/phone/settings/" };
+const PHONE_SETTINGS_UPDATE: OperationSpec = {
+  method: "PATCH",
+  path: "/v3/phone/settings/",
+  body: "json",
+  dates: "PhoneSettingsUpdateResponse",
+};
 const PHONE_SILENT_REGISTRATIONS_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/phone/silent/registrations/",
@@ -267,6 +317,49 @@ const PHONE_SILENT_ELIGIBILITY: OperationSpec = {
   method: "POST",
   path: "/v3/phone/silent/eligibility/",
   body: "json",
+};
+const PHONE_VERIFICATIONS_APPROVE: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/verifications/{verification_id}/approve/",
+  body: "json",
+  dates: "PhoneVerificationApproveResponse",
+};
+const PHONE_VERIFICATIONS_CANCEL: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/verifications/{verification_id}/cancel/",
+};
+const PHONE_VERIFICATIONS_LIST: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/verifications/",
+  query: [
+    "status",
+    "channel",
+    "phone_number",
+    "reference",
+    "tag",
+    "created_after",
+    "created_before",
+    "limit",
+    "offset",
+    "format",
+  ],
+  dates: "PhoneVerificationList",
+};
+const PHONE_VERIFICATIONS_NEXT: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/verifications/{verification_id}/next/",
+  body: "json",
+};
+const PHONE_VERIFICATIONS_RETRIEVE: OperationSpec = {
+  method: "GET",
+  path: "/v3/phone/verifications/{verification_id}/",
+  dates: "PhoneVerificationDetail",
+};
+const PHONE_VERIFICATIONS_RETRY: OperationSpec = {
+  method: "POST",
+  path: "/v3/phone/verifications/{verification_id}/retry/",
+  body: "json",
+  dates: "PhoneVerificationRetryResponse",
 };
 const PHONE_ASSESS_RISK: OperationSpec = {
   method: "POST",
@@ -297,6 +390,25 @@ const PHONE_RETRIEVE_RISK_BULK: OperationSpec = {
   path: "/v3/phone/risk/bulk/{job_id}/",
 };
 const PHONE_SEND_CODE: OperationSpec = { method: "POST", path: "/v3/phone/send/", body: "json" };
+
+/** `phone.countries` */
+export class PhoneCountries extends APIResource {
+  /**
+   * Switch countries and routes in bulk
+   *
+   * Update channel settings for multiple countries, the SMS route (`Route A` or `Route B`) and the routing objective (`price`, `balanced` or `conversion`). The `sms`, `voice`, `whatsapp` and `silent` switches apply to delivery for the whole country. Didit checks each `closed_channels` entry on the initial send and every fallback hop. The entry blocks its channel when `signals.device_platform` matches a listed platform (`web`, `ios`, or `android`). Both `ipados` and `tvos` match `ios`. Omit `platforms` or pass `[]` to block the channel for every send. Listing all three platforms also blocks the channel for every send, including a send that omits `signals.device_platform`. A list of one or two platforms applies only when the send matches one of them. A restricted API key needs write access to `applications`.
+   *
+   * `PATCH /v3/phone/countries/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  update(
+    params: PhoneCountriesUpdateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneCountriesUpdateResponse> {
+    return this._client.request(PHONE_COUNTRIES_UPDATE, [], params, options);
+  }
+}
 
 /** `phone.factors` */
 export class PhoneFactors extends APIResource {
@@ -415,6 +527,41 @@ export class PhoneFactors extends APIResource {
     options?: RequestOptions,
   ): APIPromise<PhoneFactor> {
     return this._client.request(PHONE_FACTORS_UPDATE, [factorId], params, options);
+  }
+}
+
+/** `phone.feedback` */
+export class PhoneFeedback extends APIResource {
+  /**
+   * Report fraud, a conversion or an abuse event
+   *
+   * Report fraud, a legitimate user, a conversion or an abuse event. Give the `verification_id`, the `phone_number` or the `email` it concerns. An outcome that names a verification or a phone number counts toward that number's fraud rules from its next send; `confidence` decides how much it weighs. An outcome that names only an `email` is recorded, but does not change any score.
+   *
+   * `POST /v3/phone/feedback/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  create(
+    params: PhoneFeedbackCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneFeedbackResponse> {
+    return this._client.request(PHONE_FEEDBACK_CREATE, [], params, options);
+  }
+
+  /**
+   * Report up to 1,000 outcomes at once
+   *
+   * Report up to 1,000 outcomes at once. The answer is `207 Multi-Status`: one result per item, in order, with `accepted` or `rejected` and why. Recorded items are counted in `accepted`. An item that names a verification or a phone number is used by that number's fraud rules from its next send; an `email`-only item changes no score.
+   *
+   * `POST /v3/phone/feedback/batch/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  createBatch(
+    params: PhoneFeedbackCreateBatchParams,
+    options?: RequestOptions,
+  ): APIPromise<PhoneFeedbackBatchResponse> {
+    return this._client.request(PHONE_FEEDBACK_CREATE_BATCH, [], params, options);
   }
 }
 
@@ -696,6 +843,23 @@ export class PhoneLists extends APIResource {
    */
   remove(listId: string, entryId: string, options?: RequestOptions): APIPromise<void> {
     return this._client.request(PHONE_LISTS_REMOVE, [listId, entryId], undefined, options);
+  }
+}
+
+/** `phone.lookups` */
+export class PhoneLookups extends APIResource {
+  /**
+   * Lookup history
+   *
+   * List your application's [Phone risk lookups](/standalone-apis/phone-risk), newest first. Each result includes the full phone number, lookup status and risk score when available. Filter by an exact number or creation time. Use `limit` and `offset` to page through the results: `next` and `previous` are offsets, not URLs, so send `next` as `offset` to read the next page.
+   *
+   * `GET /v3/phone/lookups/`
+   */
+  list(
+    params: PhoneLookupsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneLookupList, PhoneLookupSummary> {
+    return this._client.requestPage(PHONE_LOOKUPS_LIST, [], params, options);
   }
 }
 
@@ -1054,6 +1218,36 @@ export class PhoneSdkKeys extends APIResource {
   }
 }
 
+/** `phone.settings` */
+export class PhoneSettingsResource extends APIResource {
+  /**
+   * Retrieve the Phone settings
+   *
+   * Read your application's verification settings, message retention period and saved data region preference.
+   *
+   * `GET /v3/phone/settings/`
+   */
+  retrieve(options?: RequestOptions): APIPromise<PhoneSettings> {
+    return this._client.request(PHONE_SETTINGS_RETRIEVE, [], undefined, options);
+  }
+
+  /**
+   * Change the Phone settings
+   *
+   * Update verification options, the message retention period (`messages.retention_days`) and the data region preference (`data_region`). Send only what you want to change: each property you send under `verification` replaces its saved value, and `cancel_on_resend` is accepted here too. A value out of range answers `400 invalid_setting` (`code_length` 4 to 10, `valid_minutes` 1 to 15, `max_attempts` 3 to 10, `resend_limit` 1 to 10, `routing` `fixed` or `conversion`, `channel_order` a list of Phone channels, `messages.retention_days` 7, 30, 90 or 365). A restricted API key needs write access to `applications`.
+   *
+   * `PATCH /v3/phone/settings/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   */
+  update(
+    params: PhoneSettingsUpdateParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneSettingsUpdateResponse> {
+    return this._client.request(PHONE_SETTINGS_UPDATE, [], params, options);
+  }
+}
+
 /** `phone.silent.registrations` */
 export class PhoneSilentRegistrations extends APIResource {
   /**
@@ -1160,16 +1354,126 @@ export class PhoneSilent extends APIResource {
   }
 }
 
+/** `phone.verifications` */
+export class PhoneVerifications extends APIResource {
+  /**
+   * Mark a verification verified
+   *
+   * Mark a verification verified after your own code check. It counts in Verifications, Analytics and the events like any other verification, and `verified_by` is `api`. `reason` defaults to `own_code_check`. A verification that already ended returns `409 already_final`. Only verifications your application started with `POST /v3/phone/send/` can be changed here: a Phone step of a hosted verification session is read-only and returns `404 not_found`.
+   *
+   * `POST /v3/phone/verifications/{verification_id}/approve/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param verificationId The verification.
+   */
+  approve(
+    verificationId: string,
+    params: PhoneVerificationsApproveParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneVerificationApproveResponse> {
+    return this._client.request(PHONE_VERIFICATIONS_APPROVE, [verificationId], params, options);
+  }
+
+  /**
+   * Cancel a verification
+   *
+   * Cancel a verification. The code stops working and unsent steps are not charged. If the code window elapsed but the verification has yet to be finalized, cancellation returns `200` with status `cancelled` even if the verification history shows `expired`. A verification already finalized as verified, blocked, cancelled or expired returns `409 already_final`. Only verifications your application started with `POST /v3/phone/send/` can be changed here: a Phone step of a hosted verification session is read-only and returns `404 not_found`.
+   *
+   * `POST /v3/phone/verifications/{verification_id}/cancel/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param verificationId The verification.
+   */
+  cancel(
+    verificationId: string,
+    options?: RequestOptions,
+  ): APIPromise<PhoneVerificationCancelResponse> {
+    return this._client.request(PHONE_VERIFICATIONS_CANCEL, [verificationId], undefined, options);
+  }
+
+  /**
+   * List or export verifications
+   *
+   * List your application's verifications, newest first. Filter by status, channel, phone number, reference, tag (`key:value`) or creation time. Use `limit` and `offset` to page through JSON results: `next` and `previous` are offsets, not URLs, so send `next` as `offset` to read the next page. Use `format=csv` to export all matching verifications. The `template` query parameter does not filter these records. Verification history does not return a `template_used` field.
+   *
+   * `GET /v3/phone/verifications/`
+   */
+  list(
+    params: PhoneVerificationsListParams = {},
+    options?: RequestOptions,
+  ): PagePromise<PhoneVerificationList, PhoneVerificationDetail> {
+    return this._client.requestPage(PHONE_VERIFICATIONS_LIST, [], params, options);
+  }
+
+  /**
+   * Move to the next channel now
+   *
+   * Move to the next channel now, without waiting for the current step's timeout, or jump to `channel`. A successful send keeps the same verification ID and expiry, but the new channel may deliver a different code than the earlier sends; only [a same-window retry](/standalone-apis/phone-verifications-retry) promises the same code. When every channel in the order was tried, the endpoint returns `409 no_next_channel`; a verification that already ended returns `409 already_final`. Only verifications your application started with `POST /v3/phone/send/` can be changed here: a Phone step of a hosted verification session is read-only and returns `404 not_found`.
+   *
+   * `POST /v3/phone/verifications/{verification_id}/next/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param verificationId The verification.
+   */
+  next(
+    verificationId: string,
+    params: PhoneVerificationsNextParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneVerificationNextResponse> {
+    return this._client.request(PHONE_VERIFICATIONS_NEXT, [verificationId], params, options);
+  }
+
+  /**
+   * One verification with every attempt
+   *
+   * Retrieve one verification and its delivery attempts in order. Each attempt includes the channel, status, network, route, delivery timestamps and price.
+   *
+   * `GET /v3/phone/verifications/{verification_id}/`
+   *
+   * @param verificationId The verification.
+   */
+  retrieve(verificationId: string, options?: RequestOptions): APIPromise<PhoneVerificationDetail> {
+    return this._client.request(PHONE_VERIFICATIONS_RETRIEVE, [verificationId], undefined, options);
+  }
+
+  /**
+   * Send the code again in the same window
+   *
+   * Resend the same code on its last delivery channel. The verification ID and expiry stay the same. Wait at least 30 seconds after the last send. A verification allows up to three sends, including the first. To change channels, use [the next-channel endpoint](/standalone-apis/phone-verifications-next). Only verifications your application started with `POST /v3/phone/send/` can be changed here: a Phone step of a hosted verification session is read-only and returns `404 not_found`.
+   *
+   * `POST /v3/phone/verifications/{verification_id}/retry/`
+   *
+   * Accepts `options.idempotencyKey` (header `Idempotency-Key`).
+   *
+   * @param verificationId The verification.
+   */
+  retry(
+    verificationId: string,
+    params: PhoneVerificationsRetryParams = {},
+    options?: RequestOptions,
+  ): APIPromise<PhoneVerificationRetryResponse> {
+    return this._client.request(PHONE_VERIFICATIONS_RETRY, [verificationId], params, options);
+  }
+}
+
 /** `phone` */
 export class Phone extends APIResource {
+  readonly countries: PhoneCountries = new PhoneCountries(this._client);
   readonly factors: PhoneFactors = new PhoneFactors(this._client);
+  readonly feedback: PhoneFeedback = new PhoneFeedback(this._client);
   readonly fraud: PhoneFraud = new PhoneFraud(this._client);
   readonly lineTypeOverrides: PhoneLineTypeOverrides = new PhoneLineTypeOverrides(this._client);
   readonly lists: PhoneLists = new PhoneLists(this._client);
+  readonly lookups: PhoneLookups = new PhoneLookups(this._client);
   readonly network: PhoneNetwork = new PhoneNetwork(this._client);
   readonly rateLimits: PhoneRateLimits = new PhoneRateLimits(this._client);
   readonly sdkKeys: PhoneSdkKeys = new PhoneSdkKeys(this._client);
+  readonly settings: PhoneSettingsResource = new PhoneSettingsResource(this._client);
   readonly silent: PhoneSilent = new PhoneSilent(this._client);
+  readonly verifications: PhoneVerifications = new PhoneVerifications(this._client);
 
   /**
    * Risk-score a phone number
@@ -1226,9 +1530,9 @@ export class Phone extends APIResource {
    *
    * Verify the OTP delivered by [`POST /v3/phone/send/`](/standalone-apis/phone-send) and get the final verification result plus phone intelligence: carrier name and line type, virtual (VoIP) and disposable flags, and duplicate usage of the number across your sessions.
    *
-   * **How the check finds the verification.** Matching is by your application plus the E.164 `phone_number` - `request_id` is not an input. The most recent pending verification created within the last **5 minutes** is checked. If there is none (never sent, already finalized, or older than 5 minutes) the endpoint returns `200` with `status: "Expired or Not Found"`.
+   * **How the check finds the verification.** Send the code and the E.164 `phone_number`: the number selects its latest pending verification in your application. Add the `verification_id` the send returned to check that specific verification: Didit then checks it and takes its number, so the `phone_number` of the request is not used. `phone_number` stays a required field of the request. An ID that is not one of your application's checkable verifications (unknown, cancelled, or of another application) is ignored, and the check falls back to the latest pending verification of `phone_number`. A finalized or expired verification, or no matching verification, returns `200` with `status: "Expired or Not Found"`.
    *
-   * **Attempt budget.** Each verification allows **3 code attempts**. The first two wrong codes return `status: "Failed"` with the attempts remaining and `phone: null`; the third wrong code finalizes the verification as `Declined` with a `VERIFICATION_CODE_ATTEMPTS_EXCEEDED` warning and returns the full phone report.
+   * **Attempt budget for delivered codes.** Your application's `verification.max_attempts` setting (3 to 10) sets how many wrong codes a verification takes, and it defaults to 5 on v3. With that default, the first four wrong codes return `Failed` with the attempts remaining and `phone: null`, and the fifth returns `Declined` with the full phone report and a `VERIFICATION_CODE_ATTEMPTS_EXCEEDED` warning. A verification started in a hosted flow uses the workflow's own limit instead.
    *
    * **Outcomes.** `Approved` - correct code and no declining risk. `Declined` - terminal: the code was correct but a declining risk matched (a `DECLINE` action below, a blocklisted or high-risk number), or the attempt budget was exhausted. `Failed` - wrong code, attempts remaining. `Expired or Not Found` - nothing to check. On `Approved`/`Declined` the `request_id` equals the send's `request_id` (the session id) and `phone` carries the full report (`carrier`, `is_virtual`, `is_disposable`, `warnings`, `lifecycle`, `matches`); on `Failed` and `Expired or Not Found` the `request_id` is a one-off random UUID.
    *
@@ -1238,9 +1542,9 @@ export class Phone extends APIResource {
    *
    * **Session persistence.** A finalized check updates the session created by the send (visible in the Business Console, queryable via `GET /v3/session/{sessionId}/decision/`) and fires a `status.updated` webhook.
    *
-   * **Sandbox.** Sandbox API keys skip all processing: any well-formed code (4–8 digits, `123456` included) returns a static `Approved` payload with a simplified flat `phone` object (`status`, `phone_number`, `country_code`, `carrier_name`, `line_type`, `flags`); malformed input still returns `400`. Nothing is persisted.
+   * **Sandbox.** Sandbox API keys skip all processing and charge nothing; malformed input still returns `400`. In a sandbox application, use the code `123456` or the fixed code of a sandbox test number. Today the sandbox check also approves any other well-formed code for a number that has no fixed code; that is being tightened to the two codes above, so do not rely on it.
    *
-   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) - this API never returns `401`.
+   * **Authentication.** Send your application's API key in the `x-api-key` header. A missing `x-api-key` header, or a key that is scoped and does not carry write access to `sessions`, returns `403`; a wrong, revoked or expired key returns `401`.
    *
    * **Rate limits.** Shared write budget of 300 requests/min per API key, plus the upstream anti-abuse cap of 4 attempts per number per hour; exceeding either returns `429`.
    *
@@ -1294,7 +1598,9 @@ export class Phone extends APIResource {
    *
    * Send a one-time passcode (OTP) to a phone number over WhatsApp, SMS, or another supported channel, then verify it with [`POST /v3/phone/check/`](/standalone-apis/phone-check).
    *
-   * **How send and check pair up.** Verification state is keyed by your application plus the E.164 `phone_number` - the check call does not take `request_id`. Each new send creates a pending verification that lives for **5 minutes**: call the check with the same number and the code the user received before the window closes. Calling send again for the same number while a verification is pending re-sends a code for that same verification (`status: "Retry"`, same `request_id`). At most one retry is attached this way (two sends total); a further send starts a fresh verification with a new `request_id`. The 5-minute window is measured from the first send and is not extended by retries.
+   * **How send and check pair up.** Send the same E.164 `phone_number` and the code to check the latest pending verification of that number in your application. Add the `verification_id` the send returned to check that specific verification: Didit then checks it and takes its number, so the `phone_number` of the request is not used. `phone_number` stays a required field of the request. An ID that is not one of your application's checkable verifications (unknown, cancelled, or of another application) is ignored, and the check falls back to the latest pending verification of `phone_number`. The verification window defaults to **5 minutes**. Calling send again for the same number while a verification is pending follows `on_conflict`: by default (`replace`) it starts a fresh verification with a new `request_id`; `retry` re-sends a code for the same verification (`status: "Retry"`, same `request_id` and `verification_id`), at most twice (three sends total, the first included, shared with `POST /v3/phone/verifications/{verification_id}/retry/`); `reuse` returns the pending verification without sending; `reject` answers `409 verification_in_progress`. For `reuse` and `retry`, if the pending verification does not meet the requested channel or challenge policy, the send starts a new verification. A retry also starts a new verification if the requested channel differs from the last delivery channel. Both `reuse` and `retry` start a new verification if the caller supplies a different code. A same-window retry keeps the expiry from the first send.
+   *
+   * **Conflict, challenge and code options.** `on_conflict` picks what happens while a code is still valid: `replace` (default) sends a new one, `reuse` returns it without sending, `retry` sends the same code again in the same window, up to two retries (three sends total, the first included), and `reject` answers `409 verification_in_progress`. `force_challenge` restricts the send to `fraud.channels_allowed` and records the challenge as yours, not as fraud. `trusted_user` needs a `fraud_override` signed for this number with your application's webhook signing secret; an unsigned or wrongly signed one returns `403 invalid_fraud_override`. `code` sets your own 4 to 10 letter-and-digit code and `code_length` the length of a Didit-made numeric code; `code` wins over `code_length`, and `code_length` wins over `options.code_size`.
    *
    * **Delivery channels.** `options.preferred_channel` selects the channel (`whatsapp` by default; `sms`, `telegram`, `voice`, `rcs`, `viber`, and `zalo` are also supported). When the preferred channel is unavailable for the destination country or number, delivery automatically falls back to SMS - the send still reports `Success`, and the channel actually used is reported by the check response (`phone.verification_method` and the `lifecycle` events).
    *
@@ -1308,9 +1614,9 @@ export class Phone extends APIResource {
    *
    * **Session persistence.** Every new verification is persisted as an API-type session: `request_id` is a real session id you can pass to `GET /v3/session/{sessionId}/decision/`, the verification appears in the Business Console, and `status.updated` webhooks fire as it progresses.
    *
-   * **Sandbox.** Sandbox API keys skip delivery and billing: after request validation (malformed input still returns `400`), the endpoint returns a static `Success` payload with a random `request_id`; no message is sent and nothing is persisted. Use code `123456` on the sandbox check.
+   * **Sandbox.** A sandbox application's send takes the same path as a live one: the same validation, `on_conflict` handling, channel policy and refusals (an unsupported destination included) and the same answer, with a `verification_id` you can read, cancel or approve. Only the delivery is simulated: no message is sent and nothing is charged. In a sandbox application, use the code `123456` or the fixed code of a sandbox test number. Today the sandbox check also approves any other well-formed code for a number that has no fixed code; that is being tightened to the two codes above, so do not rely on it.
    *
-   * **Authentication.** Send your application's API key in the `x-api-key` header. Missing or invalid credentials return `403` (`{"detail": "You do not have permission to perform this action."}`) - this API never returns `401`.
+   * **Authentication.** Send your application's API key in the `x-api-key` header. A missing `x-api-key` header, or a key that is scoped and does not carry write access to `sessions`, returns `403`; a wrong, revoked or expired key returns `401`.
    *
    * **Rate limits.** Shared write budget of 300 requests/min per API key across all POST/PATCH/DELETE endpoints, plus an anti-abuse cap of 4 send attempts per phone number per hour; exceeding either returns `429`.
    *

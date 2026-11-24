@@ -2,6 +2,9 @@
 
 import type { Uploadable } from "../core/uploads.js";
 import type {
+  PhoneChannel,
+  PhoneCountryUpdate,
+  PhoneFeedbackBatchItem,
   PhoneFraudEventResult,
   PhoneFraudPolicy,
   PhoneFraudRule,
@@ -49,7 +52,7 @@ export interface PhoneAssessRiskParams {
 export interface PhoneCheckCodeParams {
   /** The same phone number used in the matching [`POST /v3/phone/send/`](/standalone-apis/phone-send) call, in E.164 format. This is what links the check to the send. */
   phone_number: string;
-  /** The OTP the end user received. Must be 4–8 numeric digits - anything else returns `400` without consuming an attempt. A well-formed but wrong code returns `200` with `status: "Failed"` and consumes one of the 3 attempts. */
+  /** For a delivered code, enter 4 to 10 letters or digits. Letters match in either case. A wrong delivered code consumes one attempt and returns `Failed` while attempts remain or `Declined` on the last attempt. */
   code: string;
   /** What to do when the same number was already used by a different user (different `vendor_data`) of your application. `DECLINE` flips the final `status` to `Declined`; `NO_ACTION` records the risk in `phone.warnings` and fills `phone.matches`. */
   duplicated_phone_number_action?: "NO_ACTION" | "DECLINE" | (string & {});
@@ -73,8 +76,14 @@ export interface PhoneCheckCodeParams {
   phone_no_social_presence_action?: "NO_ACTION" | "DECLINE" | (string & {});
   /** Check a TOTP factor enrolled with `POST /v3/phone/factors/` instead of a phone code: send the 4-8 digit `code` its authenticator app shows. With `factor_id` the service does not read `phone_number` (typed SDKs still take it, because it stays a required field of this request, so pass the user's number or any valid E.164 number). The answer carries `verification_id`, `status` (`verified` or `failed`) and `attempts`. A `disabled` factor answers `409 factor_disabled`, an unknown one `404 not_found` and a request without `code` `400 code_required`. */
   factor_id?: string;
-  /** Check the code Didit sent to a registration test number: send the `verification_id` that `POST /v3/phone/network/registrations/{registration_id}/test-numbers/` returned with the `code`. The number itself still goes in `phone_number`. */
+  /** Check this verification instead of the number's latest one: the `verification_id` a send returned, or the one `POST /v3/phone/network/registrations/{registration_id}/test-numbers/` returned for a registration test number. Didit takes the number from that verification, so the request's `phone_number` is not used, but it stays a required field. An ID that is not one of your application's checkable verifications is ignored and the check uses the latest pending verification of `phone_number`. */
   verification_id?: string;
+}
+
+/** Countries and routes to switch in bulk. */
+export interface PhoneCountriesUpdateParams {
+  /** The countries to change. */
+  countries: PhoneCountryUpdate[];
 }
 
 export interface PhoneFactorsCreateParams {
@@ -110,6 +119,32 @@ export interface PhoneFactorsUpdateParams {
   metadata?: Record<string, string>;
   /** `disabled` stops the factor's checks; `verified` turns a disabled factor back on. */
   status?: "disabled" | "verified" | (string & {});
+}
+
+/** Outcomes to report. */
+export interface PhoneFeedbackCreateBatchParams {
+  /** Up to 1,000 outcomes. */
+  items: PhoneFeedbackBatchItem[];
+}
+
+/** One outcome to report. Send at least one of `verification_id`, `phone_number` or `email`: with none of them the answer is `target_required`. */
+export interface PhoneFeedbackCreateParams {
+  /** The verification, by the `verification_id` the send returned. */
+  verification_id?: string;
+  /** Or the number. */
+  phone_number?: string;
+  /** Or the email address it concerns. */
+  email?: string;
+  /** fraud, legitimate, converted, or abuse with event naming what happened. */
+  outcome: "fraud" | "legitimate" | "converted" | "abuse" | (string & {});
+  /** Your own label, for example chargeback, account_banned or promo_abuse. */
+  event?: string;
+  /** low, medium or high: how sure you are; high weighs most in the scoring. */
+  confidence?: "low" | "medium" | "high" | (string & {});
+  /** When it happened, ISO 8601. */
+  occurred_at?: string | Date;
+  /** Up to 500 characters. */
+  note?: string;
 }
 
 /** Send `phone_number`, `email`, or both. */
@@ -392,6 +427,19 @@ export interface PhoneListsListEntriesResponse {
   results?: PhoneListEntry[];
 }
 
+export interface PhoneLookupsListParams {
+  /** One number. */
+  phone_number?: string;
+  /** Include lookups created at or after this time. */
+  created_after?: string | Date;
+  /** Include lookups created before this time. */
+  created_before?: string | Date;
+  /** 20 by default, 100 at most. */
+  limit?: number;
+  /** Where the page starts: 0 by default, or the `next` or `previous` value of another page. */
+  offset?: number;
+}
+
 export interface PhoneNetworkRegistrationsCreateParams {
   /** The network feature to ask approval for. */
   feature: "silent_verification" | "sim_swap" | "number_verification" | (string & {});
@@ -506,6 +554,18 @@ export interface PhoneSendCodeParams {
   vendor_data?: string;
   /** Optional free-form JSON object persisted on the session and echoed back in the send response, the matching check response, webhooks, and the Business Console. */
   metadata?: Record<string, unknown> | null;
+  /** Supply 4 to 10 letters and digits, such as K7P2QX. Letters match in either case. Your code takes precedence over `code_length` and `options.code_size`. Choose a channel that supports caller-supplied codes, such as WhatsApp. If the allowed channels cannot carry your code, the send returns `400 custom_code_unavailable`. */
+  code?: string;
+  /** 4 to 10 digits, for this request. Wins over `options.code_size` when both are sent; ignored when `code` is sent. */
+  code_length?: number;
+  /** A code is still valid: `replace` (default) sends a new one, `reuse` returns it without sending, `retry` sends the same code again in the same window (up to two retries, three sends total), `reject` answers `409 verification_in_progress`. For `reuse` and `retry`, if the pending verification does not meet the requested channel or challenge policy, the send starts a new verification. A retry also starts a new verification if the requested channel differs from the last delivery channel. Both `reuse` and `retry` start a new verification if the caller supplies a different code. */
+  on_conflict?: "replace" | "reuse" | "retry" | "reject" | (string & {});
+  /** Your server vouches for this user: this one request goes past your fraud rules (velocity limits, risk score, network blocks, policies). Needs a `fraud_override` signed for it; a block list still stops the number. */
+  trusted_user?: boolean;
+  /** Your server asks for a challenge on this request: Didit uses only fraud-resistant channels (`fraud.channels_allowed`) and records it as challenged by you; it is not reported or scored as fraud. */
+  force_challenge?: boolean;
+  /** A token signed for this phone number and expiry, in the form `v1.<expires_at>.<signature>`. `<expires_at>` is the Unix time in seconds, at most 5 minutes ahead. `<signature>` is the base64url encoding, without padding, of the HMAC-SHA256 of the UTF-8 string `v1\n<phone_number>\n<expires_at>` (the number in E.164 format, with a newline between each value), keyed with your application's webhook signing secret. It lets the request past a temporary network block, or with `trusted_user` past your fraud rules. An unsigned token, a past expiry, a wrong signature or one signed for another number is refused with `403 invalid_fraud_override`. */
+  fraud_override?: string;
 }
 
 /** OTP delivery options. All fields are optional. */
@@ -541,6 +601,76 @@ export interface PhoneSendCodeParamsSignals {
   user_agent?: string;
 }
 
+/** The application settings to update. Omit a section to keep its current settings. */
+export interface PhoneSettingsUpdateParams {
+  /** Each property you supply replaces its saved value. */
+  verification?: PhoneSettingsUpdateParamsVerification;
+  /** Message settings to change. */
+  messages?: PhoneSettingsUpdateParamsMessages;
+  /** The data region preference to save for the application. */
+  data_region?: "eu" | "us" | (string & {});
+}
+
+/** Message settings to change. */
+export interface PhoneSettingsUpdateParamsMessages {
+  /** 7, 30, 90 or 365. */
+  retention_days?: number;
+}
+
+/** Each property you supply replaces its saved value. */
+export interface PhoneSettingsUpdateParamsVerification {
+  /** 4 to 10 digits. */
+  code_length?: number;
+  /** 1 to 15. */
+  valid_minutes?: number;
+  /** Maximum wrong code entries per standalone verification. The default is 5. */
+  max_attempts?: number;
+  /** 1 to 10 per hour. */
+  resend_limit?: number;
+  /** A new code cancels the previous one. */
+  cancel_on_resend?: boolean;
+  /** The default order. */
+  channel_order?: (
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {})
+  )[];
+  /** conversion picks the route and channel with the best conversion per country over 7 days; fixed keeps your order. */
+  routing?: "conversion" | "fixed" | (string & {});
+  /** Voice policy. */
+  voice?: PhoneSettingsUpdateParamsVerificationVoice;
+  /** Email policy. */
+  email?: PhoneSettingsUpdateParamsVerificationEmail;
+}
+
+/** Email policy. */
+export interface PhoneSettingsUpdateParamsVerificationEmail {
+  /** The verified domain email codes go out from. */
+  domain_id?: string;
+  /** The address on that domain. */
+  from_address?: string;
+  /** The name people see. */
+  from_name?: string;
+}
+
+/** Voice policy. */
+export interface PhoneSettingsUpdateParamsVerificationVoice {
+  /** The identifier of the voice that reads verification codes aloud. */
+  tts_voice?: string;
+  /** 0.8 to 1.2: slower reads each digit more clearly. */
+  speech_rate?: number;
+}
+
 export interface PhoneSilentCoverageParams {
   /** Only this ISO 3166-1 alpha-2 country. */
   country?: string;
@@ -568,4 +698,72 @@ export interface PhoneSilentRegistrationsCreateParams {
   monthly_volume?: number | null;
   /** Links to screens of the flow, as the networks ask for them. */
   flow_screenshots?: string[];
+}
+
+/** Why the verification is approved. */
+export interface PhoneVerificationsApproveParams {
+  /** own_code_check (default): your backend checked the code it sent with code. */
+  reason?: "own_code_check" | (string & {});
+}
+
+export interface PhoneVerificationsListParams {
+  /** pending, verified, not_delivered, expired, blocked or cancelled. */
+  status?:
+    "pending" | "verified" | "not_delivered" | "expired" | "blocked" | "cancelled" | (string & {});
+  /** Any channel. */
+  channel?: PhoneChannel;
+  /** One number. */
+  phone_number?: string;
+  /** Your reference. */
+  reference?: string;
+  /** key:value, one of your tags. */
+  tag?: string;
+  /** ISO 8601 date and time. */
+  created_after?: string | Date;
+  /** ISO 8601 date and time. */
+  created_before?: string | Date;
+  /** 20 by default, 100 at most. */
+  limit?: number;
+  /** Where the page starts: 0 by default, or the `next` or `previous` value of another page. */
+  offset?: number;
+  /** json, or csv to export every row of the filtered list. */
+  format?: "json" | "csv" | (string & {});
+}
+
+/** The channel to move to. */
+export interface PhoneVerificationsNextParams {
+  /** Jump to this channel instead of the next one. */
+  channel?:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
+}
+
+/** Optional channel confirmation for a same-window retry. */
+export interface PhoneVerificationsRetryParams {
+  /** The last delivery channel. Requesting a different allowed channel returns `409 code_not_resendable`. */
+  channel?:
+    | "silent"
+    | "sms"
+    | "whatsapp"
+    | "telegram"
+    | "voice"
+    | "rcs"
+    | "viber"
+    | "zalo"
+    | "email"
+    | "push"
+    | "totp"
+    | "passkey"
+    | (string & {});
 }
