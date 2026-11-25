@@ -1652,7 +1652,7 @@ export interface BankInstitution {
   id: string;
   name: string;
   country: string;
-  /** The address of the bank's logo hosted by Didit. */
+  /** The address of the bank's logo hosted by Didit, or `null` when Didit has no logo for the bank. */
   logo_url: string | null;
   /** IANA time zone the bank's dates are in. */
   timezone: string | null;
@@ -1702,7 +1702,7 @@ export interface BankInstitutionSummary {
   name: string;
   /** Country of the bank, ISO 3166-1 alpha-3. */
   country: string;
-  /** The address of the bank's logo hosted by Didit. */
+  /** The address of the bank's logo hosted by Didit, or `null` when Didit has no logo for the bank. */
   logo_url: string | null;
 }
 
