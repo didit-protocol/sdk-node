@@ -262,7 +262,8 @@ switch (event.webhook_type) {
     break;
   }
   case "bank.connection.updated":
-    if (event.revocation_status === "pending") console.log("revocation started", event.connection_id);
+    if (event.revocation_status === "pending")
+      console.log("revocation started", event.connection_id);
     else console.log(event.connection_id, event.status_reason, event.ends_at);
     break;
   case "bank.connection.revoked":
