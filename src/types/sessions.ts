@@ -62,8 +62,6 @@ export interface SessionsBatchDeleteParams {
   filter_country?: string | string[];
   /** Narrows a `delete_all` to the sessions that match the `document_type` filter of [List Sessions](/sessions-api/list-sessions), with the same values. A comma-separated string or an array. Ignored without `delete_all`. An empty value is ignored and does not narrow the selection. */
   filter_document_type?: string | string[];
-  /** Narrows a `delete_all` to the sessions that match the `document_name` filter of [List Sessions](/sessions-api/list-sessions), with the same values. A comma-separated string or an array. Ignored without `delete_all`. An empty value is ignored and does not narrow the selection. */
-  filter_document_name?: string | string[];
   /** Narrows a `delete_all` to the sessions that match the `region` filter of [List Sessions](/sessions-api/list-sessions), with the same values. A comma-separated string or an array. Ignored without `delete_all`. An empty value is ignored and does not narrow the selection. */
   filter_region?: string | string[];
   /** Narrows a `delete_all` to the sessions that match the `didit_internal_id` filter of [List Sessions](/sessions-api/list-sessions), with the same value. One value, not a list: an array is joined into one comma-separated value, so several values are refused with `400`. Ignored without `delete_all`. An empty value is ignored and does not narrow the selection. */
@@ -992,8 +990,6 @@ export interface SessionsListParams {
   country?: string;
   /** Comma-separated ID-document type codes verified in the session (KYC rows only): `P` (Passport), `ID` (Identity Card), `DL` (Driver's License), `RP` (Residence Permit), `SSC` (Social Security Card), `HIC` (Health Insurance Card), `WP` (Work Permit), `TC` (Tax Card), `VISA`, `PSC` (Public Service Card), `BC` (Birth Certificate), `OTHER`. Note the response field `document_type` contains the display name, not the code. */
   document_type?: string;
-  /** Exact document names; multiple names can be passed comma-separated, but the value is only split on commas when it contains more than one ` - ` separator (a lone name with an embedded comma is matched whole). Names are as recognized by document verification (front or back side), e.g. `Spain - Id Card (2021)`. KYC rows only. */
-  document_name?: string;
   /** Comma-separated document region/state values (for documents issued per region, such as US driver's licenses). KYC rows only. */
   region?: string;
   /** Filter by Didit's internal user identifier (the `didit_internal_id` response field) to list all sessions of one verified user. Must be a valid UUID; malformed values return `400`. KYC rows only. */
