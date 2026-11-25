@@ -89,6 +89,7 @@ function describeEvent(event: WebhookEvent): string {
       return "registry search";
     case "bank.link.completed":
       expectTypeOf(event).toEqualTypeOf<BankLinkCompletedEvent>();
+      expectTypeOf(event.data.renews_connection_id).toEqualTypeOf<string | null | undefined>();
       expectTypeOf(event.data.link_id).toEqualTypeOf<string>();
       return `bank link ${event.data.status}`;
     case "bank.link.cancelled":
@@ -122,7 +123,12 @@ function describeEvent(event: WebhookEvent): string {
       return `connection ${event.connection_id} ${event.initial_status}`;
     case "bank.connection.updated":
       expectTypeOf(event).toEqualTypeOf<BankConnectionUpdatedEvent>();
-      return `connection ${event.status} ${event.revocation_status}`;
+      expectTypeOf(event.revocation_status).toEqualTypeOf<"pending" | (string & {}) | undefined>();
+      expectTypeOf(event.status_reason).toEqualTypeOf<
+        "insufficient_balance" | "first_sync_failed" | (string & {}) | null | undefined
+      >();
+      expectTypeOf(event.ends_at).toEqualTypeOf<string | null | undefined>();
+      return `connection ${event.status}`;
     case "bank.connection.renewal_required":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRenewalRequiredEvent>();
       expectTypeOf(event.renewable_until).toEqualTypeOf<string | null>();
@@ -142,7 +148,7 @@ function describeEvent(event: WebhookEvent): string {
     case "bank.connection.revoked":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRevokedEvent>();
       expectTypeOf(event.ended_by).toEqualTypeOf<
-        "end_user" | "bank" | "customer" | "unknown" | (string & {})
+        "end_user" | "bank" | "customer" | "system" | "unknown" | (string & {})
       >();
       return `connection revoked by ${event.ended_by}`;
     case "bank.connection.deleted":

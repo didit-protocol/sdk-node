@@ -251,8 +251,10 @@ export interface BankLinkEventData {
   link_id: string;
   /** The link's final status. */
   status: "completed" | "cancelled" | "expired" | "failed" | (string & {});
-  /** The connection the link created or renewed. */
+  /** The connection the link created or renewed, null until completion. Older failed renewals may carry the target here. */
   connection_id: string | null;
+  /** Target from link creation, null for a non-renewal. Older deliveries omit this field. */
+  renews_connection_id?: string | null;
   /** The ownership result, when one was asked for. */
   check_id: string | null;
   /** Why the link failed, with `bank.link.failed`. */
@@ -306,7 +308,11 @@ export interface BankConnectionUpdatedData {
   /** The connection status. */
   status: BankConnectionStatus;
   /** `pending`: a revocation was requested and the bank has not confirmed it yet. */
-  revocation_status: "pending" | (string & {});
+  revocation_status?: "pending" | (string & {});
+  /** Reason for a status change on updates other than a revocation starting. */
+  status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
+  /** Scheduled end as an ISO datetime, or null. Omitted when a revocation starts. */
+  ends_at?: string | null;
 }
 
 /** Fields of `bank.connection.consent_expiring`. */
@@ -355,7 +361,7 @@ export interface BankConnectionRevokedData {
   /** Consent status once access is terminated. */
   status: "revoked" | (string & {});
   /** Who ended access. */
-  ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {});
+  ended_by: "end_user" | "bank" | "customer" | "system" | "unknown" | (string & {});
   /** Why the connection is in this status. */
   status_reason:
     | "revoked_by_end_user"
@@ -367,6 +373,7 @@ export interface BankConnectionRevokedData {
     | "insufficient_balance"
     | "paused_by_customer"
     | "first_sync_failed"
+    | "unpaid"
     | "collection_complete"
     | (string & {})
     | null;
@@ -493,7 +500,7 @@ export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnec
   webhook_type: "bank.connection.created";
 }
 
-/** `bank.connection.updated`: a revocation started; `bank.connection.revoked` follows. */
+/** `bank.connection.updated`: the connection status changed or a revocation started. */
 export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionUpdatedData {
   webhook_type: "bank.connection.updated";
 }
