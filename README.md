@@ -254,10 +254,29 @@ switch (event.webhook_type) {
   case "transaction.status.updated":
     console.log(event.transaction_id, event.status, event.score);
     break;
+  case "bank.link.failed":
+  case "bank.link.completed": {
+    const { renews_connection_id, connection_id } = event.data;
+    const renewalTarget = renews_connection_id === undefined ? connection_id : renews_connection_id;
+    console.log(event.data.link_id, renewalTarget);
+    break;
+  }
+  case "bank.connection.updated":
+    if (event.revocation_status === "pending")
+      console.log("revocation started", event.connection_id);
+    else console.log(event.connection_id, event.status_reason, event.ends_at);
+    break;
+  case "bank.connection.revoked":
+    console.log(event.connection_id, event.status_reason, event.ended_by);
+    break;
   default:
     console.log("unhandled event", event.webhook_type);
 }
 ```
+
+For Bank link events, correlate a renewal using `data.renews_connection_id` when present. An explicit `null` means the link renews nothing. Fall back to `data.connection_id` only when the target field is absent, as an older failed renewal can carry its target there. On current events, `connection_id` stays null until the link completes.
+
+On a revoked connection, `ended_by: "system"` can accompany `status_reason: "unpaid"` when the coming month was unpaid, or `"collection_complete"` when a one-time read finished.
 
 Events are a union discriminated by `webhook_type`: session (`status.updated`, `data.updated`), user, business, transaction and Travel Rule events, bank data (`bank.*`), `activity.created`, `workflow.compliance_changed`, `kyb.registry_search.resolved`, and `UnknownEvent` for any other type.
 Each event also has `event.verifiedBy` (which signature matched) and `event.bodyAuthenticated`.
