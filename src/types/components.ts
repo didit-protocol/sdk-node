@@ -1652,6 +1652,7 @@ export interface BankInstitution {
   id: string;
   name: string;
   country: string;
+  /** The address of the bank's logo hosted by Didit. */
   logo_url: string | null;
   /** IANA time zone the bank's dates are in. */
   timezone: string | null;
@@ -1701,7 +1702,7 @@ export interface BankInstitutionSummary {
   name: string;
   /** Country of the bank, ISO 3166-1 alpha-3. */
   country: string;
-  /** Logo of the bank, or `null`. */
+  /** The address of the bank's logo hosted by Didit. */
   logo_url: string | null;
 }
 
@@ -2290,7 +2291,7 @@ export interface BankVerificationResultConnection {
     | "revoked"
     | "expired"
     | (string & {});
-  /** The bank's ID. `null` for an account check, where no bank is picked. */
+  /** Didit's own ID of the bank, never the identifier the bank is reached by. It is opaque, so do not parse it, and stable for a bank in Didit's catalogue; a bank outside the catalogue has an ID that changes once the bank is added to it. The session's bank step (its start and continue calls and the saved bank lists of a workflow's bank node) accepts both the earlier form and this one; the Bank Data endpoints accept only this one. `null` for an account check, where no bank is picked. */
   institution_id?: string | null;
   /** The bank's name. `null` for an account check. */
   institution_name?: string | null;
@@ -2319,7 +2320,7 @@ export interface BankVerificationResultContinuation {
   country?: string | null;
   /** The other ways to verify that country offered the person when they continued, in the order it offered them: `statement` (a statement upload), then `microdeposits`. Empty when it offered none. */
   offered?: ("statement" | "microdeposits" | (string & {}))[] | null;
-  /** For `institution_unsupported`, the ID of the bank the person could not use: the bank they picked, or the bank their last attempt ended on. Didit takes it from its own list of banks, never from the person's device, so a bank that list does not have is `null`. `null` for every other reason. */
+  /** For `institution_unsupported`, Didit's ID of the bank the person could not use (the same ID as `connection.institution_id`): the bank they picked, or the bank their last attempt ended on. Didit takes it from its own list of banks, never from the person's device, so a bank that list does not have is `null`. `null` for every other reason. */
   institution_id?: string | null;
   /** For `institution_unsupported`, the name of that bank, from the same list as `institution_id`. `null` when that list does not have the bank, and for every other reason. */
   institution_name?: string | null;
