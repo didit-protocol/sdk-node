@@ -253,6 +253,13 @@ export interface BankLinkEventData {
   status: "completed" | "cancelled" | "expired" | "failed" | (string & {});
   /** The connection the link created or renewed. */
   connection_id: string | null;
+  /**
+   * The connection a renewal link targets, set when the link was created; `null` on a link that
+   * renews nothing. Optional: an event stored before this field existed does not have the key,
+   * and an older failed, cancelled or expired renewal event carries the connection in
+   * `connection_id`.
+   */
+  renews_connection_id?: string | null;
   /** The ownership result, when one was asked for. */
   check_id: string | null;
   /** Why the link failed, with `bank.link.failed`. */
@@ -305,8 +312,12 @@ export interface BankConnectionUpdatedData {
   connection_id: string;
   /** The connection status. */
   status: BankConnectionStatus;
-  /** `pending`: a revocation was requested and the bank has not confirmed it yet. */
-  revocation_status: "pending" | (string & {});
+  /** `pending`: a revocation was requested and the bank has not confirmed it yet. Present only in the payload that announces the revocation. */
+  revocation_status?: "pending" | (string & {});
+  /** Why the connection is paused or failed; `null` otherwise. Absent when a revocation starts. */
+  status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
+  /** When the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
+  ends_at?: string | null;
 }
 
 /** Fields of `bank.connection.consent_expiring`. */
@@ -355,7 +366,7 @@ export interface BankConnectionRevokedData {
   /** Consent status once access is terminated. */
   status: "revoked" | (string & {});
   /** Who ended access. */
-  ended_by: "end_user" | "bank" | "customer" | "unknown" | (string & {});
+  ended_by: "end_user" | "bank" | "customer" | "system" | "unknown" | (string & {});
   /** Why the connection is in this status. */
   status_reason:
     | "revoked_by_end_user"
@@ -367,6 +378,7 @@ export interface BankConnectionRevokedData {
     | "insufficient_balance"
     | "paused_by_customer"
     | "first_sync_failed"
+    | "unpaid"
     | "collection_complete"
     | (string & {})
     | null;
@@ -493,7 +505,7 @@ export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnec
   webhook_type: "bank.connection.created";
 }
 
-/** `bank.connection.updated`: a revocation started; `bank.connection.revoked` follows. */
+/** `bank.connection.updated`: a revocation started (`bank.connection.revoked` follows), or a status change such as a pause for an unpaid month, a resume or a failed first read. */
 export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionUpdatedData {
   webhook_type: "bank.connection.updated";
 }
