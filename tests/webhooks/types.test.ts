@@ -89,8 +89,8 @@ function describeEvent(event: WebhookEvent): string {
       return "registry search";
     case "bank.link.completed":
       expectTypeOf(event).toEqualTypeOf<BankLinkCompletedEvent>();
-      expectTypeOf(event.data.renews_connection_id).toEqualTypeOf<string | null | undefined>();
       expectTypeOf(event.data.link_id).toEqualTypeOf<string>();
+      expectTypeOf(event.data.renews_connection_id).toEqualTypeOf<string | null | undefined>();
       return `bank link ${event.data.status}`;
     case "bank.link.cancelled":
       expectTypeOf(event).toEqualTypeOf<BankLinkCancelledEvent>();

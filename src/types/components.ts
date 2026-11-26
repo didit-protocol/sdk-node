@@ -1425,7 +1425,7 @@ export interface BankConnection {
   id: string;
   environment?: "live" | "sandbox" | (string & {});
   access?: "one_time" | "ongoing" | (string & {});
-  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced and nothing charged. `paused`: balance too low for the month. `revoked`: access stopped by the person, the bank or you, or ended because the read of a one-time connection is complete. `deleted`: only `id`, `status`, `status_reason`, `created_at` and `erasure` remain. The list returns these only for `status=deleted`; reading one by id always returns it. `failed`: the first sync never succeeded. */
+  /** `pending`: first sync running. `active`: consent valid. `renewal_required`: the consent ended or the bank wants the person to sign in again, data readable as last synced; a month that begins while it waits is not charged. `paused`: the current month could not be paid, so syncing stops. It resumes by itself once your balance covers the month: when a credit reaches your wallet, or at the daily check at 05:30 UTC. `revoked`: access stopped by the person, the bank or you, ended because the read of a one-time connection is complete, or ended by Didit because its coming month was not paid by the deadline (`status_reason: unpaid`). `deleted`: only `id`, `status`, `status_reason`, `created_at` and `erasure` remain. The list returns these only for `status=deleted`; reading one by id always returns it. `failed`: the first sync never succeeded. */
   status:
     | "pending"
     | "active"
@@ -1435,7 +1435,7 @@ export interface BankConnection {
     | "deleted"
     | "failed"
     | (string & {});
-  /** Why the connection is in this status. `collection_complete`: a one-time connection whose read is complete, so its access has ended. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed` or `application_deleted`. */
+  /** Why the connection is in this status. `collection_complete`: a one-time connection whose read is complete, so its access has ended. `paused_by_customer` is reserved. On a `deleted` connection: `deleted_by_customer`, `consent_lapsed`, `retention_elapsed` or `application_deleted`. `unpaid`: the coming month was not paid by 20:00 UTC on the last day of the month before it, so Didit ended access and removed the connection at the bank; nothing more is charged. `bank.connection.revoked` with this reason is the final signal of that ending. */
   status_reason:
     | "collection_complete"
     | "consent_expired"
@@ -1447,6 +1447,7 @@ export interface BankConnection {
     | "insufficient_balance"
     | "paused_by_customer"
     | "first_sync_failed"
+    | "unpaid"
     | "deleted_by_customer"
     | "retention_elapsed"
     | "application_deleted"
@@ -1497,10 +1498,12 @@ export interface BankConnectionAccountSummary {
 export interface BankConnectionBilling {
   /** Billing unit, `connection_month` for ongoing access, `one_time` otherwise. */
   unit: "connection_month" | "one_time" | (string & {});
-  /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged for a month only when every accepted scope published data for at least one account in that month. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page. */
+  /** Your price for the month meter today, for your application and the country, in USD, a decimal string with 4 decimals. A connection is charged once for each calendar month (UTC) it is active: its first month when its first sync succeeds, and every later month in advance, in the last five days of the month before it, while the connection's consent reaches into it. A connection created in the last five days of a month whose first read starts in the next month needs both months covered together before that read: with funds for only one, the read fails and neither is charged. `null` for one-time connections and in the sandbox. Ongoing access is billed per active connection per month; the current price is on the pricing page (https://docs.didit.me/getting-started/pricing). Amounts in examples are illustrative; the price for a country is shown on the pricing page. */
   price_usd: string | null;
   /** The last month end already settled. */
   billed_through: string | null;
+  /** When the connection ends unless its coming month is paid first: 20:00 UTC on the last day of the month before it. Set once a payment of the coming month has failed, while the connection is `active` or `paused`. `null` when nothing has failed yet and once the month is paid, and also while the connection is `pending`, needs renewal, is being revoked or has ended, is a sandbox connection, or its consent ends before the month begins, so a `null` alone does not mean the month was paid. */
+  ends_at: Date | null;
 }
 
 /** The person's consent for this connection. */
@@ -1527,12 +1530,12 @@ export interface BankConnectionConsent {
   renew_by: Date | null;
   /** Set when `renewal_action` is `reconfirm`: the last moment to reconfirm. */
   reconfirm_by: Date | null;
-  /** The last moment the same connection can be revived after the consent ended. After it the person connects again. It equals `retain_until`. */
+  /** The last moment the same connection can be renewed with its renewal link after access ended. `null` while access has not ended and whenever the connection cannot be renewed, so a non-null value is the test for a renewal and `ended_by` does not decide it. After it the person connects again. */
   renewable_until: Date | null;
   /** Set once access ended: how long the stored data stays readable, set by the retention setting of your application. */
   retain_until: Date | null;
   ended_at: Date | null;
-  /** Who ended access, set from evidence. `system` when Didit ended it by design: a one-time connection once its read is complete. `unknown` when neither the bank nor the sync says. */
+  /** Who ended access, set from evidence. `system` when Didit ended it: a one-time connection once its read is complete (`status_reason: collection_complete`), or a connection whose coming month was not paid by the deadline (`status_reason: unpaid`). `unknown` when neither the bank nor the sync says. */
   ended_by: "end_user" | "bank" | "customer" | "system" | "unknown" | (string & {}) | null;
 }
 
@@ -1652,6 +1655,7 @@ export interface BankInstitution {
   id: string;
   name: string;
   country: string;
+  /** The address of the bank's logo hosted by Didit, or `null` when Didit has no logo for the bank. */
   logo_url: string | null;
   /** IANA time zone the bank's dates are in. */
   timezone: string | null;
@@ -1701,7 +1705,7 @@ export interface BankInstitutionSummary {
   name: string;
   /** Country of the bank, ISO 3166-1 alpha-3. */
   country: string;
-  /** Logo of the bank, or `null`. */
+  /** The address of the bank's logo hosted by Didit, or `null` when Didit has no logo for the bank. */
   logo_url: string | null;
 }
 
@@ -1727,8 +1731,10 @@ export interface BankLink {
   client_token: string | null;
   /** When an unredeemed link stops working. */
   expires_at: Date;
-  /** The connection this link created or renewed, once `status` is `completed`. */
+  /** The connection this link produced or renewed. `null` until the link completes, on every kind of link. */
   connection_id: string | null;
+  /** The connection a renewal link (`mode: renew`) targets, set when the link is created; `null` on a link that renews nothing. Always present. `connection_id` stays `null` until the link completes. */
+  renews_connection_id: string | null;
   /** The ownership result of this link, when it asked for `ownership.compare` other than `none`. */
   check_id: string | null;
   /** `true` when the link completed as a renewal of an existing connection because the person already shares exactly these accounts (`duplicates: reuse`). Nothing is charged twice. */
@@ -2290,10 +2296,12 @@ export interface BankVerificationResultConnection {
     | "revoked"
     | "expired"
     | (string & {});
-  /** The bank's ID. `null` for an account check, where no bank is picked. */
+  /** Didit's own ID of the bank, never the identifier the bank is reached by. It is opaque, so do not parse it, and stable for a bank in Didit's catalogue; a bank outside the catalogue has an ID that changes once the bank is added to it. The session's bank step (its start and continue calls and the saved bank lists of a workflow's bank node) accepts both the earlier form and this one; the Bank Data endpoints accept only this one. `null` for an account check, where no bank is picked. */
   institution_id?: string | null;
   /** The bank's name. `null` for an account check. */
   institution_name?: string | null;
+  /** The address of the bank's logo hosted by Didit, or `null` when Didit has no logo for the bank. `null` for an account check, where no bank is picked. Returned with `institution_name`. */
+  logo_url?: string | null;
   /** The account's country, ISO 3166-1 alpha-3. */
   institution_country?: string | null;
   /** Whether the bank sign-in ran over OAuth or app-to-app. `null` for an account check. */
@@ -2319,7 +2327,7 @@ export interface BankVerificationResultContinuation {
   country?: string | null;
   /** The other ways to verify that country offered the person when they continued, in the order it offered them: `statement` (a statement upload), then `microdeposits`. Empty when it offered none. */
   offered?: ("statement" | "microdeposits" | (string & {}))[] | null;
-  /** For `institution_unsupported`, the ID of the bank the person could not use: the bank they picked, or the bank their last attempt ended on. Didit takes it from its own list of banks, never from the person's device, so a bank that list does not have is `null`. `null` for every other reason. */
+  /** For `institution_unsupported`, Didit's ID of the bank the person could not use (the same ID as `connection.institution_id`): the bank they picked, or the bank their last attempt ended on. Didit takes it from its own list of banks, never from the person's device, so a bank that list does not have is `null`. `null` for every other reason. */
   institution_id?: string | null;
   /** For `institution_unsupported`, the name of that bank, from the same list as `institution_id`. `null` when that list does not have the bank, and for every other reason. */
   institution_name?: string | null;
@@ -6407,9 +6415,9 @@ export interface MonitoringEventDetail {
   payload: Record<string, unknown>;
   /** The scalar `custom_values` you sent. Didit adds `vpn_or_proxy_detected: true` or `is_data_center: true` when IP enrichment flags the address and you did not set them. */
   custom_values: Record<string, unknown>;
-  /** The device context as stored: your `device_context` (including `fingerprint`, `persistent_device_id` and `bot_score` when sent) with `network_context` completed by IP enrichment (`ip_country`, `ip_country_code`, `ip_city`, `asn_number`, `asn_organization`, `is_vpn_or_tor`, `is_data_center`, `proxy_type`, `connection_type`) for keys you left empty. For an event your backend submitted, `bot_score` is the integer you sent. For an event submitted from a device with a monitoring token (the Didit SDKs), `bot_score` is the score Didit decided for that request, an integer from 0 to 100, and it is absent when Didit had nothing to decide it from: absent means unknown, not 0. On those events a `bot_score` the device posted in its own `device_context` does not set the score and is returned as `metadata.client_bot_score`, an integer, present only when the device posted one. */
+  /** The device context as stored: your `device_context` (including `fingerprint`, `persistent_device_id` and `bot_score` when sent) with `network_context` completed by IP enrichment (`ip_country`, `ip_country_code`, `ip_city`, `asn_number`, `asn_organization`, `is_vpn_or_tor`, `is_data_center`, `proxy_type`, `connection_type`) for keys you left empty. For an event your backend submitted, `bot_score` is the integer you sent. For an event submitted from a device with a monitoring token (the Didit SDKs), `bot_score` is the score Didit decided for that request, an integer from 0 to 100. It is `0` when Didit had something to judge and found nothing: it read the device evidence the SDK sent and no sign of automation was in it, or an older SDK reported a score of 0. It is absent when Didit had nothing to decide it from (no evidence it could read, no score from the SDK, nothing in the request): absent means unknown, not 0, so compare `0` only when the field is present. The object is otherwise open: a key the device added to its own device context is returned as it was sent, with one exception. A device fingerprint the device put there (`fingerprint_v2` or `fingerprintV2`, or a context that is itself a fingerprint) is returned without its `evidence` member: Didit reads that evidence to decide the score and does not store it. The fingerprint's other members and every key beside it are returned as sent. A fingerprint that is not a JSON object, or the JSON text of one, cannot be read and is left out of the stored context. On those events a `bot_score` the device posted in its own `device_context` does not set the score and is returned as `metadata.client_bot_score`, an integer, present only when the device posted one. */
   device_context: Record<string, unknown>;
-  /** Field path to provenance: `customer` (sent by your backend), `sdk` (sent through the device lane) or `server` (derived by Didit, such as `received_at` and enriched network fields). Check it before acting on a match. For an event submitted from a device with a monitoring token, the entry `device_context.bot_score` says who decided that score: `sdk` when the Didit SDK's own report alone set it, `server` when Didit raised it from the request or decided there is no score. The entry is present in that case even when `device_context.bot_score` itself is absent, so it is not a way to tell whether a score exists: read the score. Events stored before this behaviour keep the entries they were stored with. */
+  /** Field path to provenance: `customer` (sent by your backend), `sdk` (sent through the device lane) or `server` (derived by Didit, such as `received_at` and enriched network fields). Check it before acting on a match. For an event submitted from a device with a monitoring token, the entry `device_context.bot_score` says who decided that score: `sdk` when the Didit SDK's own score alone set it, `server` when Didit decided it from the request or from the device evidence the SDK sent, or decided there is no score. The entry is present in that case even when `device_context.bot_score` itself is absent, so it is not a way to tell whether a score exists: read the score. Events stored before this behaviour keep the entries they were stored with. */
   field_sources: Record<string, "customer" | "sdk" | "server" | (string & {})>;
   /** `session.sequence` sent with the event. */
   session_sequence: number | null;
@@ -8223,7 +8231,7 @@ export interface PhoneStatsRow {
   read_rate: number;
   /** Inbound replies per delivered message in the same group and date range. Zero for verifications and lookups. */
   reply_rate: number;
-  /** Spend in USD. */
+  /** Spend in USD. For `verification` and `lookups`: what Didit charged, debited from your balance or invoiced under a contract in USD. For `messages`: the price recorded on each message sent. `0.00` in the sandbox. */
   spend: string;
 }
 
@@ -8284,7 +8292,7 @@ export interface PhoneVerificationAttempt {
   read_at?: Date | null;
   /** When the code ran out before delivery. */
   expired_at?: Date | null;
-  /** True when the attempt has been billed or has a nonzero actual price. See `status` for the delivery outcome. */
+  /** True when the attempt has been billed or has a nonzero actual price. Always false in the sandbox, which charges nothing. See `status` for the delivery outcome. */
   charged?: boolean;
   /** The price line of one attempt. */
   price?: PhoneVerificationPrice;
@@ -8378,7 +8386,7 @@ export interface PhoneVerificationCheckResponsePhoneLifecycle {
   timestamp?: Date;
   /** Event-specific payload. Send events: `{status, reason, channel, actual_channel, attempt, delivery_status}` - `actual_channel` is filled once delivery is confirmed, `attempt` is the 0-based index of the send (the order of the send events), and `delivery_status` is `delivered`, `undeliverable` or `unknown` (no report arrived before the verification ended); it is absent while a report can still arrive. Delivery events: `{channel, status, attempt, reason}` - `attempt` is the send it belongs to, and `reason` (on `PHONE_DELIVERY_UNDELIVERABLE` only) is `expired`, `rejected`, `unreachable`, `blocked` or `unknown` for a message, and `unreachable_number`, `no_answer`, `busy` or `undeliverable` for a call. Code-entry events: `{code_tried, status}`. Final-status events: `null`, or `{reason}` when declined or in review. */
   details?: Record<string, unknown> | null;
-  /** USD amount billed for this event. Non-zero only on send events (the delivery price); 0 for code entries, delivery confirmations, and status events. */
+  /** USD price of this event. Non-zero only on send events: the send's estimated price until billing records its charge, then the price billing recorded for it. A `Blocked` send is never charged. A send whose every message was reported undeliverable is not charged either, unless a later delivery report shows one of its messages was delivered: that report charges it. A send that is not charged reads 0 from billing close, a few minutes after the code's 5-minute validity ends, and a later delivery report that charges it replaces the 0 with that charge. 0 for code entries, delivery confirmations, and status events, and 0 on every event in the sandbox. */
   fee?: number;
 }
 
@@ -8478,13 +8486,13 @@ export interface PhoneVerificationNextResponse {
 
 /** The price line of one attempt. */
 export interface PhoneVerificationPrice {
-  /** What it cost, in USD. */
+  /** What the attempt costs, in USD. It is the estimated price, with `final` false, until billing records a charge or billing close comes (a few minutes after the code's 5-minute validity ends). Once billing records a charge it is that charge, and `final` is true. An attempt that is not charged reads `0.0000` from billing close: final for a `Blocked` attempt, which is never charged, and not final (`final` false) for an attempt whose every message was reported undeliverable, because a later delivery report showing one of its messages was delivered charges it and replaces the `0.0000`. Under a contract, your invoice prices each code at the contract's rate, which this amount does not show. `0.0000` in the sandbox. */
   amount?: string;
   /** The carrier part, passed on at cost. */
   carrier?: string | null;
   /** Didit's fee. */
   fee?: string | null;
-  /** false until the carrier reports delivery, then the reported price. */
+  /** true once billing has recorded the attempt's charge (on its delivery report or, when no report comes, at billing close, a few minutes after the code's 5-minute validity ends), and from billing close for a `Blocked` attempt, which is never charged (`amount` `0.0000`). false while `amount` is the estimated price before billing close, and for an attempt whose every message was reported undeliverable: it reads `amount` `0.0000` from billing close, but a later delivery report showing one of its messages was delivered charges it. Always true in the sandbox, where nothing is charged. */
   final?: boolean;
 }
 
@@ -8999,8 +9007,8 @@ export interface SandboxRiskCase {
 export interface SandboxSampleDocument {
   /** The sample slug that selects this document, or `null` for the default document. */
   sandbox_sample: string | null;
-  /** The document the sandbox OCR mock returns. */
-  document_name: string;
+  /** The type of the document the sandbox OCR mock returns: `P` (Passport), `ID` (Identity Card), `DL` (Driver's License) or `RP` (Residence Permit). Its issuing country is `id_country`. */
+  document_type: string | null;
   /** Whether this is the document returned when no sample is selected. */
   is_default: boolean;
   /** Extracted given name, for `expected_details`. */
@@ -12997,9 +13005,11 @@ export interface SignatureResultValidationDocumentsTrustedList {
 }
 
 export interface SignatureResultWarnings {
+  /** The warning. `SIGNATURE_OTP_NOT_CONFIRMED` means no code was sent because the code goes by SMS and the signer's phone is on your phone block list (the number, its prefix, its network or its country); the signing ended by `signature_otp_failed_action`, and the same warning in the session's activity, and in the top-level `warnings` of a version 1 decision and its webhooks, carries `additional_data.blocked_reason: "blocked_by_list"`. The signer's own flow never receives the reason. See [E-signature warnings](/core-technology/electronic-signature/warnings-electronic-signature). */
   code?:
     | "SIGNATURE_DECLINED"
     | "SIGNATURE_OTP_FAILED"
+    | "SIGNATURE_OTP_NOT_CONFIRMED"
     | "SIGNATURE_NAME_MISMATCH"
     | "SIGNATURE_IDENTITY_NOT_VERIFIED"
     | "SIGNATURE_DOCUMENT_CHANGED"
@@ -13080,6 +13090,7 @@ export interface SimpleWorkflowFeature {
     | "PHONE_VERIFICATION"
     | "EMAIL_VERIFICATION"
     | "DATABASE_VALIDATION"
+    | "BANK_VERIFICATION"
     | "AML"
     | "IP_ANALYSIS"
     | "AGE_ESTIMATION"
@@ -13088,7 +13099,7 @@ export interface SimpleWorkflowFeature {
     | "KYB_KEY_PEOPLE"
     | "SIGNATURE"
     | (string & {});
-  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed), `aes` and `qes` (Qualified, an add-on that is refused with `qes_not_available` while `signature_availability.qes` is `false`), and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
+  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `BANK_VERIFICATION`, `bank_countries` is a whitelist: an empty map offers no bank and runs no check; see [Bank Verification](/management-api/workflows/feature-configs#bank-verification) for every key. The node is accepted only on an account where Bank Verification is enabled. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed), `aes` and `qes` (Qualified, an add-on that is refused with `qes_not_available` while `signature_availability.qes` is `false`), and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
   config?: Record<string, unknown>;
   /** Optional internal label for this workflow node. */
   label?: string;
@@ -13314,6 +13325,15 @@ export interface TransactionDetailPartiesDevice {
   session_age_ms?: number;
   /** Network context with IP address and geo-location. */
   network_context?: TransactionDetailPartiesDeviceNetworkContext;
+  /** Further keys of the device context, free-form: the `metadata` that was sent, of any shape, returned as stored. For the subject (the `APPLICANT` party) of a transaction submitted from a device with a transaction token (`POST /v1/transactions/`, the Didit SDKs), Didit adds what it read from the request, such as `bot_score`. */
+  metadata?: TransactionDetailPartiesDeviceMetadata;
+}
+
+/** Further keys of the device context, free-form: the `metadata` that was sent, of any shape, returned as stored. For the subject (the `APPLICANT` party) of a transaction submitted from a device with a transaction token (`POST /v1/transactions/`, the Didit SDKs), Didit adds what it read from the request, such as `bot_score`. */
+export interface TransactionDetailPartiesDeviceMetadata {
+  /** The device's automation score. Its type is not fixed for every party: read it as described here. For the subject (the `APPLICANT` party) of a transaction submitted from a device with a transaction token, Didit decides it on the server and it is a number from 0 (no sign of automation) to 1 (automated): from the request itself (a user agent that names an automation tool scores 1) and from what the SDK sent, which is what it read about how the page or app is driven or, from an older SDK version, its own score. Nothing the device sends can lower it, and a `bot_score` the device posts in its own device context is not kept. It is absent when Didit had nothing to decide it from: absent means unknown, not 0. For any other party, on a transaction your backend submitted with an API key, and on transactions stored before this behaviour, it is whatever was sent in `metadata`, unchanged and of whatever type it was sent. */
+  bot_score?: unknown;
+  [key: string]: unknown;
 }
 
 /** Network context with IP address and geo-location. */

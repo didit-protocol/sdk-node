@@ -61,11 +61,13 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
     p: {
       consent: "BankConnectionConsent",
       sync: "BankConnectionSync",
+      billing: "BankConnectionBilling",
       erasure: "BankConnectionErasure",
       created_at: 1,
       updated_at: 1,
     },
   },
+  BankConnectionBilling: { p: { ends_at: 1 } },
   BankConnectionConsent: {
     p: {
       granted_at: 1,

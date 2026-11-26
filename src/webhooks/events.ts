@@ -253,7 +253,12 @@ export interface BankLinkEventData {
   status: "completed" | "cancelled" | "expired" | "failed" | (string & {});
   /** The connection the link created or renewed, null until completion. Older failed renewals may carry the target here. */
   connection_id: string | null;
-  /** Target from link creation, null for a non-renewal. Older deliveries omit this field. */
+  /**
+   * The connection a renewal link targets, set when the link was created; `null` on a link that
+   * renews nothing. Optional: an event stored before this field existed does not have the key,
+   * and an older failed, cancelled or expired renewal event carries the connection in
+   * `connection_id`.
+   */
   renews_connection_id?: string | null;
   /** The ownership result, when one was asked for. */
   check_id: string | null;
@@ -307,11 +312,11 @@ export interface BankConnectionUpdatedData {
   connection_id: string;
   /** The connection status. */
   status: BankConnectionStatus;
-  /** `pending`: a revocation was requested and the bank has not confirmed it yet. */
+  /** `pending`: a revocation was requested and the bank has not confirmed it yet. Present only in the payload that announces the revocation. */
   revocation_status?: "pending" | (string & {});
-  /** Reason for a status change on updates other than a revocation starting. */
+  /** Why the connection is paused or failed; `null` otherwise. Absent when a revocation starts. */
   status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
-  /** Scheduled end as an ISO datetime, or null. Omitted when a revocation starts. */
+  /** ISO datetime when the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
   ends_at?: string | null;
 }
 
@@ -500,7 +505,7 @@ export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnec
   webhook_type: "bank.connection.created";
 }
 
-/** `bank.connection.updated`: the connection status changed or a revocation started. */
+/** `bank.connection.updated`: a revocation started (`bank.connection.revoked` follows), or a status change such as a pause for an unpaid month, a resume or a failed first read. */
 export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionUpdatedData {
   webhook_type: "bank.connection.updated";
 }
