@@ -230,10 +230,10 @@ describe("the payloads match the contract's event schemas", () => {
   });
 
   for (const [name, schema] of eventSchemas) {
-    it(`${name} has its required fields and no field outside the contract`, () => {
-      const typed = resolve(schema).allOf!.find((part) => part.properties?.webhook_type)!;
-      const type = (typed.properties!.webhook_type as { enum: string[] }).enum[0]!;
-      const { payload } = deliveries.get(type.replaceAll(".", "_"))!;
+    const typed = resolve(schema).allOf!.find((part) => part.properties?.webhook_type)!;
+    const type = (typed.properties!.webhook_type as { enum: string[] }).enum[0]!;
+    const samples = [...deliveries.values()].filter(({ payload }) => payload.webhook_type === type);
+    it.each(samples)(`${name} ($vector.name) has its required fields and no field outside the contract`, ({ payload }) => {
       const event = fields(schema);
       const required = [...new Set(event.required)];
       expect(Object.keys(payload)).toEqual(expect.arrayContaining(required));
