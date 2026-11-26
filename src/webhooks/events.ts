@@ -253,16 +253,12 @@ export interface BankLinkEventData {
   status: "completed" | "cancelled" | "expired" | "failed" | (string & {});
   /** The connection the link created or renewed, null until completion. Older failed renewals may carry the target here. */
   connection_id: string | null;
-<<<<<<< HEAD
-  /** Target from link creation, null for a non-renewal. Older deliveries omit this field. */
-=======
   /**
    * The connection a renewal link targets, set when the link was created; `null` on a link that
    * renews nothing. Optional: an event stored before this field existed does not have the key,
    * and an older failed, cancelled or expired renewal event carries the connection in
    * `connection_id`.
    */
->>>>>>> b8378951e298a600f0a17cba45f7115b974e0ebd
   renews_connection_id?: string | null;
   /** The ownership result, when one was asked for. */
   check_id: string | null;
@@ -316,19 +312,11 @@ export interface BankConnectionUpdatedData {
   connection_id: string;
   /** The connection status. */
   status: BankConnectionStatus;
-<<<<<<< HEAD
-  /** `pending`: a revocation was requested and the bank has not confirmed it yet. */
-  revocation_status?: "pending" | (string & {});
-  /** Reason for a status change on updates other than a revocation starting. */
-  status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
-  /** Scheduled end as an ISO datetime, or null. Omitted when a revocation starts. */
-=======
   /** `pending`: a revocation was requested and the bank has not confirmed it yet. Present only in the payload that announces the revocation. */
   revocation_status?: "pending" | (string & {});
   /** Why the connection is paused or failed; `null` otherwise. Absent when a revocation starts. */
   status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
-  /** When the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
->>>>>>> b8378951e298a600f0a17cba45f7115b974e0ebd
+  /** ISO datetime when the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
   ends_at?: string | null;
 }
 
@@ -517,11 +505,7 @@ export interface BankConnectionCreatedEvent extends WebhookEventBase, BankConnec
   webhook_type: "bank.connection.created";
 }
 
-<<<<<<< HEAD
-/** `bank.connection.updated`: the connection status changed or a revocation started. */
-=======
 /** `bank.connection.updated`: a revocation started (`bank.connection.revoked` follows), or a status change such as a pause for an unpaid month, a resume or a failed first read. */
->>>>>>> b8378951e298a600f0a17cba45f7115b974e0ebd
 export interface BankConnectionUpdatedEvent extends WebhookEventBase, BankConnectionUpdatedData {
   webhook_type: "bank.connection.updated";
 }
