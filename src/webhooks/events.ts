@@ -251,7 +251,7 @@ export interface BankLinkEventData {
   link_id: string;
   /** The link's final status. */
   status: "completed" | "cancelled" | "expired" | "failed" | (string & {});
-  /** The connection the link created or renewed. */
+  /** The connection the link created or renewed, null until completion. Older failed renewals may carry the target here. */
   connection_id: string | null;
   /**
    * The connection a renewal link targets, set when the link was created; `null` on a link that
@@ -316,7 +316,7 @@ export interface BankConnectionUpdatedData {
   revocation_status?: "pending" | (string & {});
   /** Why the connection is paused or failed; `null` otherwise. Absent when a revocation starts. */
   status_reason?: "insufficient_balance" | "first_sync_failed" | (string & {}) | null;
-  /** When the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
+  /** ISO datetime when the connection ends unless its coming month is paid first; `null` once it is paid or when nothing is pending. Absent when a revocation starts. */
   ends_at?: string | null;
 }
 

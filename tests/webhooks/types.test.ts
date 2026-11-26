@@ -123,8 +123,12 @@ function describeEvent(event: WebhookEvent): string {
       return `connection ${event.connection_id} ${event.initial_status}`;
     case "bank.connection.updated":
       expectTypeOf(event).toEqualTypeOf<BankConnectionUpdatedEvent>();
+      expectTypeOf(event.revocation_status).toEqualTypeOf<"pending" | (string & {}) | undefined>();
+      expectTypeOf(event.status_reason).toEqualTypeOf<
+        "insufficient_balance" | "first_sync_failed" | (string & {}) | null | undefined
+      >();
       expectTypeOf(event.ends_at).toEqualTypeOf<string | null | undefined>();
-      return `connection ${event.status} ${event.revocation_status}`;
+      return `connection ${event.status}`;
     case "bank.connection.renewal_required":
       expectTypeOf(event).toEqualTypeOf<BankConnectionRenewalRequiredEvent>();
       expectTypeOf(event.renewable_until).toEqualTypeOf<string | null>();
