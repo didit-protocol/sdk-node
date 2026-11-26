@@ -493,6 +493,8 @@ export class Bank extends APIResource {
    *
    * Send the returned `url` to the person: the hosted page shows what continues to be shared and until when, the person signs in at their bank once and returns to your `redirect_url`, and `bank.connection.renewed` confirms it. Afterwards the connection's `consent` shows a new `version`, `renewed_count`, `expires_at` and `renew_by`, with `renewal_action` `bank_auth`.
    *
+   * Send `consent_days` to choose how many days the renewal asks the bank for; without it the renewal asks for the length the person chose before, and either way the bank's own maximum is never exceeded.
+   *
    * A one-time connection has no consent to renew: it answers `409 one_time_connection`, and a new link reads the bank again.
    *
    * Until the consent has 30 days left or fewer it answers `409 renewal_not_needed`; after `consent.renewable_until` it answers `409 renewal_window_expired` and the person connects again.
