@@ -233,18 +233,23 @@ describe("the payloads match the contract's event schemas", () => {
     const typed = resolve(schema).allOf!.find((part) => part.properties?.webhook_type)!;
     const type = (typed.properties!.webhook_type as { enum: string[] }).enum[0]!;
     const samples = [...deliveries.values()].filter(({ payload }) => payload.webhook_type === type);
-    it.each(samples)(`${name} ($vector.name) has its required fields and no field outside the contract`, ({ payload }) => {
-      const event = fields(schema);
-      const required = [...new Set(event.required)];
-      expect(Object.keys(payload)).toEqual(expect.arrayContaining(required));
-      expect(event.properties).toEqual(expect.arrayContaining(Object.keys(payload)));
-      if ("data" in payload) {
-        const data = fields(typed.properties!.data!);
-        expect(Object.keys(payload.data as object)).toEqual(expect.arrayContaining(data.required));
-        expect(data.properties).toEqual(
-          expect.arrayContaining(Object.keys(payload.data as object)),
-        );
-      }
-    });
+    it.each(samples)(
+      `${name} ($vector.name) has its required fields and no field outside the contract`,
+      ({ payload }) => {
+        const event = fields(schema);
+        const required = [...new Set(event.required)];
+        expect(Object.keys(payload)).toEqual(expect.arrayContaining(required));
+        expect(event.properties).toEqual(expect.arrayContaining(Object.keys(payload)));
+        if ("data" in payload) {
+          const data = fields(typed.properties!.data!);
+          expect(Object.keys(payload.data as object)).toEqual(
+            expect.arrayContaining(data.required),
+          );
+          expect(data.properties).toEqual(
+            expect.arrayContaining(Object.keys(payload.data as object)),
+          );
+        }
+      },
+    );
   }
 });
