@@ -1486,7 +1486,7 @@ export class PhoneVerifications extends APIResource {
   /**
    * List or export verifications
    *
-   * List your application's verifications, newest first. Filter by status, channel, phone number, reference, tag (`key:value`) or creation time. Use `limit` and `offset` to page through JSON results: `next` and `previous` are offsets, not URLs, so send `next` as `offset` to read the next page. Use `format=csv` to export all matching verifications. The `template` query parameter does not filter these records. Verification history does not return a `template_used` field.
+   * List your application's verifications, newest first. Filter by status, channel, phone number, reference, tag (`key:value`) or creation time. Use `limit` and `offset` to page through JSON results: `next` and `previous` are offsets, not URLs, so send `next` as `offset` to read the next page. Use `format=csv` to export all matching verifications. The `template` query parameter does not filter these records. Verification history does not return a `template_used` field. A Phone risk lookup is not a verification and is not listed here: read lookups with `GET /v3/phone/lookups/`.
    *
    * `GET /v3/phone/verifications/`
    */
@@ -1723,7 +1723,7 @@ export class Phone extends APIResource {
    *
    * **Send statuses.** `Success` - OTP sent for a new verification; `Retry` - OTP re-sent for the pending verification; `Blocked` - the anti-fraud layer refused to send (see `reason`, e.g. `repeated_attempts`, `suspicious`, `spam`). A `Blocked` send immediately finalizes the verification as `Declined` with a high-risk warning, so a follow-up check returns `Expired or Not Found`. A sandbox test number registered as `blocked` is the exception: its send answers `Blocked` and its check answers `Declined`.
    *
-   * **Billing.** The price depends on the destination country and the channel that actually delivers the message - see [Phone Verification Pricing](/getting-started/phone-verification-pricing). Only `Blocked` sends are guaranteed free: any other unbilled send attempt is charged at verification finalization or expiration, even if delivery was never confirmed or the delivery provider reported the message undeliverable. Checks are always free. As an anti-abuse measure, phone verification is disabled until your organization has a paid plan or makes its first top-up (`403`).
+   * **Billing.** The price depends on the destination country and the channel that actually delivers the message - see [Phone Verification Pricing](/getting-started/phone-verification-pricing). A `Blocked` send is never charged. A send whose every message was reported undeliverable is not charged either, unless a later delivery report shows one of its messages was delivered: that report charges it. Any other send is charged once, even if its delivery was never confirmed: when its delivery report arrives, or else at billing close, a few minutes after the code's 5-minute validity ends. Checks are always free. As an anti-abuse measure, phone verification is disabled until your organization has a paid plan or makes its first top-up (`403`).
    *
    * **Session persistence.** Every new verification is persisted as an API-type session: `request_id` is a real session id you can pass to `GET /v3/session/{sessionId}/decision/`, the verification appears in the Business Console, and `status.updated` webhooks fire as it progresses.
    *
