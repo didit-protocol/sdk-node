@@ -16435,6 +16435,8 @@ export interface WorkflowDetail {
     | "phone_verification"
     | (string & {})
     | null;
+  /** Whether the hosted phone welcome screen offers the QR code and link to continue on another device. */
+  is_welcome_handoff_enabled?: boolean;
   /** Whether this is the application's default workflow. */
   is_default?: boolean;
   /** Archived workflows cannot start new sessions. */
