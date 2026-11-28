@@ -147,6 +147,7 @@ export {
   MessagesConversationsWebhooks,
   MessagesFeedback,
   MessagesRules,
+  MessagesTelegramLinks,
   MessagesTemplates,
 } from "./messages.js";
 export { MonitoringEvents } from "./monitoring-events.js";

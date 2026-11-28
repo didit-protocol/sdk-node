@@ -690,6 +690,7 @@ export const DATE_PLANS: Readonly<Record<string, DatePlan>> = {
       email_sent_at: 1,
     },
   },
+  TelegramLink: { p: { expires_at: 1 } },
   TransactionDetail: {
     p: {
       txn_date: 1,

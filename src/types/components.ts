@@ -5892,9 +5892,9 @@ export interface Message {
   /** The recipient of the first attempt. `null` once erased: Didit erases a message's text and recipient `retention_days` after the message's last event (`PATCH /v3/messages/settings/`). */
   to: string | null;
   /** The channel of the latest attempt. */
-  channel: "sms" | "whatsapp" | "email" | (string & {});
+  channel: "sms" | "whatsapp" | "telegram" | "email" | (string & {});
   /** The channels of the request, in order: those tried so far, then those still to try. */
-  channels: ("sms" | "whatsapp" | "email" | (string & {}))[];
+  channels: ("sms" | "whatsapp" | "telegram" | "email" | (string & {}))[];
   /** The text exactly as the recipient reads it. `null` once erased: Didit erases a message's text and recipient `retention_days` after the message's last event (`PATCH /v3/messages/settings/`). */
   body: string | null;
   /** Email subject. `null` once erased. */
@@ -5906,7 +5906,7 @@ export interface Message {
   correlation_id: string | null;
   segments: number;
   encoding: "GSM-7" | "UCS-2" | (string & {}) | null;
-  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost. `fee` is Didit's fee with your plan's discount. When a contract rate card prices a live Telegram message, both are `null`. For all other live Telegram rates, including a negotiated rate, `carrier` is `0.0000` and `fee` equals `amount`. On other channels both fields are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` for an estimate and `true` once the amount is billed. */
   price: MessagePrice | null;
   /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
   error: MessageError | null;
@@ -5926,7 +5926,7 @@ export interface Message {
 export interface MessageAttempt {
   /** The attempt's own id. */
   id: string;
-  channel: "sms" | "whatsapp" | "email" | (string & {});
+  channel: "sms" | "whatsapp" | "telegram" | "email" | (string & {});
   /** Where this attempt was addressed (E.164 number or email). Not in webhooks. `null` once erased. */
   to?: string | null;
   status:
@@ -5941,7 +5941,7 @@ export interface MessageAttempt {
     | (string & {});
   /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
   error: MessageError | null;
-  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+  /** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost. `fee` is Didit's fee with your plan's discount. When a contract rate card prices a live Telegram message, both are `null`. For all other live Telegram rates, including a negotiated rate, `carrier` is `0.0000` and `fee` equals `amount`. On other channels both fields are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` for an estimate and `true` once the amount is billed. */
   price: MessagePrice | null;
   /** SMS segments the text takes; 1 off SMS. */
   segments: number;
@@ -5977,13 +5977,13 @@ export interface MessageCapabilitiesChannels {
 }
 
 export interface MessageChannelPrice {
-  channel: "sms" | "whatsapp" | "email" | (string & {});
+  channel: "sms" | "whatsapp" | "telegram" | "email" | (string & {});
   unit: "segment" | "message" | (string & {});
   /** WhatsApp: the message category priced (`utility`). */
   category?: string;
-  /** The carrier's or WhatsApp's part, at cost; `0.0000` from your own connected WhatsApp Business account. */
+  /** The carrier's or WhatsApp's part, at cost. For standard quotes this is `0.0000` on Telegram and on your own connected WhatsApp Business account. A Telegram quote under a contract rate card returns `null` here. */
   carrier: string | null;
-  /** Didit's fee with your plan's discount. */
+  /** Didit's fee with your plan's discount. For a standard Telegram quote this equals `price`. A Telegram quote under a contract rate card returns `null` here. */
   fee: string | null;
   /** Total per unit. */
   price: string | null;
@@ -6043,7 +6043,7 @@ export interface MessageConversationWebhook {
 
 /** Why an attempt failed or was skipped. `message` is a sentence for people; read `code` in code. */
 export interface MessageError {
-  /** `invalid_recipient`: the address is not valid for the channel, or the number has no account on it. `unreachable`: the carrier could not reach the device. `rejected`: the carrier or platform refused the message. `opted_out`: the recipient opted out of the channel. On Didit's shared WhatsApp number two opt-outs can apply: a STOP to the shared number blocks it for every organization that sends from it, while an organization's own opt-out blocks only that organization. The code alone does not say which one blocked the attempt. `expired`: `expires_at` passed before it could go out. `template_required`: WhatsApp only delivers an approved WhatsApp template. `channel_unavailable`: the channel is switched off, not configured, not in your contract or locked until a paid plan or your first top-up. `insufficient_credits`: the balance does not cover it. `rate_limited`: throttled and retries ran out. `delivery_unconfirmed`: the outcome is unknown and it is not sent again automatically. `cancelled`: cancelled before its time. `template_channel_missing`, `template_variable_missing`, `empty_body`, `body_too_long`: the content cannot go out on this channel. `unknown`: any other failure. */
+  /** `invalid_recipient`: the address is not valid for the channel, or the number has no account on it. `unreachable`: the carrier could not reach the device. `rejected`: the carrier or platform refused the message. `opted_out`: the recipient opted out of the channel (STOP, or on Telegram blocking the bot). On Didit's shared WhatsApp number two opt-outs can apply: a STOP to the shared number blocks it for every organization that sends from it, while an organization's own opt-out blocks only that organization. The code alone does not say which one blocked the attempt. `expired`: `expires_at` passed before it could go out. `template_required`: WhatsApp only delivers an approved WhatsApp template. `telegram_not_connected`: Telegram: the recipient never opted in through one of your opt-in links, or the chat is gone. `channel_unavailable`: the channel is switched off, not configured, not in your contract or locked until a paid plan or your first top-up. `insufficient_credits`: the balance does not cover it. `rate_limited`: throttled and retries ran out. `delivery_unconfirmed`: the outcome is unknown and it is not sent again automatically. `cancelled`: cancelled before its time. `template_channel_missing`, `template_variable_missing`, `empty_body`, `body_too_long`: the content cannot go out on this channel. `unknown`: any other failure. */
   code:
     | "invalid_recipient"
     | "unreachable"
@@ -6051,6 +6051,7 @@ export interface MessageError {
     | "opted_out"
     | "expired"
     | "template_required"
+    | "telegram_not_connected"
     | "channel_unavailable"
     | "insufficient_credits"
     | "rate_limited"
@@ -6081,7 +6082,7 @@ export interface MessageList {
   results: Message[];
 }
 
-/** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost; `fee` is Didit's fee with your plan's discount. Both are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` while the amount is an estimate, before the carrier's delivery report gives the real price. */
+/** What the message costs, in `currency`. `carrier` is the carrier's or WhatsApp's part, passed through at cost. `fee` is Didit's fee with your plan's discount. When a contract rate card prices a live Telegram message, both are `null`. For all other live Telegram rates, including a negotiated rate, `carrier` is `0.0000` and `fee` equals `amount`. On other channels both fields are `null` when one flat amount prices the message (email, or a contract or negotiated rate). `final` is `false` for an estimate and `true` once the amount is billed. */
 export interface MessagePrice {
   /** Total price, carrier and fee included. */
   amount: string;
@@ -13175,6 +13176,12 @@ export interface SocialFootprintProfile {
   privacy_status?: "PUBLIC" | "PRIVATE" | (string & {}) | null;
   /** Whether the profile is a business account, when the platform exposes it. */
   business_account?: boolean | null;
+}
+
+export interface TelegramLink {
+  /** `https://t.me/<bot>?start=<token>`. Show it, or a QR code of it, to the person: single use, and the person must share the phone number of `to`. */
+  url: string;
+  expires_at: Date;
 }
 
 /** Full monitoring record for one transaction, as returned by `GET /v3/transactions/{transaction_id}/` and `POST /v3/transactions/`. */

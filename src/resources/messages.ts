@@ -21,6 +21,7 @@ import type {
   MessagesSettings,
   MessagingConfiguration,
   MessagingConfigurationList,
+  TelegramLink,
 } from "../types/components.js";
 import type {
   MessagesCapabilitiesRetrieveParams,
@@ -37,6 +38,7 @@ import type {
   MessagesRulesCreateParams,
   MessagesRulesCreateResponse,
   MessagesSendParams,
+  MessagesTelegramLinksCreateParams,
   MessagesTemplatesListParams,
   MessagesTemplatesUpdateParams,
   MessagesUpdateSettingsParams,
@@ -107,6 +109,12 @@ const MESSAGES_RULES_CREATE: OperationSpec = {
   method: "POST",
   path: "/v3/messages/rules/",
   body: "json",
+};
+const MESSAGES_TELEGRAM_LINKS_CREATE: OperationSpec = {
+  method: "POST",
+  path: "/v3/messages/telegram/links/",
+  body: "json",
+  dates: "TelegramLink",
 };
 const MESSAGES_TEMPLATES_DELETE: OperationSpec = {
   method: "DELETE",
@@ -463,6 +471,33 @@ export class MessagesRules extends APIResource {
   }
 }
 
+/** `messages.telegram_links` */
+export class MessagesTelegramLinks extends APIResource {
+  /**
+   * Create a Telegram opt-in link
+   *
+   * Telegram reaches only people who opted in. Create a single-use link for one phone number and show it (or a QR code of it) to the person, for example on your order page or in a first SMS.
+   *
+   * By default, the link opens Didit's shared Telegram bot. If your application has connected its own bot, omitting `from` opens that bot instead. To choose a bot explicitly, set `from` to your registered Telegram sender ID for your own bot or to `didit-telegram` for Didit's shared bot.
+   *
+   * 1. The person taps the link and Start in Telegram. The bot says which application wants to message them and asks them to share their phone number (Telegram's contact button).
+   * 2. The chat is linked only when the contact is the person's own and its number is `to`. Didit stores the chat id for your application and that number, never the person's Telegram name or username; it also records when the link was used and when the chat was last used.
+   * 3. `POST /v3/messages/` with `channels: ["telegram", "sms"]` then sends on Telegram.
+   *
+   * `/stop` in the chat, or blocking the bot, puts the number on your organization's Telegram list of recipients who opted out (every application of the organization); `/start` turns it back on.
+   *
+   * A scoped API key needs write access to messages.
+   *
+   * `POST /v3/messages/telegram/links/`
+   */
+  create(
+    params: MessagesTelegramLinksCreateParams,
+    options?: RequestOptions,
+  ): APIPromise<TelegramLink> {
+    return this._client.request(MESSAGES_TELEGRAM_LINKS_CREATE, [], params, options);
+  }
+}
+
 /** `messages.templates` */
 export class MessagesTemplates extends APIResource {
   /**
@@ -545,6 +580,7 @@ export class Messages extends APIResource {
   readonly conversations: MessagesConversations = new MessagesConversations(this._client);
   readonly feedback: MessagesFeedback = new MessagesFeedback(this._client);
   readonly rules: MessagesRules = new MessagesRules(this._client);
+  readonly telegramLinks: MessagesTelegramLinks = new MessagesTelegramLinks(this._client);
   readonly templates: MessagesTemplates = new MessagesTemplates(this._client);
 
   /**
@@ -596,7 +632,9 @@ export class Messages extends APIResource {
   /**
    * List message prices for a country
    *
-   * What one message costs your organization on each channel to a country: SMS per segment (carrier price plus Didit's fee), WhatsApp per message (WhatsApp's utility rate plus Didit's fee from Didit's number; from your own connected WhatsApp Business account, `carrier` is `0.0000`: WhatsApp bills its rate to your account directly and Didit charges only its fee), email flat. Your plan's discount is applied to the fee. The SMS carrier part is an estimate; the billed one is the price the carrier reports.
+   * What one message costs your organization on each channel to a country: SMS per segment (carrier price plus Didit's fee), WhatsApp per message (WhatsApp's utility rate plus Didit's fee from Didit's number; from your own connected WhatsApp Business account, `carrier` is `0.0000`: WhatsApp bills its rate to your account directly and Didit charges only its fee), Telegram per message, email flat. Your plan's discount is applied to the fee. The SMS carrier part is an estimate; the billed one is the price the carrier reports.
+   *
+   * For a standard Telegram quote, `carrier` is `0.0000` and `fee` equals `price`. If your organization uses a contract rate card, read the Telegram total from `price`. The `carrier` and `fee` are both `null`.
    *
    * A scoped API key needs read access to messages.
    *
@@ -640,19 +678,23 @@ export class Messages extends APIResource {
   /**
    * Send a message
    *
-   * Send a transactional SMS, WhatsApp or email message to a phone number or an email address, now or scheduled, from one of your templates or as free text. Free text goes out on SMS and email; WhatsApp delivers only an approved template, except inside a 24-hour reply window (the person wrote to you first), so a message that lists WhatsApp uses `template_id` for it to go out there.
+   * Send a transactional SMS, WhatsApp, Telegram or email message to a phone number or an email address, now or scheduled, from one of your templates or as free text. Free text goes out on SMS, email and Telegram; WhatsApp delivers only an approved template, except inside a 24-hour reply window (the person wrote to you first), so a message that lists WhatsApp uses `template_id` for it to go out there.
    *
-   * **Fallback.** List several `channels`: each is tried in order, and the next one is used when a channel cannot take the message (switched off, the recipient opted out, no approved WhatsApp template, balance) or when the message fails on it later (rejected, undeliverable, expired). Every attempt is in `attempts`; a skipped channel is a `failed` attempt with its `error` and no price.
+   * **Fallback.** List several `channels`: each is tried in order, and the next one is used when a channel cannot take the message (switched off, the recipient opted out, no approved WhatsApp template, no connected Telegram chat, balance) or when the message fails on it later (rejected, undeliverable, expired). Every attempt is in `attempts`; a skipped channel is a `failed` attempt with its `error` and no price.
    *
-   * **Statuses** reach your webhook destinations subscribed to `message.status.updated`.
+   * **Statuses** reach your webhook destinations subscribed to `message.status.updated`; a reply from the person reaches `message.received` (WhatsApp and Telegram) and a change of their consent `contact.consent.updated`.
    *
-   * **Replies on Didit's shared WhatsApp number.** Many organizations send from this number, so a reply reaches an organization only when the person replies to (quotes) that organization's message. An unquoted reply reaches no organization and gets no automatic answer; for two-way conversations, connect your own WhatsApp number. The one exception is an unquoted STOP, which is also recorded in the thread of the organization that wrote to the person last, so that organization sees the opt-out; an unquoted START is recorded in no organization's thread. STOP and START always apply, quoted or not: a recipient who replies STOP to the shared number is opted out of the messages that go out from it for every organization that sends from it, not only the one whose message they answered. The WhatsApp attempt to them is skipped with the error `opted_out`: the next channel in `channels` takes the message when it can (the request still succeeds, and the skipped attempt shows `opted_out` in `attempts`), and a request with no channel left is refused. A reply of START to Didit's shared number lifts the shared-number opt-out; when the START quotes (replies to) an organization's message it also lifts that organization's own opt-out, and an unquoted START lifts no organization's own opt-out. So after an unquoted START an organization's own opt-out can still answer `opted_out`; only the shared-number opt-out ever applies to every organization. A WhatsApp number you connect yourself keeps consent per organization: a STOP to it only affects your own sends; a reply from the person reaches `message.received` (WhatsApp and Telegram) and a change of their consent `contact.consent.updated`.
+   * **Replies on Didit's shared WhatsApp number.** Many organizations send from this number, so a reply reaches an organization only when the person replies to (quotes) that organization's message. An unquoted reply reaches no organization and gets no automatic answer; for two-way conversations, connect your own WhatsApp number. The one exception is an unquoted STOP, which is also recorded in the thread of the organization that wrote to the person last, so that organization sees the opt-out; an unquoted START is recorded in no organization's thread. STOP and START always apply, quoted or not: a recipient who replies STOP to the shared number is opted out of the messages that go out from it for every organization that sends from it, not only the one whose message they answered. The WhatsApp attempt to them is skipped with the error `opted_out`: the next channel in `channels` takes the message when it can (the request still succeeds, and the skipped attempt shows `opted_out` in `attempts`), and a request with no channel left is refused. A reply of START to Didit's shared number lifts the shared-number opt-out; when the START quotes (replies to) an organization's message it also lifts that organization's own opt-out, and an unquoted START lifts no organization's own opt-out. So after an unquoted START an organization's own opt-out can still answer `opted_out`; only the shared-number opt-out ever applies to every organization. A WhatsApp number you connect yourself keeps consent per organization: a STOP to it only affects your own sends.
    *
-   * **Billing.** SMS: the carrier's price plus Didit's fee, per segment. WhatsApp from Didit's number: WhatsApp's rate for the market plus Didit's fee; from your own connected WhatsApp Business account, WhatsApp bills its rate to your account directly and Didit charges only its fee. Email: a flat price. Your plan's discount applies to the fee, never to the carrier's or WhatsApp's part. A failed SMS or WhatsApp attempt, a skipped one and a cancelled one are free; an email is charged once the receiving mail system accepts it, so an email that bounces later is charged. SMS and WhatsApp open with a paid plan or after your first top-up (`403 plan_locked`); a sandbox application simulates every message and charges nothing. See the [prices per country](/getting-started/pricing).
+   * **Billing.** SMS: the carrier's price plus Didit's fee, per segment. WhatsApp from Didit's number: WhatsApp's rate for the market plus Didit's fee; from your own connected WhatsApp Business account, WhatsApp bills its rate to your account directly and Didit charges only its fee. Telegram: Didit's fee alone (USD 0.02; USD 0.008 to the United States, USD 0.007 to Canada), charged when Telegram accepts the message; Telegram sends no delivery report, so a message Telegram accepts stops at `sent` and never becomes `delivered` or `read`. Email: a flat price. Your plan's discount applies to the fee, never to the carrier's or WhatsApp's part. A failed SMS, WhatsApp or Telegram attempt, a skipped one and a cancelled one are free; an email is charged once the receiving mail system accepts it, so an email that bounces later is charged. SMS, WhatsApp and Telegram open with a paid plan or after your first top-up (`403 plan_locked`); a sandbox application simulates every message and charges nothing. See the [prices per country](/getting-started/pricing); Telegram prices are listed by `GET /v3/messages/prices/`.
    *
    * **Retention.** Didit erases a message's text and recipient `retention_days` after its last event (created, sent, delivered, read, failed or cancelled; 30 days unless you set another value with `PATCH /v3/messages/settings/`); the message itself, its status, channel, country, segments, price and timestamps stay, so lists and invoices still add up. A message still waiting to go out (`scheduled`, `queued`, `sending`) keeps them until it goes out; one cancelled before it went out counts from its cancellation. A request no channel can take is refused and nothing of it is stored. To erase a message sooner, delete it with `DELETE /v3/messages/{message_id}/` once it went out or ended: cancel a `scheduled` message first; a `queued` or `sending` one settles within seconds.
    *
    * A scoped API key needs write access to messages.
+   *
+   * **Callback URL.** Give `callback_url` to receive this message's status events at a URL of your own, besides your webhook destinations.
+   *
+   * **Telegram.** Telegram reaches only people who opted in: create an opt-in link with `POST /v3/messages/telegram/links/`, show it to the person, and once they tapped Start and shared their phone number with the bot, `channels: ["telegram", "sms"]` sends on Telegram and falls back to SMS for a number that never connected (`telegram_not_connected`) or opted out. A sandbox application simulates every message, so it reports the Telegram attempt as sent even when no chat is connected and never exercises the fallback; test that fallback on a live application. Telegram carries text only; Didit's verification codes never go through this API.
    *
    * `POST /v3/messages/`
    *

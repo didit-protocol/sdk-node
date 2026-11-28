@@ -400,6 +400,25 @@ describe("messages", () => {
     expectMatchesExample(result, responseExample("POST /v3/messages/"));
   });
 
+  it("messages.telegram_links.create: POST /v3/messages/telegram/links/", async () => {
+    const { client, calls } = mockClient({
+      status: 201,
+      json: responseExample("POST /v3/messages/telegram/links/"),
+    });
+    const result = await client.messages.telegramLinks.create({ to: "value" });
+    expect(calls).toHaveLength(1);
+    const request = calls[0]!;
+    expect(request.method).toBe("POST");
+    expect(request.origin).toBe(API_ORIGIN);
+    expect(request.path).toBe("/v3/messages/telegram/links/");
+    expect(request.query).toEqual({});
+    expectAuth(request, "api_key");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.contentType).toBe("application/json");
+    expect(request.json).toEqual({ to: "value" });
+    expectMatchesExample(result, responseExample("POST /v3/messages/telegram/links/"));
+  });
+
   it("messages.templates.delete: DELETE /v3/messages/templates/{template_id}/", async () => {
     const { client, calls } = mockClient({ status: 204 });
     await client.messages.templates.delete("template-id-1");
