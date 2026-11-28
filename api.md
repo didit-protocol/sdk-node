@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 544 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 545 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -482,6 +482,12 @@ Every method of `@didit-protocol/sdk-node`: 544 methods, generated from `openapi
 | Method                                                           | HTTP                       | Returns                       | Notes            |
 | ---------------------------------------------------------------- | -------------------------- | ----------------------------- | ---------------- |
 | `didit.messages.rules.create(params: MessagesRulesCreateParams)` | `POST /v3/messages/rules/` | `MessagesRulesCreateResponse` | `idempotencyKey` |
+
+## `didit.messages.telegramLinks`
+
+| Method                                                                           | HTTP                                | Returns        | Notes |
+| -------------------------------------------------------------------------------- | ----------------------------------- | -------------- | ----- |
+| `didit.messages.telegramLinks.create(params: MessagesTelegramLinksCreateParams)` | `POST /v3/messages/telegram/links/` | `TelegramLink` |       |
 
 ## `didit.messages.templates`
 

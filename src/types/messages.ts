@@ -147,7 +147,7 @@ export interface MessagesListParams {
     | "cancelled"
     | (string & {});
   /** The channel of the latest attempt. */
-  channel?: "sms" | "whatsapp" | "email" | (string & {});
+  channel?: "sms" | "whatsapp" | "telegram" | "email" | (string & {});
   /** Recipient, exact. A message whose recipient was erased is not found by it. */
   to?: string;
   correlation_id?: string;
@@ -179,15 +179,15 @@ export interface MessagesRulesCreateResponse {
 
 /** Send exactly one of `body` or `template_id`: a request with both, or with neither, returns `400`. */
 export interface MessagesSendParams {
-  /** Recipient: an E.164 phone number (`+447700900123`), or an email address for email. */
+  /** Recipient: an E.164 phone number (`+447700900123`) for SMS, WhatsApp and Telegram, or an email address for email. */
   to: string;
   /** The email address for the `email` channel when `to` is a phone number. */
   to_email?: string;
   /** Channels to try, in order. The next one is used when a channel cannot take the message (switched off, opted out, no approved WhatsApp template...) or the message fails on it. Default `["sms"]` for a phone number, `["email"]` for an email address. */
-  channels?: ("sms" | "whatsapp" | "email" | (string & {}))[];
-  /** Free text, sent as written, for SMS and email. On WhatsApp free text goes out only inside a 24-hour reply window (the person wrote to you first); outside it WhatsApp delivers only an approved template, so use `template_id`, or a free-text WhatsApp attempt falls back to the next channel. Limits: SMS 1,000, WhatsApp 4,096, email 10,000 characters. */
+  channels?: ("sms" | "whatsapp" | "telegram" | "email" | (string & {}))[];
+  /** Free text, sent as written, for SMS, Telegram and email. On WhatsApp free text goes out only inside a 24-hour reply window (the person wrote to you first); outside it WhatsApp delivers only an approved template, so use `template_id`, or a free-text WhatsApp attempt falls back to the next channel. Limits: SMS 1,000, WhatsApp 4,096, Telegram 4,096, email 10,000 characters. Telegram sends no formatting: the text is what the person reads. */
   body?: string;
-  /** One of your message templates; each channel uses the template's text for that channel. */
+  /** One of your message templates; each channel uses the template's text for that channel (Telegram uses its SMS text, without the opt-out line). */
   template_id?: string;
   /** Values for the template's `{{variables}}`. Every variable of the text used needs one. */
   variables?: Record<string, string>;
@@ -209,6 +209,15 @@ export interface MessagesSendParams {
 export interface MessagesSendParamsOptions {
   /** SMS only. `true` ends the text with the opt-out line in its language ("Reply STOP to opt out."). STOP and START replies are honoured either way. */
   append_opt_out_line?: boolean;
+}
+
+export interface MessagesTelegramLinksCreateParams {
+  /** The person's phone number in E.164 format (`+447700900123`). */
+  to: string;
+  /** Seconds the link stays valid: 60 to 604,800 (7 days). Default 86,400 (24 hours). */
+  expires_in?: number;
+  /** The id of one of your registered Telegram senders (`GET /v3/messages/senders/`) whose bot the link opens. Pass Didit's sender (`didit-telegram`) to let a person opt in to it while you have your own bot connected. Omitted, the link opens your default Telegram sender. An unregistered sender is refused with `sender_not_found`. */
+  from?: string;
 }
 
 export interface MessagesTemplatesListParams {
