@@ -8,6 +8,7 @@ import type {
   BankVerificationCountryCoverage,
   BankVerificationCoverage,
   BankVerificationPricing,
+  KYBRegistryPricing,
   PublicPriceBook,
 } from "../types/components.js";
 
@@ -27,6 +28,11 @@ const PRICING_BANK_VERIFICATION_COVERAGE: OperationSpec = {
   path: "/v3/organization/bank-verification-coverage/",
   auth: "none",
   dates: "BankVerificationCoverage",
+};
+const PRICING_KYB_REGISTRY: OperationSpec = {
+  method: "GET",
+  path: "/v3/organization/kyb-registry-pricing/",
+  auth: "none",
 };
 const PRICING_PRICE_BOOK: OperationSpec = {
   method: "GET",
@@ -83,6 +89,23 @@ export class Pricing extends APIResource {
    */
   bankVerificationCoverage(options?: RequestOptions): APIPromise<BankVerificationCoverage> {
     return this._client.request(PRICING_BANK_VERIFICATION_COVERAGE, [], undefined, options);
+  }
+
+  /**
+   * Get KYB registry prices by country (public, unauthenticated)
+   *
+   * Returns the list price of a KYB registry check in every country, for each data tier: Lite (`basic`), Shareholders (`shareholders`) and UBOs (`ubo`), plus continuous registry monitoring. Use it to quote a registry step before you build a workflow, or to show KYB prices in your own product.
+   *
+   * Public: send no auth header. The response contains no organization data and is the same for every caller. It is cached publicly for one hour and carries an `ETag`, so send `If-None-Match` to get a `304 Not Modified` when nothing changed.
+   *
+   * The response is an object keyed by country code: every ISO 3166-1 alpha-2 code, plus `XK` for Kosovo, which ISO 3166-1 does not assign. A tier with `available: false` cannot be selected for that country even though it shows a price. Monitoring is priced per company per year and reads `available: false` wherever it is not offered yet.
+   *
+   * A company that cannot be found and is entered manually is billed the flat manual entry price on the [KYB registry pricing](/getting-started/kyb-registry-pricing) page, which this feed does not list. These are list prices before your plan discount, which applies to the whole registry price; a negotiated or contract price replaces the list price for your organization.
+   *
+   * `GET /v3/organization/kyb-registry-pricing/`
+   */
+  kybRegistry(options?: RequestOptions): APIPromise<KYBRegistryPricing> {
+    return this._client.request(PRICING_KYB_REGISTRY, [], undefined, options);
   }
 
   /**

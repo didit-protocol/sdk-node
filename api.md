@@ -2,7 +2,7 @@
 
 # API reference
 
-Every method of `@didit-protocol/sdk-node`: 543 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
+Every method of `@didit-protocol/sdk-node`: 544 methods, generated from `openapi/`. Path parameters are positional, the other fields go in one `params` object, and every method takes request options as its last argument. Every type named here is exported from the package. _Application scoped_ methods need the `organizationId` and `applicationId` client options; a _page_ can be iterated with `for await`. Webhook verification and Authentication are described in the README.
 
 ## `didit.account`
 
@@ -718,6 +718,7 @@ Every method of `@didit-protocol/sdk-node`: 543 methods, generated from `openapi
 | `didit.pricing.bankVerification()`                       | `GET /v3/organization/bank-verification-pricing/`            | `BankVerificationPricing`         |       |
 | `didit.pricing.bankVerificationCountryCoverage(country)` | `GET /v3/organization/bank-verification-coverage/{country}/` | `BankVerificationCountryCoverage` |       |
 | `didit.pricing.bankVerificationCoverage()`               | `GET /v3/organization/bank-verification-coverage/`           | `BankVerificationCoverage`        |       |
+| `didit.pricing.kybRegistry()`                            | `GET /v3/organization/kyb-registry-pricing/`                 | `KYBRegistryPricing`              |       |
 | `didit.pricing.priceBook()`                              | `GET /v3/organization/price-book/`                           | `PublicPriceBook`                 |       |
 
 ## `didit.proofOfAddress`
