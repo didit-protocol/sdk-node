@@ -187,7 +187,7 @@ export interface SessionsCreateKybPartyDraftParams {
   company_name?: string;
   /** Registration number of a company party. */
   registration_number?: string;
-  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  /** Where the verification link is sent. Required at submission for a party that must complete verification when the workflow sends links by email. With notifications off, email is optional unless the workflow separately requires the field or distinct addresses are needed to distinguish ambiguous same-name people. */
   email?: string;
   /** Share of the company the party owns. */
   ownership_percent?: number | null;
@@ -264,7 +264,7 @@ export interface SessionsCreateKybPartyDraftResponseParty {
   company_name?: string;
   /** Registration number of a company party. */
   registration_number?: string;
-  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  /** Where the verification link is sent. Required at submission for a party that must complete verification when the workflow sends links by email. With notifications off, email is optional unless the workflow separately requires the field or distinct addresses are needed to distinguish ambiguous same-name people. */
   email?: string;
   /** Share of the company the party owns. */
   ownership_percent?: number | null;
@@ -948,7 +948,7 @@ export interface SessionsListKybPartyDraftsResponsePartiesParty {
   company_name?: string;
   /** Registration number of a company party. */
   registration_number?: string;
-  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  /** Where the verification link is sent. Required at submission for a party that must complete verification when the workflow sends links by email. With notifications off, email is optional unless the workflow separately requires the field or distinct addresses are needed to distinguish ambiguous same-name people. */
   email?: string;
   /** Share of the company the party owns. */
   ownership_percent?: number | null;
@@ -1789,7 +1789,7 @@ export interface SessionsUpdateKybPartyDraftParams {
   company_name?: string;
   /** Registration number of a company party. */
   registration_number?: string;
-  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  /** Where the verification link is sent. Required at submission for a party that must complete verification when the workflow sends links by email. With notifications off, email is optional unless the workflow separately requires the field or distinct addresses are needed to distinguish ambiguous same-name people. */
   email?: string;
   /** Share of the company the party owns. */
   ownership_percent?: number | null;
@@ -1866,7 +1866,7 @@ export interface SessionsUpdateKybPartyDraftResponseParty {
   company_name?: string;
   /** Registration number of a company party. */
   registration_number?: string;
-  /** Where the verification link is sent. Required when the party has to complete verification, which depends on the role settings and ownership thresholds of the workflow. */
+  /** Where the verification link is sent. Required at submission for a party that must complete verification when the workflow sends links by email. With notifications off, email is optional unless the workflow separately requires the field or distinct addresses are needed to distinguish ambiguous same-name people. */
   email?: string;
   /** Share of the company the party owns. */
   ownership_percent?: number | null;
