@@ -3853,12 +3853,14 @@ export interface DigitalIdWalletApiWalletVerificationResult {
    * * `failed` - Failed
    */
   outcome: DigitalIdWalletApiWalletVerificationResultOutcomeEnum;
+  /** Stable machine-readable code when the sign-in did not complete. For UAE PASS, `client_changed` means the application's own UAE PASS client was disabled, deleted or replaced while the person was signing in: the sign-in fails and the workflow's fallback applies. */
   error: string | null;
   interaction: DigitalIdWalletApiInteractionEnum;
   simulated: boolean;
   expires_at: Date;
   next_action: DigitalIdWalletApiWalletNextAction | null;
   identity: DigitalIdWalletApiWalletIdentity | null;
+  /** The attributes the wallet shared, keyed as the wallet's catalog entry lists them. A UAE PASS sign-in returns the verified identity attributes `name_ar`, `emirates_id_number` (absent for visitors), `nationality`, `gender`, `document_type`, `document_issue_date`, `document_expiry_date` and `user_type` (`SOP2` or `SOP3`), alongside the normalized `full_name` and `date_of_birth`, and never the UAE PASS UUID. */
   attributes: Record<string, unknown> | null;
   level_of_assurance: string | null;
   verified_at: Date | null;
@@ -10006,7 +10008,7 @@ export interface SessionDecisionIdVerifications {
   fallback_from?: SessionDecisionIdVerificationsFallbackFrom | null;
   /** Registry evidence. Present only when `verification_method` is `id_lookup`; `null` otherwise. */
   id_lookup?: SessionDecisionIdVerificationsIdLookup | null;
-  /** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. UAE PASS (`provider` `uae_pass`) is outcome only: the identity fields of this ID verification (`full_name`, `first_name`, `last_name`, `date_of_birth`, `nationality`, the document numbers) stay `null`, `attributes` holds only whether each detail declared in `expected_details` matched, and nothing UAE PASS shared about the person is returned or kept. */
+  /** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. A UAE PASS sign-in (`provider` `uae_pass`) returns the verified identity like every other wallet: the identity fields of this ID verification carry what UAE PASS verified, and `attributes` holds its extra attributes. */
   wallet_verification?: SessionDecisionIdVerificationsWalletVerification | null;
   /** Feature-level status of this ID verification step. Independent of the top-level session `status` - a session can reach its overall decision while an individual feature stays `In Review`. */
   status?: "Not Finished" | "Approved" | "Declined" | "In Review" | "Expired" | (string & {});
@@ -10437,7 +10439,7 @@ export interface SessionDecisionIdVerificationsParsedAddressRawResultsNavigation
   longitude?: number;
 }
 
-/** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. UAE PASS (`provider` `uae_pass`) is outcome only: the identity fields of this ID verification (`full_name`, `first_name`, `last_name`, `date_of_birth`, `nationality`, the document numbers) stay `null`, `attributes` holds only whether each detail declared in `expected_details` matched, and nothing UAE PASS shared about the person is returned or kept. */
+/** Credential evidence. Present only when `verification_method` is `wallet`; `null` otherwise. A UAE PASS sign-in (`provider` `uae_pass`) returns the verified identity like every other wallet: the identity fields of this ID verification carry what UAE PASS verified, and `attributes` holds its extra attributes. */
 export interface SessionDecisionIdVerificationsWalletVerification {
   /** Catalog wallet id, e.g. `mitid`. */
   provider?: string;
@@ -10455,7 +10457,7 @@ export interface SessionDecisionIdVerificationsWalletVerification {
   verified_at?: Date | null;
   /** Whether the signed assertion the wallet returned validated. */
   signature_valid?: boolean | null;
-  /** The attributes the wallet shared, keyed as the wallet's catalog entry lists them. For UAE PASS only the comparison with `expected_details`, one key per declared detail, each `match` or `no_match`: `name_match` (`first_name` / `last_name`), `date_of_birth_match` and `identification_number_match` (the Emirates ID number). A declared detail that does not match also raises the expected-details warning (`FULL_NAME_MISMATCH_WITH_PROVIDED`, `DOB_MISMATCH_WITH_PROVIDED` or `IDENTIFICATION_NUMBER_MISMATCH_WITH_PROVIDED`), handled by the workflow's expected-details mismatch action. */
+  /** The attributes the wallet shared, keyed as the wallet's catalog entry lists them. A UAE PASS sign-in returns the verified identity attributes `name_ar`, `emirates_id_number` (absent for visitors), `nationality`, `gender`, `document_type`, `document_issue_date`, `document_expiry_date` and `user_type` (`SOP2` or `SOP3`), alongside the normalized `full_name` and `date_of_birth`, and never the UAE PASS UUID. Declared `expected_details` stay optional: when a session declares them, a verified identity that contradicts them raises the expected-details warning (`FULL_NAME_MISMATCH_WITH_PROVIDED`, `DOB_MISMATCH_WITH_PROVIDED` or `IDENTIFICATION_NUMBER_MISMATCH_WITH_PROVIDED`), handled by the workflow's expected-details mismatch action. */
   attributes?: Record<string, unknown>;
   /** Short-lived presigned URL to the portrait the wallet shared, where it shares one. */
   portrait?: string | null;
@@ -13099,7 +13101,7 @@ export interface SimpleWorkflowFeature {
     | "KYB_KEY_PEOPLE"
     | "SIGNATURE"
     | (string & {});
-  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `BANK_VERIFICATION`, `bank_countries` is a whitelist: an empty map offers no bank and runs no check; see [Bank Verification](/management-api/workflows/feature-configs#bank-verification) for every key. The node is accepted only on an account where Bank Verification is enabled. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed), `aes` and `qes` (Qualified, an add-on that is refused with `qes_not_available` while `signature_availability.qes` is `false`), and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. */
+  /** Feature-specific settings. For `QUESTIONNAIRE`, include `questionnaire_uuid` with the `questionnaire_id` returned by the questionnaire create endpoint. For `SIGNATURE`, a workflow that goes live needs a document to sign: set `signature_documents_source` to `session` or `both` so each session can bring its own, or send `status: "draft"` and add the documents before you publish. `signature_level: "aes"` is refused with `aes_not_available` while `signature_availability.aes` is `false` on the workflow. For `BANK_VERIFICATION`, `bank_countries` is a whitelist: an empty map offers no bank and runs no check; see [Bank Verification](/management-api/workflows/feature-configs#bank-verification) for every key. The node is accepted only on an account where Bank Verification is enabled. For `OCR`, `methods` selects which ID Verification methods each country may use (document capture, non-doc lookup against a government or other authoritative source, and digital identity wallets); omit it and every country is document capture only. For `SIGNATURE`, see [E-signature settings](/management-api/workflows/feature-configs#e-signature): `signature_level` accepts `simple` (the default, no ID verification, email or phone needed), `aes` and `qes` (Qualified, an add-on that is refused with `qes_not_available` while `signature_availability.qes` is `false`), and workflow documents and their fields are managed in the console, so through the API send documents and fields per session with `signature_documents_source: "session"`. For `OCR`, `methods.<ISO3>.wallet.providers` may list a wallet that requires onboarding (UAE PASS) before Didit activates it for your application, on create and on update: the workflow keeps it as configured and sessions are offered it only while it is active. */
   config?: Record<string, unknown>;
   /** Optional internal label for this workflow node. */
   label?: string;
