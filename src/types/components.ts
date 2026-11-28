@@ -2454,6 +2454,12 @@ export interface BlocklistedItem {
   email: string | null;
 }
 
+/** `brand` (default for new and existing customizations) uses your colors on every device. `match_device` uses your colors on light devices and a dark background with your branding on dark devices. `dark` uses the dark background with your branding on every device. Without custom colors, the default Didit look follows the device for all three values. */
+export type BrandingAppearance = "brand" | "match_device" | "dark" | (string & {});
+
+/** Omit this field to keep the saved appearance. */
+export type BrandingAppearanceUpdate = "brand" | "match_device" | "dark" | (string & {});
+
 /** White-label branding for an application: colors, fonts, radii, logo URLs and UI/UX options. Logo URLs are read-only (set them by uploading images). Custom domain and white-label email are not included. */
 export interface BrandingCustomization {
   color_primary?: string;
@@ -2469,6 +2475,8 @@ export interface BrandingCustomization {
   color_button_text_1?: string;
   color_button_text_2?: string;
   color_pill_text?: string;
+  /** `brand` (default for new and existing customizations) uses your colors on every device. `match_device` uses your colors on light devices and a dark background with your branding on dark devices. `dark` uses the dark background with your branding on every device. Without custom colors, the default Didit look follows the device for all three values. */
+  appearance: BrandingAppearance;
   border_radius_panel?: number;
   border_radius_buttons?: number;
   font_family?: string;
@@ -5597,6 +5605,18 @@ export interface KYBRegistryAddress {
   description: string | null;
 }
 
+/** KYB registry prices in one country. */
+export interface KYBRegistryCountryPricing {
+  /** English name of the country. */
+  name: string;
+  /** Whether Didit has checked the registry search and selection end to end against a real company record in this country. */
+  validated: boolean;
+  /** The price of each data tier in one country. */
+  tiers: KYBRegistryTierPrices;
+  /** Continuous registry monitoring, priced per company per year. */
+  monitoring: KYBRegistryTierPrice;
+}
+
 /** Didit's normalized registry detail for the company: the ownership outcome (`ownership_error`, `section_errors`, `ubo_resolution`, `lite_enrichment`), the corrections made with update-data, and registry facts that have no field of their own. It never carries the registry source's own record. Every key is optional and present only when the company has a value for it; new keys may be added. Read the canonical fields (`addresses`, `industries`, `ownership`, `beneficial_owners[].shareholding`) for anything they cover. */
 export interface KYBRegistryData {
   /** Company name as corrected in the console. */
@@ -5742,6 +5762,9 @@ export interface KYBRegistryOwnershipUnresolved {
   section?: string | null;
 }
 
+/** KYB registry list prices, keyed by country code: every ISO 3166-1 alpha-2 code plus `XK` for Kosovo. */
+export type KYBRegistryPricing = Record<string, KYBRegistryCountryPricing>;
+
 export interface KYBRegistrySearchResults {
   /** Deduplicated candidate list. Empty while `search_resolved=false` (webhook mode) or when nothing matched. */
   companies?: KYBRegistrySearchResultsCompanies[];
@@ -5806,6 +5829,24 @@ export interface KYBRegistrySource {
   name: string;
   /** Always `official`. */
   source_type: "official" | (string & {});
+}
+
+/** The list price of one KYB registry tier, or of monitoring, in one country. */
+export interface KYBRegistryTierPrice {
+  /** Whether it can be selected in this country today. When `false`, `price_usd` still shows the configured price, but it cannot be bought. */
+  available: boolean;
+  /** List price in USD, as a decimal string with two decimals. */
+  price_usd: string;
+}
+
+/** The price of each data tier in one country. */
+export interface KYBRegistryTierPrices {
+  /** Lite: the company profile and its officers. */
+  basic: KYBRegistryTierPrice;
+  /** Lite plus the direct shareholders. */
+  shareholders: KYBRegistryTierPrice;
+  /** Shareholders plus the ultimate beneficial owners. */
+  ubo: KYBRegistryTierPrice;
 }
 
 /** How the UBO tier walked the ownership chain above the company. */
