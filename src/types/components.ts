@@ -7764,6 +7764,8 @@ export interface PhoneIntelligence {
   phone_trust_index?: number | null;
   /** Stability of the line's network. */
   network_stability_index?: number | null;
+  /** Whether the line could be reached on its network at the time of the lookup: `reachable`, `unreachable` or `unknown`. `null` when reachability was not checked. */
+  reachability?: "reachable" | "unreachable" | "unknown" | (string & {}) | null;
   /** `true` when the number looks disposable or virtual. */
   is_disposable?: boolean | null;
   /** `true` when the number has moved carrier. */
@@ -8012,7 +8014,13 @@ export interface PhoneRiskResponsePhone {
   country_name?: string;
   /** Current network serving the number. `null` when the lookup could not resolve a carrier. */
   carrier?: PhoneRiskResponsePhoneCarrier | null;
-  /** `true` when the number belongs to a temporary or burner number service. */
+  /** Carrier that first issued the number, before any port. Empty string when the lookup could not identify it. */
+  original_carrier?: string;
+  /** `true` when the number has moved from its original carrier to the current one. */
+  is_ported?: boolean;
+  /** `true` when the number is a valid, dialable number for its country. An invalid number is answered by the prefilter and is not billed. */
+  is_valid?: boolean;
+  /** `true` when the lookup identifies the number as temporary. Coverage varies, so a negative flag alone cannot rule out a temporary number. */
   is_disposable?: boolean;
   /** `true` when the line type is virtual (`voip`, `isp`, or `vpn`). */
   is_virtual?: boolean;
@@ -8032,13 +8040,13 @@ export interface PhoneRiskResponsePhone {
   phone_intelligence?: PhoneIntelligence;
   /** Normalized phone-intelligence block. Present only when the intelligence add-on ran for this lookup; when present it is also exposed under the `enrichment` alias with identical values. */
   enrichment?: PhoneIntelligence;
-  /** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
+  /** Social footprint of the phone number: the online platforms it is registered on. Returned when a requested social check completes. Request it with `tier: "social"` on a Phone Risk lookup, or with `enable_social: true` on a risk-tier lookup or Phone Verification check. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
   phone_social?: PhoneSocialFootprint | null;
 }
 
 /** Current network serving the number. `null` when the lookup could not resolve a carrier. */
 export interface PhoneRiskResponsePhoneCarrier {
-  /** Carrier name. Empty string when the lookup could not identify it. */
+  /** Current carrier name. Empty string when the lookup could not identify it. */
   name?: string;
   /** Line type reported by the lookup: `mobile`, `fixed_line`, `voip`, `isp`, `vpn`, `toll_free`, `premium_rate`, or similar. */
   type?: string;
@@ -8215,7 +8223,7 @@ export interface PhoneSilentRegistration {
   live_at: Date | null;
 }
 
-/** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
+/** Social footprint of the phone number: the online platforms it is registered on. Returned when a requested social check completes. Request it with `tier: "social"` on a Phone Risk lookup, or with `enable_social: true` on a risk-tier lookup or Phone Verification check. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
 export interface PhoneSocialFootprint {
   /** Platforms where the phone number is confirmed registered. */
   profiles_registered?: number | null;
@@ -8409,7 +8417,7 @@ export interface PhoneVerificationCheckResponsePhone {
   lifecycle?: PhoneVerificationCheckResponsePhoneLifecycle[];
   /** Other sessions of your application (KYC, KYB, or API) where the same phone number was used by a different user (different `vendor_data`). Up to 5 entries, a synthetic list-entry blocklist match first when present (session-derived matches keep query order). Empty array when there are no matches. */
   matches?: PhoneVerificationCheckResponsePhoneMatches[];
-  /** Social footprint of the phone number: the online platforms it is registered on. Present only when `enable_social` was set and the check completed. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
+  /** Social footprint of the phone number: the online platforms it is registered on. Returned when a requested social check completes. Request it with `tier: "social"` on a Phone Risk lookup, or with `enable_social: true` on a risk-tier lookup or Phone Verification check. Every count may be null when no data was returned for it. `profiles_registered: 0` means the platforms were checked and the phone number was found on none of them - a valid, billable answer and a common synthetic-identity signal. */
   phone_social?: PhoneSocialFootprint | null;
   /** Phone intelligence signals. Present only when `enable_enrichment` was `true` on the check. */
   phone_intelligence?: PhoneIntelligence;
