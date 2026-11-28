@@ -35,8 +35,10 @@ export interface PhoneAssessRiskBulkParams {
 }
 
 export interface PhoneAssessRiskParams {
-  /** Phone number to score. It is validated and normalized to E.164. */
+  /** Phone number to score. Normalized to E.164 when it can be parsed; a number that cannot be parsed or is invalid is accepted and answered with `phone.is_valid: false`, not rejected. */
   phone_number: string;
+  /** Lookup tier. `basic` ($0.006) reports line type, current carrier, porting status, country and validity. It identifies the original carrier and flags temporary numbers when that information is available. `risk` ($0.04, the default) adds the `phone_intelligence` block: the 0-100 risk score, reachability and network intelligence. `social` ($0.05) adds the `phone_social` block instead. An invalid number, or a fixed line where only mobile is allowed, is answered without a paid lookup and is not billed. */
+  tier?: "basic" | "risk" | "social" | (string & {});
   /** Optional ISO 3166-1 alpha-2 or alpha-3 country hint for intelligence coverage. */
   country_code?: string;
   /** Optional device and network context observed by your application. All fields are optional. Passing them feeds cross-session match detection in Networks. */
@@ -45,7 +47,7 @@ export interface PhoneAssessRiskParams {
   vendor_data?: string;
   /** Your non-sensitive JSON metadata. Stored on the API session and echoed in the response. */
   metadata?: Record<string, unknown> | null;
-  /** When true, also look up the social footprint of the number - the messaging, social, e-commerce and professional platforms it is registered on. Billed as one `phone_social` unit per request in addition to this endpoint's own price. */
+  /** On the `risk` tier only: when true, also return the `phone_social` block, billed as one `phone_social` unit ($0.05) on top of the $0.04 risk and intelligence lookup. To get the social profiles without the risk lookup, send `tier: "social"` instead. */
   enable_social?: boolean;
 }
 
